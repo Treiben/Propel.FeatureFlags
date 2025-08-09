@@ -62,16 +62,23 @@ public sealed class FeatureFlagEvaluator(
 		if (flag == null)
 		{
 			logger.LogDebug("Flag {FlagKey} not found in cache, checking repository", flagKey);
-			
+
 			// Fallback to repository
 			flag = await repository.GetAsync(flagKey, cancellationToken);
 			if (flag == null)
 			{
-				logger.LogDebug("Flag {FlagKey} not found in repository, returning disabled", flagKey);
-				return new EvaluationResult(isEnabled: false, variation: "off", reason: "Flag not found", metadata: []);;
-			}
+				logger.LogInformation("Flag {FlagKey} not found in repository, creating disabled flag", flagKey);
 
-			logger.LogDebug("Flag {FlagKey} loaded from repository with status {Status}", flagKey, flag.Status);
+				// Auto-create flag in disabled state for deployment scenarios
+				flag = await CreateDefaultFlagAsync(flagKey, cancellationToken);
+				logger.LogInformation("Created default disabled flag {FlagKey}", flagKey);
+				return new EvaluationResult(isEnabled: false, 
+					reason: "Flag not found, using default disabled flag");
+			}
+			else
+			{
+				logger.LogDebug("Flag {FlagKey} loaded from repository with status {Status}", flagKey, flag.Status);
+			}
 
 			// Cache for future requests
 			await cache.SetAsync(flagKey, flag, TimeSpan.FromMinutes(5), cancellationToken);
@@ -83,7 +90,7 @@ public sealed class FeatureFlagEvaluator(
 		}
 
 		var result = await EvaluateFlagAsync(flag, context);
-		logger.LogDebug("Flag {FlagKey} evaluation completed: IsEnabled={IsEnabled}, Variation={Variation}, Reason={Reason}", 
+		logger.LogDebug("Flag {FlagKey} evaluation completed: IsEnabled={IsEnabled}, Variation={Variation}, Reason={Reason}",
 			flagKey, result.IsEnabled, result.Variation, result.Reason);
 
 		return result;
@@ -124,7 +131,7 @@ public sealed class FeatureFlagEvaluator(
 
 				// Try to convert
 				var convertedValue = (T)Convert.ChangeType(variationValue, typeof(T));
-				logger.LogDebug("Converted variation value for flag {FlagKey} from {FromType} to {ToType}", 
+				logger.LogDebug("Converted variation value for flag {FlagKey} from {FromType} to {ToType}",
 					flagKey, variationValue.GetType().Name, typeof(T).Name);
 				return convertedValue ?? defaultValue;
 			}
@@ -139,6 +146,45 @@ public sealed class FeatureFlagEvaluator(
 		}
 	}
 
+	private async Task<FeatureFlag> CreateDefaultFlagAsync(string flagKey, CancellationToken cancellationToken)
+	{
+		var now = DateTime.UtcNow;
+		var defaultFlag = new FeatureFlag
+		{
+			Key = flagKey,
+			Name = flagKey, // Use key as name initially
+			Description = $"Auto-created flag for {flagKey}",
+			Status = FeatureFlagStatus.Disabled,
+			CreatedAt = now,
+			UpdatedAt = now,
+			CreatedBy = "System",
+			UpdatedBy = "System",
+			DefaultVariation = "off",
+			Variations = new Dictionary<string, object>
+			{
+				{ "off", false },
+				{ "on", true }
+			}
+		};
+
+		try
+		{
+			// Save to repository and return the created flag (repository may set additional properties)
+			var createdFlag = await repository.CreateAsync(defaultFlag, cancellationToken);
+			logger.LogInformation("Successfully created default flag {FlagKey} in repository", flagKey);
+			return createdFlag;
+		}
+		catch (Exception ex)
+		{
+			logger.LogError(ex, "Failed to create default flag {FlagKey} in repository", flagKey);
+
+			// Even if repository save fails, return the default flag for this evaluation
+			// This handles scenarios where repository might be temporarily unavailable
+			// The flag will be attempted to be created again on next evaluation
+			return defaultFlag;
+		}
+	}
+
 	private async Task<EvaluationResult> EvaluateFlagAsync(FeatureFlag flag, EvaluationContext context)
 	{
 		logger.LogDebug("Evaluating flag {FlagKey} with status {Status}", flag.Key, flag.Status);
@@ -146,13 +192,13 @@ public sealed class FeatureFlagEvaluator(
 		var evaluationTime = context.EvaluationTime ?? DateTime.UtcNow;
 		var userTimeZone = !string.IsNullOrEmpty(context.TimeZone) ? context.TimeZone : flag.TimeZone ?? "UTC";
 
-		logger.LogDebug("Using evaluation time {EvaluationTime} and timezone {TimeZone} for flag {FlagKey}", 
+		logger.LogDebug("Using evaluation time {EvaluationTime} and timezone {TimeZone} for flag {FlagKey}",
 			evaluationTime, userTimeZone, flag.Key);
 
 		// Check if flag is expired
 		if (flag.ExpirationDate.HasValue && flag.ExpirationDate.Value != default && evaluationTime > flag.ExpirationDate.Value)
 		{
-			logger.LogDebug("Flag {FlagKey} expired at {ExpirationDate}, current time {EvaluationTime}", 
+			logger.LogDebug("Flag {FlagKey} expired at {ExpirationDate}, current time {EvaluationTime}",
 				flag.Key, flag.ExpirationDate.Value, evaluationTime);
 			return new EvaluationResult(isEnabled: false, variation: flag.DefaultVariation, reason: "Flag expired");
 		}
@@ -208,7 +254,7 @@ public sealed class FeatureFlagEvaluator(
 
 	private async Task<EvaluationResult> EvaluateScheduledFlag(FeatureFlag flag, DateTime evaluationTime)
 	{
-		logger.LogDebug("Evaluating scheduled flag {FlagKey}: EnableDate={EnableDate}, DisableDate={DisableDate}, CurrentTime={CurrentTime}", 
+		logger.LogDebug("Evaluating scheduled flag {FlagKey}: EnableDate={EnableDate}, DisableDate={DisableDate}, CurrentTime={CurrentTime}",
 			flag.Key, flag.ScheduledEnableDate, flag.ScheduledDisableDate, evaluationTime);
 
 		// Check if we're in the scheduled enable period
@@ -240,16 +286,16 @@ public sealed class FeatureFlagEvaluator(
 		// Convert to specified timezone
 		var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(timeZone);
 		var localTime = TimeZoneInfo.ConvertTimeFromUtc(evaluationTime, timeZoneInfo);
-		var currentTime = localTime.TimeOfDay; // TimeOnly.FromDateTime(localTime);
+		var currentTime = localTime.TimeOfDay;
 		var currentDay = localTime.DayOfWeek;
 
-		logger.LogDebug("Flag {FlagKey} time window evaluation: LocalTime={LocalTime}, CurrentDay={CurrentDay}, WindowStart={WindowStart}, WindowEnd={WindowEnd}", 
+		logger.LogDebug("Flag {FlagKey} time window evaluation: LocalTime={LocalTime}, CurrentDay={CurrentDay}, WindowStart={WindowStart}, WindowEnd={WindowEnd}",
 			flag.Key, localTime, currentDay, flag.WindowStartTime.Value, flag.WindowEndTime.Value);
 
 		// Check if current day is in allowed days
 		if (flag.WindowDays?.Any() == true && !flag.WindowDays.Contains(currentDay))
 		{
-			logger.LogDebug("Flag {FlagKey} current day {CurrentDay} not in allowed days {AllowedDays}", 
+			logger.LogDebug("Flag {FlagKey} current day {CurrentDay} not in allowed days {AllowedDays}",
 				flag.Key, currentDay, string.Join(", ", flag.WindowDays));
 			return new EvaluationResult(isEnabled: false, variation: flag.DefaultVariation, reason: "Outside allowed days");
 		}
@@ -260,14 +306,14 @@ public sealed class FeatureFlagEvaluator(
 		{
 			// Same day window (e.g., 9:00 - 17:00)
 			inWindow = currentTime >= flag.WindowStartTime.Value && currentTime <= flag.WindowEndTime.Value;
-			logger.LogDebug("Flag {FlagKey} same-day window check: {CurrentTime} between {StartTime} and {EndTime} = {InWindow}", 
+			logger.LogDebug("Flag {FlagKey} same-day window check: {CurrentTime} between {StartTime} and {EndTime} = {InWindow}",
 				flag.Key, currentTime, flag.WindowStartTime.Value, flag.WindowEndTime.Value, inWindow);
 		}
 		else
 		{
 			// Overnight window (e.g., 22:00 - 06:00)
 			inWindow = currentTime >= flag.WindowStartTime.Value || currentTime <= flag.WindowEndTime.Value;
-			logger.LogDebug("Flag {FlagKey} overnight window check: {CurrentTime} after {StartTime} or before {EndTime} = {InWindow}", 
+			logger.LogDebug("Flag {FlagKey} overnight window check: {CurrentTime} after {StartTime} or before {EndTime} = {InWindow}",
 				flag.Key, currentTime, flag.WindowStartTime.Value, flag.WindowEndTime.Value, inWindow);
 		}
 
@@ -281,18 +327,18 @@ public sealed class FeatureFlagEvaluator(
 		// Evaluate targeting rules
 		foreach (var rule in flag.TargetingRules)
 		{
-			logger.LogDebug("Evaluating targeting rule for flag {FlagKey}: {Attribute} {Operator} [{Values}]", 
+			logger.LogDebug("Evaluating targeting rule for flag {FlagKey}: {Attribute} {Operator} [{Values}]",
 				flag.Key, rule.Attribute, rule.Operator, string.Join(", ", rule.Values));
 
 			if (EvaluateTargetingRule(rule, context))
 			{
-				logger.LogDebug("Targeting rule matched for flag {FlagKey}: {Attribute} {Operator} [{Values}] -> {Variation}", 
+				logger.LogDebug("Targeting rule matched for flag {FlagKey}: {Attribute} {Operator} [{Values}] -> {Variation}",
 					flag.Key, rule.Attribute, rule.Operator, string.Join(", ", rule.Values), rule.Variation);
 				return new EvaluationResult(isEnabled: true, variation: rule.Variation, reason: $"Targeting rule matched: {rule.Attribute} {rule.Operator} {string.Join(",", rule.Values)}");
 			}
 			else
 			{
-				logger.LogDebug("Targeting rule did not match for flag {FlagKey}: {Attribute} {Operator} [{Values}]", 
+				logger.LogDebug("Targeting rule did not match for flag {FlagKey}: {Attribute} {Operator} [{Values}]",
 					flag.Key, rule.Attribute, rule.Operator, string.Join(", ", rule.Values));
 			}
 		}
@@ -314,15 +360,15 @@ public sealed class FeatureFlagEvaluator(
 		var hash = ComputeHash(hashInput);
 		var percentage = hash % 100;
 
-		logger.LogDebug("Flag {FlagKey} percentage calculation: Hash({HashInput}) = {Hash}, Percentage = {Percentage}, Threshold = {Threshold}", 
+		logger.LogDebug("Flag {FlagKey} percentage calculation: Hash({HashInput}) = {Hash}, Percentage = {Percentage}, Threshold = {Threshold}",
 			flag.Key, hashInput, hash, percentage, flag.PercentageEnabled);
 
 		var isEnabled = percentage < flag.PercentageEnabled;
-		logger.LogDebug("Flag {FlagKey} percentage rollout result: {Percentage}% < {Threshold}% = {IsEnabled}", 
+		logger.LogDebug("Flag {FlagKey} percentage rollout result: {Percentage}% < {Threshold}% = {IsEnabled}",
 			flag.Key, percentage, flag.PercentageEnabled, isEnabled);
 
-		return new EvaluationResult(isEnabled: isEnabled, 
-			variation: isEnabled ? "on" : flag.DefaultVariation, 
+		return new EvaluationResult(isEnabled: isEnabled,
+			variation: isEnabled ? "on" : flag.DefaultVariation,
 			reason: $"Percentage rollout: {percentage}% < {flag.PercentageEnabled}%");
 	}
 
@@ -335,7 +381,7 @@ public sealed class FeatureFlagEvaluator(
 		}
 
 		var stringValue = attributeValue?.ToString() ?? string.Empty;
-		logger.LogDebug("Evaluating targeting rule: {Attribute}='{Value}' {Operator} [{RuleValues}]", 
+		logger.LogDebug("Evaluating targeting rule: {Attribute}='{Value}' {Operator} [{RuleValues}]",
 			rule.Attribute, stringValue, rule.Operator, string.Join(", ", rule.Values));
 
 		var result = rule.Operator switch

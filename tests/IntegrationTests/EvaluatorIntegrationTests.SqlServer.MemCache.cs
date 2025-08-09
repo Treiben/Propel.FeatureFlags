@@ -129,7 +129,7 @@ public class EvaluateAsync_WithNonExistentFlagV2(FeatureFlagEvaluatorFixture fix
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeFalse();
 		result.Variation.ShouldBe("off");
-		result.Reason.ShouldBe("Flag not found");
+		result.Reason.ShouldBe("Flag not found, using default disabled flag");
 	}
 }
 
