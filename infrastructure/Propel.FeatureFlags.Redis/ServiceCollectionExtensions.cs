@@ -1,0 +1,43 @@
+﻿using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
+using Microsoft.Extensions.DependencyInjection;
+using Propel.FeatureFlags.Cache;
+using StackExchange.Redis;
+
+namespace Propel.FeatureFlags.Redis;
+
+public static class ServiceCollectionExtensions
+{
+	public static IServiceCollection AddRedisCache(this IServiceCollection services, string connectionString)
+	{
+		if (!string.IsNullOrEmpty(connectionString))
+		{
+			services.AddSingleton<IConnectionMultiplexer>(provider =>
+			{
+				var configurationOptions = ConfigurationOptions.Parse(connectionString); 
+				configurationOptions.AbortOnConnectFail = false;
+				configurationOptions.ConnectRetry = 3;
+				configurationOptions.ConnectTimeout = 5000;
+
+				return ConnectionMultiplexer.Connect(configurationOptions);
+			});
+
+			// Use the same connection for distributed cache
+			services.AddSingleton<IDistributedCache>(provider =>
+			{
+				var multiplexer = provider.GetRequiredService<IConnectionMultiplexer>();
+				return new RedisCache(new RedisCacheOptions
+				{
+					ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer)
+				});
+			});
+
+			services.AddSingleton<IFeatureFlagCache, RedisFeatureFlagCache>();
+		}
+		else
+		{
+			throw new InvalidOperationException("Redis connection string is required for Redis caching.");
+		}
+		return services;
+	}
+}

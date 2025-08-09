@@ -1,0 +1,404 @@
+@Ui_Api_HostAddress_Https = https://localhost:7113
+@Ui_Api_HostAddress_Http = http://localhost:5038
+@Ui_Api_HostAddress_Docker = http://localhost:5001
+
+### Variables
+@baseUrl = {{Ui_Api_HostAddress_Docker}}/api
+@testFlagKey = test-flag-4851245
+@testUserId = user-{{$randomInt}}
+
+### Authentication Tokens
+### dotnet user-jwts create --scope "featuretogglesmanagementapi" --name "ApiScopeUser" --project "ui/FeatureToggles.Management.Api"
+### dotnet user-jwts create --scope "featuretogglesmanagementapi" --scope "read" --name "ReadUser" --project "ui/FeatureToggles.Management.Api"
+### dotnet user-jwts create --scope "featuretogglesmanagementapi" --scope "read" --scope "write" --name "WriteUser" --project "ui/FeatureToggles.Management.Api"
+### dotnet user-jwts create --scope "featuretogglesmanagementapi" --scope "read" --scope "write" --claim "sub=test-user-123" --claim "name=Test User" --claim "email=test@example.com" --name "FullAccessUser" --project "ui/FeatureToggles.Management.Api"
+@api_jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IkFwaVNjb3BlVXNlciIsInN1YiI6IkFwaVNjb3BlVXNlciIsImp0aSI6IjNhZWVjZWRlIiwic2NvcGUiOiJmZWF0dXJldG9nZ2xlc21hbmFnZW1lbnRhcGkiLCJhdWQiOlsiaHR0cDovL2xvY2FsaG9zdDo1MDM4IiwiaHR0cHM6Ly9sb2NhbGhvc3Q6NzExMyJdLCJuYmYiOjE3NTM1MDAyNjEsImV4cCI6MTc2MTQ0OTA2MSwiaWF0IjoxNzUzNTAwMjYyLCJpc3MiOiJkb3RuZXQtdXNlci1qd3RzIn0.r1u7xaYjgAFoVsx6ddDJLtXIuYWlyUHAQC7UZkjojIw
+@readonly_jwt =  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IlJlYWRVc2VyIiwic3ViIjoiUmVhZFVzZXIiLCJqdGkiOiI2MTczNDRlIiwic2NvcGUiOlsiZmVhdHVyZXRvZ2dsZXNtYW5hZ2VtZW50YXBpIiwicmVhZCJdLCJhdWQiOlsiaHR0cDovL2xvY2FsaG9zdDo1MDM4IiwiaHR0cHM6Ly9sb2NhbGhvc3Q6NzExMyJdLCJuYmYiOjE3NTM1MDAzNDgsImV4cCI6MTc2MTQ0OTE0OCwiaWF0IjoxNzUzNTAwMzQ5LCJpc3MiOiJkb3RuZXQtdXNlci1qd3RzIn0.YiW9_-swA8YXVaukSsKiZg-us_3YW0QCGwMtWb-HB4M
+@full_access_jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IldyaXRlVXNlciIsInN1YiI6IldyaXRlVXNlciIsImp0aSI6IjkyZjZhNzNmIiwic2NvcGUiOlsiZmVhdHVyZXRvZ2dsZXNtYW5hZ2VtZW50YXBpIiwicmVhZCIsIndyaXRlIl0sImF1ZCI6WyJodHRwOi8vbG9jYWxob3N0OjUwMzgiLCJodHRwczovL2xvY2FsaG9zdDo3MTEzIl0sIm5iZiI6MTc1MzUwMDM3NCwiZXhwIjoxNzYxNDQ5MTc0LCJpYXQiOjE3NTM1MDAzNzQsImlzcyI6ImRvdG5ldC11c2VyLWp3dHMifQ.7_mWTTJ_Jbq1I6Kg65ulyEjTP5mb6VEfhJH1w3iOF0o
+
+@active_token = {{full_access_jwt}}
+
+### 0. Healthchecks
+GET {{baseUrl}}/health/live
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+###
+GET {{baseUrl}}/health/ready
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+### 1. Create Feature Flag
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "{{testFlagKey}}",
+  "name": "Test Feature Flag",
+  "description": "A test feature flag for API testing",
+  "status": "Disabled",
+  "percentageEnabled": 0,
+  "variations": {
+    "on": true,
+    "off": false
+  },
+  "defaultVariation": "off",
+  "tags": {
+    "environment": "test",
+    "team": "platform"
+  },
+  "isPermanent": false
+}
+
+### 2. Create Feature Flag - Validation Error (Empty Key)
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "",
+  "name": "Invalid Flag",
+  "description": "Should fail validation"
+}
+
+### 3. Create Feature Flag - Conflict (Duplicate Key)
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "{{testFlagKey}}",
+  "name": "Duplicate Flag",
+  "description": "Should conflict with existing flag"
+}
+
+### 4. Get All Feature Flags
+GET {{baseUrl}}/flags
+Authorization: Bearer {{active_token}}
+
+### 5. Get Specific Feature Flag
+GET {{baseUrl}}/flags/{{testFlagKey}}
+Authorization: Bearer {{active_token}}
+
+### 6. Get Non-existent Feature Flag
+GET {{baseUrl}}/flags/non-existent-flag
+Authorization: Bearer {{active_token}}
+
+### 7. Enable Feature Flag
+POST {{baseUrl}}/feature-flags/{{testFlagKey}}/enable
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "reason": "Enabling for testing purposes"
+}
+
+### 8. Enable Feature Flag - Missing Reason
+POST {{baseUrl}}/feature-flags/{{testFlagKey}}/enable
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "reason": ""
+}
+
+### 9. Disable Feature Flag
+POST {{baseUrl}}/feature-flags/{{testFlagKey}}/disable
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "reason": "Disabling after testing"
+}
+
+### 10. Schedule Feature Flag
+POST {{baseUrl}}/feature-flags/{{testFlagKey}}/schedule
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "enableDate": "{{$datetime iso8601 1 d}}",
+  "disableDate": "{{$datetime iso8601 7 d}}"
+}
+
+### 11. Schedule Feature Flag - Past Date (Should Fail)
+POST {{baseUrl}}/feature-flags/{{testFlagKey}}/schedule
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "enableDate": "{{$datetime iso8601 -1 d}}"
+}
+
+### 12. Modify Feature Flag - Full Update
+PUT {{baseUrl}}/feature-flags/{{testFlagKey}}
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "name": "Updated Test Feature Flag",
+  "description": "Updated description for testing",
+  "status": "Enabled",
+  "percentageEnabled": 50,
+  "windowStartTime": "09:00:00",
+  "windowEndTime": "17:00:00",
+  "timeZone": "UTC",
+  "windowDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+  "targetingRules": [
+    {
+      "attribute": "department",
+      "operator": "In",
+      "values": ["engineering", "qa"],
+      "variation": "on"
+    }
+  ],
+  "enabledUsers": ["{{testUserId}}"],
+  "variations": {
+    "on": true,
+    "off": false,
+    "beta": "beta-value"
+  },
+  "defaultVariation": "off",
+  "tags": {
+    "environment": "test",
+    "team": "platform",
+    "version": "v2"
+  }
+}
+
+### 13. Modify Feature Flag - Partial Update
+PUT {{baseUrl}}/feature-flags/{{testFlagKey}}
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "name": "Partially Updated Flag",
+  "percentageEnabled": 75
+}
+
+### 14. Enable Flag for Users
+POST {{baseUrl}}/feature-flags/{{testFlagKey}}/users/enable
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "userIds": ["{{testUserId}}", "user-123", "user-456"]
+}
+
+### 15. Enable Flag for Users - Empty User List
+POST {{baseUrl}}/feature-flags/{{testFlagKey}}/users/enable
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "userIds": []
+}
+
+### 16. Disable Flag for Users
+POST {{baseUrl}}/feature-flags/{{testFlagKey}}/users/disable
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "userIds": ["user-123"]
+}
+
+### 17. Search Flags - No Parameters
+GET {{baseUrl}}/feature-flags/search
+Authorization: Bearer {{active_token}}
+
+### 18. Search Flags - By Tag
+GET {{baseUrl}}/feature-flags/search?tag=environment:test
+Authorization: Bearer {{active_token}}
+
+### 19. Search Flags - By Status
+GET {{baseUrl}}/feature-flags/search?status=Enabled
+Authorization: Bearer {{active_token}}
+
+### 20. Search Flags - By Tag and Status
+GET {{baseUrl}}/feature-flags/search?tag=team:platform&status=Disabled
+Authorization: Bearer {{active_token}}
+
+### 21. Search Flags - Invalid Status
+GET {{baseUrl}}/feature-flags/search?status=InvalidStatus
+Authorization: Bearer {{active_token}}
+
+### 22. Get Expiring Flags
+GET {{baseUrl}}/feature-flags/expiring
+Authorization: Bearer {{active_token}}
+
+### 23. Evaluate Single Flag
+GET {{baseUrl}}/feature-flags/evaluate/{{testFlagKey}}?userId={{testUserId}}
+Authorization: Bearer {{active_token}}
+
+### 24. Evaluate Single Flag - With Attributes
+GET {{baseUrl}}/feature-flags/evaluate/{{testFlagKey}}?userId={{testUserId}}&attributes={"department":"engineering","region":"us-west"}
+Authorization: Bearer {{active_token}}
+
+### 25. Evaluate Single Flag - Invalid Attributes
+GET {{baseUrl}}/feature-flags/evaluate/{{testFlagKey}}?userId={{testUserId}}&attributes=invalid-json
+Authorization: Bearer {{active_token}}
+
+### 26. Evaluate Multiple Flags
+POST {{baseUrl}}/feature-flags/evaluate
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "flagKeys": ["{{testFlagKey}}", "another-flag"],
+  "userId": "{{testUserId}}",
+  "attributes": {
+    "department": "engineering",
+    "subscription": "premium"
+  }
+}
+
+### 27. Create Additional Test Flag for Deletion
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "delete-test-flag",
+  "name": "Flag to Delete",
+  "description": "This flag will be deleted",
+  "isPermanent": false
+}
+
+### 28. Delete Feature Flag
+DELETE {{baseUrl}}/feature-flags/delete-test-flag
+Authorization: Bearer {{active_token}}
+
+### 29. Delete Non-existent Flag
+DELETE {{baseUrl}}/feature-flags/non-existent-flag
+Authorization: Bearer {{active_token}}
+
+### 30. Create Permanent Flag for Delete Test
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "permanent-test-flag",
+  "name": "Permanent Flag",
+  "description": "This flag cannot be deleted",
+  "isPermanent": true
+}
+
+### 31. Try to Delete Permanent Flag (Should Fail)
+DELETE {{baseUrl}}/feature-flags/permanent-test-flag
+Authorization: Bearer {{active_token}}
+
+### 32. Create Flag with Expiration for Testing
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "expiring-flag-{{$randomInt}}",
+  "name": "Expiring Test Flag",
+  "description": "This flag will expire soon",
+  "expirationDate": "{{$datetime iso8601 3 d}}",
+  "status": "Enabled"
+}
+
+### 33. Create Complex Flag with All Features
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "complex-flag-{{$randomInt}}",
+  "name": "Complex Feature Flag",
+  "description": "A feature flag with all possible configurations",
+  "status": "TimeWindow",
+  "expirationDate": "{{$datetime iso8601 30 d}}",
+  "windowStartTime": "08:00:00",
+  "windowEndTime": "20:00:00",
+  "timeZone": "America/New_York",
+  "windowDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+  "percentageEnabled": 25,
+  "targetingRules": [
+    {
+      "attribute": "userType",
+      "operator": "In",
+      "values": ["premium", "enterprise"],
+      "variation": "premium"
+    },
+    {
+      "attribute": "region",
+      "operator": "In",
+      "values": ["us-east", "us-west"],
+      "variation": "regional"
+    }
+  ],
+  "enabledUsers": ["admin-user", "test-user"],
+  "disabledUsers": ["banned-user"],
+  "variations": {
+    "off": false,
+    "basic": "basic-feature",
+    "premium": "premium-feature",
+    "regional": "regional-feature"
+  },
+  "defaultVariation": "off",
+  "tags": {
+    "environment": "production",
+    "team": "growth",
+    "feature": "advanced",
+    "priority": "high"
+  },
+  "isPermanent": false
+}
+
+### 34. Test Edge Cases - Very Long Key
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "very-long-key-name-that-might-exceed-normal-limits-and-should-be-tested-for-validation-{{$randomInt}}",
+  "name": "Edge Case Flag",
+  "description": "Testing long key validation"
+}
+
+### 35. Test Edge Cases - Special Characters in Key
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "invalid@key#with$special%characters",
+  "name": "Invalid Key Flag",
+  "description": "Should fail validation due to special characters"
+}
+
+### 36. Test Percentage Validation - Over 100%
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "invalid-percentage-flag",
+  "name": "Invalid Percentage Flag",
+  "percentageEnabled": 150
+}
+
+### 37. Test Percentage Validation - Negative
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "negative-percentage-flag",
+  "name": "Negative Percentage Flag",
+  "percentageEnabled": -10
+}
+
+### 38. Cleanup - Delete Test Flags (Run at the end)
+DELETE {{baseUrl}}/feature-flags/{{testFlagKey}}
+Authorization: Bearer {{active_token}}
+
+### 39. Verify Deletion
+GET {{baseUrl}}/flags/{{testFlagKey}}
+Authorization: Bearer {{active_token}}

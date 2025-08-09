@@ -1,0 +1,75 @@
+﻿using Propel.FeatureFlags.AspNetCore.Extensions;
+
+namespace Propel.ClientApi.MinimalApiEndpoints;
+
+public static class RecommendationsEndpoints
+{
+	public static void MapRecommendationsEndpoints(this WebApplication app)
+	{
+		//=== Complex feature flag demo: user-specific recommendation algorithms ===
+		//
+		// ⚠️  IMPORTANT: When to use VARIATIONS and TARGETING feature flags ⚠️
+		//
+		// This type of feature flag (with variations and user targeting) should be used for:
+		// ✅ TECHNICAL ROLLOUTS - Different algorithm implementations
+		// ✅ PERFORMANCE TESTING - Comparing algorithm performance
+		// ✅ GRADUAL MIGRATION - Moving from old to new technical implementations
+		// ✅ A/B TESTING - Testing different technical approaches
+		// ✅ CANARY RELEASES - Rolling out new code to specific user groups
+		//
+		// ❌ DO NOT use feature flags for:
+		// ❌ BUSINESS LOGIC - User subscription levels, pricing tiers, permissions
+		// ❌ DATA ACCESS - What data users can see based on their plan
+		// ❌ OPERATIONAL WORKFLOWS - Business processes, approval flows
+		// ❌ USER ENTITLEMENTS - Features users have paid for or earned
+		//
+		// This flag controls WHICH ALGORITHM runs behind the scenes - it's a technical
+		// implementation detail. All users get recommendations, but we're testing different
+		// technical approaches to generate them. The business logic (showing recommendations)
+		// remains the same regardless of the flag state.
+		//
+		// TARGETING RULES EXAMPLE:
+		// - Premium users get ML algorithm (to test performance on engaged users)
+		// - Users in specific regions get content-based (to test regional relevance)
+		// - Default users get collaborative filtering (proven, stable algorithm)
+		//
+		// This allows us to safely test new technical implementations while maintaining
+		// the same business functionality for all users.
+		//
+		app.MapGet("/recommendations/{userId}", async (string userId, HttpContext context) =>
+		{
+			// Get the algorithm variation - this is a TECHNICAL choice, not a business rule
+			var algorithmType = await context.FeatureFlags().GetVariationAsync("recommendation-algorithm", "collaborative-filtering");
+
+			return algorithmType switch
+			{
+				"machine-learning" => Results.Ok(GetMLRecommendations(userId)),
+				"content-based" => Results.Ok(GetContentBasedRecommendations(userId)),
+				_ => Results.Ok(GetCollaborativeRecommendations(userId))
+			};
+		});
+	}
+
+	// All methods return recommendations - the BUSINESS LOGIC is the same
+	// Only the TECHNICAL IMPLEMENTATION differs
+	private static object GetMLRecommendations(string userId) =>
+		new { 
+			algorithm = "ML", 
+			recommendations = new[] { "AI Product 1", "AI Product 2" },
+			note = "Generated using machine learning algorithms"
+		};
+
+	private static object GetContentBasedRecommendations(string userId) =>
+		new { 
+			algorithm = "Content", 
+			recommendations = new[] { "Similar Product 1", "Similar Product 2" },
+			note = "Generated using content similarity analysis"
+		};
+
+	private static object GetCollaborativeRecommendations(string userId) =>
+		new { 
+			algorithm = "Collaborative", 
+			recommendations = new[] { "Popular Product 1", "Popular Product 2" },
+			note = "Generated using collaborative filtering"
+		};
+}
