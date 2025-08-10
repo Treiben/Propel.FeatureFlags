@@ -662,3 +662,121 @@ public class FeatureFlagEvaluatorTests
 		};
 	}
 }
+
+public class EvaluateAsync_WithTenantOverrides
+{
+	private readonly FeatureFlagEvaluatorTests _tests = new();
+
+	[Fact]
+	public async Task If_TenantExplicitlyDisabled_ThenReturnsDisabled()
+	{
+		// Arrange
+		var flagKey = "tenant-flag";
+		var tenantId = "disabled-tenant";
+		var context = new EvaluationContext(tenantId: tenantId, userId: "user123");
+		var flag = FeatureFlagEvaluatorTests.CreateTestFlag(flagKey, FeatureFlagStatus.Enabled);
+		flag.DisabledTenants.Add(tenantId);
+
+		_tests._mockCache.Setup(x => x.GetAsync(flagKey, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(flag);
+
+		// Act
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
+
+		// Assert
+		result.ShouldNotBeNull();
+		result.IsEnabled.ShouldBeFalse();
+		result.Variation.ShouldBe(flag.DefaultVariation);
+		result.Reason.ShouldBe("Tenant explicitly disabled");
+	}
+
+	[Fact]
+	public async Task If_TenantExplicitlyEnabled_ThenContinuesEvaluation()
+	{
+		// Arrange
+		var flagKey = "tenant-flag";
+		var tenantId = "enabled-tenant";
+		var context = new EvaluationContext(tenantId: tenantId, userId: "user123");
+		var flag = FeatureFlagEvaluatorTests.CreateTestFlag(flagKey, FeatureFlagStatus.Enabled);
+		flag.EnabledTenants.Add(tenantId);
+		flag.TenantPercentageEnabled = 0; // Would normally block all tenants
+
+		_tests._mockCache.Setup(x => x.GetAsync(flagKey, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(flag);
+
+		// Act
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
+
+		// Assert
+		result.ShouldNotBeNull();
+		result.IsEnabled.ShouldBeTrue(); // Continues to flag evaluation (Enabled status)
+		result.Reason.ShouldBe("Flag enabled");
+	}
+
+	[Fact]
+	public async Task If_TenantNotInPercentageRollout_ThenReturnsDisabled()
+	{
+		// Arrange
+		var flagKey = "tenant-percentage-flag";
+		var context = new EvaluationContext(tenantId: "blocked-tenant", userId: "user123");
+		var flag = FeatureFlagEvaluatorTests.CreateTestFlag(flagKey, FeatureFlagStatus.Enabled);
+		flag.TenantPercentageEnabled = 0; // Block all tenants
+
+		_tests._mockCache.Setup(x => x.GetAsync(flagKey, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(flag);
+
+		// Act
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
+
+		// Assert
+		result.ShouldNotBeNull();
+		result.IsEnabled.ShouldBeFalse();
+		result.Variation.ShouldBe(flag.DefaultVariation);
+		result.Reason.ShouldBe("Tenant not in percentage rollout");
+	}
+
+	[Fact]
+	public async Task If_NoTenantId_ThenSkipsTenantEvaluation()
+	{
+		// Arrange
+		var flagKey = "no-tenant-flag";
+		var context = new EvaluationContext(userId: "user123"); // No tenant ID
+		var flag = FeatureFlagEvaluatorTests.CreateTestFlag(flagKey, FeatureFlagStatus.Enabled);
+		flag.TenantPercentageEnabled = 0; // Would block if tenant evaluation ran
+
+		_tests._mockCache.Setup(x => x.GetAsync(flagKey, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(flag);
+
+		// Act
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
+
+		// Assert
+		result.ShouldNotBeNull();
+		result.IsEnabled.ShouldBeTrue(); // Skips tenant evaluation, goes to flag status
+		result.Reason.ShouldBe("Flag enabled");
+	}
+
+	[Fact]
+	public async Task If_TenantDisabledTakesPrecedenceOverEnabled_ThenReturnsDisabled()
+	{
+		// Arrange
+		var flagKey = "precedence-flag";
+		var tenantId = "conflict-tenant";
+		var context = new EvaluationContext(tenantId: tenantId, userId: "user123");
+		var flag = FeatureFlagEvaluatorTests.CreateTestFlag(flagKey, FeatureFlagStatus.Enabled);
+		flag.DisabledTenants.Add(tenantId);
+		flag.EnabledTenants.Add(tenantId); // Same tenant in both lists
+		flag.TenantPercentageEnabled = 100; // Would allow tenant
+
+		_tests._mockCache.Setup(x => x.GetAsync(flagKey, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(flag);
+
+		// Act
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
+
+		// Assert
+		result.ShouldNotBeNull();
+		result.IsEnabled.ShouldBeFalse();
+		result.Reason.ShouldBe("Tenant explicitly disabled"); // Disabled takes precedence
+	}
+}
