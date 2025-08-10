@@ -11,7 +11,7 @@ public sealed class UserPercentageHandler: FlagEvaluationHandlerBase<UserPercent
 
 	protected override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
 	{
-		if (string.IsNullOrEmpty(context.UserId))
+		if (string.IsNullOrWhiteSpace(context.UserId))
 		{
 			return new EvaluationResult(isEnabled: false, variation: flag.DefaultVariation, reason: "User ID required for percentage rollout");
 		}

@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FlagsManagement.Api"
 EndProject
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "Propel.FlagsManagement.Website", "ui\Propel.FlagsManagement.Website\Propel.FlagsManagement.Website.esproj", "{C8286B63-D335-0D65-00A2-692CB1E924FA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.DependencyInjection", "Propel.FeatureFlags.DependencyInjection\Propel.FeatureFlags.DependencyInjection.csproj", "{FF52CB30-4AD2-4C52-9C2D-901549B84A53}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -91,6 +93,10 @@ Global
 		{C8286B63-D335-0D65-00A2-692CB1E924FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C8286B63-D335-0D65-00A2-692CB1E924FA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C8286B63-D335-0D65-00A2-692CB1E924FA}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{FF52CB30-4AD2-4C52-9C2D-901549B84A53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF52CB30-4AD2-4C52-9C2D-901549B84A53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF52CB30-4AD2-4C52-9C2D-901549B84A53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF52CB30-4AD2-4C52-9C2D-901549B84A53}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

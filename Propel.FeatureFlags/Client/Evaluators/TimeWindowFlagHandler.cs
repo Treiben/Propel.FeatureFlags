@@ -21,6 +21,10 @@ namespace Propel.FeatureFlags.Client.Evaluators
 			var userTimeZone = !string.IsNullOrEmpty(context.TimeZone) ? context.TimeZone : flag.TimeZone ?? "UTC";
 
 			var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(userTimeZone);
+			if (evaluationTime.Kind != DateTimeKind.Utc)
+			{
+				evaluationTime = DateTime.SpecifyKind(evaluationTime, DateTimeKind.Unspecified);
+			}
 			var localTime = TimeZoneInfo.ConvertTimeFromUtc(evaluationTime, timeZoneInfo);
 			var currentTime = localTime.TimeOfDay;
 			var currentDay = localTime.DayOfWeek;

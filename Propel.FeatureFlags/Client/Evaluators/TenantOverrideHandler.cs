@@ -36,6 +36,7 @@ namespace Propel.FeatureFlags.Client.Evaluators
 			{
 				return new EvaluationResult(isEnabled: false, variation: flag.DefaultVariation, reason: "Tenant not in percentage rollout");
 			}
+			// Continue to user-level evaluation - tenant is allowed
 			return null;
 		}
 

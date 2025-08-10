@@ -30,7 +30,7 @@ public class EvaluateAsync_WithAutoCreatedFlag(FeatureFlagEvaluatorFixture fixtu
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("auto-created-flag", context);
+		var result = await fixture.Evaluator.Evaluate("auto-created-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -58,7 +58,7 @@ public class EvaluateAsync_WithAutoCreatedFlag(FeatureFlagEvaluatorFixture fixtu
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("cached-auto-flag", context);
+		var result = await fixture.Evaluator.Evaluate("cached-auto-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -77,13 +77,13 @@ public class EvaluateAsync_WithAutoCreatedFlag(FeatureFlagEvaluatorFixture fixtu
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act - First evaluation creates the flag
-		var result1 = await fixture.Evaluator.EvaluateAsync("duplicate-test-flag", context);
+		var result1 = await fixture.Evaluator.Evaluate("duplicate-test-flag", context);
 		
 		// Clear cache to force repository lookup
 		await fixture.Cache.ClearAsync();
 		
 		// Second evaluation should find existing flag in repository
-		var result2 = await fixture.Evaluator.EvaluateAsync("duplicate-test-flag", context);
+		var result2 = await fixture.Evaluator.Evaluate("duplicate-test-flag", context);
 
 		// Assert
 		result1.ShouldNotBeNull();
@@ -107,7 +107,7 @@ public class EvaluateAsync_WithAutoCreatedFlag(FeatureFlagEvaluatorFixture fixtu
 
 		// Act - Simulate concurrent evaluation requests
 		var tasks = Enumerable.Range(0, 5).Select(_ => 
-			fixture.Evaluator.EvaluateAsync("concurrent-flag", context)).ToArray();
+			fixture.Evaluator.Evaluate("concurrent-flag", context)).ToArray();
 		
 		var results = await Task.WhenAll(tasks);
 
@@ -136,7 +136,7 @@ public class CreateDefaultFlagAsync_RepositoryFailure(FeatureFlagEvaluatorFixtur
 		// by using a flag key that might cause issues or by testing with a disconnected database
 		
 		// Act - This should not throw even if repository operations fail
-		var result = await fixture.Evaluator.EvaluateAsync("potential-error-flag", context);
+		var result = await fixture.Evaluator.Evaluate("potential-error-flag", context);
 
 		// Assert - Should still return a result (the in-memory default flag)
 		result.ShouldNotBeNull();
@@ -157,7 +157,7 @@ public class CreateDefaultFlagAsync_RepositoryFailure(FeatureFlagEvaluatorFixtur
 
 		// Act & Assert
 		await Should.ThrowAsync<OperationCanceledException>(
-			() => fixture.Evaluator.EvaluateAsync("cancelled-flag", context, cts.Token));
+			() => fixture.Evaluator.Evaluate("cancelled-flag", context, cts.Token));
 	}
 }
 
@@ -172,7 +172,7 @@ public class CreateDefaultFlagAsync_FlagStructure(FeatureFlagEvaluatorFixture fi
 		var flagKey = "structure-test-flag";
 
 		// Act
-		await fixture.Evaluator.EvaluateAsync(flagKey, context);
+		await fixture.Evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		var createdFlag = await fixture.Repository.GetAsync(flagKey);
@@ -215,7 +215,7 @@ public class CreateDefaultFlagAsync_FlagStructure(FeatureFlagEvaluatorFixture fi
 		var flagKey = "flag-with-special.chars_123";
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync(flagKey, context);
+		var result = await fixture.Evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -236,7 +236,7 @@ public class CreateDefaultFlagAsync_FlagStructure(FeatureFlagEvaluatorFixture fi
 		var longFlagKey = new string('a', 300); // Very long key
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync(longFlagKey, context);
+		var result = await fixture.Evaluator.Evaluate(longFlagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -262,7 +262,7 @@ public class CreateDefaultFlagAsync_WithDifferentContexts(FeatureFlagEvaluatorFi
 		var context = new EvaluationContext(userId: null);
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("no-user-flag", context);
+		var result = await fixture.Evaluator.Evaluate("no-user-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -282,7 +282,7 @@ public class CreateDefaultFlagAsync_WithDifferentContexts(FeatureFlagEvaluatorFi
 			attributes: new Dictionary<string, object> { { "region", "US" }, { "plan", "premium" } });
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("context-flag", context);
+		var result = await fixture.Evaluator.Evaluate("context-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -301,7 +301,7 @@ public class CreateDefaultFlagAsync_WithDifferentContexts(FeatureFlagEvaluatorFi
 		var context = new EvaluationContext(userId: "user123", evaluationTime: customTime);
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("time-flag", context);
+		var result = await fixture.Evaluator.Evaluate("time-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -324,7 +324,7 @@ public class CreateDefaultFlagAsync_GetVariationIntegration(FeatureFlagEvaluator
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.GetVariationAsync("variation-auto-flag", "fallback-value", context);
+		var result = await fixture.Evaluator.GetVariation("variation-auto-flag", "fallback-value", context);
 
 		// Assert
 		result.ShouldBe("fallback-value"); // Should return default since flag is disabled
@@ -343,9 +343,9 @@ public class CreateDefaultFlagAsync_GetVariationIntegration(FeatureFlagEvaluator
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act - Test with different types
-		var stringResult = await fixture.Evaluator.GetVariationAsync("string-auto-flag", "default", context);
-		var intResult = await fixture.Evaluator.GetVariationAsync("int-auto-flag", 42, context);
-		var boolResult = await fixture.Evaluator.GetVariationAsync("bool-auto-flag", true, context);
+		var stringResult = await fixture.Evaluator.GetVariation("string-auto-flag", "default", context);
+		var intResult = await fixture.Evaluator.GetVariation("int-auto-flag", 42, context);
+		var boolResult = await fixture.Evaluator.GetVariation("bool-auto-flag", true, context);
 
 		// Assert
 		stringResult.ShouldBe("default");

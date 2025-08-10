@@ -39,7 +39,7 @@ public class EvaluateAsync_WithEnabledFlag(FeatureFlagEvaluatorFixture fixture) 
 		var context = new EvaluationContext(userId: "user123"); 
 
 		// Act
-		var result = await _fixture.Evaluator.EvaluateAsync("enabled-flag", context);
+		var result = await _fixture.Evaluator.Evaluate("enabled-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -61,7 +61,7 @@ public class EvaluateAsync_WithEnabledFlag(FeatureFlagEvaluatorFixture fixture) 
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await _fixture.Evaluator.EvaluateAsync("cached-flag", context);
+		var result = await _fixture.Evaluator.Evaluate("cached-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -80,7 +80,7 @@ public class EvaluateAsync_WithEnabledFlag(FeatureFlagEvaluatorFixture fixture) 
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await _fixture.Evaluator.EvaluateAsync("repo-flag", context);
+		var result = await _fixture.Evaluator.Evaluate("repo-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -106,7 +106,7 @@ public class EvaluateAsync_WithDisabledFlag(FeatureFlagEvaluatorFixture fixture)
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("disabled-flag", context);
+		var result = await fixture.Evaluator.Evaluate("disabled-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -126,7 +126,7 @@ public class EvaluateAsync_WithNonExistentFlag(FeatureFlagEvaluatorFixture fixtu
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("non-existent", context);
+		var result = await fixture.Evaluator.Evaluate("non-existent", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -150,7 +150,7 @@ public class EvaluateAsync_WithExpiredFlag(FeatureFlagEvaluatorFixture fixture) 
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("expired-flag", context);
+		var result = await fixture.Evaluator.Evaluate("expired-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -174,7 +174,7 @@ public class EvaluateAsync_WithUserOverrides(FeatureFlagEvaluatorFixture fixture
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("override-flag", context);
+		var result = await fixture.Evaluator.Evaluate("override-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -195,7 +195,7 @@ public class EvaluateAsync_WithUserOverrides(FeatureFlagEvaluatorFixture fixture
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("override-flag", context);
+		var result = await fixture.Evaluator.Evaluate("override-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -220,7 +220,7 @@ public class EvaluateAsync_WithScheduledFlag(FeatureFlagEvaluatorFixture fixture
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("scheduled-flag", context);
+		var result = await fixture.Evaluator.Evaluate("scheduled-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -241,7 +241,7 @@ public class EvaluateAsync_WithScheduledFlag(FeatureFlagEvaluatorFixture fixture
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("scheduled-flag", context);
+		var result = await fixture.Evaluator.Evaluate("scheduled-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -263,7 +263,7 @@ public class EvaluateAsync_WithScheduledFlag(FeatureFlagEvaluatorFixture fixture
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("scheduled-flag", context);
+		var result = await fixture.Evaluator.Evaluate("scheduled-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -290,7 +290,7 @@ public class EvaluateAsync_WithTimeWindowFlag(FeatureFlagEvaluatorFixture fixtur
 		var context = new EvaluationContext(userId: "user123", evaluationTime: noonUtc, timeZone: "UTC");
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("time-window-flag", context);
+		var result = await fixture.Evaluator.Evaluate("time-window-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -315,7 +315,7 @@ public class EvaluateAsync_WithTimeWindowFlag(FeatureFlagEvaluatorFixture fixtur
 		var context = new EvaluationContext(userId: "user123", evaluationTime: earlyMorning, timeZone: "UTC");
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("time-window-flag", context);
+		var result = await fixture.Evaluator.Evaluate("time-window-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -346,7 +346,7 @@ public class EvaluateAsync_WithTimeWindowFlag(FeatureFlagEvaluatorFixture fixtur
 		var context = new EvaluationContext(userId: "user123", evaluationTime: wednesday, timeZone: "UTC");
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("time-window-flag", context);
+		var result = await fixture.Evaluator.Evaluate("time-window-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -378,7 +378,7 @@ public class EvaluateAsync_WithUserTargetedFlag(FeatureFlagEvaluatorFixture fixt
 		var context = new EvaluationContext(userId: "user123", attributes: new Dictionary<string, object> { { "region", "US" } });
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("targeted-flag", context);
+		var result = await fixture.Evaluator.Evaluate("targeted-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -408,7 +408,7 @@ public class EvaluateAsync_WithUserTargetedFlag(FeatureFlagEvaluatorFixture fixt
 		var context = new EvaluationContext(userId: "user123", attributes: new Dictionary<string, object> { { "region", "EU" } });
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("targeted-flag", context);
+		var result = await fixture.Evaluator.Evaluate("targeted-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -431,7 +431,7 @@ public class EvaluateAsync_WithPercentageFlag(FeatureFlagEvaluatorFixture fixtur
 		var context = new EvaluationContext(userId: null); // No UserId
 
 		// Act
-		var result = await fixture.Evaluator.EvaluateAsync("percentage-flag", context);
+		var result = await fixture.Evaluator.Evaluate("percentage-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -451,9 +451,9 @@ public class EvaluateAsync_WithPercentageFlag(FeatureFlagEvaluatorFixture fixtur
 		var context = new EvaluationContext(userId: "consistent-user");
 
 		// Act - Multiple evaluations
-		var result1 = await fixture.Evaluator.EvaluateAsync("percentage-flag", context);
-		var result2 = await fixture.Evaluator.EvaluateAsync("percentage-flag", context);
-		var result3 = await fixture.Evaluator.EvaluateAsync("percentage-flag", context);
+		var result1 = await fixture.Evaluator.Evaluate("percentage-flag", context);
+		var result2 = await fixture.Evaluator.Evaluate("percentage-flag", context);
+		var result3 = await fixture.Evaluator.Evaluate("percentage-flag", context);
 
 		// Assert - All results should be the same
 		result2.IsEnabled.ShouldBe(result1.IsEnabled);
@@ -481,7 +481,7 @@ public class GetVariationAsync_WithVariations(FeatureFlagEvaluatorFixture fixtur
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.GetVariationAsync("variation-flag", "default", context);
+		var result = await fixture.Evaluator.GetVariation("variation-flag", "default", context);
 
 		// Assert
 		result.ShouldBe("premium-features");
@@ -503,7 +503,7 @@ public class GetVariationAsync_WithVariations(FeatureFlagEvaluatorFixture fixtur
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.GetVariationAsync("variation-flag", "default-value", context);
+		var result = await fixture.Evaluator.GetVariation("variation-flag", "default-value", context);
 
 		// Assert
 		result.ShouldBe("default-value");
@@ -524,7 +524,7 @@ public class GetVariationAsync_WithVariations(FeatureFlagEvaluatorFixture fixtur
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.GetVariationAsync("config-flag", new { MaxItems = 10, EnableAdvanced = false }, context);
+		var result = await fixture.Evaluator.GetVariation("config-flag", new { MaxItems = 10, EnableAdvanced = false }, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -540,7 +540,7 @@ public class GetVariationAsync_WithVariations(FeatureFlagEvaluatorFixture fixtur
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.GetVariationAsync("non-existent", 42, context);
+		var result = await fixture.Evaluator.GetVariation("non-existent", 42, context);
 
 		// Assert
 		result.ShouldBe(42);
@@ -564,10 +564,10 @@ public class FeatureFlagEvaluator_CancellationToken(FeatureFlagEvaluatorFixture 
 
 		// Act & Assert
 		await Should.ThrowAsync<OperationCanceledException>(
-			() => fixture.Evaluator.EvaluateAsync("cancel-test", context, cts.Token));
+			() => fixture.Evaluator.Evaluate("cancel-test", context, cts.Token));
 
 		await Should.ThrowAsync<OperationCanceledException>(
-			() => fixture.Evaluator.GetVariationAsync("cancel-test", "default", context, cts.Token));
+			() => fixture.Evaluator.GetVariation("cancel-test", "default", context, cts.Token));
 	}
 }
 
