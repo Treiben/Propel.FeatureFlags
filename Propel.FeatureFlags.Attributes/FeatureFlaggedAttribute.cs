@@ -1,13 +1,14 @@
-﻿namespace Propel.FeatureFlags.Attributes;
-
-public class FeatureFlaggedAttribute : Attribute
+﻿namespace Propel.FeatureFlags.Attributes
 {
-	public string FlagKey { get; }
-	public string FallbackMethod { get; }
-
-	public FeatureFlaggedAttribute(string flagKey, string fallbackMethod = null)
+	public class FeatureFlaggedAttribute : Attribute
 	{
-		FlagKey = flagKey;
-		FallbackMethod = fallbackMethod;
-	} 
+		public string FlagKey { get; }
+		public string FallbackMethod { get; }
+
+		public FeatureFlaggedAttribute(string flagKey, string fallbackMethod = null)
+		{
+			FlagKey = flagKey;
+			FallbackMethod = fallbackMethod;
+		} 
+	}
 }
