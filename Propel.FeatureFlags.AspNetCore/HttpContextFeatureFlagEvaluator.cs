@@ -5,6 +5,7 @@ namespace Propel.FeatureFlags.AspNetCore;
 public class HttpContextFeatureFlagEvaluator
 {
 	private readonly IFeatureFlagClient _client;
+	private readonly string ? _tenantId = null; // Assuming tenant ID is not used in this context
 	private readonly string? _userId;
 	private readonly Dictionary<string, object> _attributes;
 
@@ -17,11 +18,11 @@ public class HttpContextFeatureFlagEvaluator
 
 	public async Task<bool> IsEnabledAsync(string flagKey)
 	{
-		return await _client.IsEnabledAsync(flagKey, _userId, _attributes);
+		return await _client.IsEnabledAsync(flagKey, _tenantId, _userId, _attributes);
 	}
 
 	public async Task<T> GetVariationAsync<T>(string flagKey, T defaultValue)
 	{
-		return await _client.GetVariationAsync(flagKey, defaultValue, _userId, _attributes);
+		return await _client.GetVariationAsync(flagKey, defaultValue, _tenantId, _userId, _attributes);
 	}
 }

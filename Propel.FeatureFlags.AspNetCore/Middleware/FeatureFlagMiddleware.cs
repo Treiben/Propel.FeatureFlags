@@ -18,6 +18,7 @@ public class FeatureFlagMiddlewareOptions
 	public object? MaintenanceResponse { get; set; }
 	public List<GlobalFlag> GlobalFlags { get; set; } = new();
 	public List<Func<HttpContext, Dictionary<string, object>>> AttributeExtractors { get; set; } = new();
+	public Func<HttpContext, string?>? TenantIdExtractor { get; set; }
 	public Func<HttpContext, string?>? UserIdExtractor { get; set; }
 }
 
@@ -47,8 +48,9 @@ public class FeatureFlagMiddleware
 	public async Task InvokeAsync(HttpContext context)
 	{
 		_logger.LogDebug("FeatureFlagMiddleware.InvokeAsync called for request {Path}", context.Request.Path);
-		
+
 		// Extract user ID using configured extractor or fallback
+		var tenantId = ExtractTenantId(context);
 		var userId = ExtractUserId(context);
 		_logger.LogDebug("User ID extracted: {UserId}", userId ?? "null");
 
@@ -84,7 +86,7 @@ public class FeatureFlagMiddleware
 		if (_options.EnableMaintenanceMode)
 		{
 			_logger.LogDebug("Checking maintenance mode flag: {MaintenanceFlagKey}", _options.MaintenanceFlagKey);
-			bool isInMaintenance = await _featureFlags.IsEnabledAsync(_options.MaintenanceFlagKey, userId, attributes);
+			bool isInMaintenance = await _featureFlags.IsEnabledAsync(_options.MaintenanceFlagKey, tenantId, userId, attributes);
 			_logger.LogDebug("Maintenance mode status: {IsInMaintenance}", isInMaintenance);
 			
 			if (isInMaintenance)
@@ -112,7 +114,7 @@ public class FeatureFlagMiddleware
 		foreach (var globalFlag in _options.GlobalFlags)
 		{
 			_logger.LogDebug("Checking global flag: {FlagKey}", globalFlag.FlagKey);
-			bool isEnabled = await _featureFlags.IsEnabledAsync(globalFlag.FlagKey, userId, attributes);
+			bool isEnabled = await _featureFlags.IsEnabledAsync(globalFlag.FlagKey, tenantId, userId, attributes);
 			_logger.LogDebug("Global flag {FlagKey} status: {IsEnabled}", globalFlag.FlagKey, isEnabled);
 			
 			if (!isEnabled)
@@ -132,6 +134,31 @@ public class FeatureFlagMiddleware
 
 		_logger.LogDebug("FeatureFlagMiddleware completed processing, calling next middleware");
 		await _next(context);
+	}
+
+	private string? ExtractTenantId(HttpContext context)
+	{
+		string? tenantId = null;
+		if (_options.UserIdExtractor != null)
+		{
+			try
+			{
+				tenantId = _options.TenantIdExtractor(context);
+				_logger.LogDebug("Extracted user ID using custom extractor: {UserId}", tenantId ?? "null");
+				return tenantId;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogWarning(ex, "Error extracting user ID with custom extractor");
+			}
+		}
+
+		tenantId = context.Request.Headers["X-Tenant-ID"].FirstOrDefault() ??
+			   context.Request.Query["tenantId"].FirstOrDefault() ??
+			   context.User.FindFirst("tenantId")?.Value;
+
+		_logger.LogDebug("Extracted tenant ID using default extractors: {TenantId}", tenantId ?? "null");
+		return tenantId;
 	}
 
 	private string? ExtractUserId(HttpContext context)
