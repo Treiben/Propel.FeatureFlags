@@ -19,6 +19,7 @@ public class FeatureFlagClient_AttributesHandling
 	{
 		// Arrange
 		var flagKey = "null-attributes-flag";
+		string tenantId = null;
 		var userId = "user123";
 		var attributes = new Dictionary<string, object>
 		{
@@ -28,17 +29,17 @@ public class FeatureFlagClient_AttributesHandling
 		};
 		var expectedResult = new EvaluationResult(isEnabled: true);
 
-		_mockEvaluator.Setup(x => x.EvaluateAsync(
+		_mockEvaluator.Setup(x => x.Evaluate(
 			flagKey,
 			It.IsAny<EvaluationContext>(),
 			It.IsAny<CancellationToken>()))
 			.ReturnsAsync(expectedResult);
 
 		// Act
-		await _client.IsEnabledAsync(flagKey, userId, attributes);
+		await _client.IsEnabledAsync(flagKey, tenantId, userId, attributes);
 
 		// Assert
-		_mockEvaluator.Verify(x => x.EvaluateAsync(
+		_mockEvaluator.Verify(x => x.Evaluate(
 			flagKey,
 			It.Is<EvaluationContext>(ctx =>
 				ctx.Attributes.Count == 3 &&
@@ -53,6 +54,7 @@ public class FeatureFlagClient_AttributesHandling
  	{
 		// Arrange
 		var flagKey = "complex-attributes-flag";
+		string tenantId = null;
 		var userId = "user123";
 		var complexObject = new { Name = "Test", Count = 42 };
 		var attributes = new Dictionary<string, object>
@@ -63,17 +65,17 @@ public class FeatureFlagClient_AttributesHandling
 		};
 		var expectedResult = new EvaluationResult(isEnabled: true);
 
-		_mockEvaluator.Setup(x => x.EvaluateAsync(
+		_mockEvaluator.Setup(x => x.Evaluate(
 			flagKey,
 			It.IsAny<EvaluationContext>(),
 			It.IsAny<CancellationToken>()))
 			.ReturnsAsync(expectedResult);
 
 		// Act
-		await _client.IsEnabledAsync(flagKey, userId, attributes);
+		await _client.IsEnabledAsync(flagKey, tenantId, userId, attributes);
 
 		// Assert
-		_mockEvaluator.Verify(x => x.EvaluateAsync(
+		_mockEvaluator.Verify(x => x.Evaluate(
 			flagKey,
 			It.Is<EvaluationContext>(ctx =>
 				ctx.Attributes.Count == 3 &&
@@ -108,7 +110,7 @@ public class FeatureFlagClient_StringHandling
 		var userId = "user123";
 		var expectedResult = new EvaluationResult(isEnabled: true);
 
-		_mockEvaluator.Setup(x => x.EvaluateAsync(
+		_mockEvaluator.Setup(x => x.Evaluate(
 			flagKey,
 			It.IsAny<EvaluationContext>(),
 			It.IsAny<CancellationToken>()))
@@ -119,7 +121,7 @@ public class FeatureFlagClient_StringHandling
 
 		// Assert
 		result.ShouldBeTrue();
-		_mockEvaluator.Verify(x => x.EvaluateAsync(
+		_mockEvaluator.Verify(x => x.Evaluate(
 			flagKey,
 			It.IsAny<EvaluationContext>(),
 			It.IsAny<CancellationToken>()), Times.Once);
@@ -137,18 +139,18 @@ public class FeatureFlagClient_StringHandling
 		var flagKey = "test-flag";
 		var expectedResult = new EvaluationResult(isEnabled: true);
 
-		_mockEvaluator.Setup(x => x.EvaluateAsync(
+		_mockEvaluator.Setup(x => x.Evaluate(
 			flagKey,
 			It.IsAny<EvaluationContext>(),
 			It.IsAny<CancellationToken>()))
 			.ReturnsAsync(expectedResult);
 
 		// Act
-		var result = await _client.IsEnabledAsync(flagKey, userId);
+		var result = await _client.IsEnabledAsync(flagKey: flagKey, userId: userId);
 
 		// Assert
 		result.ShouldBeTrue();
-		_mockEvaluator.Verify(x => x.EvaluateAsync(
+		_mockEvaluator.Verify(x => x.Evaluate(
 			flagKey,
 			It.Is<EvaluationContext>(ctx => ctx.UserId == userId),
 			It.IsAny<CancellationToken>()), Times.Once);
@@ -174,7 +176,7 @@ public class FeatureFlagClient_VariationTypes
 		var defaultValue = false;
 		var expectedValue = true;
 
-		_mockEvaluator.Setup(x => x.GetVariationAsync(
+		_mockEvaluator.Setup(x => x.GetVariation(
 			flagKey,
 			defaultValue,
 			It.IsAny<EvaluationContext>(),
@@ -197,7 +199,7 @@ public class FeatureFlagClient_VariationTypes
 		var defaultValue = 0.0;
 		var expectedValue = 3.14159;
 
-		_mockEvaluator.Setup(x => x.GetVariationAsync(
+		_mockEvaluator.Setup(x => x.GetVariation(
 			flagKey,
 			defaultValue,
 			It.IsAny<EvaluationContext>(),
@@ -220,7 +222,7 @@ public class FeatureFlagClient_VariationTypes
 		var defaultValue = new List<string>();
 		var expectedValue = new List<string> { "item1", "item2", "item3" };
 
-		_mockEvaluator.Setup(x => x.GetVariationAsync(
+		_mockEvaluator.Setup(x => x.GetVariation(
 			flagKey,
 			defaultValue,
 			It.IsAny<EvaluationContext>(),
@@ -248,7 +250,7 @@ public class FeatureFlagClient_VariationTypes
 			{ "key2", 2 }
 		};
 
-		_mockEvaluator.Setup(x => x.GetVariationAsync(
+		_mockEvaluator.Setup(x => x.GetVariation(
 			flagKey,
 			defaultValue,
 			It.IsAny<EvaluationContext>(),
@@ -285,7 +287,7 @@ public class FeatureFlagClient_InterfaceCompliance
 		var userId = "user123";
 		var expectedResult = new EvaluationResult(isEnabled: true);
 
-		_mockEvaluator.Setup(x => x.EvaluateAsync(
+		_mockEvaluator.Setup(x => x.Evaluate(
 			flagKey,
 			It.IsAny<EvaluationContext>(),
 			It.IsAny<CancellationToken>()))
@@ -300,12 +302,12 @@ public class FeatureFlagClient_InterfaceCompliance
 		isEnabledResult.ShouldBeTrue();
 		evaluateResult.ShouldBe(expectedResult);
 
-		_mockEvaluator.Verify(x => x.EvaluateAsync(
+		_mockEvaluator.Verify(x => x.Evaluate(
 			flagKey,
 			It.IsAny<EvaluationContext>(),
 			It.IsAny<CancellationToken>()), Times.Exactly(2));
 
-		_mockEvaluator.Verify(x => x.GetVariationAsync(
+		_mockEvaluator.Verify(x => x.GetVariation(
 			flagKey,
 			"default",
 			It.IsAny<EvaluationContext>(),

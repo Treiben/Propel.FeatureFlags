@@ -34,17 +34,20 @@ public class FeatureFlagMiddleware_CompleteWorkflow
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			"maintenance-mode",
 			It.IsAny<string?>(),
+			It.IsAny<string?>(),
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync(false); // Maintenance mode disabled
 
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			"api-v3-enabled",
 			It.IsAny<string?>(),
+			It.IsAny<string?>(),
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync(true); // Global flag enabled
 
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			"premium-features",
+			It.IsAny<string?>(),
 			It.IsAny<string?>(),
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync(true); // Global flag enabled
@@ -62,16 +65,20 @@ public class FeatureFlagMiddleware_CompleteWorkflow
 		// Verify maintenance mode was checked
 		_tests._mockFeatureFlags.Verify(x => x.IsEnabledAsync(
 			"maintenance-mode",
-			"test-user", It.IsAny<Dictionary<string, object>?>()), Times.Once);
+			null,
+			"test-user",
+			It.IsAny<Dictionary<string, object>?>()), Times.Once);
 
 		// Verify global flags were checked
 		_tests._mockFeatureFlags.Verify(x => x.IsEnabledAsync(
 			"api-v3-enabled",
+			null,
 			"test-user",
 			It.IsAny<Dictionary<string, object>?>()), Times.Once);
 
 		_tests._mockFeatureFlags.Verify(x => x.IsEnabledAsync(
 			"premium-features",
+			null,
 			"test-user",
 			It.IsAny<Dictionary<string, object>?>()), Times.Once);
 	}
@@ -83,6 +90,7 @@ public class FeatureFlagMiddleware_CompleteWorkflow
 		var context = _tests.CreateHttpContext();
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			"maintenance-mode",
+			It.IsAny<string?>(),
 			It.IsAny<string?>(),
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync(true);
@@ -97,6 +105,7 @@ public class FeatureFlagMiddleware_CompleteWorkflow
 		// Should not check global flags
 		_tests._mockFeatureFlags.Verify(x => x.IsEnabledAsync(
 			"api-v3-enabled",
+			It.IsAny<string?>(),
 			It.IsAny<string?>(),
 			It.IsAny<Dictionary<string, object>?>()), Times.Never);
 	}
@@ -119,6 +128,7 @@ public class FeatureFlagMiddleware_AttributeExtractorIntegration
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			It.IsAny<string>(),
 			It.IsAny<string?>(),
+			It.IsAny<string?>(),
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync(false);
 
@@ -128,6 +138,7 @@ public class FeatureFlagMiddleware_AttributeExtractorIntegration
 		// Assert
 		_tests._mockFeatureFlags.Verify(x => x.IsEnabledAsync(
 			"maintenance-mode",
+			It.IsAny<string?>(),
 			It.IsAny<string?>(),
 			It.Is<Dictionary<string, object>>(attrs =>
 				// Base attributes
@@ -156,6 +167,7 @@ public class FeatureFlagMiddleware_AttributeExtractorIntegration
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			It.IsAny<string>(),
 			It.IsAny<string?>(),
+			It.IsAny<string?>(),
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync(false);
 
@@ -165,6 +177,7 @@ public class FeatureFlagMiddleware_AttributeExtractorIntegration
 		// Assert
 		_tests._mockFeatureFlags.Verify(x => x.IsEnabledAsync(
 			"maintenance-mode",
+			It.IsAny<string?>(),
 			It.IsAny<string?>(),
 			It.Is<Dictionary<string, object>>(attrs =>
 				attrs["path"].ToString() == "/custom/override/path")), Times.Once);
@@ -191,11 +204,13 @@ public class FeatureFlagMiddleware_HttpContextEvaluatorUsage
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			"maintenance-mode",
 			It.IsAny<string?>(),
+			It.IsAny<string?>(),
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync(false); // Maintenance mode disabled
 
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			"api-v3-enabled",
+			It.IsAny<string?>(),
 			It.IsAny<string?>(),
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync(true); // Global flag enabled
@@ -203,12 +218,14 @@ public class FeatureFlagMiddleware_HttpContextEvaluatorUsage
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			"premium-features",
 			It.IsAny<string?>(),
+			It.IsAny<string?>(),
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync(true); // Global flag enabled
 
 		// Mock calls that would be made by the HttpContextFeatureFlagEvaluator
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			"downstream-flag",
+			null,
 			"test-user",
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync(true);
@@ -216,6 +233,7 @@ public class FeatureFlagMiddleware_HttpContextEvaluatorUsage
 		_tests._mockFeatureFlags.Setup(x => x.GetVariationAsync(
 			"config-flag",
 			"default-config",
+			null,
 			"test-user",
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync("custom-config");
@@ -237,12 +255,14 @@ public class FeatureFlagMiddleware_HttpContextEvaluatorUsage
 		// Verify the calls were made with the correct user and attributes
 		_tests._mockFeatureFlags.Verify(x => x.IsEnabledAsync(
 			"downstream-flag",
+			null,
 			"test-user",
 			It.IsAny<Dictionary<string, object>?>()), Times.Once);
 
 		_tests._mockFeatureFlags.Verify(x => x.GetVariationAsync(
 			"config-flag",
 			"default-config",
+			null,
 			"test-user",
 			It.IsAny<Dictionary<string, object>?>()), Times.Once);
 	}
@@ -261,6 +281,7 @@ public class FeatureFlagMiddleware_ErrorScenarios
 
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			"maintenance-mode",
+			It.IsAny<string>(),
 			It.IsAny<string?>(),
 			It.IsAny<Dictionary<string, object>?>()))
 			.ThrowsAsync(serviceException);
@@ -286,18 +307,21 @@ public class FeatureFlagMiddleware_ErrorScenarios
 		// Setup mocks for the successful path (maintenance mode disabled, global flags enabled)
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			"maintenance-mode",
+			null,
 			"fallback-user",
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync(false); // Maintenance mode disabled
 
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			"api-v3-enabled",
+			null,
 			"fallback-user",
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync(true); // Global flag enabled
 
 		_tests._mockFeatureFlags.Setup(x => x.IsEnabledAsync(
 			"premium-features",
+			null,
 			"fallback-user",
 			It.IsAny<Dictionary<string, object>?>()))
 			.ReturnsAsync(true); // Global flag enabled

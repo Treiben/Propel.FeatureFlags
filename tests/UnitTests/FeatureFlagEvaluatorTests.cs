@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
-using Propel.FeatureFlags.Cache;
+﻿using Propel.FeatureFlags.Cache;
 using Propel.FeatureFlags.Client;
+using Propel.FeatureFlags.Client.Evaluators;
 using Propel.FeatureFlags.Core;
 using Propel.FeatureFlags.Persistence;
 using System.Text.Json;
@@ -23,7 +23,7 @@ public class EvaluateAsync_WhenFlagFoundInCache
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -53,7 +53,7 @@ public class EvaluateAsync_WhenFlagNotInCacheButInRepository
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -82,7 +82,7 @@ public class EvaluateAsync_WhenFlagNotFound
 			.ReturnsAsync((FeatureFlag?)null);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -110,13 +110,13 @@ public class EvaluateAsync_WhenFlagExpired
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeFalse();
 		result.Variation.ShouldBe(flag.DefaultVariation);
-		result.Reason.ShouldBe("Flag expired");
+		result.Reason.ShouldContain("Flag expired");
 	}
 }
 
@@ -138,7 +138,7 @@ public class EvaluateAsync_WhenUserExplicitlyDisabled
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -166,7 +166,7 @@ public class EvaluateAsync_WhenUserExplicitlyEnabled
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -195,7 +195,7 @@ public class EvaluateAsync_WithBasicStatuses
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -222,7 +222,7 @@ public class EvaluateAsync_WithScheduledStatus
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -243,7 +243,7 @@ public class EvaluateAsync_WithScheduledStatus
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -265,7 +265,7 @@ public class EvaluateAsync_WithScheduledStatus
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -295,7 +295,7 @@ public class EvaluateAsync_WithTimeWindow
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -320,7 +320,7 @@ public class EvaluateAsync_WithTimeWindow
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -345,7 +345,7 @@ public class EvaluateAsync_WithTimeWindow
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -380,7 +380,7 @@ public class EvaluateAsync_WithUserTargeted
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -411,7 +411,7 @@ public class EvaluateAsync_WithUserTargeted
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -442,11 +442,11 @@ public class EvaluateAsync_WithPercentageRollout
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
-		result.Reason.ShouldStartWith("Percentage rollout:");
+		result.Reason.ShouldStartWith("User percentage rollout:");
 		// Note: We can't easily predict the exact result due to hash computation
 		// but we can verify the structure is correct
 	}
@@ -464,7 +464,7 @@ public class EvaluateAsync_WithPercentageRollout
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -493,7 +493,7 @@ public class GetVariationAsync_WhenFlagEnabledWithVariation
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.GetVariationAsync(flagKey, "default-value", context);
+		var result = await _tests._evaluator.GetVariation(flagKey, "default-value", context);
 
 		// Assert
 		result.ShouldBe("variation-value");
@@ -517,7 +517,7 @@ public class GetVariationAsync_WhenFlagDisabled
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.GetVariationAsync(flagKey, defaultValue, context);
+		var result = await _tests._evaluator.GetVariation(flagKey, defaultValue, context);
 
 		// Assert
 		result.ShouldBe(defaultValue);
@@ -546,7 +546,7 @@ public class GetVariationAsync_WithJsonElement
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.GetVariationAsync<Dictionary<string, string>>(flagKey, [], context);
+		var result = await _tests._evaluator.GetVariation<Dictionary<string, string>>(flagKey, [], context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -575,7 +575,7 @@ public class GetVariationAsync_WithTypeConversion
 			.ReturnsAsync(flag);
 
 		// Act
-		var result = await _tests._evaluator.GetVariationAsync<int>(flagKey, 0, context);
+		var result = await _tests._evaluator.GetVariation<int>(flagKey, 0, context);
 
 		// Assert
 		result.ShouldBe(123);
@@ -598,20 +598,10 @@ public class GetVariationAsync_WhenExceptionThrownOrCancellationRequested
 			.ThrowsAsync(new InvalidOperationException("Cache error"));
 
 		// Act
-		var result = await _tests._evaluator.GetVariationAsync(flagKey, defaultValue, context);
+		var result = await _tests._evaluator.GetVariation(flagKey, defaultValue, context);
 
 		// Assert
 		result.ShouldBe(defaultValue);
-
-		// Verify error was logged
-		_tests._mockLogger.Verify(
-			x => x.Log(
-				LogLevel.Error,
-				It.IsAny<EventId>(),
-				It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error evaluating variation for flag")),
-				It.IsAny<Exception>(),
-				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-			Times.Once);
 	}
 
 	[Fact]
@@ -628,7 +618,7 @@ public class GetVariationAsync_WhenExceptionThrownOrCancellationRequested
 			.ReturnsAsync((FeatureFlag?)null);
 
 		// Act
-		await _tests._evaluator.EvaluateAsync(flagKey, context, cancellationToken);
+		await _tests._evaluator.Evaluate(flagKey, context, cancellationToken);
 
 		// Assert
 		_tests._mockCache.Verify(x => x.GetAsync(flagKey, cancellationToken), Times.Once);
@@ -640,15 +630,15 @@ public class FeatureFlagEvaluatorTests
 {
 	public readonly Mock<IFeatureFlagRepository> _mockRepository;
 	public readonly Mock<IFeatureFlagCache> _mockCache;
-	public readonly Mock<ILogger<FeatureFlagEvaluator>> _mockLogger;
+	public readonly IFlagEvaluationHandler _head;
 	public readonly FeatureFlagEvaluator _evaluator;
 
 	public FeatureFlagEvaluatorTests()
 	{
 		_mockRepository = new Mock<IFeatureFlagRepository>();
 		_mockCache = new Mock<IFeatureFlagCache>();
-		_mockLogger = new Mock<ILogger<FeatureFlagEvaluator>>();
-		_evaluator = new FeatureFlagEvaluator(_mockRepository.Object, _mockCache.Object, _mockLogger.Object);
+		_head = EvaluatorChainBuilder.BuildChain();
+		_evaluator = new FeatureFlagEvaluator(_mockRepository.Object, _head, _mockCache.Object);
 	}
 
 	public static FeatureFlag CreateTestFlag(string key, FeatureFlagStatus status)

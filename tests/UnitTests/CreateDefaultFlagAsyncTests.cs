@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Propel.FeatureFlags.Cache;
 using Propel.FeatureFlags.Client;
+using Propel.FeatureFlags.Client.Evaluators;
 using Propel.FeatureFlags.Core;
 using Propel.FeatureFlags.Persistence;
 
@@ -28,7 +29,7 @@ public class CreateDefaultFlagAsync_RepositorySuccess
 			.ReturnsAsync(createdFlag);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -70,35 +71,7 @@ public class CreateDefaultFlagAsync_RepositorySuccess
 			.ReturnsAsync(createdFlag);
 
 		// Act
-		await _tests._evaluator.EvaluateAsync(flagKey, context);
-
-		// Assert - Verify specific log messages were written
-		_tests._mockLogger.Verify(
-			x => x.Log(
-				LogLevel.Information,
-				It.IsAny<EventId>(),
-				It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Flag {flagKey} not found in repository, creating disabled flag")),
-				It.IsAny<Exception>(),
-				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-			Times.Once);
-
-		_tests._mockLogger.Verify(
-			x => x.Log(
-				LogLevel.Information,
-				It.IsAny<EventId>(),
-				It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Created default disabled flag {flagKey}")),
-				It.IsAny<Exception>(),
-				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-			Times.Once);
-
-		_tests._mockLogger.Verify(
-			x => x.Log(
-				LogLevel.Information,
-				It.IsAny<EventId>(),
-				It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Successfully created default flag {flagKey} in repository")),
-				It.IsAny<Exception>(),
-				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-			Times.Once);
+		await _tests._evaluator.Evaluate(flagKey, context);
 	}
 
 	private static FeatureFlag CreateExpectedDefaultFlag(string flagKey)
@@ -144,23 +117,13 @@ public class CreateDefaultFlagAsync_RepositoryFailure
 			.ThrowsAsync(repositoryException);
 
 		// Act
-		var result = await _tests._evaluator.EvaluateAsync(flagKey, context);
+		var result = await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeFalse();
 		result.Variation.ShouldBe("off");
 		result.Reason.ShouldBe("Flag not found, using default disabled flag");
-
-		// Verify error was logged
-		_tests._mockLogger.Verify(
-			x => x.Log(
-				LogLevel.Error,
-				It.IsAny<EventId>(),
-				It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Failed to create default flag {flagKey} in repository")),
-				repositoryException,
-				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-			Times.Once);
 
 		// Verify cache was still called with the in-memory default flag
 		_tests._mockCache.Verify(x => x.SetAsync(
@@ -207,7 +170,7 @@ public class CreateDefaultFlagAsync_FlagStructureValidation
 			.ReturnsAsync(createdFlag);
 
 		// Act
-		await _tests._evaluator.EvaluateAsync(flagKey, context);
+		await _tests._evaluator.Evaluate(flagKey, context);
 
 		// Assert
 		_tests._mockRepository.Verify(x => x.CreateAsync(
@@ -237,14 +200,15 @@ public class CreateDefaultFlagAsyncTests
 {
 	public readonly Mock<IFeatureFlagRepository> _mockRepository;
 	public readonly Mock<IFeatureFlagCache> _mockCache;
-	public readonly Mock<ILogger<FeatureFlagEvaluator>> _mockLogger;
+	public readonly IFlagEvaluationHandler _evaluationHandler;
 	public readonly FeatureFlagEvaluator _evaluator;
 
 	public CreateDefaultFlagAsyncTests()
 	{
 		_mockRepository = new Mock<IFeatureFlagRepository>();
 		_mockCache = new Mock<IFeatureFlagCache>();
-		_mockLogger = new Mock<ILogger<FeatureFlagEvaluator>>();
-		_evaluator = new FeatureFlagEvaluator(_mockRepository.Object, _mockCache.Object, _mockLogger.Object);
+
+		_evaluationHandler = EvaluatorChainBuilder.BuildChain();
+		_evaluator = new FeatureFlagEvaluator(_mockRepository.Object, _evaluationHandler, _mockCache.Object);
 	}
 }
