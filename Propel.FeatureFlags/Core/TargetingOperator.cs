@@ -1,13 +1,14 @@
-﻿namespace Propel.FeatureFlags.Core;
-
-public enum TargetingOperator
+﻿namespace Propel.FeatureFlags.Core
 {
-	Equals,
-	NotEquals,
-	Contains,
-	NotContains,
-	In,
-	NotIn,
-	GreaterThan,
-	LessThan
+	public enum TargetingOperator
+	{
+		Equals,
+		NotEquals,
+		Contains,
+		NotContains,
+		In,
+		NotIn,
+		GreaterThan,
+		LessThan
+	}
 }

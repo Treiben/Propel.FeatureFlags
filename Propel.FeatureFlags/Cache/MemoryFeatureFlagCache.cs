@@ -1,33 +1,38 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Propel.FeatureFlags.Core;
 
-namespace Propel.FeatureFlags.Cache;
-
-public sealed class MemoryFeatureFlagCache(MemoryCache cache) : IFeatureFlagCache
+namespace Propel.FeatureFlags.Cache
 {
-	private readonly MemoryCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-
-	public Task<FeatureFlag?> GetAsync(string key, CancellationToken cancellationToken = default)
+	public sealed class MemoryFeatureFlagCache : IFeatureFlagCache
 	{
-		_cache.TryGetValue(key, out FeatureFlag? flag);
-		return Task.FromResult(flag);
-	}
+		private readonly MemoryCache _cache;
+		public MemoryFeatureFlagCache(MemoryCache cache)
+		{
+			_cache = cache ?? throw new ArgumentNullException(nameof(cache));
+		}
 
-	public Task SetAsync(string key, FeatureFlag flag, TimeSpan? expiration = null, CancellationToken cancellationToken = default)
-	{
-		_cache.Set(key, flag, expiration ?? TimeSpan.FromMinutes(5));
-		return Task.CompletedTask;
-	}
+		public Task<FeatureFlag?> GetAsync(string flagKey, CancellationToken cancellationToken = default)
+		{
+			_cache.TryGetValue(flagKey, out FeatureFlag? flag);
+			return Task.FromResult(flag);
+		}
 
-	public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
-	{
-		_cache.Remove(key);
-		return Task.CompletedTask;
-	}
+		public Task SetAsync(string flagKey, FeatureFlag flag, TimeSpan? expiry = null, CancellationToken cancellationToken = default)
+		{
+			_cache.Set(flagKey, flag, expiry ?? TimeSpan.FromMinutes(5));
+			return Task.CompletedTask;
+		}
 
-	public Task ClearAsync(CancellationToken cancellationToken = default)
-	{
-		_cache.Clear();
-		return Task.CompletedTask;
+		public Task RemoveAsync(string flagKey, CancellationToken cancellationToken = default)
+		{
+			_cache.Remove(flagKey);
+			return Task.CompletedTask;
+		}
+
+		public Task ClearAsync(CancellationToken cancellationToken = default)
+		{
+			_cache.Clear();
+			return Task.CompletedTask;
+		}
 	}
 }

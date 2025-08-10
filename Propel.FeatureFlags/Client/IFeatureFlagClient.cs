@@ -1,35 +1,59 @@
-﻿namespace Propel.FeatureFlags.Client;
-
-public interface IFeatureFlagClient
+﻿namespace Propel.FeatureFlags.Client
 {
-	Task<bool> IsEnabledAsync(string flagKey, string? userId = null, Dictionary<string, object>? attributes = null);
-	Task<T> GetVariationAsync<T>(string flagKey, T defaultValue, string? userId = null, Dictionary<string, object>? attributes = null);
-	Task<EvaluationResult> EvaluateAsync(string flagKey, string? userId = null, Dictionary<string, object>? attributes = null);
-}
-
-public sealed class FeatureFlagClient(IFeatureFlagEvaluator evaluator, string? defaultTimeZone = null) : IFeatureFlagClient
-{
-	private readonly string? _defaultTimeZone = defaultTimeZone ?? "UTC";
-
-	public async Task<bool> IsEnabledAsync(string flagKey, string? userId = null, Dictionary<string, object>? attributes = null)
+	public interface IFeatureFlagClient
 	{
-		var context = new EvaluationContext(userId: userId, attributes: attributes, timeZone: _defaultTimeZone);
-
-		var result = await evaluator.EvaluateAsync(flagKey, context);
-		return result.IsEnabled;
+		Task<bool> IsEnabledAsync(string flagKey, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null);
+		Task<T> GetVariationAsync<T>(string flagKey, T defaultValue, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null);
+		Task<EvaluationResult> EvaluateAsync(string flagKey, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null);
 	}
 
-	public async Task<T> GetVariationAsync<T>(string flagKey, T defaultValue, string? userId = null, Dictionary<string, object>? attributes = null)
+	public sealed class FeatureFlagClient : IFeatureFlagClient
 	{
-		var context = new EvaluationContext(userId: userId, attributes: attributes, timeZone: _defaultTimeZone);
+		private readonly string? _defaultTenantId;
+		private readonly string? _defaultTimeZone;
+		private readonly IFeatureFlagEvaluator evaluator;
 
-		return await evaluator.GetVariationAsync(flagKey, defaultValue, context);
-	}
+		public FeatureFlagClient(IFeatureFlagEvaluator evaluator, string? defaultTenantId = null, string? defaultTimeZone = null)
+		{
+			this.evaluator = evaluator;
+			_defaultTenantId = defaultTenantId;
+			_defaultTimeZone = defaultTimeZone ?? "UTC";
+		}
 
-	public async Task<EvaluationResult> EvaluateAsync(string flagKey, string? userId = null, Dictionary<string, object>? attributes = null)
-	{
-		var context = new EvaluationContext(userId: userId, attributes: attributes, timeZone: _defaultTimeZone);
+		public async Task<bool> IsEnabledAsync(string flagKey, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null)
+		{
+			var context = new EvaluationContext(
+				tenantId: tenantId ?? _defaultTenantId,
+				userId: userId,
+				attributes: attributes,
+				timeZone: _defaultTimeZone);
 
-		return await evaluator.EvaluateAsync(flagKey, context);
+			var result = await evaluator.Evaluate(flagKey, context);
+			return result.IsEnabled;
+		}
+
+		public async Task<T> GetVariationAsync<T>(string flagKey, T defaultValue, string? tenantId = null, 
+			string? userId = null, Dictionary<string, object>? attributes = null)
+		{
+			var context = new EvaluationContext(
+				tenantId: tenantId ?? _defaultTenantId,
+				userId: userId,
+				attributes: attributes,
+				timeZone: _defaultTimeZone);
+
+			return await evaluator.GetVariation(flagKey, defaultValue, context);
+		}
+
+		public async Task<EvaluationResult> EvaluateAsync(string flagKey, string? tenantId = null, 
+			string? userId = null, Dictionary<string, object>? attributes = null)
+		{
+			var context = new EvaluationContext(
+				tenantId: tenantId ?? _defaultTenantId,
+				userId: userId,
+				attributes: attributes,
+				timeZone: _defaultTimeZone);
+
+			return await evaluator.Evaluate(flagKey, context);
+		}
 	}
 }

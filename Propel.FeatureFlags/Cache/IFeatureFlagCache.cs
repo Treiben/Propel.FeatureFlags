@@ -1,11 +1,12 @@
 ﻿using Propel.FeatureFlags.Core;
 
-namespace Propel.FeatureFlags.Cache;
-
-public interface IFeatureFlagCache
+namespace Propel.FeatureFlags.Cache
 {
-	Task<FeatureFlag?> GetAsync(string key, CancellationToken cancellationToken = default);
-	Task SetAsync(string key, FeatureFlag flag, TimeSpan? expiration = null, CancellationToken cancellationToken = default);
-	Task RemoveAsync(string key, CancellationToken cancellationToken = default);
-	Task ClearAsync(CancellationToken cancellationToken = default);
+	public interface IFeatureFlagCache
+	{
+		Task<FeatureFlag?> GetAsync(string flagKey, CancellationToken cancellationToken = default);
+		Task SetAsync(string flagKey, FeatureFlag flag, TimeSpan? expiry, CancellationToken cancellationToken = default);
+		Task RemoveAsync(string flagKey, CancellationToken cancellationToken = default);
+		Task ClearAsync(CancellationToken cancellationToken = default);
+	}
 }

@@ -10,12 +10,11 @@
   <ItemGroup>
     <Compile Remove="Core\EvaluationContext.cs" />
     <Compile Remove="Core\EvaluationResult.cs" />
+    <Compile Remove="ServiceCollectionExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.7" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.7" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.7" />
     <PackageReference Include="System.Text.Json" Version="9.0.7" />
   </ItemGroup>
 
