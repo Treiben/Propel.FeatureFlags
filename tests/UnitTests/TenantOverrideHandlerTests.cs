@@ -695,17 +695,10 @@ public class TenantOverrideHandler_StringComparison
 
 		// Assert
 		result.ShouldNotBeNull();
-		if (listTenantId == contextTenantId) // Exact match
-		{
-			result.IsEnabled.ShouldBeFalse();
-			result.Variation.ShouldBe("case-test");
-			result.Reason.ShouldBe("Tenant explicitly disabled");
-		}
-		else // Case mismatch
-		{
-			result.IsEnabled.ShouldBeFalse();
-			result.Reason.ShouldContain("No evaluator could handle this flag"); // Continues evaluation
-		}
+		result.IsEnabled.ShouldBeFalse();
+		result.Variation.ShouldBe("case-test");
+		result.Reason.ShouldBe("Tenant explicitly disabled");
+
 	}
 
 	[Theory]
