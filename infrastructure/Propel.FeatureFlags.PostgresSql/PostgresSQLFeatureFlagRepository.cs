@@ -27,6 +27,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
                        expiration_date, scheduled_enable_date, scheduled_disable_date,
                        window_start_time, window_end_time, time_zone, window_days,
                        percentage_enabled, targeting_rules, enabled_users, disabled_users,
+					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
                        variations, default_variation, tags, is_permanent
                 FROM feature_flags 
                 WHERE key = @key";
@@ -65,6 +66,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
                        expiration_date, scheduled_enable_date, scheduled_disable_date,
                        window_start_time, window_end_time, time_zone, window_days,
                        percentage_enabled, targeting_rules, enabled_users, disabled_users,
+					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
                        variations, default_variation, tags, is_permanent
                 FROM feature_flags 
                 ORDER BY name";
@@ -102,12 +104,14 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
                     expiration_date, scheduled_enable_date, scheduled_disable_date,
                     window_start_time, window_end_time, time_zone, window_days,
                     percentage_enabled, targeting_rules, enabled_users, disabled_users,
+					enabled_tenants, disabled_tenants, tenant_percentage_enabled,
                     variations, default_variation, tags, is_permanent
                 ) VALUES (
                     @key, @name, @description, @status, @created_at, @updated_at, @created_by, @updated_by,
                     @expiration_date, @scheduled_enable_date, @scheduled_disable_date,
                     @window_start_time, @window_end_time, @time_zone, @window_days,
                     @percentage_enabled, @targeting_rules, @enabled_users, @disabled_users,
+					@enabled_tenants, @disabled_tenants, @tenant_percentage_enabled,
                     @variations, @default_variation, @tags, @is_permanent
                 )";
 
@@ -142,6 +146,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
                     expiration_date = @expiration_date, scheduled_enable_date = @scheduled_enable_date, scheduled_disable_date = @scheduled_disable_date,
                     window_start_time = @window_start_time, window_end_time = @window_end_time, time_zone = @time_zone, window_days = @window_days,
                     percentage_enabled = @percentage_enabled, targeting_rules = @targeting_rules, enabled_users = @enabled_users, disabled_users = @disabled_users,
+					enabled_tenants = @enabled_tenants, disabled_tenants = @disabled_tenants, tenant_percentage_enabled = @tenant_percentage_enabled,
                     variations = @variations, default_variation = @default_variation, tags = @tags, is_permanent = @is_permanent
                 WHERE key = @key";
 
@@ -206,6 +211,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
                        expiration_date, scheduled_enable_date, scheduled_disable_date,
                        window_start_time, window_end_time, time_zone, window_days,
                        percentage_enabled, targeting_rules, enabled_users, disabled_users,
+					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
                        variations, default_variation, tags, is_permanent
                 FROM feature_flags 
                 WHERE expiration_date <= @before AND is_permanent = false
@@ -322,6 +328,9 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			TargetingRules = await reader.Deserialize<List<TargetingRule>>("targeting_rules"),
 			EnabledUsers = await reader.Deserialize<List<string>>("enabled_users"),
 			DisabledUsers = await reader.Deserialize<List<string>>("disabled_users"),
+			EnabledTenants = await reader.Deserialize<List<string>>("enabled_tenants"),
+			DisabledTenants = await reader.Deserialize<List<string>>("disabled_tenants"),
+			TenantPercentageEnabled = await reader.GetDataAsync<int>("tenant_percentage_enabled"),
 			Variations = await reader.Deserialize<Dictionary<string, object>>("variations"),
 			DefaultVariation = await reader.GetDataAsync<string>("default_variation"),
 			Tags = await reader.Deserialize<Dictionary<string, string>>("tags"),
@@ -351,7 +360,8 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		windowDaysParam.Value = JsonSerializer.Serialize(flag.WindowDays ?? new());
 		
 		command.Parameters.AddWithValue("percentage_enabled", flag.PercentageEnabled);
-		
+		command.Parameters.AddWithValue("tenant_percentage_enabled", flag.TenantPercentageEnabled);
+
 		var targetingRulesParam = command.Parameters.Add("targeting_rules", NpgsqlDbType.Jsonb);
 		targetingRulesParam.Value = JsonSerializer.Serialize(flag.TargetingRules);
 		
@@ -360,7 +370,13 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		
 		var disabledUsersParam = command.Parameters.Add("disabled_users", NpgsqlDbType.Jsonb);
 		disabledUsersParam.Value = JsonSerializer.Serialize(flag.DisabledUsers);
-		
+
+		var enabledTenantsParam = command.Parameters.Add("enabled_tenants", NpgsqlDbType.Jsonb);
+		enabledTenantsParam.Value = JsonSerializer.Serialize(flag.EnabledTenants);
+
+		var disabledTenantsParam = command.Parameters.Add("disabled_tenants", NpgsqlDbType.Jsonb);
+		disabledTenantsParam.Value = JsonSerializer.Serialize(flag.DisabledTenants);
+
 		var variationsParam = command.Parameters.Add("variations", NpgsqlDbType.Jsonb);
 		variationsParam.Value = JsonSerializer.Serialize(flag.Variations);
 		
