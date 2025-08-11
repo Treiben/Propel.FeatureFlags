@@ -86,7 +86,7 @@ public class FeatureFlagMiddleware
 		if (_options.EnableMaintenanceMode)
 		{
 			_logger.LogDebug("Checking maintenance mode flag: {MaintenanceFlagKey}", _options.MaintenanceFlagKey);
-			bool isInMaintenance = await _featureFlags.IsEnabledAsync(_options.MaintenanceFlagKey, tenantId, userId, attributes);
+			bool isInMaintenance = await _featureFlags.IsEnabledAsync(flagKey: _options.MaintenanceFlagKey, tenantId: tenantId, userId: userId, attributes: attributes);
 			_logger.LogDebug("Maintenance mode status: {IsInMaintenance}", isInMaintenance);
 			
 			if (isInMaintenance)
@@ -114,7 +114,7 @@ public class FeatureFlagMiddleware
 		foreach (var globalFlag in _options.GlobalFlags)
 		{
 			_logger.LogDebug("Checking global flag: {FlagKey}", globalFlag.FlagKey);
-			bool isEnabled = await _featureFlags.IsEnabledAsync(globalFlag.FlagKey, tenantId, userId, attributes);
+			bool isEnabled = await _featureFlags.IsEnabledAsync(flagKey: globalFlag.FlagKey, tenantId: tenantId, userId: userId, attributes: attributes);
 			_logger.LogDebug("Global flag {FlagKey} status: {IsEnabled}", globalFlag.FlagKey, isEnabled);
 			
 			if (!isEnabled)
