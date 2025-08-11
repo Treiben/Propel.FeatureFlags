@@ -26,6 +26,7 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
                        expiration_date, scheduled_enable_date, scheduled_disable_date,
                        window_start_time, window_end_time, time_zone, window_days,
                        percentage_enabled, targeting_rules, enabled_users, disabled_users,
+					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
                        variations, default_variation, tags, is_permanent
                 FROM feature_flags 
                 WHERE [key] = @key";
@@ -65,6 +66,7 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
                        expiration_date, scheduled_enable_date, scheduled_disable_date,
                        window_start_time, window_end_time, time_zone, window_days,
                        percentage_enabled, targeting_rules, enabled_users, disabled_users,
+					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
                        variations, default_variation, tags, is_permanent
                 FROM feature_flags 
                 ORDER BY [name]";
@@ -101,12 +103,14 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
                     expiration_date, scheduled_enable_date, scheduled_disable_date,
                     window_start_time, window_end_time, time_zone, window_days,
                     percentage_enabled, targeting_rules, enabled_users, disabled_users,
+					enabled_tenants, disabled_tenants, tenant_percentage_enabled,
                     variations, default_variation, tags, is_permanent
                 ) VALUES (
                     @key, @name, @description, @status, @created_at, @updated_at, @created_by, @updated_by,
                     @expiration_date, @scheduled_enable_date, @scheduled_disable_date,
                     @window_start_time, @window_end_time, @time_zone, @window_days,
                     @percentage_enabled, @targeting_rules, @enabled_users, @disabled_users,
+					@enabled_tenants, @disabled_tenants, @tenant_percentage_enabled,
                     @variations, @default_variation, @tags, @is_permanent
                 )";
 
@@ -142,6 +146,7 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
                     expiration_date = @expiration_date, scheduled_enable_date = @scheduled_enable_date, scheduled_disable_date = @scheduled_disable_date,
                     window_start_time = @window_start_time, window_end_time = @window_end_time, time_zone = @time_zone, window_days = @window_days,
                     percentage_enabled = @percentage_enabled, targeting_rules = @targeting_rules, enabled_users = @enabled_users, disabled_users = @disabled_users,
+					enabled_tenants = @enabled_tenants, disabled_tenants = @disabled_tenants, tenant_percentage_enabled = @tenant_percentage_enabled,
                     variations = @variations, default_variation = @default_variation, tags = @tags, is_permanent = @is_permanent
                 WHERE [key] = @key";
 
@@ -208,6 +213,7 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
                        expiration_date, scheduled_enable_date, scheduled_disable_date,
                        window_start_time, window_end_time, time_zone, window_days,
                        percentage_enabled, targeting_rules, enabled_users, disabled_users,
+					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
                        variations, default_variation, tags, is_permanent
                 FROM feature_flags 
                 WHERE expiration_date <= @before AND is_permanent = 0
@@ -243,7 +249,11 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
 	{
 		_logger.LogDebug("Getting feature flags by tags: {@Tags}", tags);
 		// Implementation for tag-based queries using SQL Server JSON functions
-		var sql = "SELECT [key], [name], [description], [status], created_at, updated_at, created_by, updated_by, expiration_date, scheduled_enable_date, scheduled_disable_date, window_start_time, window_end_time, time_zone, window_days, percentage_enabled, targeting_rules, enabled_users, disabled_users, variations, default_variation, tags, is_permanent FROM feature_flags WHERE ";
+		var sql = @"SELECT [key], [name], [description], [status], created_at, updated_at, created_by, updated_by, 
+			expiration_date, scheduled_enable_date, scheduled_disable_date, window_start_time, window_end_time, 
+			time_zone, window_days, percentage_enabled, targeting_rules, 
+			enabled_users, disabled_users, enabled_tenants, disabled_tenants, tenant_percentage_enabled,
+			variations, default_variation, tags, is_permanent FROM feature_flags WHERE ";
 		var conditions = tags.Select((_, i) => $"JSON_VALUE(tags, '$.{tags.ElementAt(i).Key}') = @tagValue{i}").ToList();
 		sql += string.Join(" AND ", conditions);
 
@@ -300,6 +310,9 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
 			TargetingRules = await reader.Deserialize<List<TargetingRule>>("targeting_rules"),
 			EnabledUsers = await reader.Deserialize<List<string>>("enabled_users"),
 			DisabledUsers = await reader.Deserialize<List<string>>("disabled_users"),
+			EnabledTenants = await reader.Deserialize<List<string>>("enabled_tenants"),
+			DisabledTenants = await reader.Deserialize<List<string>>("disabled_tenants"),
+			TenantPercentageEnabled = reader.GetInt32(reader.GetOrdinal("tenant_percentage_enabled")),
 			Variations = await reader.Deserialize<Dictionary<string, object>>("variations"),
 			DefaultVariation = reader.GetString(reader.GetOrdinal("default_variation")),
 			Tags = await reader.Deserialize<Dictionary<string, string>>("tags"),
@@ -328,6 +341,9 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
 		command.Parameters.AddWithValue("targeting_rules", JsonSerializer.Serialize(flag.TargetingRules));
 		command.Parameters.AddWithValue("enabled_users", JsonSerializer.Serialize(flag.EnabledUsers));
 		command.Parameters.AddWithValue("disabled_users", JsonSerializer.Serialize(flag.DisabledUsers));
+		command.Parameters.AddWithValue("enabled_tenants", JsonSerializer.Serialize(flag.EnabledTenants));
+		command.Parameters.AddWithValue("disabled_tenants", JsonSerializer.Serialize(flag.DisabledTenants));
+		command.Parameters.AddWithValue("tenant_percentage_enabled", flag.TenantPercentageEnabled);
 		command.Parameters.AddWithValue("variations", JsonSerializer.Serialize(flag.Variations));
 		command.Parameters.AddWithValue("default_variation", flag.DefaultVariation);
 		command.Parameters.AddWithValue("tags", JsonSerializer.Serialize(flag.Tags));
