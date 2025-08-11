@@ -1,6 +1,6 @@
 @Demo_Api_HostAddress_Https = https://localhost:7089
 @Demo_Api_HostAddress_Http = http://localhost:5245
-@Demo_Api_HostAddress_Docker = http://localhost:8082
+@Demo_Api_HostAddress_Docker = http://localhost:5002
 @baseUrl = {{Demo_Api_HostAddress_Docker}}
 
 ###############################################################################

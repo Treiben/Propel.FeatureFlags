@@ -30,10 +30,10 @@ public class RecommendationService : IRecommendationService
 
 		// A/B test for recommendation algorithm
 		var algorithm = await _featureFlags.GetVariationAsync(
-			"recommendation-algorithm",
-			"collaborative-filtering", // default
-			userId,
-			context
+			flagKey: "recommendation-algorithm",
+			defaultValue: "collaborative-filtering", // default
+			userId: userId,
+			attributes: context
 		);
 
 		_logger.LogInformation("Using recommendation algorithm {Algorithm} for user {UserId}", algorithm, userId);

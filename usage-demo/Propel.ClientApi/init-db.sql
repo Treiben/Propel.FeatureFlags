@@ -39,6 +39,11 @@ CREATE TABLE IF NOT EXISTS usage_demo.feature_flags (
     enabled_users JSONB NOT NULL DEFAULT '[]',
     disabled_users JSONB NOT NULL DEFAULT '[]',
     
+    -- Tenant-level controls
+    enabled_tenants JSONB NOT NULL DEFAULT '[]',
+    disabled_tenants JSONB NOT NULL DEFAULT '[]',
+    tenant_percentage_enabled INTEGER NOT NULL DEFAULT 0 CHECK (tenant_percentage_enabled >= 0 AND tenant_percentage_enabled <= 100),
+    
     -- Variations
     variations JSONB NOT NULL DEFAULT '{}',
     default_variation VARCHAR(50) NOT NULL DEFAULT 'off',
@@ -68,6 +73,8 @@ CREATE INDEX IF NOT EXISTS idx_feature_flags_expiration_date ON usage_demo.featu
 CREATE INDEX IF NOT EXISTS idx_feature_flags_scheduled_enable ON usage_demo.feature_flags (scheduled_enable_date) WHERE scheduled_enable_date IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_feature_flags_tags ON usage_demo.feature_flags USING GIN (tags);
 CREATE INDEX IF NOT EXISTS idx_feature_flags_enabled_users ON usage_demo.feature_flags USING GIN (enabled_users);
+CREATE INDEX IF NOT EXISTS idx_feature_flags_enabled_tenants ON usage_demo.feature_flags USING GIN (enabled_tenants);
+CREATE INDEX IF NOT EXISTS idx_feature_flags_disabled_tenants ON usage_demo.feature_flags USING GIN (disabled_tenants);
 
 -- Create indexes for feature_flag_audit table
 CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_flag_key ON usage_demo.feature_flag_audit (flag_key);
@@ -293,6 +300,282 @@ INSERT INTO usage_demo.feature_flags (
         }
     ]',
     25 -- Conservative 25% rollout for critical payment infrastructure
+) ON CONFLICT (key) DO NOTHING;
+
+-- ====================================================================
+-- TENANT-SPECIFIC FEATURE FLAGS FOR COMPREHENSIVE TESTING SCENARIOS
+-- ====================================================================
+
+-- Insert tenant-premium-features flag for premium tenant access
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, status, created_by, updated_by,
+    variations, default_variation, tags, enabled_tenants
+) VALUES (
+    'tenant-premium-features',
+    'Premium Features for Tenants',
+    'Enable advanced features for premium and enterprise tenants only',
+    1, -- Enabled
+    'system',
+    'system',
+    '{"on": true, "off": false}',
+    'off',
+    '{"tenant": "premium", "type": "access-control", "tier": "premium"}',
+    '["premium-corp", "enterprise-solutions", "vip-client-alpha", "mega-corp-beta"]'
+) ON CONFLICT (key) DO NOTHING;
+
+-- Insert tenant-beta-program flag for beta testing with specific tenants
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, status, created_by, updated_by,
+    variations, default_variation, tags, enabled_tenants, disabled_tenants
+) VALUES (
+    'tenant-beta-program',
+    'Multi-Tenant Beta Program',
+    'Beta features enabled for select tenants, explicitly disabled for others',
+    1, -- Enabled
+    'system',
+    'system',
+    '{"on": true, "off": false}',
+    'off',
+    '{"tenant": "multi", "type": "beta-program", "phase": "phase1"}',
+    '["beta-tester-1", "beta-tester-2", "early-adopter-corp", "tech-forward-inc"]',
+    '["conservative-corp", "legacy-systems-ltd", "security-first-org", "compliance-strict-co"]'
+) ON CONFLICT (key) DO NOTHING;
+
+-- Insert tenant-percentage-rollout flag for gradual tenant rollout
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, status, created_by, updated_by,
+    variations, default_variation, tags, tenant_percentage_enabled
+) VALUES (
+    'tenant-percentage-rollout',
+    'New Dashboard Tenant Rollout',
+    'Progressive rollout of new dashboard to 60% of tenants for gradual deployment',
+    5, -- Percentage rollout
+    'system',
+    'system',
+    '{"on": true, "off": false}',
+    'off',
+    '{"tenant": "rollout", "type": "percentage", "component": "dashboard"}',
+    60
+) ON CONFLICT (key) DO NOTHING;
+
+-- Insert tenant-mixed-controls flag combining all tenant controls
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, status, created_by, updated_by,
+    variations, default_variation, tags, enabled_tenants, disabled_tenants, tenant_percentage_enabled
+) VALUES (
+    'tenant-mixed-controls',
+    'Advanced Multi-Tenant Controls',
+    'Complex tenant control combining explicit lists and percentage rollout',
+    1, -- Enabled
+    'system',
+    'system',
+    '{"v1": "legacy", "v2": "new", "v3": "experimental"}',
+    'v1',
+    '{"tenant": "complex", "type": "mixed-control", "strategy": "hybrid"}',
+    '["always-enabled-tenant", "vip-priority-client"]',
+    '["never-enabled-tenant", "maintenance-mode-client"]',
+    40 -- 40% of remaining tenants get the feature
+) ON CONFLICT (key) DO NOTHING;
+
+-- Insert tenant-region-specific flag for geographic tenant targeting
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, status, created_by, updated_by,
+    variations, default_variation, tags, enabled_tenants, targeting_rules
+) VALUES (
+    'tenant-region-specific',
+    'Regional Features for Tenants',
+    'Enable region-specific features for North American tenants with fallback rules',
+    4, -- User targeted
+    'system',
+    'system',
+    '{"na": "north-america", "eu": "europe", "ap": "asia-pacific", "off": "disabled"}',
+    'off',
+    '{"tenant": "regional", "type": "geo-targeting", "scope": "multi-region"}',
+    '["northam-tenant-1", "northam-tenant-2", "canada-corp"]',
+    '[
+        {
+            "attribute": "region",
+            "operator": 1,
+            "values": ["US", "CA", "MX"],
+            "variation": "na"
+        },
+        {
+            "attribute": "region",
+            "operator": 1,
+            "values": ["DE", "FR", "UK"],
+            "variation": "eu"
+        },
+        {
+            "attribute": "region",
+            "operator": 1,
+            "values": ["JP", "SG", "AU"],
+            "variation": "ap"
+        }
+    ]'
+) ON CONFLICT (key) DO NOTHING;
+
+-- Insert tenant-maintenance-override flag for maintenance scenarios
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, status, created_by, updated_by,
+    variations, default_variation, tags, enabled_tenants, disabled_tenants, is_permanent
+) VALUES (
+    'tenant-maintenance-override',
+    'Tenant Maintenance Override',
+    'Allow specific tenants to access system during maintenance windows',
+    1, -- Enabled
+    'system',
+    'system',
+    '{"on": true, "off": false}',
+    'off',
+    '{"tenant": "maintenance", "type": "override", "criticality": "high"}',
+    '["critical-client-1", "emergency-services-corp", "healthcare-priority"]',
+    '["non-essential-tenant", "dev-testing-org"]',
+    true
+) ON CONFLICT (key) DO NOTHING;
+
+-- Insert tenant-feature-trial flag for time-limited tenant trials
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, status, created_by, updated_by,
+    variations, default_variation, tags, enabled_tenants, expiration_date
+) VALUES (
+    'tenant-feature-trial',
+    'Tenant Feature Trial Period',
+    'Limited-time trial of advanced features for select tenants',
+    1, -- Enabled
+    'system',
+    'system',
+    '{"trial": "trial-version", "full": "full-version", "off": "disabled"}',
+    'off',
+    '{"tenant": "trial", "type": "time-limited", "duration": "30-days"}',
+    '["trial-tenant-alpha", "trial-tenant-beta", "prospect-enterprise"]',
+    NOW() + INTERVAL '30 days'
+) ON CONFLICT (key) DO NOTHING;
+
+-- Insert tenant-ab-test flag for tenant-level A/B testing
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, status, created_by, updated_by,
+    variations, default_variation, tags, enabled_tenants, tenant_percentage_enabled
+) VALUES (
+    'tenant-ab-test',
+    'Tenant A/B Testing Framework',
+    'A/B test different pricing models across tenant segments',
+    1, -- Enabled
+    'system',
+    'system',
+    '{"pricing-v1": "legacy-pricing", "pricing-v2": "new-pricing", "pricing-v3": "dynamic-pricing"}',
+    'pricing-v1',
+    '{"tenant": "ab-test", "type": "pricing-experiment", "experiment": "pricing-model"}',
+    '["control-group-tenant-1", "control-group-tenant-2"]',
+    75 -- 75% of tenants participate in the experiment
+) ON CONFLICT (key) DO NOTHING;
+
+-- Insert tenant-security-enhanced flag for high-security tenants
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, status, created_by, updated_by,
+    variations, default_variation, tags, enabled_tenants, targeting_rules
+) VALUES (
+    'tenant-security-enhanced',
+    'Enhanced Security Features',
+    'Additional security controls for high-security and government tenants',
+    4, -- User targeted
+    'system',
+    'system',
+    '{"standard": "standard-security", "enhanced": "enhanced-security", "maximum": "maximum-security"}',
+    'standard',
+    '{"tenant": "security", "type": "security-level", "compliance": "high"}',
+    '["gov-agency-1", "finance-secure-corp", "healthcare-hipaa", "defense-contractor"]',
+    '[
+        {
+            "attribute": "securityClearance",
+            "operator": 1,
+            "values": ["confidential", "secret", "top-secret"],
+            "variation": "maximum"
+        },
+        {
+            "attribute": "complianceLevel",
+            "operator": 1,
+            "values": ["hipaa", "sox", "pci-dss"],
+            "variation": "enhanced"
+        }
+    ]'
+) ON CONFLICT (key) DO NOTHING;
+
+-- Insert tenant-api-limits flag for tenant-specific API limitations
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, status, created_by, updated_by,
+    variations, default_variation, tags, enabled_tenants, disabled_tenants, tenant_percentage_enabled
+) VALUES (
+    'tenant-api-limits',
+    'Tenant API Rate Limits',
+    'Different API rate limits based on tenant tier and subscription',
+    1, -- Enabled
+    'system',
+    'system',
+    '{"basic": {"limit": 1000, "burst": 100}, "premium": {"limit": 10000, "burst": 1000}, "enterprise": {"limit": 100000, "burst": 10000}}',
+    'basic',
+    '{"tenant": "api-limits", "type": "rate-limiting", "component": "api-gateway"}',
+    '["premium-api-client", "enterprise-heavy-user", "integration-partner"]',
+    '["rate-limited-tenant", "abuse-detected-client"]',
+    100 -- All tenants get some form of rate limiting
+) ON CONFLICT (key) DO NOTHING;
+
+-- Insert tenant-data-residency flag for data location requirements
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, status, created_by, updated_by,
+    variations, default_variation, tags, enabled_tenants, targeting_rules
+) VALUES (
+    'tenant-data-residency',
+    'Data Residency Compliance',
+    'Ensure tenant data is stored in compliant geographic regions',
+    4, -- User targeted
+    'system',
+    'system',
+    '{"us": "us-east", "eu": "eu-central", "ap": "ap-southeast", "ca": "ca-central"}',
+    'us',
+    '{"tenant": "data-residency", "type": "compliance", "regulation": "gdpr-ccpa"}',
+    '["eu-gdpr-client", "ca-privacy-corp", "us-government-agency"]',
+    '[
+        {
+            "attribute": "dataResidency",
+            "operator": 0,
+            "values": ["EU"],
+            "variation": "eu"
+        },
+        {
+            "attribute": "dataResidency",
+            "operator": 0,
+            "values": ["CA"],
+            "variation": "ca"
+        },
+        {
+            "attribute": "dataResidency",
+            "operator": 0,
+            "values": ["AP"],
+            "variation": "ap"
+        }
+    ]'
+) ON CONFLICT (key) DO NOTHING;
+
+-- Insert tenant-custom-branding flag for white-label scenarios
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, status, created_by, updated_by,
+    variations, default_variation, tags, enabled_tenants, tenant_percentage_enabled, window_start_time, window_end_time, time_zone, window_days
+) VALUES (
+    'tenant-custom-branding',
+    'Custom Branding for Tenants',
+    'Enable custom branding during business hours for white-label clients',
+    3, -- Time window
+    'system',
+    'system',
+    '{"standard": "default-brand", "custom": "custom-brand", "premium": "premium-brand"}',
+    'standard',
+    '{"tenant": "branding", "type": "white-label", "component": "ui"}',
+    '["white-label-client-1", "reseller-partner", "custom-brand-corp"]',
+    25, -- Only 25% of tenants get custom branding automatically
+    '08:00:00', -- 8 AM
+    '20:00:00', -- 8 PM
+    'America/New_York',
+    '[1, 2, 3, 4, 5]' -- Weekdays only for custom branding support
 ) ON CONFLICT (key) DO NOTHING;
 
 -- Function to automatically update the updated_at timestamp

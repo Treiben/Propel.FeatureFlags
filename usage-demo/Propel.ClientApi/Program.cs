@@ -1,9 +1,8 @@
 using Propel.ClientApi.MinimalApiEndpoints;
 using Propel.ClientApi.Services;
-using Propel.FeatureFlags;
 using Propel.FeatureFlags.AspNetCore.Middleware;
-using Propel.FeatureFlags.Attributes;
 using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.DependencyInjection;
 using Propel.FeatureFlags.PostgresSql;
 using Propel.FeatureFlags.Redis;
 
@@ -33,7 +32,7 @@ if (!string.IsNullOrEmpty(featureFlagOptions.RedisConnectionString))
 // To use FeatureFlaggedAttribute:
 // 0. Add the FeatureToggles.Attributes package
 // 1. Register the attributes
-builder.Services.AddFeatureFlagsAttributes(builder.Configuration);
+builder.Services.AddFeatureFlagsAttributes();
 // 2. Register implementation only
 builder.Services.AddScoped<NotificationService>();
 // 3. Register the implementation of the interface with the interceptor

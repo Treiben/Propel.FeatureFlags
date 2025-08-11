@@ -5,22 +5,25 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
-EXPOSE 8081 
+EXPOSE 8081
 
 
 # This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
-
 WORKDIR /src
 COPY ["usage-demo/Propel.ClientApi/Propel.ClientApi.csproj", "usage-demo/Propel.ClientApi/"]
+
+COPY ["Propel.FeatureFlags/Propel.FeatureFlags.csproj", "Propel.FeatureFlags/"]
 COPY ["Propel.FeatureFlags.AspNetCore/Propel.FeatureFlags.AspNetCore.csproj", "Propel.FeatureFlags.AspNetCore/"]
-COPY ["Propel.FeatureFlags/Propel.FeatureFlags.csproj", "Propel.FeatureFlags.Flags/"]
+COPY ["Propel.FeatureFlags.Attributes/Propel.FeatureFlags.Attributes.csproj", "Propel.FeatureFlags.Attributes/"]
+COPY ["Propel.FeatureFlags.DependencyInjection/Propel.FeatureFlags.DependencyInjection.csproj", "Propel.FeatureFlags.DependencyInjection/"]
+
 COPY ["infrastructure/Propel.FeatureFlags.Redis/Propel.FeatureFlags.Redis.csproj", "infrastructure/Propel.FeatureFlags.Redis/"]
 COPY ["infrastructure/Propel.FeatureFlags.PostgresSql/Propel.FeatureFlags.PostgresSql.csproj", "infrastructure/Propel.FeatureFlags.PostgresSql/"]
 
-RUN dotnet restore "./usage-demo/Propel.ClientApi/Propel.ClientApi.csproj"  # Fixed path
 
+RUN dotnet restore "./usage-demo/Propel.ClientApi/Propel.ClientApi.csproj"
 COPY . .
 WORKDIR "/src/usage-demo/Propel.ClientApi"
 RUN dotnet build "./Propel.ClientApi.csproj" -c $BUILD_CONFIGURATION -o /app/build

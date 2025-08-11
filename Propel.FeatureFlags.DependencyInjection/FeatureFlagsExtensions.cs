@@ -5,7 +5,7 @@ using Propel.FeatureFlags.Core;
 
 namespace Propel.FeatureFlags.DependencyInjection;
 
-public static class ServiceCollectionExtensions
+public static partial class ServiceCollectionExtensions
 {
 	public static IServiceCollection AddFeatureFlags(this IServiceCollection services, FlagOptions options)
 	{

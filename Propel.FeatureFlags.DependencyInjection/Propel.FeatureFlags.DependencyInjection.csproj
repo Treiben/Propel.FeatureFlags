@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Propel.FeatureFlags.Attributes\Propel.FeatureFlags.Attributes.csproj" />
     <ProjectReference Include="..\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
   </ItemGroup>
 

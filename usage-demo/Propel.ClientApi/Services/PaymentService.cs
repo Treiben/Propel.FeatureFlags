@@ -70,7 +70,7 @@ public class PaymentService
 		// • Use new processor in specific countries for testing
 		// • Enable gradually based on customer risk profiles
 		//
-		if (await _featureFlags.IsEnabledAsync("new-payment-processor", request.CustomerId, context))
+		if (await _featureFlags.IsEnabledAsync(flagKey: "new-payment-processor", userId: request.CustomerId, attributes: context))
 		{
 			try
 			{
