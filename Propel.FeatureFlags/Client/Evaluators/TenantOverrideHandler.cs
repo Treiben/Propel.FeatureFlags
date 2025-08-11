@@ -7,25 +7,20 @@ namespace Propel.FeatureFlags.Client.Evaluators
 		protected override bool CanProcess(FeatureFlag flag, EvaluationContext context)
 		{
 			// Always check tenant overrides first if tenant ID is provided
-			return !string.IsNullOrEmpty(context.TenantId);
+			return !string.IsNullOrWhiteSpace(context.TenantId);
 		}
 
 		protected override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
 		{
 			var tenantId = context.TenantId!;
-			// If no tenant ID, skip tenant evaluation
-			if (string.IsNullOrEmpty(tenantId))
-			{
-				return null; // No tenant evaluation needed
-			}
 
 			// Check explicit tenant overrides first
-			if (flag.DisabledTenants.Contains(tenantId))
+			if (flag.DisabledTenants.Contains(tenantId, StringComparer.OrdinalIgnoreCase))
 			{
 				return new EvaluationResult(isEnabled: false, variation: flag.DefaultVariation, reason: "Tenant explicitly disabled");
 			}
 
-			if (flag.EnabledTenants.Contains(tenantId))
+			if (flag.EnabledTenants.Contains(tenantId, StringComparer.OrdinalIgnoreCase))
 			{
 				// Continue to user-level evaluation - tenant is allowed
 				return null;

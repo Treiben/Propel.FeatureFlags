@@ -7,7 +7,7 @@ namespace Propel.FeatureFlags.Client.Evaluators
 		protected override bool CanProcess(FeatureFlag flag, EvaluationContext context)
 		{
 			// Check user overrides if user ID is provided
-			return !string.IsNullOrEmpty(context.UserId);
+			return !string.IsNullOrWhiteSpace(context.UserId);
 		}
 
 		protected override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)

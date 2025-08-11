@@ -13,11 +13,11 @@ namespace Propel.FeatureFlags.Client.Evaluators
 		{
 			// Build enriched attributes that include tenant and user context
 			var enrichedAttributes = new Dictionary<string, object>(context.Attributes);
-			if (!string.IsNullOrEmpty(context.TenantId))
+			if (!string.IsNullOrWhiteSpace(context.TenantId))
 			{
 				enrichedAttributes["tenantId"] = context.TenantId;
 			}
-			if (!string.IsNullOrEmpty(context.UserId))
+			if (!string.IsNullOrWhiteSpace(context.UserId))
 			{
 				enrichedAttributes["userId"] = context.UserId;
 			}
