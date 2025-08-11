@@ -40,7 +40,7 @@ namespace Propel.FeatureFlags.Attributes
 			}
 			else
 			{
-				InterceptSync(invocation, flagAttribute);
+				Intercept(invocation, flagAttribute);
 			}
 		}
 
@@ -59,10 +59,34 @@ namespace Propel.FeatureFlags.Attributes
 			}
 		}
 
+		private void Intercept(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+		{
+			var tenantId = ExtractTenantId(invocation.Arguments);
+			var userId = ExtractUserId(invocation.Arguments);
+			var isEnabled = _featureFlags.IsEnabledAsync(flagKey: flagAttribute.FlagKey, tenantId: tenantId, userId: userId).Result;
+
+			if (isEnabled)
+			{
+				invocation.Proceed();
+			}
+			else if (!string.IsNullOrEmpty(flagAttribute.FallbackMethod))
+			{
+				// Call fallback method
+				var fallbackMethod = invocation.TargetType.GetMethod(flagAttribute.FallbackMethod);
+				invocation.ReturnValue = fallbackMethod?.Invoke(invocation.InvocationTarget, invocation.Arguments);
+			}
+			else
+			{
+				// Return default value or throw exception
+				invocation.ReturnValue = GetDefaultValue(invocation.Method.ReturnType);
+			}
+		}
+
 		private async Task InterceptAsyncVoid(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
 		{
+			var tenantId = ExtractTenantId(invocation.Arguments);
 			var userId = ExtractUserId(invocation.Arguments);
-			var isEnabled = await _featureFlags.IsEnabledAsync(flagAttribute.FlagKey, userId);
+			var isEnabled = await _featureFlags.IsEnabledAsync(flagKey: flagAttribute.FlagKey, tenantId: tenantId,  userId: userId);
 
 			if (isEnabled)
 			{
@@ -88,8 +112,9 @@ namespace Propel.FeatureFlags.Attributes
 
 		private async Task<T> InterceptAsyncGeneric<T>(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
 		{
+			var tenantId = ExtractTenantId(invocation.Arguments);
 			var userId = ExtractUserId(invocation.Arguments);
-			var isEnabled = await _featureFlags.IsEnabledAsync(flagAttribute.FlagKey, userId);
+			var isEnabled = await _featureFlags.IsEnabledAsync(flagKey: flagAttribute.FlagKey, tenantId: tenantId, userId: userId);
 
 			if (isEnabled)
 			{
@@ -117,30 +142,13 @@ namespace Propel.FeatureFlags.Attributes
 			return (T)GetDefaultValue(typeof(T))!;
 		}
 
-		private void InterceptSync(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+		private string? ExtractUserId(object[] arguments)
 		{
-			// Extract user context from method parameters
-			var userId = ExtractUserId(invocation.Arguments);
-			var isEnabled = _featureFlags.IsEnabledAsync(flagAttribute.FlagKey, userId).Result;
-
-			if (isEnabled)
-			{
-				invocation.Proceed();
-			}
-			else if (!string.IsNullOrEmpty(flagAttribute.FallbackMethod))
-			{
-				// Call fallback method
-				var fallbackMethod = invocation.TargetType.GetMethod(flagAttribute.FallbackMethod);
-				invocation.ReturnValue = fallbackMethod?.Invoke(invocation.InvocationTarget, invocation.Arguments);
-			}
-			else
-			{
-				// Return default value or throw exception
-				invocation.ReturnValue = GetDefaultValue(invocation.Method.ReturnType);
-			}
+			// Logic to extract user ID from method parameters
+			return arguments.OfType<string>().FirstOrDefault();
 		}
 
-		private string? ExtractUserId(object[] arguments)
+		private string? ExtractTenantId(object[] arguments)
 		{
 			// Logic to extract user ID from method parameters
 			return arguments.OfType<string>().FirstOrDefault();
