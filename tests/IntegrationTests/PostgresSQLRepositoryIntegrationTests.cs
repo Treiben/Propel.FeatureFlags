@@ -624,6 +624,425 @@ public class PostgreSQLFeatureFlagRepository_DatabaseErrors : IClassFixture<Post
 	}
 }
 
+public class CreateAsync_WithTenantData : IClassFixture<PostgreSQLFeatureFlagRepositoryFixture>
+{
+	private readonly PostgreSQLFeatureFlagRepositoryFixture _fixture;
+
+	public CreateAsync_WithTenantData(PostgreSQLFeatureFlagRepositoryFixture fixture)
+	{
+		_fixture = fixture;
+	}
+
+	[Fact]
+	public async Task If_FlagWithTenantOverrides_ThenStoresCorrectly()
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("tenant-overrides-flag", FeatureFlagStatus.Enabled);
+		flag.EnabledTenants = new List<string> { "tenant1", "tenant2", "premium-tenant" };
+		flag.DisabledTenants = new List<string> { "blocked-tenant", "test-tenant" };
+		flag.TenantPercentageEnabled = 75;
+
+		// Act
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync("tenant-overrides-flag");
+		retrieved.ShouldNotBeNull();
+		retrieved.EnabledTenants.ShouldContain("tenant1");
+		retrieved.EnabledTenants.ShouldContain("tenant2");
+		retrieved.EnabledTenants.ShouldContain("premium-tenant");
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant");
+		retrieved.DisabledTenants.ShouldContain("test-tenant");
+		retrieved.TenantPercentageEnabled.ShouldBe(75);
+	}
+
+	[Fact]
+	public async Task If_FlagWithEmptyTenantLists_ThenStoresEmptyLists()
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("empty-tenant-lists-flag", FeatureFlagStatus.Enabled);
+		flag.EnabledTenants = new List<string>();
+		flag.DisabledTenants = new List<string>();
+		flag.TenantPercentageEnabled = 0;
+
+		// Act
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync("empty-tenant-lists-flag");
+		retrieved.ShouldNotBeNull();
+		retrieved.EnabledTenants.ShouldNotBeNull();
+		retrieved.EnabledTenants.Count.ShouldBe(0);
+		retrieved.DisabledTenants.ShouldNotBeNull();
+		retrieved.DisabledTenants.Count.ShouldBe(0);
+		retrieved.TenantPercentageEnabled.ShouldBe(0);
+	}
+
+	[Theory]
+	[InlineData(0)]
+	[InlineData(25)]
+	[InlineData(50)]
+	[InlineData(75)]
+	[InlineData(100)]
+	public async Task If_FlagWithDifferentTenantPercentages_ThenStoresCorrectly(int tenantPercentage)
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag($"tenant-percentage-{tenantPercentage}-flag", FeatureFlagStatus.Enabled);
+		flag.TenantPercentageEnabled = tenantPercentage;
+
+		// Act
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync($"tenant-percentage-{tenantPercentage}-flag");
+		retrieved.ShouldNotBeNull();
+		retrieved.TenantPercentageEnabled.ShouldBe(tenantPercentage);
+	}
+}
+
+public class When_FlagExistsWithTenantData : IClassFixture<PostgreSQLFeatureFlagRepositoryFixture>
+{
+	private readonly PostgreSQLFeatureFlagRepositoryFixture _fixture;
+
+	public When_FlagExistsWithTenantData(PostgreSQLFeatureFlagRepositoryFixture fixture)
+	{
+		_fixture = fixture;
+	}
+
+	[Fact]
+	public async Task If_UpdateTenantLists_ThenStoresUpdatedData()
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("update-tenant-lists", FeatureFlagStatus.Enabled);
+		flag.EnabledTenants = new List<string> { "original-tenant" };
+		flag.DisabledTenants = new List<string> { "original-blocked" };
+		flag.TenantPercentageEnabled = 50;
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Update tenant data
+		flag.EnabledTenants = new List<string> { "updated-tenant1", "updated-tenant2" };
+		flag.DisabledTenants = new List<string> { "updated-blocked1", "updated-blocked2", "updated-blocked3" };
+		flag.TenantPercentageEnabled = 80;
+
+		// Act
+		await _fixture.Repository.UpdateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync("update-tenant-lists");
+		retrieved.ShouldNotBeNull();
+		retrieved.EnabledTenants.Count.ShouldBe(2);
+		retrieved.EnabledTenants.ShouldContain("updated-tenant1");
+		retrieved.EnabledTenants.ShouldContain("updated-tenant2");
+		retrieved.EnabledTenants.ShouldNotContain("original-tenant");
+		
+		retrieved.DisabledTenants.Count.ShouldBe(3);
+		retrieved.DisabledTenants.ShouldContain("updated-blocked1");
+		retrieved.DisabledTenants.ShouldContain("updated-blocked2");
+		retrieved.DisabledTenants.ShouldContain("updated-blocked3");
+		retrieved.DisabledTenants.ShouldNotContain("original-blocked");
+		
+		retrieved.TenantPercentageEnabled.ShouldBe(80);
+	}
+
+	[Fact]
+	public async Task If_ClearTenantLists_ThenStoresEmptyLists()
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("clear-tenant-lists", FeatureFlagStatus.Enabled);
+		flag.EnabledTenants = new List<string> { "tenant1", "tenant2" };
+		flag.DisabledTenants = new List<string> { "blocked1", "blocked2" };
+		flag.TenantPercentageEnabled = 60;
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Clear tenant data
+		flag.EnabledTenants = new List<string>();
+		flag.DisabledTenants = new List<string>();
+		flag.TenantPercentageEnabled = 0;
+
+		// Act
+		await _fixture.Repository.UpdateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync("clear-tenant-lists");
+		retrieved.ShouldNotBeNull();
+		retrieved.EnabledTenants.Count.ShouldBe(0);
+		retrieved.DisabledTenants.Count.ShouldBe(0);
+		retrieved.TenantPercentageEnabled.ShouldBe(0);
+	}
+
+	[Fact]
+	public async Task If_GetComplexFlagWithTenantData_ThenDeserializesCorrectly()
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("complex-tenant-flag", FeatureFlagStatus.UserTargeted);
+		flag.EnabledTenants = new List<string> { "premium-tenant", "enterprise-tenant" };
+		flag.DisabledTenants = new List<string> { "blocked-tenant-1", "blocked-tenant-2" };
+		flag.TenantPercentageEnabled = 40;
+		
+		// Also add other complex data to ensure tenant data works alongside existing features
+		flag.EnabledUsers = new List<string> { "admin1", "admin2" };
+		flag.TargetingRules = new List<TargetingRule>
+		{
+			new TargetingRule
+			{
+				Attribute = "region",
+				Operator = TargetingOperator.In,
+				Values = new List<string> { "US", "CA" },
+				Variation = "north-america"
+			}
+		};
+
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Act
+		var retrieved = await _fixture.Repository.GetAsync("complex-tenant-flag");
+
+		// Assert
+		retrieved.ShouldNotBeNull();
+		
+		// Verify tenant data
+		retrieved.EnabledTenants.Count.ShouldBe(2);
+		retrieved.EnabledTenants.ShouldContain("premium-tenant");
+		retrieved.EnabledTenants.ShouldContain("enterprise-tenant");
+		
+		retrieved.DisabledTenants.Count.ShouldBe(2);
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant-1");
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant-2");
+		
+		retrieved.TenantPercentageEnabled.ShouldBe(40);
+
+		// Verify other data still works
+		retrieved.EnabledUsers.Count.ShouldBe(2);
+		retrieved.TargetingRules.Count.ShouldBe(1);
+		retrieved.TargetingRules[0].Attribute.ShouldBe("region");
+	}
+}
+
+public class GetAllAsync_WithTenantData : IClassFixture<PostgreSQLFeatureFlagRepositoryFixture>
+{
+	private readonly PostgreSQLFeatureFlagRepositoryFixture _fixture;
+
+	public GetAllAsync_WithTenantData(PostgreSQLFeatureFlagRepositoryFixture fixture)
+	{
+		_fixture = fixture;
+	}
+
+	[Fact]
+	public async Task If_MultipleFlagsWithTenantData_ThenReturnsAllWithCorrectTenantData()
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		
+		var flag1 = _fixture.CreateTestFlag("tenant-flag-1", FeatureFlagStatus.Enabled);
+		flag1.Name = "Alpha Tenant Flag";
+		flag1.EnabledTenants = new List<string> { "tenant-alpha" };
+		flag1.TenantPercentageEnabled = 25;
+
+		var flag2 = _fixture.CreateTestFlag("tenant-flag-2", FeatureFlagStatus.Enabled);
+		flag2.Name = "Beta Tenant Flag";
+		flag2.DisabledTenants = new List<string> { "blocked-beta" };
+		flag2.TenantPercentageEnabled = 75;
+
+		var flag3 = _fixture.CreateTestFlag("tenant-flag-3", FeatureFlagStatus.Enabled);
+		flag3.Name = "Gamma Tenant Flag";
+		flag3.EnabledTenants = new List<string> { "vip1", "vip2" };
+		flag3.DisabledTenants = new List<string> { "blocked1", "blocked2" };
+		flag3.TenantPercentageEnabled = 100;
+
+		await _fixture.Repository.CreateAsync(flag1);
+		await _fixture.Repository.CreateAsync(flag2);
+		await _fixture.Repository.CreateAsync(flag3);
+
+		// Act
+		var result = await _fixture.Repository.GetAllAsync();
+
+		// Assert
+		result.Count.ShouldBe(3);
+		
+		// Ordered by name, so Alpha, Beta, Gamma
+		var alphaFlag = result.First(f => f.Name == "Alpha Tenant Flag");
+		alphaFlag.EnabledTenants.ShouldContain("tenant-alpha");
+		alphaFlag.TenantPercentageEnabled.ShouldBe(25);
+
+		var betaFlag = result.First(f => f.Name == "Beta Tenant Flag");
+		betaFlag.DisabledTenants.ShouldContain("blocked-beta");
+		betaFlag.TenantPercentageEnabled.ShouldBe(75);
+
+		var gammaFlag = result.First(f => f.Name == "Gamma Tenant Flag");
+		gammaFlag.EnabledTenants.Count.ShouldBe(2);
+		gammaFlag.DisabledTenants.Count.ShouldBe(2);
+		gammaFlag.TenantPercentageEnabled.ShouldBe(100);
+	}
+}
+
+public class PostgreSQL_TenantData_EdgeCases : IClassFixture<PostgreSQLFeatureFlagRepositoryFixture>
+{
+	private readonly PostgreSQLFeatureFlagRepositoryFixture _fixture;
+
+	public PostgreSQL_TenantData_EdgeCases(PostgreSQLFeatureFlagRepositoryFixture fixture)
+	{
+		_fixture = fixture;
+	}
+
+	[Fact]
+	public async Task If_TenantIdWithSpecialCharacters_ThenStoresAndRetrievesCorrectly()
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("special-chars-tenant", FeatureFlagStatus.Enabled);
+		flag.EnabledTenants = new List<string> 
+		{ 
+			"tenant@company.com", 
+			"tenant-with-dashes", 
+			"tenant_with_underscores",
+			"tenant with spaces",
+			"tenant!@#$%^&*()"
+		};
+		flag.DisabledTenants = new List<string> 
+		{ 
+			"blocked@evil.com", 
+			"blocked-tenant-123" 
+		};
+
+		// Act
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync("special-chars-tenant");
+		retrieved.ShouldNotBeNull();
+		retrieved.EnabledTenants.ShouldContain("tenant@company.com");
+		retrieved.EnabledTenants.ShouldContain("tenant-with-dashes");
+		retrieved.EnabledTenants.ShouldContain("tenant_with_underscores");
+		retrieved.EnabledTenants.ShouldContain("tenant with spaces");
+		retrieved.EnabledTenants.ShouldContain("tenant!@#$%^&*()");
+		retrieved.DisabledTenants.ShouldContain("blocked@evil.com");
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant-123");
+	}
+
+	[Fact]
+	public async Task If_DuplicateTenantsInLists_ThenStoresAndRetrievesAllEntries()
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("duplicate-tenants", FeatureFlagStatus.Enabled);
+		flag.EnabledTenants = new List<string> { "tenant1", "tenant1", "tenant2", "tenant1" };
+		flag.DisabledTenants = new List<string> { "blocked", "blocked", "other-blocked" };
+
+		// Act
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync("duplicate-tenants");
+		retrieved.ShouldNotBeNull();
+		// Should preserve duplicates as stored
+		retrieved.EnabledTenants.Count.ShouldBe(4);
+		retrieved.EnabledTenants.Count(t => t == "tenant1").ShouldBe(3);
+		retrieved.DisabledTenants.Count.ShouldBe(3);
+		retrieved.DisabledTenants.Count(t => t == "blocked").ShouldBe(2);
+	}
+
+	[Fact]
+	public async Task If_VeryLongTenantLists_ThenStoresAndRetrievesCorrectly()
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("large-tenant-lists", FeatureFlagStatus.Enabled);
+		
+		// Create large lists
+		flag.EnabledTenants = Enumerable.Range(1, 1000).Select(i => $"enabled-tenant-{i}").ToList();
+		flag.DisabledTenants = Enumerable.Range(1, 500).Select(i => $"blocked-tenant-{i}").ToList();
+		flag.TenantPercentageEnabled = 42;
+
+		// Act
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync("large-tenant-lists");
+		retrieved.ShouldNotBeNull();
+		retrieved.EnabledTenants.Count.ShouldBe(1000);
+		retrieved.EnabledTenants.ShouldContain("enabled-tenant-1");
+		retrieved.EnabledTenants.ShouldContain("enabled-tenant-500");
+		retrieved.EnabledTenants.ShouldContain("enabled-tenant-1000");
+		
+		retrieved.DisabledTenants.Count.ShouldBe(500);
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant-1");
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant-250");
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant-500");
+		
+		retrieved.TenantPercentageEnabled.ShouldBe(42);
+	}
+
+	[Theory]
+	[InlineData(-10)] // Negative percentage
+	[InlineData(150)] // Over 100%
+	[InlineData(0)]   // Zero percentage
+	[InlineData(100)] // Max percentage
+	public async Task If_EdgeCaseTenantPercentages_ThenStoresCorrectly(int percentage)
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag($"edge-percentage-{Math.Abs(percentage)}", FeatureFlagStatus.Enabled);
+		flag.TenantPercentageEnabled = percentage;
+
+		// Act
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync($"edge-percentage-{Math.Abs(percentage)}");
+		retrieved.ShouldNotBeNull();
+		retrieved.TenantPercentageEnabled.ShouldBe(percentage);
+	}
+
+	[Fact]
+	public async Task If_PostgresJsonbTenantData_ThenHandlesCorrectly()
+	{
+		// Arrange - Test PostgreSQL-specific JSONB functionality for tenant data
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("jsonb-tenant-test", FeatureFlagStatus.Enabled);
+		
+		// Complex tenant IDs that test JSONB serialization
+		flag.EnabledTenants = new List<string> 
+		{ 
+			"simple-tenant",
+			"tenant.with.dots",
+			"tenant/with/slashes",
+			"tenant\"with\"quotes",
+			"tenant\\with\\backslashes"
+		};
+		flag.DisabledTenants = new List<string> 
+		{ 
+			"blocked{tenant}",
+			"blocked[tenant]",
+			"tenant,with,commas"
+		};
+		flag.TenantPercentageEnabled = 33;
+
+		// Act
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync("jsonb-tenant-test");
+		retrieved.ShouldNotBeNull();
+		retrieved.EnabledTenants.ShouldContain("simple-tenant");
+		retrieved.EnabledTenants.ShouldContain("tenant.with.dots");
+		retrieved.EnabledTenants.ShouldContain("tenant/with/slashes");
+		retrieved.EnabledTenants.ShouldContain("tenant\"with\"quotes");
+		retrieved.EnabledTenants.ShouldContain("tenant\\with\\backslashes");
+		
+		retrieved.DisabledTenants.ShouldContain("blocked{tenant}");
+		retrieved.DisabledTenants.ShouldContain("blocked[tenant]");
+		retrieved.DisabledTenants.ShouldContain("tenant,with,commas");
+		
+		retrieved.TenantPercentageEnabled.ShouldBe(33);
+	}
+}
+
 public class PostgreSQLFeatureFlagRepositoryFixture : IAsyncLifetime
 {
 	private readonly PostgreSqlContainer _container;
@@ -647,10 +1066,10 @@ public class PostgreSQLFeatureFlagRepositoryFixture : IAsyncLifetime
 	{
 		await _container.StartAsync();
 		var connectionString = _container.GetConnectionString();
-		
+
 		// Create the repository after container is started
 		await CreateTables(connectionString);
-		
+
 		// Initialize repository with the connection string
 		Repository = new PostgreSQLFeatureFlagRepository(connectionString, _logger);
 	}
@@ -683,6 +1102,9 @@ public class PostgreSQLFeatureFlagRepositoryFixture : IAsyncLifetime
 			targeting_rules JSONB NOT NULL DEFAULT '[]',
 			enabled_users JSONB NOT NULL DEFAULT '[]',
 			disabled_users JSONB NOT NULL DEFAULT '[]',
+			enabled_tenants JSONB NOT NULL DEFAULT '[]',
+			disabled_tenants JSONB NOT NULL DEFAULT '[]',
+			tenant_percentage_enabled INTEGER NOT NULL DEFAULT 0,
 			variations JSONB NOT NULL DEFAULT '{}',
 			default_variation VARCHAR(255) NOT NULL DEFAULT 'off',
 			tags JSONB NOT NULL DEFAULT '{}',
@@ -695,10 +1117,10 @@ public class PostgreSQLFeatureFlagRepositoryFixture : IAsyncLifetime
 		CREATE INDEX ix_feature_flags_tags ON feature_flags USING GIN(tags);
 	";
 
-	using var connection = new NpgsqlConnection(connectionString);
-	await connection.OpenAsync();
-	using var command = new NpgsqlCommand(createTableSql, connection);
-	await command.ExecuteNonQueryAsync();
+		using var connection = new NpgsqlConnection(connectionString);
+		await connection.OpenAsync();
+		using var command = new NpgsqlCommand(createTableSql, connection);
+		await command.ExecuteNonQueryAsync();
 	}
 
 	public FeatureFlag CreateTestFlag(string key, FeatureFlagStatus status)
@@ -717,6 +1139,9 @@ public class PostgreSQLFeatureFlagRepositoryFixture : IAsyncLifetime
 			TargetingRules = new List<TargetingRule>(),
 			EnabledUsers = new List<string>(),
 			DisabledUsers = new List<string>(),
+			EnabledTenants = new List<string>(),
+			DisabledTenants = new List<string>(),
+			TenantPercentageEnabled = 0,
 			Variations = new Dictionary<string, object>(),
 			Tags = new Dictionary<string, string>(),
 			WindowDays = new List<DayOfWeek>(),

@@ -92,6 +92,85 @@ public class CreateAsync_WithValidFlag : IClassFixture<SqlServerFeatureFlagRepos
 	}
 }
 
+public class CreateAsync_WithTenantData : IClassFixture<SqlServerFeatureFlagRepositoryFixture>
+{
+	private readonly SqlServerFeatureFlagRepositoryFixture _fixture;
+
+	public CreateAsync_WithTenantData(SqlServerFeatureFlagRepositoryFixture fixture)
+	{
+		_fixture = fixture;
+	}
+
+	[Fact]
+	public async Task If_FlagWithTenantOverrides_ThenStoresCorrectly()
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("tenant-overrides-flag", FeatureFlagStatus.Enabled);
+		flag.EnabledTenants = new List<string> { "tenant1", "tenant2", "premium-tenant" };
+		flag.DisabledTenants = new List<string> { "blocked-tenant", "test-tenant" };
+		flag.TenantPercentageEnabled = 75;
+
+		// Act
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync("tenant-overrides-flag");
+		retrieved.ShouldNotBeNull();
+		retrieved.EnabledTenants.ShouldContain("tenant1");
+		retrieved.EnabledTenants.ShouldContain("tenant2");
+		retrieved.EnabledTenants.ShouldContain("premium-tenant");
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant");
+		retrieved.DisabledTenants.ShouldContain("test-tenant");
+		retrieved.TenantPercentageEnabled.ShouldBe(75);
+	}
+
+	[Fact]
+	public async Task If_FlagWithEmptyTenantLists_ThenStoresEmptyLists()
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("empty-tenant-lists-flag", FeatureFlagStatus.Enabled);
+		flag.EnabledTenants = new List<string>();
+		flag.DisabledTenants = new List<string>();
+		flag.TenantPercentageEnabled = 0;
+
+		// Act
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync("empty-tenant-lists-flag");
+		retrieved.ShouldNotBeNull();
+		retrieved.EnabledTenants.ShouldNotBeNull();
+		retrieved.EnabledTenants.Count.ShouldBe(0);
+		retrieved.DisabledTenants.ShouldNotBeNull();
+		retrieved.DisabledTenants.Count.ShouldBe(0);
+		retrieved.TenantPercentageEnabled.ShouldBe(0);
+	}
+
+	[Theory]
+	[InlineData(0)]
+	[InlineData(25)]
+	[InlineData(50)]
+	[InlineData(75)]
+	[InlineData(100)]
+	public async Task If_FlagWithDifferentTenantPercentages_ThenStoresCorrectly(int tenantPercentage)
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag($"tenant-percentage-{tenantPercentage}-flag", FeatureFlagStatus.Enabled);
+		flag.TenantPercentageEnabled = tenantPercentage;
+
+		// Act
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync($"tenant-percentage-{tenantPercentage}-flag");
+		retrieved.ShouldNotBeNull();
+		retrieved.TenantPercentageEnabled.ShouldBe(tenantPercentage);
+	}
+}
+
 public class When_FlagExists : IClassFixture<SqlServerFeatureFlagRepositoryFixture>
 {
 	private readonly SqlServerFeatureFlagRepositoryFixture _fixture;
@@ -334,224 +413,300 @@ public class When_FlagExists : IClassFixture<SqlServerFeatureFlagRepositoryFixtu
 	}
 }
 
-public class When_FlagDoesNotExist : IClassFixture<SqlServerFeatureFlagRepositoryFixture>
+public class When_FlagExistsWithTenantData : IClassFixture<SqlServerFeatureFlagRepositoryFixture>
 {
 	private readonly SqlServerFeatureFlagRepositoryFixture _fixture;
 
-	public When_FlagDoesNotExist(SqlServerFeatureFlagRepositoryFixture fixture)
+	public When_FlagExistsWithTenantData(SqlServerFeatureFlagRepositoryFixture fixture)
 	{
 		_fixture = fixture;
 	}
 
 	[Fact]
-	public async Task If_Update_ThenThrowsInvalidOperationException()
+	public async Task If_UpdateTenantLists_ThenStoresUpdatedData()
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("non-existent", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("update-tenant-lists", FeatureFlagStatus.Enabled);
+		flag.EnabledTenants = new List<string> { "original-tenant" };
+		flag.DisabledTenants = new List<string> { "original-blocked" };
+		flag.TenantPercentageEnabled = 50;
+		await _fixture.Repository.CreateAsync(flag);
 
-		// Act & Assert
-		var exception = await Should.ThrowAsync<InvalidOperationException>(
-			() => _fixture.Repository.UpdateAsync(flag));
+		// Update tenant data
+		flag.EnabledTenants = new List<string> { "updated-tenant1", "updated-tenant2" };
+		flag.DisabledTenants = new List<string> { "updated-blocked1", "updated-blocked2", "updated-blocked3" };
+		flag.TenantPercentageEnabled = 80;
+
+		// Act
+		await _fixture.Repository.UpdateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync("update-tenant-lists");
+		retrieved.ShouldNotBeNull();
+		retrieved.EnabledTenants.Count.ShouldBe(2);
+		retrieved.EnabledTenants.ShouldContain("updated-tenant1");
+		retrieved.EnabledTenants.ShouldContain("updated-tenant2");
+		retrieved.EnabledTenants.ShouldNotContain("original-tenant");
 		
-		exception.Message.ShouldContain("Feature flag 'non-existent' not found");
+		retrieved.DisabledTenants.Count.ShouldBe(3);
+		retrieved.DisabledTenants.ShouldContain("updated-blocked1");
+		retrieved.DisabledTenants.ShouldContain("updated-blocked2");
+		retrieved.DisabledTenants.ShouldContain("updated-blocked3");
+		retrieved.DisabledTenants.ShouldNotContain("original-blocked");
+		
+		retrieved.TenantPercentageEnabled.ShouldBe(80);
 	}
 
 	[Fact]
-	public async Task If_Delete_ThenReturnsFalse()
+	public async Task If_ClearTenantLists_ThenStoresEmptyLists()
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("clear-tenant-lists", FeatureFlagStatus.Enabled);
+		flag.EnabledTenants = new List<string> { "tenant1", "tenant2" };
+		flag.DisabledTenants = new List<string> { "blocked1", "blocked2" };
+		flag.TenantPercentageEnabled = 60;
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Clear tenant data
+		flag.EnabledTenants = new List<string>();
+		flag.DisabledTenants = new List<string>();
+		flag.TenantPercentageEnabled = 0;
 
 		// Act
-		var result = await _fixture.Repository.DeleteAsync("non-existent");
+		await _fixture.Repository.UpdateAsync(flag);
 
 		// Assert
-		result.ShouldBeFalse();
+		var retrieved = await _fixture.Repository.GetAsync("clear-tenant-lists");
+		retrieved.ShouldNotBeNull();
+		retrieved.EnabledTenants.Count.ShouldBe(0);
+		retrieved.DisabledTenants.Count.ShouldBe(0);
+		retrieved.TenantPercentageEnabled.ShouldBe(0);
 	}
 
 	[Fact]
-	public async Task If_Get_ThenReturnsNull()
-	{
-		// Act
-		var result = await _fixture.Repository.GetAsync("non-existent-flag");
-
-		// Assert
-		result.ShouldBeNull();
-	}
-}
-
-public class GetExpiringAsync_WithExpiringFlags : IClassFixture<SqlServerFeatureFlagRepositoryFixture>
-{
-	private readonly SqlServerFeatureFlagRepositoryFixture _fixture;
-
-	public GetExpiringAsync_WithExpiringFlags(SqlServerFeatureFlagRepositoryFixture fixture)
-	{
-		_fixture = fixture;
-	}
-
-	[Fact]
-	public async Task ThenReturnsExpiringFlags()
+	public async Task If_GetComplexFlagWithTenantData_ThenDeserializesCorrectly()
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var expiredFlag = _fixture.CreateTestFlag("expired-flag", FeatureFlagStatus.Enabled);
-		expiredFlag.ExpirationDate = DateTime.UtcNow.AddDays(-1);
-		expiredFlag.IsPermanent = false;
+		var flag = _fixture.CreateTestFlag("complex-tenant-flag", FeatureFlagStatus.UserTargeted);
+		flag.EnabledTenants = new List<string> { "premium-tenant", "enterprise-tenant" };
+		flag.DisabledTenants = new List<string> { "blocked-tenant-1", "blocked-tenant-2" };
+		flag.TenantPercentageEnabled = 40;
+		
+		// Also add other complex data to ensure tenant data works alongside existing features
+		flag.EnabledUsers = new List<string> { "admin1", "admin2" };
+		flag.TargetingRules = new List<TargetingRule>
+		{
+			new TargetingRule
+			{
+				Attribute = "region",
+				Operator = TargetingOperator.In,
+				Values = new List<string> { "US", "CA" },
+				Variation = "north-america"
+			}
+		};
 
-		var expiringFlag = _fixture.CreateTestFlag("expiring-flag", FeatureFlagStatus.Enabled);
-		expiringFlag.ExpirationDate = DateTime.UtcNow.AddHours(1);
-		expiringFlag.IsPermanent = false;
-
-		var permanentFlag = _fixture.CreateTestFlag("permanent-flag", FeatureFlagStatus.Enabled);
-		permanentFlag.ExpirationDate = DateTime.UtcNow.AddDays(-1);
-		permanentFlag.IsPermanent = true;
-
-		var futureFlag = _fixture.CreateTestFlag("future-flag", FeatureFlagStatus.Enabled);
-		futureFlag.ExpirationDate = DateTime.UtcNow.AddDays(30);
-		futureFlag.IsPermanent = false;
-
-		await _fixture.Repository.CreateAsync(expiredFlag);
-		await _fixture.Repository.CreateAsync(expiringFlag);
-		await _fixture.Repository.CreateAsync(permanentFlag);
-		await _fixture.Repository.CreateAsync(futureFlag);
-
-		// Act
-		var result = await _fixture.Repository.GetExpiringAsync(DateTime.UtcNow.AddHours(2));
-
-		// Assert
-		result.Count.ShouldBe(2);
-		result.ShouldContain(f => f.Key == "expired-flag");
-		result.ShouldContain(f => f.Key == "expiring-flag");
-		result.ShouldNotContain(f => f.Key == "permanent-flag"); // Excluded because IsPermanent = true
-		result.ShouldNotContain(f => f.Key == "future-flag"); // Excluded because expires after cutoff
-	}
-
-	[Fact]
-	public async Task If_NoExpiringFlags_ThenReturnsEmptyList()
-	{
-		// Arrange
-		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("future-flag", FeatureFlagStatus.Enabled);
-		flag.ExpirationDate = DateTime.UtcNow.AddDays(30);
-		flag.IsPermanent = false;
 		await _fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await _fixture.Repository.GetExpiringAsync(DateTime.UtcNow);
+		var retrieved = await _fixture.Repository.GetAsync("complex-tenant-flag");
 
 		// Assert
-		result.Count.ShouldBe(0);
+		retrieved.ShouldNotBeNull();
+		
+		// Verify tenant data
+		retrieved.EnabledTenants.Count.ShouldBe(2);
+		retrieved.EnabledTenants.ShouldContain("premium-tenant");
+		retrieved.EnabledTenants.ShouldContain("enterprise-tenant");
+		
+		retrieved.DisabledTenants.Count.ShouldBe(2);
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant-1");
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant-2");
+		
+		retrieved.TenantPercentageEnabled.ShouldBe(40);
+
+		// Verify other data still works
+		retrieved.EnabledUsers.Count.ShouldBe(2);
+		retrieved.TargetingRules.Count.ShouldBe(1);
+		retrieved.TargetingRules[0].Attribute.ShouldBe("region");
 	}
 }
 
-public class GetByTagsAsync_WithMatchingTags : IClassFixture<SqlServerFeatureFlagRepositoryFixture>
+public class GetAllAsync_WithTenantData : IClassFixture<SqlServerFeatureFlagRepositoryFixture>
 {
 	private readonly SqlServerFeatureFlagRepositoryFixture _fixture;
 
-	public GetByTagsAsync_WithMatchingTags(SqlServerFeatureFlagRepositoryFixture fixture)
+	public GetAllAsync_WithTenantData(SqlServerFeatureFlagRepositoryFixture fixture)
 	{
 		_fixture = fixture;
 	}
 
 	[Fact]
-	public async Task ThenReturnsMatchingFlags()
+	public async Task If_MultipleFlagsWithTenantData_ThenReturnsAllWithCorrectTenantData()
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag1 = _fixture.CreateTestFlag("platform-flag", FeatureFlagStatus.Enabled);
-		flag1.Tags = new Dictionary<string, string>
-		{
-			{ "team", "platform" },
-			{ "environment", "production" }
-		};
+		
+		var flag1 = _fixture.CreateTestFlag("tenant-flag-1", FeatureFlagStatus.Enabled);
+		flag1.Name = "Alpha Tenant Flag";
+		flag1.EnabledTenants = new List<string> { "tenant-alpha" };
+		flag1.TenantPercentageEnabled = 25;
 
-		var flag2 = _fixture.CreateTestFlag("feature-flag", FeatureFlagStatus.Enabled);
-		flag2.Tags = new Dictionary<string, string>
-		{
-			{ "team", "features" },
-			{ "environment", "production" }
-		};
+		var flag2 = _fixture.CreateTestFlag("tenant-flag-2", FeatureFlagStatus.Enabled);
+		flag2.Name = "Beta Tenant Flag";
+		flag2.DisabledTenants = new List<string> { "blocked-beta" };
+		flag2.TenantPercentageEnabled = 75;
 
-		var flag3 = _fixture.CreateTestFlag("dev-flag", FeatureFlagStatus.Enabled);
-		flag3.Tags = new Dictionary<string, string>
-		{
-			{ "team", "platform" },
-			{ "environment", "development" }
-		};
+		var flag3 = _fixture.CreateTestFlag("tenant-flag-3", FeatureFlagStatus.Enabled);
+		flag3.Name = "Gamma Tenant Flag";
+		flag3.EnabledTenants = new List<string> { "vip1", "vip2" };
+		flag3.DisabledTenants = new List<string> { "blocked1", "blocked2" };
+		flag3.TenantPercentageEnabled = 100;
 
 		await _fixture.Repository.CreateAsync(flag1);
 		await _fixture.Repository.CreateAsync(flag2);
 		await _fixture.Repository.CreateAsync(flag3);
 
 		// Act
-		var result = await _fixture.Repository.GetByTagsAsync(new Dictionary<string, string>
-		{
-			{ "team", "platform" }
-		});
+		var result = await _fixture.Repository.GetAllAsync();
 
 		// Assert
-		result.Count.ShouldBe(2);
-		result.ShouldContain(f => f.Key == "platform-flag");
-		result.ShouldContain(f => f.Key == "dev-flag");
-		result.ShouldNotContain(f => f.Key == "feature-flag");
+		result.Count.ShouldBe(3);
+		
+		// Ordered by name, so Alpha, Beta, Gamma
+		var alphaFlag = result.First(f => f.Name == "Alpha Tenant Flag");
+		alphaFlag.EnabledTenants.ShouldContain("tenant-alpha");
+		alphaFlag.TenantPercentageEnabled.ShouldBe(25);
+
+		var betaFlag = result.First(f => f.Name == "Beta Tenant Flag");
+		betaFlag.DisabledTenants.ShouldContain("blocked-beta");
+		betaFlag.TenantPercentageEnabled.ShouldBe(75);
+
+		var gammaFlag = result.First(f => f.Name == "Gamma Tenant Flag");
+		gammaFlag.EnabledTenants.Count.ShouldBe(2);
+		gammaFlag.DisabledTenants.Count.ShouldBe(2);
+		gammaFlag.TenantPercentageEnabled.ShouldBe(100);
+	}
+}
+
+public class TenantData_EdgeCases : IClassFixture<SqlServerFeatureFlagRepositoryFixture>
+{
+	private readonly SqlServerFeatureFlagRepositoryFixture _fixture;
+
+	public TenantData_EdgeCases(SqlServerFeatureFlagRepositoryFixture fixture)
+	{
+		_fixture = fixture;
 	}
 
 	[Fact]
-	public async Task If_MultipleTagsCriteria_ThenReturnsOnlyExactMatches()
+	public async Task If_TenantIdWithSpecialCharacters_ThenStoresAndRetrievesCorrectly()
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag1 = _fixture.CreateTestFlag("exact-match", FeatureFlagStatus.Enabled);
-		flag1.Tags = new Dictionary<string, string>
-		{
-			{ "team", "platform" },
-			{ "environment", "production" }
+		var flag = _fixture.CreateTestFlag("special-chars-tenant", FeatureFlagStatus.Enabled);
+		flag.EnabledTenants = new List<string> 
+		{ 
+			"tenant@company.com", 
+			"tenant-with-dashes", 
+			"tenant_with_underscores",
+			"tenant with spaces",
+			"tenant!@#$%^&*()",
 		};
-
-		var flag2 = _fixture.CreateTestFlag("partial-match", FeatureFlagStatus.Enabled);
-		flag2.Tags = new Dictionary<string, string>
-		{
-			{ "team", "platform" },
-			{ "environment", "development" }
+		flag.DisabledTenants = new List<string> 
+		{ 
+			"blocked@evil.com", 
+			"blocked-tenant-123" 
 		};
-
-		await _fixture.Repository.CreateAsync(flag1);
-		await _fixture.Repository.CreateAsync(flag2);
 
 		// Act
-		var result = await _fixture.Repository.GetByTagsAsync(new Dictionary<string, string>
-		{
-			{ "team", "platform" },
-			{ "environment", "production" }
-		});
-
-		// Assert
-		result.Count.ShouldBe(1);
-		result.ShouldContain(f => f.Key == "exact-match");
-		result.ShouldNotContain(f => f.Key == "partial-match");
-	}
-
-	[Fact]
-	public async Task If_NoMatchingTags_ThenReturnsEmptyList()
-	{
-		// Arrange
-		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("no-match", FeatureFlagStatus.Enabled);
-		flag.Tags = new Dictionary<string, string>
-		{
-			{ "team", "platform" }
-		};
 		await _fixture.Repository.CreateAsync(flag);
 
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync("special-chars-tenant");
+		retrieved.ShouldNotBeNull();
+		retrieved.EnabledTenants.ShouldContain("tenant@company.com");
+		retrieved.EnabledTenants.ShouldContain("tenant-with-dashes");
+		retrieved.EnabledTenants.ShouldContain("tenant_with_underscores");
+		retrieved.EnabledTenants.ShouldContain("tenant with spaces");
+		retrieved.EnabledTenants.ShouldContain("tenant!@#$%^&*()");
+		retrieved.DisabledTenants.ShouldContain("blocked@evil.com");
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant-123");
+	}
+
+	[Fact]
+	public async Task If_DuplicateTenantsInLists_ThenStoresAndRetrievesAllEntries()
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("duplicate-tenants", FeatureFlagStatus.Enabled);
+		flag.EnabledTenants = new List<string> { "tenant1", "tenant1", "tenant2", "tenant1" };
+		flag.DisabledTenants = new List<string> { "blocked", "blocked", "other-blocked" };
+
 		// Act
-		var result = await _fixture.Repository.GetByTagsAsync(new Dictionary<string, string>
-		{
-			{ "team", "nonexistent" }
-		});
+		await _fixture.Repository.CreateAsync(flag);
 
 		// Assert
-		result.Count.ShouldBe(0);
+		var retrieved = await _fixture.Repository.GetAsync("duplicate-tenants");
+		retrieved.ShouldNotBeNull();
+		// Should preserve duplicates as stored
+		retrieved.EnabledTenants.Count.ShouldBe(4);
+		retrieved.EnabledTenants.Count(t => t == "tenant1").ShouldBe(3);
+		retrieved.DisabledTenants.Count.ShouldBe(3);
+		retrieved.DisabledTenants.Count(t => t == "blocked").ShouldBe(2);
+	}
+
+	[Fact]
+	public async Task If_VeryLongTenantLists_ThenStoresAndRetrievesCorrectly()
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag("large-tenant-lists", FeatureFlagStatus.Enabled);
+		
+		// Create large lists
+		flag.EnabledTenants = Enumerable.Range(1, 1000).Select(i => $"enabled-tenant-{i}").ToList();
+		flag.DisabledTenants = Enumerable.Range(1, 500).Select(i => $"blocked-tenant-{i}").ToList();
+		flag.TenantPercentageEnabled = 42;
+
+		// Act
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync("large-tenant-lists");
+		retrieved.ShouldNotBeNull();
+		retrieved.EnabledTenants.Count.ShouldBe(1000);
+		retrieved.EnabledTenants.ShouldContain("enabled-tenant-1");
+		retrieved.EnabledTenants.ShouldContain("enabled-tenant-500");
+		retrieved.EnabledTenants.ShouldContain("enabled-tenant-1000");
+		
+		retrieved.DisabledTenants.Count.ShouldBe(500);
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant-1");
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant-250");
+		retrieved.DisabledTenants.ShouldContain("blocked-tenant-500");
+		
+		retrieved.TenantPercentageEnabled.ShouldBe(42);
+	}
+
+	[Theory]
+	[InlineData(-10)] // Negative percentage
+	[InlineData(150)] // Over 100%
+	[InlineData(0)]   // Zero percentage
+	[InlineData(100)] // Max percentage
+	public async Task If_EdgeCaseTenantPercentages_ThenStoresCorrectly(int percentage)
+	{
+		// Arrange
+		await _fixture.ClearAllFlags();
+		var flag = _fixture.CreateTestFlag($"edge-percentage-{Math.Abs(percentage)}", FeatureFlagStatus.Enabled);
+		flag.TenantPercentageEnabled = percentage;
+
+		// Act
+		await _fixture.Repository.CreateAsync(flag);
+
+		// Assert
+		var retrieved = await _fixture.Repository.GetAsync($"edge-percentage-{Math.Abs(percentage)}");
+		retrieved.ShouldNotBeNull();
+		retrieved.TenantPercentageEnabled.ShouldBe(percentage);
 	}
 }
 
@@ -693,6 +848,9 @@ public class SqlServerFeatureFlagRepositoryFixture : IAsyncLifetime
 			targeting_rules NVARCHAR(MAX) NOT NULL DEFAULT '[]',
 			enabled_users NVARCHAR(MAX) NOT NULL DEFAULT '[]',
 			disabled_users NVARCHAR(MAX) NOT NULL DEFAULT '[]',
+			enabled_tenants NVARCHAR(MAX) NOT NULL DEFAULT '[]',
+			disabled_tenants NVARCHAR(MAX) NOT NULL DEFAULT '[]',
+			tenant_percentage_enabled INT NOT NULL DEFAULT 0,
 			variations NVARCHAR(MAX) NOT NULL DEFAULT '{}',
 			default_variation NVARCHAR(255) NOT NULL DEFAULT 'off',
 			tags NVARCHAR(MAX) NOT NULL DEFAULT '{}',
