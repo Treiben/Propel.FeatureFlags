@@ -83,7 +83,7 @@ namespace Propel.FeatureFlags.Client
 				{
 					if (variationValue is JsonElement jsonElement)
 					{
-						var deserializedValue = JsonSerializer.Deserialize<T>(jsonElement.GetRawText());
+						var deserializedValue = JsonSerializer.Deserialize<T>(jsonElement.GetRawText(), JsonDefaults.JsonOptions);
 						return deserializedValue ?? defaultValue;
 					}
 

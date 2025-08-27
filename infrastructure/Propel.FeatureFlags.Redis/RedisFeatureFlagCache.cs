@@ -35,7 +35,7 @@ public class RedisFeatureFlagCache : IFeatureFlagCache
 				return null;
 			}
 
-			var flag = JsonSerializer.Deserialize<FeatureFlag>(value);
+			var flag = JsonSerializer.Deserialize<FeatureFlag>(value, JsonDefaults.JsonOptions);
 			_logger.LogDebug("Feature flag {Key} retrieved from cache", flag.Key);
 			return flag;
 		}
@@ -56,7 +56,7 @@ public class RedisFeatureFlagCache : IFeatureFlagCache
 
 		try
 		{
-			var value = JsonSerializer.Serialize(flag);
+			var value = JsonSerializer.Serialize(flag, JsonDefaults.JsonOptions);
 			_logger.LogDebug("Serialized feature flag {Key} to JSON", key);
 			if (await _database.StringSetAsync($"{KEY_PREFIX}{key}", value, expiration))
 			{
