@@ -1,44 +1,60 @@
+using Microsoft.Extensions.Options;
 using Propel.ClientApi.MinimalApiEndpoints;
 using Propel.ClientApi.Services;
+using Propel.FeatureFlags;
 using Propel.FeatureFlags.AspNetCore.Middleware;
+using Propel.FeatureFlags.Attributes;
 using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.DependencyInjection;
 using Propel.FeatureFlags.PostgresSql;
 using Propel.FeatureFlags.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddLogging();
 builder.Services.AddHealthChecks();
+builder.Services.AddHttpContextAccessor();
 
 var featureFlagOptions = builder.Configuration.GetSection("PropelFeatureFlags").Get<FlagOptions>() ?? new();
 
 // Register the core feature flag services
 builder.Services.AddFeatureFlags(featureFlagOptions);
 
+//-----------------------------------------------------------------------------
+// Optional integrations
+//-----------------------------------------------------------------------------
+
+// STORAGE
 // If you want to use PostgreSQL for feature flag storage, uncomment the line below
-// 0. Add the FeatureToggles.Persistence.PostgresSQL package
+// 0. Add the Propel.FeatureFlags.PostgresSql package
 // 1. Add the PostgreSQL connection string to appsettings.json
 builder.Services.AddPostgresSqlFeatureFlags(featureFlagOptions.SqlConnectionString);
 // Otherwise,you can follow the similar steps to use other storage options like MongoDB, SQL Server, Azure AppConfiguration, etc.
+//-----------------------------------------------------------------------------
 
+// CACHING
 // If you want to use Redis for caching feature flags, uncomment the line below
-// 0. Add the FeatureToggles.Cache.Redis package
+// 0. Add the Propel.FeatureFlags.Redis package
 // 1. Add the Redis connection string to appsettings.json
 // 2. Register the Redis cache
-if (!string.IsNullOrEmpty(featureFlagOptions.RedisConnectionString))
+if (featureFlagOptions.UseCache == true && string.IsNullOrEmpty(featureFlagOptions.RedisConnectionString))
 	builder.Services.AddRedisCache(featureFlagOptions.RedisConnectionString);
-// Otherwise, it will use in-memory caching by default
+// If featureFlagOptions.UseCache is true and Redis is not configured, then it will use in-memory caching by default
+// If you don't want any caching, set UseCache to false in appsettings.json
+//-----------------------------------------------------------------------------
 
+// ATTRIBUTE-BASED FEATURE FLAGS VIA ATTRIBUTES
 // To use FeatureFlaggedAttribute:
-// 0. Add the FeatureToggles.Attributes package
+// 0. Add the Propel.FeatureFlags.Attributes package
 // 1. Register the attributes
-builder.Services.AddFeatureFlagsAttributes();
-// 2. Register implementation only
-builder.Services.AddScoped<NotificationService>();
-// 3. Register the implementation of the interface with the interceptor
-builder.Services.RegisterService<INotificationService, NotificationService>();
-// Otherwise, register the service normally without feature flags attbutes
+//builder.Services.AddFeatureFlagsAttributes();
+// if you have custom data that should be passed from HttpContext headers (e.g. user id, tenant id), use
+builder.Services.AddHttpFeatureFlagsAttributes(); // HttpContextAccessor must be added (e.g. builder.Services.AddHttpContextAccessor)
+
+//2. Register the service with interceptor to enable attribute-based feature flags
+builder.Services.AddScopedWithFeatureFlags<INotificationService, NotificationService>();
+
+// If you don't want to use feature flags attributes, register the service normally without feature flags attbutes
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
+//-----------------------------------------------------------------------------
 
 var app = builder.Build();
 
@@ -48,8 +64,10 @@ app.UseHttpsRedirection();
 
 app.MapHealthChecks("/health");
 
+//-----------------------------------------------------------------------------
 // Examples of setting up feature flag middleware for different usage scenarios
-app.MapFeatureFlagMiddleware("maintenanceWithHeaders"); // Changed from "maintenance" to include header extraction
+app.MapFeatureFlagMiddleware("maintenanceWithHeaders"); 
+//-----------------------------------------------------------------------------
 
 app.MapAdminEndpoints();
 app.MapNotificationsEndpoints();

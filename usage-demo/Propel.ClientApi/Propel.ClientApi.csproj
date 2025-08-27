@@ -11,10 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Services\NotificationService.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
   </ItemGroup>
 
@@ -23,7 +19,6 @@
     <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.Redis\Propel.FeatureFlags.Redis.csproj" />
     <ProjectReference Include="..\..\Propel.FeatureFlags.AspNetCore\Propel.FeatureFlags.AspNetCore.csproj" />
     <ProjectReference Include="..\..\Propel.FeatureFlags.Attributes\Propel.FeatureFlags.Attributes.csproj" />
-    <ProjectReference Include="..\..\Propel.FeatureFlags.DependencyInjection\Propel.FeatureFlags.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
   </ItemGroup>
 
