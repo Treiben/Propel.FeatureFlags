@@ -1,8 +1,8 @@
-﻿using Propel.FeatureFlags.Cache;
+﻿using Propel.FeatureFlags;
+using Propel.FeatureFlags.Cache;
 using Propel.FeatureFlags.Client;
 using Propel.FeatureFlags.Client.Evaluators;
 using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Persistence;
 using System.Text.Json;
 
 namespace FeatureFlags.UnitTests.Evaluator;
