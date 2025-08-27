@@ -93,7 +93,7 @@ public class FeatureFlagMiddleware
 		}
 
 		// Add evaluator to context
-		context.Items["FeatureFlagEvaluator"] = new HttpContextFeatureFlagEvaluator(_featureFlags, userId, attributes);
+		context.Items["FeatureFlagEvaluator"] = new HttpContextFeatureFlagEvaluator(_featureFlags, tenantId, userId, attributes);
 		_logger.LogDebug("Feature flag evaluator added to HttpContext.Items");
 
 		_logger.LogDebug("FeatureFlagMiddleware completed processing, calling next middleware");
@@ -108,12 +108,12 @@ public class FeatureFlagMiddleware
 			try
 			{
 				tenantId = _options.TenantIdExtractor(context);
-				_logger.LogDebug("Extracted user ID using custom extractor: {UserId}", tenantId ?? "null");
+				_logger.LogDebug("Extracted tenant ID using custom extractor: {TenantId}", tenantId ?? "null");
 				return tenantId;
 			}
 			catch (Exception ex)
 			{
-				_logger.LogWarning(ex, "Error extracting user ID with custom extractor");
+				_logger.LogWarning(ex, "Error extracting tenant ID with custom extractor");
 			}
 		}
 

@@ -5,13 +5,14 @@ namespace Propel.FeatureFlags.AspNetCore;
 public class HttpContextFeatureFlagEvaluator
 {
 	private readonly IFeatureFlagClient _client;
-	private readonly string ? _tenantId = null; // Assuming tenant ID is not used in this context
+	private readonly string ? _tenantId;
 	private readonly string? _userId;
 	private readonly Dictionary<string, object> _attributes;
 
-	public HttpContextFeatureFlagEvaluator(IFeatureFlagClient client, string? userId, Dictionary<string, object> attributes)
+	public HttpContextFeatureFlagEvaluator(IFeatureFlagClient client, string? tenantId, string? userId, Dictionary<string, object> attributes)
 	{
 		_client = client;
+		_tenantId = tenantId;
 		_userId = userId;
 		_attributes = attributes;
 	}
