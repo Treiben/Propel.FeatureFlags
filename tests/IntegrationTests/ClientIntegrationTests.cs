@@ -1058,7 +1058,7 @@ public class FeatureFlagClient_DefaultTenantId : IClassFixture<FeatureFlagClient
 		await _fixture.ClearAllData();
 		
 		// Create client with default tenant ID
-		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "default-tenant", "UTC");
+		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "UTC");
 		
 		var flag = _fixture.CreateTestFlag("default-tenant-flag", FeatureFlagStatus.Enabled);
 		flag.EnabledTenants = ["default-tenant"];
@@ -1079,7 +1079,7 @@ public class FeatureFlagClient_DefaultTenantId : IClassFixture<FeatureFlagClient
 		await _fixture.ClearAllData();
 		
 		// Create client with default tenant ID
-		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "default-tenant", "UTC");
+		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "UTC");
 		
 		var flag = _fixture.CreateTestFlag("override-tenant-flag", FeatureFlagStatus.Enabled);
 		flag.EnabledTenants = ["specific-tenant"];
@@ -1100,7 +1100,7 @@ public class FeatureFlagClient_DefaultTenantId : IClassFixture<FeatureFlagClient
 		await _fixture.ClearAllData();
 		
 		// Create client with default tenant ID
-		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "default-tenant", "UTC");
+		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "UTC");
 		
 		var flag = _fixture.CreateTestFlag("blocked-override-tenant-flag", FeatureFlagStatus.Enabled);
 		flag.EnabledTenants = ["default-tenant"]; // Default tenant is enabled
@@ -1121,7 +1121,7 @@ public class FeatureFlagClient_DefaultTenantId : IClassFixture<FeatureFlagClient
 		await _fixture.ClearAllData();
 		
 		// Create client with default tenant ID
-		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "premium-tenant", "UTC");
+		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "UTC");
 		
 		var flag = _fixture.CreateTestFlag("default-tenant-variation-flag", FeatureFlagStatus.Enabled);
 		flag.EnabledTenants = ["premium-tenant"];
@@ -1145,7 +1145,7 @@ public class FeatureFlagClient_DefaultTenantId : IClassFixture<FeatureFlagClient
 		await _fixture.ClearAllData();
 		
 		// Create client with default tenant ID
-		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "enterprise-tenant", "UTC");
+		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "UTC");
 		
 		var flag = _fixture.CreateTestFlag("default-tenant-eval-flag", FeatureFlagStatus.Enabled);
 		flag.EnabledTenants = ["enterprise-tenant"];

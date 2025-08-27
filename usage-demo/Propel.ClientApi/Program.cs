@@ -45,8 +45,9 @@ if (featureFlagOptions.UseCache == true && string.IsNullOrEmpty(featureFlagOptio
 // To use FeatureFlaggedAttribute:
 // 0. Add the Propel.FeatureFlags.Attributes package
 // 1. Register the attributes
-//builder.Services.AddFeatureFlagsAttributes();
-// if you have custom data that should be passed from HttpContext headers (e.g. user id, tenant id), use
+// option 1: If the flags don't need to use any HttpContext data or is not aspnet application, register as
+// builder.Services.AddFeatureFlagsAttributes();
+// option 2: if you have custom data that should be passed from HttpContext headers (e.g. user id, tenant id), use
 builder.Services.AddHttpFeatureFlagsAttributes(); // HttpContextAccessor must be added (e.g. builder.Services.AddHttpContextAccessor)
 
 //2. Register the service with interceptor to enable attribute-based feature flags
