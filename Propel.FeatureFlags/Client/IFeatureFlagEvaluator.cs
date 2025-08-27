@@ -1,7 +1,6 @@
 ﻿using Propel.FeatureFlags.Cache;
 using Propel.FeatureFlags.Client.Evaluators;
 using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Persistence;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.Client
@@ -21,7 +20,7 @@ namespace Propel.FeatureFlags.Client
 		public FeatureFlagEvaluator(
 			IFeatureFlagRepository repository,
 			IFlagEvaluationHandler evaluationHandler,
-			IFeatureFlagCache? cache)
+			IFeatureFlagCache? cache = null)
 		{
 			_repository = repository ?? throw new ArgumentNullException(nameof(repository));
 			_evaluationHandler = evaluationHandler ?? throw new ArgumentNullException(nameof(evaluationHandler));

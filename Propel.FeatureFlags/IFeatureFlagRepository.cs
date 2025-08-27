@@ -1,6 +1,6 @@
 ﻿using Propel.FeatureFlags.Core;
 
-namespace Propel.FeatureFlags.Persistence
+namespace Propel.FeatureFlags
 {
 	public interface IFeatureFlagRepository
 	{

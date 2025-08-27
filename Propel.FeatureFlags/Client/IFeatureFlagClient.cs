@@ -9,21 +9,20 @@
 
 	public sealed class FeatureFlagClient : IFeatureFlagClient
 	{
-		private readonly string? _defaultTenantId;
 		private readonly string? _defaultTimeZone;
 		private readonly IFeatureFlagEvaluator evaluator;
 
-		public FeatureFlagClient(IFeatureFlagEvaluator evaluator, string? defaultTenantId = null, string? defaultTimeZone = null)
+		public FeatureFlagClient(IFeatureFlagEvaluator evaluator, string? defaultTimeZone = null)
 		{
 			this.evaluator = evaluator;
-			_defaultTenantId = defaultTenantId;
 			_defaultTimeZone = defaultTimeZone ?? "UTC";
 		}
 
-		public async Task<bool> IsEnabledAsync(string flagKey, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null)
+		public async Task<bool> IsEnabledAsync(string flagKey, string? tenantId = null, 
+			string? userId = null, Dictionary<string, object>? attributes = null)
 		{
 			var context = new EvaluationContext(
-				tenantId: tenantId ?? _defaultTenantId,
+				tenantId: tenantId,
 				userId: userId,
 				attributes: attributes,
 				timeZone: _defaultTimeZone);
@@ -36,7 +35,7 @@
 			string? userId = null, Dictionary<string, object>? attributes = null)
 		{
 			var context = new EvaluationContext(
-				tenantId: tenantId ?? _defaultTenantId,
+				tenantId: tenantId,
 				userId: userId,
 				attributes: attributes,
 				timeZone: _defaultTimeZone);
@@ -48,7 +47,7 @@
 			string? userId = null, Dictionary<string, object>? attributes = null)
 		{
 			var context = new EvaluationContext(
-				tenantId: tenantId ?? _defaultTenantId,
+				tenantId: tenantId,
 				userId: userId,
 				attributes: attributes,
 				timeZone: _defaultTimeZone);
