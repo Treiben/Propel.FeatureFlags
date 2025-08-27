@@ -51,63 +51,27 @@ public class FeatureFlagMiddleware
 
 		// Extract user ID using configured extractor or fallback
 		var tenantId = ExtractTenantId(context);
+		_logger.LogDebug("Tenant ID extracted: {TenantId}", tenantId ?? "null");
 		var userId = ExtractUserId(context);
 		_logger.LogDebug("User ID extracted: {UserId}", userId ?? "null");
-
 		// Build base attributes
-		var attributes = new Dictionary<string, object>
-		{
-			["userAgent"] = context.Request.Headers["User-Agent"].ToString(),
-			["ipAddress"] = context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-			["path"] = context.Request.Path,
-			["method"] = context.Request.Method
-		};
-		_logger.LogDebug("Base attributes: {@Attributes}", attributes);
+		var attributes = ExtractAttributes(context) ?? new Dictionary<string, object>();
+		_logger.LogDebug("Attributes extracted: {@Attributes}", attributes);
 
-		// Add custom attributes using configured extractors
-		foreach (var extractor in _options.AttributeExtractors)
+		if (await CheckMaintenanceMode(tenantId, userId, attributes))
 		{
-			try
+			_logger.LogInformation("Maintenance mode is active, returning 503 response");
+			context.Response.StatusCode = 503;
+			context.Response.ContentType = "application/json";
+
+			var response = _options.MaintenanceResponse ?? new
 			{
-				var customAttributes = extractor(context);
-				foreach (var attr in customAttributes)
-				{
-					attributes[attr.Key] = attr.Value;
-				}
-				_logger.LogDebug("Added custom attributes from extractor");
-			}
-			catch (Exception ex)
-			{
-				_logger.LogWarning(ex, "Error extracting custom attributes");
-			}
-		}
+				error = "Service temporarily unavailable for maintenance",
+				retryAfter = "300"
+			};
 
-		// Check maintenance mode
-		if (_options.EnableMaintenanceMode)
-		{
-			_logger.LogDebug("Checking maintenance mode flag: {MaintenanceFlagKey}", _options.MaintenanceFlagKey);
-			bool isInMaintenance = await _featureFlags.IsEnabledAsync(flagKey: _options.MaintenanceFlagKey, tenantId: tenantId, userId: userId, attributes: attributes);
-			_logger.LogDebug("Maintenance mode status: {IsInMaintenance}", isInMaintenance);
-			
-			if (isInMaintenance)
-			{
-				_logger.LogInformation("Maintenance mode is active, returning 503 response");
-				context.Response.StatusCode = 503;
-				context.Response.ContentType = "application/json";
-
-				var response = _options.MaintenanceResponse ?? new
-				{
-					error = "Service temporarily unavailable for maintenance",
-					retryAfter = "300"
-				};
-
-				await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
-				return;
-			}
-		}
-		else
-		{
-			_logger.LogDebug("Maintenance mode is disabled");
+			await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
+			return;
 		}
 
 		// Check global feature gates
@@ -116,7 +80,7 @@ public class FeatureFlagMiddleware
 			_logger.LogDebug("Checking global flag: {FlagKey}", globalFlag.FlagKey);
 			bool isEnabled = await _featureFlags.IsEnabledAsync(flagKey: globalFlag.FlagKey, tenantId: tenantId, userId: userId, attributes: attributes);
 			_logger.LogDebug("Global flag {FlagKey} status: {IsEnabled}", globalFlag.FlagKey, isEnabled);
-			
+
 			if (!isEnabled)
 			{
 				_logger.LogInformation("Global flag {FlagKey} is disabled, returning {StatusCode} response",
@@ -139,7 +103,7 @@ public class FeatureFlagMiddleware
 	private string? ExtractTenantId(HttpContext context)
 	{
 		string? tenantId = null;
-		if (_options.UserIdExtractor != null)
+		if (_options.TenantIdExtractor != null)
 		{
 			try
 			{
@@ -179,11 +143,63 @@ public class FeatureFlagMiddleware
 		}
 
 		// Default extraction
-		 userId = context.User.Identity?.Name ??
-			   context.Request.Headers["X-User-ID"].FirstOrDefault() ??
-			   context.Request.Query["userId"].FirstOrDefault();
-		   
+		userId = context.User.Identity?.Name ??
+			  context.Request.Headers["X-User-ID"].FirstOrDefault() ??
+			  context.Request.Query["userId"].FirstOrDefault();
+
 		_logger.LogDebug("Extracted user ID using default extractors: {UserId}", userId ?? "null");
 		return userId;
+	}
+
+	private Dictionary<string, object>? ExtractAttributes(HttpContext context)
+	{
+		var attributes = new Dictionary<string, object>
+		{
+			["userAgent"] = context.Request.Headers["User-Agent"].ToString(),
+			["ipAddress"] = context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+			["path"] = context.Request.Path,
+			["method"] = context.Request.Method
+		};
+		_logger.LogDebug("Base attributes: {@Attributes}", attributes);
+
+		// Add custom attributes using configured extractors
+		if (_options.AttributeExtractors != null)
+		{
+			foreach (var extractor in _options.AttributeExtractors)
+			{
+				try
+				{
+					var customAttributes = extractor(context);
+					foreach (var attr in customAttributes)
+					{
+						attributes[attr.Key] = attr.Value;
+					}
+				}
+				catch (Exception ex)
+				{
+					_logger.LogWarning(ex, "Error extracting custom attributes");
+				}
+			}
+		}
+		return attributes;
+	}
+
+	private async Task<bool> CheckMaintenanceMode(string? tenantId, string? userId, Dictionary<string, object> attributes)
+	{
+		if (!_options.EnableMaintenanceMode)
+		{
+			_logger.LogDebug("Maintenance mode is disabled");
+			return false;
+		}
+
+		_logger.LogDebug("Checking maintenance mode flag: {MaintenanceFlagKey}", _options.MaintenanceFlagKey);
+		bool isInMaintenance = await _featureFlags.IsEnabledAsync(flagKey: _options.MaintenanceFlagKey, tenantId: tenantId, userId: userId, attributes: attributes);
+		_logger.LogDebug("Maintenance mode status: {IsInMaintenance}", isInMaintenance);
+
+		if (!isInMaintenance)
+			return false;
+		
+		return true;
+
 	}
 }
