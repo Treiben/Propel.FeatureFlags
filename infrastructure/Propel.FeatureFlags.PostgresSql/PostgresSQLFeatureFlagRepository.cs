@@ -357,33 +357,33 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		
 		// JSONB parameters require explicit type specification
 		var windowDaysParam = command.Parameters.Add("window_days", NpgsqlDbType.Jsonb);
-		windowDaysParam.Value = JsonSerializer.Serialize(flag.WindowDays ?? new());
+		windowDaysParam.Value = JsonSerializer.Serialize(flag.WindowDays ?? [], NpgsqlDataReaderExtensions.JsonOptions);
 		
 		command.Parameters.AddWithValue("percentage_enabled", flag.PercentageEnabled);
 		command.Parameters.AddWithValue("tenant_percentage_enabled", flag.TenantPercentageEnabled);
 
 		var targetingRulesParam = command.Parameters.Add("targeting_rules", NpgsqlDbType.Jsonb);
-		targetingRulesParam.Value = JsonSerializer.Serialize(flag.TargetingRules);
+		targetingRulesParam.Value = JsonSerializer.Serialize(flag.TargetingRules, NpgsqlDataReaderExtensions.JsonOptions);
 		
 		var enabledUsersParam = command.Parameters.Add("enabled_users", NpgsqlDbType.Jsonb);
-		enabledUsersParam.Value = JsonSerializer.Serialize(flag.EnabledUsers);
+		enabledUsersParam.Value = JsonSerializer.Serialize(flag.EnabledUsers, NpgsqlDataReaderExtensions.JsonOptions);
 		
 		var disabledUsersParam = command.Parameters.Add("disabled_users", NpgsqlDbType.Jsonb);
-		disabledUsersParam.Value = JsonSerializer.Serialize(flag.DisabledUsers);
+		disabledUsersParam.Value = JsonSerializer.Serialize(flag.DisabledUsers, NpgsqlDataReaderExtensions.JsonOptions);
 
 		var enabledTenantsParam = command.Parameters.Add("enabled_tenants", NpgsqlDbType.Jsonb);
-		enabledTenantsParam.Value = JsonSerializer.Serialize(flag.EnabledTenants);
+		enabledTenantsParam.Value = JsonSerializer.Serialize(flag.EnabledTenants, NpgsqlDataReaderExtensions.JsonOptions);
 
 		var disabledTenantsParam = command.Parameters.Add("disabled_tenants", NpgsqlDbType.Jsonb);
-		disabledTenantsParam.Value = JsonSerializer.Serialize(flag.DisabledTenants);
+		disabledTenantsParam.Value = JsonSerializer.Serialize(flag.DisabledTenants, NpgsqlDataReaderExtensions.JsonOptions);
 
 		var variationsParam = command.Parameters.Add("variations", NpgsqlDbType.Jsonb);
-		variationsParam.Value = JsonSerializer.Serialize(flag.Variations);
+		variationsParam.Value = JsonSerializer.Serialize(flag.Variations, NpgsqlDataReaderExtensions.JsonOptions);
 		
 		command.Parameters.AddWithValue("default_variation", flag.DefaultVariation);
 		
 		var tagsParam = command.Parameters.Add("tags", NpgsqlDbType.Jsonb);
-		tagsParam.Value = JsonSerializer.Serialize(flag.Tags);
+		tagsParam.Value = JsonSerializer.Serialize(flag.Tags, NpgsqlDataReaderExtensions.JsonOptions);
 		
 		command.Parameters.AddWithValue("is_permanent", flag.IsPermanent);
 	}
@@ -391,6 +391,12 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 public static class NpgsqlDataReaderExtensions
 {
+	public static readonly JsonSerializerOptions JsonOptions = new()
+	{
+		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+		PropertyNameCaseInsensitive = true
+	};
+
 	public static async Task<T> Deserialize<T>(this NpgsqlDataReader reader, string columnName)
 	{
 		var ordinal = reader.GetOrdinal(columnName);
@@ -398,7 +404,7 @@ public static class NpgsqlDataReaderExtensions
 			return default!;
 
 		var json = await reader.GetDataAsync<string>(columnName);
-		return JsonSerializer.Deserialize<T>(json) ?? default!;
+		return JsonSerializer.Deserialize<T>(json, JsonOptions) ?? default!;
 	}
 	public static async Task<T> GetDataAsync<T>(this NpgsqlDataReader reader, string columnName)
 	{
