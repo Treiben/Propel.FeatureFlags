@@ -1,21 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="DependencyInjection.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Castle.Core" Version="5.2.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Propel.FeatureFlags.AspNetCore\Propel.FeatureFlags.AspNetCore.csproj" />
     <ProjectReference Include="..\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
   </ItemGroup>
   

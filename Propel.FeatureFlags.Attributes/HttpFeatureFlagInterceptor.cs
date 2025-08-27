@@ -1,17 +1,18 @@
 ﻿using Castle.Core.Internal;
 using Castle.DynamicProxy;
-using Propel.FeatureFlags.Client;
+using Microsoft.AspNetCore.Http;
+using Propel.FeatureFlags.AspNetCore.Extensions;
 using System.Reflection;
 
 namespace Propel.FeatureFlags.Attributes
 {
-	public class FeatureFlagInterceptor : IInterceptor
+	public sealed class HttpFeatureFlagInterceptor : IInterceptor
 	{
-		private readonly IFeatureFlagClient _featureFlags;
+		private readonly IHttpContextAccessor _httpContextAccessor;
 
-		public FeatureFlagInterceptor(IFeatureFlagClient featureFlags)
+		public HttpFeatureFlagInterceptor(IHttpContextAccessor httpContextAccessor)
 		{
-			_featureFlags = featureFlags;
+			_httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
 		}
 
 		public void Intercept(IInvocation invocation)
@@ -49,7 +50,7 @@ namespace Propel.FeatureFlags.Attributes
 			if (invocation.Method.ReturnType.IsGenericType)
 			{
 				var resultType = invocation.Method.ReturnType.GetGenericArguments()[0];
-				var method = typeof(FeatureFlagInterceptor).GetMethod(nameof(InterceptAsyncGeneric), BindingFlags.NonPublic | BindingFlags.Instance)!
+				var method = typeof(HttpFeatureFlagInterceptor).GetMethod(nameof(InterceptAsyncGeneric), BindingFlags.NonPublic | BindingFlags.Instance)!
 					.MakeGenericMethod(resultType);
 				invocation.ReturnValue = method.Invoke(this, new object[] { invocation, flagAttribute });
 			}
@@ -61,9 +62,7 @@ namespace Propel.FeatureFlags.Attributes
 
 		private void Intercept(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
 		{
-			var isEnabled = _featureFlags.IsEnabledAsync(flagKey: flagAttribute.FlagKey).Result;
-
-			if (isEnabled)
+			if (IsEnabled(flagAttribute.FlagKey))
 			{
 				invocation.Proceed();
 			}
@@ -82,9 +81,7 @@ namespace Propel.FeatureFlags.Attributes
 
 		private async Task InterceptAsyncVoid(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
 		{
-			var isEnabled = await _featureFlags.IsEnabledAsync(flagKey: flagAttribute.FlagKey);
-
-			if (isEnabled)
+			if (IsEnabled(flagAttribute.FlagKey))
 			{
 				var result = invocation.Method.Invoke(invocation.InvocationTarget, invocation.Arguments);
 				if (result is Task task)
@@ -108,9 +105,7 @@ namespace Propel.FeatureFlags.Attributes
 
 		private async Task<T> InterceptAsyncGeneric<T>(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
 		{
-			var isEnabled = await _featureFlags.IsEnabledAsync(flagKey: flagAttribute.FlagKey);
-
-			if (isEnabled)
+			if (IsEnabled(flagAttribute.FlagKey))
 			{
 				// Call the actual target method directly, not through the proxy
 				var result = invocation.Method.Invoke(invocation.InvocationTarget, invocation.Arguments);
@@ -134,6 +129,12 @@ namespace Propel.FeatureFlags.Attributes
 			}
 
 			return (T)GetDefaultValue(typeof(T))!;
+		}
+
+		private bool IsEnabled(string flagKey)
+		{
+			var context = _httpContextAccessor.HttpContext!;
+			return context.FeatureFlags()?.IsEnabledAsync(flagKey).Result ?? false;
 		}
 
 		private object? GetDefaultValue(Type type)
