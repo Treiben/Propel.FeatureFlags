@@ -2,7 +2,6 @@
 using Npgsql;
 using NpgsqlTypes;
 using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Persistence;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.PostgresSql;

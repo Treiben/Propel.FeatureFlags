@@ -1,7 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Persistence;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.SqlServer;
