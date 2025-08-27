@@ -25,8 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Propel.FeatureFlags.AspNetCore\Propel.FeatureFlags.AspNetCore.csproj" />
-    <ProjectReference Include="..\..\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
+    <ProjectReference Include="..\..\src\Propel.FeatureFlags.AspNetCore\Propel.FeatureFlags.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
   </ItemGroup>
 
 

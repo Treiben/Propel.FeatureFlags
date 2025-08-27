@@ -31,7 +31,6 @@
     <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.PostgresSql\Propel.FeatureFlags.PostgresSql.csproj" />
     <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.Redis\Propel.FeatureFlags.Redis.csproj" />
     <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.SqlServer\Propel.FeatureFlags.SqlServer.csproj" />
-    <ProjectReference Include="..\..\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
   </ItemGroup>
 
   <ItemGroup>

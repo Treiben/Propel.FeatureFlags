@@ -14,10 +14,9 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["usage-demo/Propel.ClientApi/Propel.ClientApi.csproj", "usage-demo/Propel.ClientApi/"]
 
-COPY ["Propel.FeatureFlags/Propel.FeatureFlags.csproj", "Propel.FeatureFlags/"]
-COPY ["Propel.FeatureFlags.AspNetCore/Propel.FeatureFlags.AspNetCore.csproj", "Propel.FeatureFlags.AspNetCore/"]
-COPY ["Propel.FeatureFlags.Attributes/Propel.FeatureFlags.Attributes.csproj", "Propel.FeatureFlags.Attributes/"]
-COPY ["Propel.FeatureFlags.DependencyInjection/Propel.FeatureFlags.DependencyInjection.csproj", "Propel.FeatureFlags.DependencyInjection/"]
+COPY ["src/Propel.FeatureFlags/Propel.FeatureFlags.csproj", "src/Propel.FeatureFlags/"]
+COPY ["src/Propel.FeatureFlags.AspNetCore/Propel.FeatureFlags.AspNetCore.csproj", "src/Propel.FeatureFlags.AspNetCore/"]
+COPY ["src/Propel.FeatureFlags.Attributes/Propel.FeatureFlags.Attributes.csproj", "src/Propel.FeatureFlags.Attributes/"]
 
 COPY ["infrastructure/Propel.FeatureFlags.Redis/Propel.FeatureFlags.Redis.csproj", "infrastructure/Propel.FeatureFlags.Redis/"]
 COPY ["infrastructure/Propel.FeatureFlags.PostgresSql/Propel.FeatureFlags.PostgresSql.csproj", "infrastructure/Propel.FeatureFlags.PostgresSql/"]

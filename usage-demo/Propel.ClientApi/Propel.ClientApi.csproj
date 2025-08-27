@@ -17,9 +17,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.PostgresSql\Propel.FeatureFlags.PostgresSql.csproj" />
     <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.Redis\Propel.FeatureFlags.Redis.csproj" />
-    <ProjectReference Include="..\..\Propel.FeatureFlags.AspNetCore\Propel.FeatureFlags.AspNetCore.csproj" />
-    <ProjectReference Include="..\..\Propel.FeatureFlags.Attributes\Propel.FeatureFlags.Attributes.csproj" />
-    <ProjectReference Include="..\..\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
+    <ProjectReference Include="..\..\src\Propel.FeatureFlags.AspNetCore\Propel.FeatureFlags.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\Propel.FeatureFlags.Attributes\Propel.FeatureFlags.Attributes.csproj" />
+    <ProjectReference Include="..\..\src\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
   </ItemGroup>
 
 </Project>

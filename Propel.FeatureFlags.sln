@@ -3,15 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags", "Propel.FeatureFlags\Propel.FeatureFlags.csproj", "{74251B95-3194-1639-D8AF-4A930D0DB0F0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags", "src\Propel.FeatureFlags\Propel.FeatureFlags.csproj", "{74251B95-3194-1639-D8AF-4A930D0DB0F0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.AspNetCore", "Propel.FeatureFlags.AspNetCore\Propel.FeatureFlags.AspNetCore.csproj", "{5C49356F-EC12-C2B9-1C52-484D1663837F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.AspNetCore", "src\Propel.FeatureFlags.AspNetCore\Propel.FeatureFlags.AspNetCore.csproj", "{5C49356F-EC12-C2B9-1C52-484D1663837F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Attributes", "Propel.FeatureFlags.Attributes\Propel.FeatureFlags.Attributes.csproj", "{7AC40E61-2CC8-87C4-F478-1B2350B15045}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Attributes", "src\Propel.FeatureFlags.Attributes\Propel.FeatureFlags.Attributes.csproj", "{7AC40E61-2CC8-87C4-F478-1B2350B15045}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.AzureAppConfiguration", "infrastructure\Propel.FeatureFlags.AzureAppConfiguration\Propel.FeatureFlags.AzureAppConfiguration.csproj", "{9411ED89-32F1-565A-C873-5DDB5A21DD86}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Infrastructure", "Infrastructure", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "infrastructure", "infrastructure", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.PostgresSql", "infrastructure\Propel.FeatureFlags.PostgresSql\Propel.FeatureFlags.PostgresSql.csproj", "{B175C1FD-17EF-76E5-BF8A-0FC06B3CD858}"
 EndProject
@@ -19,7 +19,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Redis",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.SqlServer", "infrastructure\Propel.FeatureFlags.SqlServer\Propel.FeatureFlags.SqlServer.csproj", "{152A2BE3-38E5-DE6A-51DD-2D519B7C9348}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{1EBFCD0E-23BF-4578-B14D-40DEF03DF792}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{1EBFCD0E-23BF-4578-B14D-40DEF03DF792}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FeatureFlags.IntegrationTests", "tests\IntegrationTests\FeatureFlags.IntegrationTests.csproj", "{01C55046-2441-B6A9-0FF5-5DF5BD331B5D}"
 EndProject
@@ -27,7 +27,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FeatureFlags.UnitTests", "t
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.ClientApi", "usage-demo\Propel.ClientApi\Propel.ClientApi.csproj", "{214394CE-DDFF-2AF1-3D25-33AE7D8DCA96}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demo", "Demo", "{B35B9A4F-7FDA-4842-90DB-833533AD0C02}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "demo", "demo", "{B35B9A4F-7FDA-4842-90DB-833533AD0C02}"
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{81DDED9D-158B-E303-5F62-77A2896D2A5A}"
 EndProject
