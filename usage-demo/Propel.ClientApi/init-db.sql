@@ -164,18 +164,18 @@ INSERT INTO usage_demo.feature_flags (
     '[
         {
             "attribute": "userType",
-            "operator": 1,
+            "operator": 0,
             "values": ["premium", "enterprise"],
             "variation": "machine-learning"
         },
         {
             "attribute": "country",
-            "operator": 1,
+            "operator": 0,
             "values": ["US", "CA", "UK"],
             "variation": "content-based"
         }
     ]'
-) ON CONFLICT (key) DO NOTHING;
+) ON CONFLICT (key) DO UPDATE SET targeting_rules = EXCLUDED.targeting_rules;
 
 -- Insert admin-panel-enabled flag for admin access control
 INSERT INTO usage_demo.feature_flags (
@@ -194,18 +194,18 @@ INSERT INTO usage_demo.feature_flags (
     '[
         {
             "attribute": "role",
-            "operator": 1,
+            "operator": 0,
             "values": ["admin", "super-admin"],
             "variation": "on"
         },
         {
             "attribute": "department",
-            "operator": 1,
+            "operator": 0,
             "values": ["engineering", "operations"],
             "variation": "on"
         }
     ]'
-) ON CONFLICT (key) DO NOTHING;
+) ON CONFLICT (key) DO UPDATE SET targeting_rules = EXCLUDED.targeting_rules;
 
 -- Insert featured-products-launch flag for scheduled rollout
 INSERT INTO usage_demo.feature_flags (
@@ -294,13 +294,13 @@ INSERT INTO usage_demo.feature_flags (
         },
         {
             "attribute": "country",
-            "operator": 1,
+            "operator": 0,
             "values": ["US", "CA"],
             "variation": "on"
         }
     ]',
     25 -- Conservative 25% rollout for critical payment infrastructure
-) ON CONFLICT (key) DO NOTHING;
+) ON CONFLICT (key) DO UPDATE SET targeting_rules = EXCLUDED.targeting_rules;
 
 -- ====================================================================
 -- TENANT-SPECIFIC FEATURE FLAGS FOR COMPREHENSIVE TESTING SCENARIOS
@@ -395,24 +395,24 @@ INSERT INTO usage_demo.feature_flags (
     '[
         {
             "attribute": "region",
-            "operator": 1,
+            "operator": 0,
             "values": ["US", "CA", "MX"],
             "variation": "na"
         },
         {
             "attribute": "region",
-            "operator": 1,
+            "operator": 0,
             "values": ["DE", "FR", "UK"],
             "variation": "eu"
         },
         {
             "attribute": "region",
-            "operator": 1,
+            "operator": 0,
             "values": ["JP", "SG", "AU"],
             "variation": "ap"
         }
     ]'
-) ON CONFLICT (key) DO NOTHING;
+) ON CONFLICT (key) DO UPDATE SET targeting_rules = EXCLUDED.targeting_rules;
 
 -- Insert tenant-maintenance-override flag for maintenance scenarios
 INSERT INTO usage_demo.feature_flags (
@@ -487,18 +487,18 @@ INSERT INTO usage_demo.feature_flags (
     '[
         {
             "attribute": "securityClearance",
-            "operator": 1,
+            "operator": 0,
             "values": ["confidential", "secret", "top-secret"],
             "variation": "maximum"
         },
         {
             "attribute": "complianceLevel",
-            "operator": 1,
+            "operator": 0,
             "values": ["hipaa", "sox", "pci-dss"],
             "variation": "enhanced"
         }
     ]'
-) ON CONFLICT (key) DO NOTHING;
+) ON CONFLICT (key) DO UPDATE SET targeting_rules = EXCLUDED.targeting_rules;
 
 -- Insert tenant-api-limits flag for tenant-specific API limitations
 INSERT INTO usage_demo.feature_flags (

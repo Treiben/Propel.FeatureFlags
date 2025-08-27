@@ -49,7 +49,7 @@ app.UseHttpsRedirection();
 app.MapHealthChecks("/health");
 
 // Examples of setting up feature flag middleware for different usage scenarios
-app.MapFeatureFlagMiddleware("maintenance"); //usage scenarios: basic, maintenance, globalFlags, customUserExtraction, saas
+app.MapFeatureFlagMiddleware("maintenanceWithHeaders"); // Changed from "maintenance" to include header extraction
 
 app.MapAdminEndpoints();
 app.MapNotificationsEndpoints();
@@ -65,6 +65,7 @@ public static class  AppExtensions
 	{
 		switch (scenario)
 		{
+			// Simple middleware configuration example:
 			// Feature flag middleware with maintenance mode enabled - global kill mode that'll shut down the API
 			// This will automatically check the "api-maintenance" flag and return a 503 Service Unavailable response if enabled
 			case "maintenance":
@@ -81,6 +82,7 @@ public static class  AppExtensions
 
 				});
 
+			// Slightly more complex middleware configuration example:
 			// Feature flag middleware with global flags
 			// This allows you to define global feature gates that apply to all users
 			case "globalFlags":
@@ -102,7 +104,8 @@ public static class  AppExtensions
 					});
 				});
 
-			// Feature flag middleware with custom user ID extraction and attribute extractors
+			// For more advanced feature flags, such as A/B or user percentage,
+			// example of feature flag middleware with custom user ID extraction and attribute extractors
 			case "customUserExtraction":
 				return (WebApplication)app.UseFeatureFlags(options =>
 				{
@@ -122,7 +125,7 @@ public static class  AppExtensions
 					};
 				});
 
-			// Feature flag middleware with custom attribute extractors
+			// Example of feature flag middleware configuration for SaaS with custom attribute extractors
 			// for example, extracting tenant information, API version, user tier, and geographic info
 			case "saas":
 				return (WebApplication)app.UseFeatureFlags(options =>
@@ -151,6 +154,66 @@ public static class  AppExtensions
 						return attributes;
 					});
 				});
+
+			// Advanced middleware configuration example:
+			// Feature flag middleware with maintenance mode AND additional attributes from headers
+			// that can be useful for targeting rules
+			case "maintenanceWithHeaders":
+				return (WebApplication)app.UseFeatureFlags(options =>
+				{
+					options.EnableMaintenanceMode = true;
+					options.MaintenanceFlagKey = "api-maintenance";
+					options.MaintenanceResponse = new
+					{
+						message = "API is temporarily down for maintenance",
+						estimatedDuration = "30 minutes",
+						contact = "support@company.com"
+					};
+
+					// Custom user ID extraction to support User-Id header
+					options.UserIdExtractor = context =>
+					{
+						// Try User-Id header first
+						var userIdHeader = context.Request.Headers["User-Id"].FirstOrDefault();
+						if (!string.IsNullOrEmpty(userIdHeader))
+							return userIdHeader;
+
+						// Fallback to default extraction
+						return context.User.Identity?.Name ??
+							   context.Request.Headers["X-User-ID"].FirstOrDefault() ??
+							   context.Request.Query["userId"].FirstOrDefault();
+					};
+
+					// Extract headers needed for targeting rules
+					options.AttributeExtractors.Add(context =>
+					{
+						var attributes = new Dictionary<string, object>();
+
+						// Extract Role header for admin panel targeting
+						if (context.Request.Headers.TryGetValue("Role", out var role))
+							attributes["role"] = role.ToString();
+
+						// Extract Department header for admin panel targeting  
+						if (context.Request.Headers.TryGetValue("Department", out var department))
+							attributes["department"] = department.ToString();
+
+						// Extract User-Type header for recommendation targeting
+						if (context.Request.Headers.TryGetValue("User-Type", out var userType))
+							attributes["userType"] = userType.ToString();
+
+						// Extract Country header for recommendation targeting
+						if (context.Request.Headers.TryGetValue("Country", out var country))
+							attributes["country"] = country.ToString();
+
+						// Extract Timezone header for time window features
+						if (context.Request.Headers.TryGetValue("Timezone", out var timezone))
+							attributes["timezone"] = timezone.ToString();
+
+						return attributes;
+					});
+				});
+
+
 			default:
 				// Simple feature flag middleware with defaults
 				return (WebApplication)app.UseFeatureFlags();
