@@ -1,6 +1,6 @@
 @Ui_Api_HostAddress_Https = https://localhost:7113
 @Ui_Api_HostAddress_Http = http://localhost:5038
-@Ui_Api_HostAddress_Docker = http://localhost:5001
+@Ui_Api_HostAddress_Docker = http://localhost:5003
 
 ### Variables
 @baseUrl = {{Ui_Api_HostAddress_Docker}}/api

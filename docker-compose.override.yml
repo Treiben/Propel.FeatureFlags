@@ -29,5 +29,20 @@ services:
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
       - ./usage-demo/Propel.ClientApi:/app/source:ro
       - ./usage-demo/Propel.ClientApi/appsettings.Development.json:/app/appsettings.Development.json:ro
-      - ./usage-demo/Propel.FlagsManagement.Api:/app/source:ro
-      - ./usage-demo/Propel.FlagsManagement.Api/appsettings.Development.json:/app/appsettings.Development.json:ro
+
+  propel.management.api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      - ASPNETCORE_HTTP_PORTS=8080  # Container port
+      - ASPNETCORE_HTTPS_PORTS=8081 # Container port (if HTTPS needed)
+    ports:
+      - "5003:8080"  # Host:Container mapping
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+      - ./ui/Propel.FlagsManagement.Api:/app/source:ro
+      - ./ui/Propel.FlagsManagement.Api/appsettings.Development.json:/app/appsettings.Development.json:ro 
+
