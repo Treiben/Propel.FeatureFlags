@@ -7,14 +7,14 @@ WORKDIR /app
 # Add curl for debugging if needed
 RUN apk add --no-cache curl
 
-# Copy package.json and package-lock.json (if available)
-COPY package*.json ./
+# Copy package.json and package-lock.json from the correct path
+COPY ui/Propel.FlagsManagement.Website/package*.json ./
 
 # Install dependencies (including dev dependencies for development)
 RUN npm ci
 
-# Copy the rest of the application code
-COPY . .
+# Copy the rest of the application code from the correct path
+COPY ui/Propel.FlagsManagement.Website/ .
 
 # Set NODE_ENV to development
 ENV NODE_ENV=development

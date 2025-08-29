@@ -8,7 +8,7 @@ export default defineConfig({
     port: 80,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://featurerabbit.management.api:8080',
+            target: process.env.VITE_API_URL || 'http://propel.management.api:8080',
         changeOrigin: true,
         secure: false,
       }

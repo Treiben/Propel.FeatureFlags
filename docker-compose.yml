@@ -114,6 +114,24 @@ services:
         target: /app/appsettings.json
         read_only: true
 
+  # Propel Management UI
+  propel.management.website:
+    image: ${DOCKER_REGISTRY-}propel-flagsmanagement-website
+    container_name: propel-flagsmanagement-website
+    build:
+      context: .
+      dockerfile: ui/Propel.FlagsManagement.Website/Dockerfile
+    ports:
+      - "3000:80"
+    networks:
+      - propel-network
+    depends_on:
+      - propel.management.api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:5003/api
+
 volumes:
   postgres_data:
   redis_data:

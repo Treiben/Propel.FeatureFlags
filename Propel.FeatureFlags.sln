@@ -42,6 +42,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ui", "ui", "{060347AA-FBDD-
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FlagsManagement.Api", "ui\Propel.FlagsManagement.Api\Propel.FlagsManagement.Api.csproj", "{90520DE3-C78D-6FD5-AA18-5BF83323806E}"
 EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "Propel.FlagsManagement.Website", "ui\Propel.FlagsManagement.Website\Propel.FlagsManagement.Website.esproj", "{C8286B63-D335-0D65-00A2-692CB1E924FA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -96,6 +98,12 @@ Global
 		{90520DE3-C78D-6FD5-AA18-5BF83323806E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{90520DE3-C78D-6FD5-AA18-5BF83323806E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{90520DE3-C78D-6FD5-AA18-5BF83323806E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8286B63-D335-0D65-00A2-692CB1E924FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8286B63-D335-0D65-00A2-692CB1E924FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8286B63-D335-0D65-00A2-692CB1E924FA}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{C8286B63-D335-0D65-00A2-692CB1E924FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8286B63-D335-0D65-00A2-692CB1E924FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8286B63-D335-0D65-00A2-692CB1E924FA}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -112,6 +120,7 @@ Global
 		{F7316C68-F26C-40ED-67DC-71F1E36383B7} = {1EBFCD0E-23BF-4578-B14D-40DEF03DF792}
 		{214394CE-DDFF-2AF1-3D25-33AE7D8DCA96} = {B35B9A4F-7FDA-4842-90DB-833533AD0C02}
 		{90520DE3-C78D-6FD5-AA18-5BF83323806E} = {060347AA-FBDD-4932-8854-AFA6E8DD9EA9}
+		{C8286B63-D335-0D65-00A2-692CB1E924FA} = {060347AA-FBDD-4932-8854-AFA6E8DD9EA9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B84A57E7-342F-45BE-BD70-F37A7F4D7E27}
