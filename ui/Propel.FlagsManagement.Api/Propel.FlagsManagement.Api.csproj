@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Folder Include="Healthchecks\" />
+    <Folder Include="http\Propel.FlagsManagement.Api\" />
   </ItemGroup>
 
 

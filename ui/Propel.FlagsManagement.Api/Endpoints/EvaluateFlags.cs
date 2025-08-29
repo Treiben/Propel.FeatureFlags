@@ -4,45 +4,37 @@ using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
 
-public record EvaluateMultipleRequest
+public record EvaluateMultpleFlagsRequest
 {
 	public List<string> FlagKeys { get; set; } = [];
 	public string? UserId { get; set; }
 	public Dictionary<string, object>? Attributes { get; set; }
 }
 
-public sealed class EvaluateMultipleEndpoint : IEndpoint
+public sealed class EvaluateMultipleFlagsEndpoint : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder epRoutBuilder)
 	{
 		epRoutBuilder.MapPost("/api/feature-flags/evaluate", 
 			async (
-				EvaluateMultipleRequest request,
+				EvaluateMultpleFlagsRequest request,
 				MultiFlagEvaluatorHandler multiFlagEvaluatorHandler) =>
 			{
 				return await multiFlagEvaluatorHandler.HandleAsync(request);
 			})
 			.AddEndpointFilter<ValidationFilter<EvaluateMultipleRequestValidator>>()
+			.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
 			.WithName("EvaluateMultipleFeatureFlags")
-			.WithTags("Feature Flags", "Evaluation", "Client API")
+			.WithTags("Feature Flags", "Evaluations", "Management Api")
 			.Produces<Dictionary<string, EvaluationResult>>()
-			.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy);
-	}
-
-	public sealed class EvaluateMultipleRequestValidator : AbstractValidator<EvaluateMultipleRequest>
-	{
-		public EvaluateMultipleRequestValidator()
-		{
-			RuleFor(c => c.FlagKeys).NotEmpty()
-				.WithMessage("FlagKeys must be provided.");
-		}
+			.ProducesValidationProblem();
 	}
 }
 
 public sealed class MultiFlagEvaluatorHandler(IFeatureFlagClient client,
 				ILogger<MultiFlagEvaluatorHandler> logger)
 {
-	public async Task<IResult> HandleAsync(EvaluateMultipleRequest request)
+	public async Task<IResult> HandleAsync(EvaluateMultpleFlagsRequest request)
 	{
 		try
 		{
@@ -56,59 +48,16 @@ public sealed class MultiFlagEvaluatorHandler(IFeatureFlagClient client,
 		}
 		catch (Exception ex)
 		{
-			logger.LogError(ex, "Error evaluating multiple flags");
-			return Results.StatusCode(500);
+			return HttpProblemFactory.InternalServerError(ex, logger);
 		}
 	}
 }
 
-public sealed class EvaluateFlagEndpoint : IEndpoint
+public sealed class EvaluateMultipleRequestValidator : AbstractValidator<EvaluateMultpleFlagsRequest>
 {
-	public void AddEndpoint(IEndpointRouteBuilder epRoutBuilder)
+	public EvaluateMultipleRequestValidator()
 	{
-		epRoutBuilder.MapGet("/api/feature-flags/evaluate/{key}",
-			async (
-				string key,
-				string? userId,
-				string? attributes,
-				EvaluationHandler evaluationHandler) =>
-			{
-				return await evaluationHandler.HandleAsync(key, userId, attributes);
-			})
-			.WithName("EvaluateFeatureFlag")
-			.WithTags("Feature Flags", "Evaluation", "Client API")
-			.Produces<EvaluationResult>()
-			.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy);
-	}
-}
-
-public sealed class EvaluationHandler(IFeatureFlagClient client,
-				ILogger<EvaluationHandler> logger)
-{
-	public async Task<IResult> HandleAsync(string key, string? userId, string? attributes)
-	{
-		try
-		{
-			var attributeDict = new Dictionary<string, object>();
-			if (!string.IsNullOrEmpty(attributes))
-			{
-				if (!SerializationHelpers.TryDeserialize(attributes, out Dictionary<string, object>? deserializedAttributes))
-				{
-					logger.LogWarning("Failed to deserialize attributes for flag {Key}", key);
-					return Results.BadRequest("Invalid attributes format. Expected a valid JSON object.");
-				}
-				else
-				{
-					attributeDict = deserializedAttributes;
-				}
-			}
-			var result = await client.EvaluateAsync(flagKey: key, userId: userId, attributes: attributeDict);
-			return Results.Ok(result);
-		}
-		catch (Exception ex)
-		{
-			logger.LogError(ex, "Error evaluating flag {Key}", key);
-			return Results.StatusCode(500);
-		}
+		RuleFor(c => c.FlagKeys).NotEmpty()
+			.WithMessage("FlagKeys must be provided.");
 	}
 }

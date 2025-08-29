@@ -17,35 +17,59 @@ public sealed class DeleteFlag : IEndpoint
 		})
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("DeleteFeatureFlag")
-		.WithTags("Feature Flags", "Management");
+		.WithTags("Feature Flags", "CRUD Operations", "Delete", "Management Api")
+		.Produces(StatusCodes.Status204NoContent);
 	}
 }
 
-public sealed class DeleteFlagHandler(CurrentUserService userService,
-					IFeatureFlagRepository repository,
-					IFeatureFlagCache cache,
-					ILogger<DeleteFlag> logger)
+public sealed class DeleteFlagHandler(
+	CurrentUserService userService,
+	IFeatureFlagRepository repository,
+	IFeatureFlagCache cache,
+	ILogger<DeleteFlagHandler> logger)
 {
 	public async Task<IResult> HandleAsync(string key)
 	{
+		// Validate key parameter
+		if (string.IsNullOrWhiteSpace(key))
+		{
+			return HttpProblemFactory.BadRequest("Feature flag key cannot be empty or null", logger);
+		}
+
 		try
 		{
 			var existingFlag = await repository.GetAsync(key);
 			if (existingFlag == null)
-				return Results.NotFound($"Feature flag '{key}' not found");
-			if (existingFlag.IsPermanent)
-				return Results.BadRequest("Cannot delete permanent feature flag");
+			{
+				return HttpProblemFactory.NotFound("Feature flag", key, logger);
+			}
 
-			await repository.DeleteAsync(key);
+			if (existingFlag.IsPermanent)
+			{
+				return HttpProblemFactory.BadRequest(
+					"Cannot Delete Permanent Flag", 
+					$"The feature flag '{key}' is marked as permanent and cannot be deleted. Remove the permanent flag first if deletion is required.", 
+					logger);
+			}
+
+			var deleteResult = await repository.DeleteAsync(key);
+			if (!deleteResult)
+			{
+				return HttpProblemFactory.InternalServerError(
+					detail: "Failed to delete the feature flag from the repository", 
+					logger: logger);
+			}
+
 			await cache.RemoveAsync(key);
 
-			logger.LogInformation("Feature flag {Key} deleted by {User}", key, userService.UserName);
+			logger.LogInformation("Feature flag {Key} deleted successfully by {User}", 
+				key, userService.UserName);
+			
 			return Results.NoContent();
 		}
 		catch (Exception ex)
 		{
-			logger.LogError(ex, "Error deleting feature flag {Key}", key);
-			return Results.StatusCode(500);
+			return HttpProblemFactory.InternalServerError(ex, logger);
 		}
 	}
 }

@@ -61,11 +61,11 @@ public record FeatureFlagDto
 	}
 }
 
-public sealed class FetchFlagsEndpoint : IEndpoint
+public sealed class GetFlagsEndpoint : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapGet("/api/flags", async (IFeatureFlagRepository repository, ILogger<FetchFlagsEndpoint> logger) =>
+		app.MapGet("/api/flags", async (IFeatureFlagRepository repository, ILogger<GetFlagsEndpoint> logger) =>
 		{
 			try
 			{
@@ -75,41 +75,46 @@ public sealed class FetchFlagsEndpoint : IEndpoint
 			}
 			catch (Exception ex)
 			{
-				logger.LogError(ex, "Error retrieving feature flags");
-				return Results.StatusCode(500);
+				return HttpProblemFactory.InternalServerError(ex, logger);
 			}
 		})
+		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
 		.WithName("GetAllFlags")
-		.WithTags("Feature Flags", "Management")
-		.Produces<Dictionary<string, FeatureFlagDto>>()
-		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy);
+		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api")
+		.Produces<List<FeatureFlagDto>>();
 	}
 }
 
-public sealed class FetchFlagEndpoint : IEndpoint
+public sealed class GetFlagEndpoint : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder app)
 	{
-
-		app.MapGet("/api/flags/{key}", async (string key, IFeatureFlagRepository repository, ILogger<FetchFlagEndpoint> logger) =>
+		app.MapGet("/api/flags/{key}", async (string key, IFeatureFlagRepository repository, ILogger<GetFlagEndpoint> logger) =>
 		{
+			// Validate key parameter
+			if (string.IsNullOrWhiteSpace(key))
+			{
+				return HttpProblemFactory.BadRequest("Feature flag key cannot be empty or null", logger);
+			}
+
 			try
 			{
 				var flag = await repository.GetAsync(key);
 				if (flag == null)
-					return Results.NotFound($"Feature flag '{key}' not found");
+				{
+					return HttpProblemFactory.NotFound("Feature flag", key, logger);
+				}
 
 				return Results.Ok(new FeatureFlagDto(flag));
 			}
 			catch (Exception ex)
 			{
-				logger.LogError(ex, "Error retrieving feature flag {Key}", key);
-				return Results.StatusCode(500);
+				return HttpProblemFactory.InternalServerError(ex, logger);
 			}
 		})
+		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
 		.WithName("GetFlag")
-		.WithTags("Feature Flags", "Management")
-		.Produces<Dictionary<string, FeatureFlagDto>>()
-		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy);
+		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api")
+		.Produces<FeatureFlagDto>();
 	}
 }

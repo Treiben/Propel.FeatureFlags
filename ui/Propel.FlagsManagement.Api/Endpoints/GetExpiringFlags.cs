@@ -9,14 +9,15 @@ public sealed class GetExpiringFlagsEndpoint : IEndpoint
 	{
 		epRoutBuilder.MapGet("/api/feature-flags/expiring",
 			async (
+				int days,
 				ExpirationHandler expirationHandler) =>
 			{
-				return await expirationHandler.HandleAsync();
+				return await expirationHandler.HandleAsync(days);
 			})
+			.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
 			.WithName("GetExpiringFlags")
-			.WithTags("Feature Flags", "Management", "Lifecycle")
-			.Produces<Dictionary<string, FeatureFlagDto>>()
-			.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy);
+			.WithTags("Feature Flags", "Lifecycle Management", "Monitoring", "Management Api")
+			.Produces<List<FeatureFlagDto>>();
 	}
 }
 
@@ -26,17 +27,37 @@ public sealed class ExpirationHandler(
 {
 	public async Task<IResult> HandleAsync(int days = 7)
 	{
+		// Validate days parameter
+		if (days < 0)
+		{
+			return HttpProblemFactory.BadRequest(
+				"Invalid Days Parameter", 
+				"Days parameter must be a non-negative number",
+				logger);
+		}
+
+		if (days > 365)
+		{
+			return HttpProblemFactory.BadRequest(
+				"Invalid Days Parameter", 
+				"Days parameter cannot exceed 365 days",
+				logger);
+		}
+
 		try
 		{
 			var expirationDate = DateTime.UtcNow.AddDays(days);
 			var flags = await repository.GetExpiringAsync(expirationDate);
 			var flagDtos = flags.Select(f => new FeatureFlagDto(f)).ToList();
+			
+			logger.LogInformation("Retrieved {Count} flags expiring within {Days} days", 
+				flagDtos.Count, days);
+			
 			return Results.Ok(flagDtos);
 		}
 		catch (Exception ex)
 		{
-			logger.LogError(ex, "Error retrieving expiring flags");
-			return Results.StatusCode(500);
+			return HttpProblemFactory.InternalServerError(ex, logger);
 		}
 	}
 }

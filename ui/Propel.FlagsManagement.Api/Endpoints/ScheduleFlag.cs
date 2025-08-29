@@ -7,6 +7,7 @@ using Propel.FlagsManagement.Api.Endpoints.Shared;
 namespace Propel.FlagsManagement.Api.Endpoints;
 
 public record ScheduleFlagRequest(DateTime EnableDate, DateTime? DisableDate);
+
 public sealed class ScheduleFlagEndpoint : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder epRoutBuilder)
@@ -19,21 +20,12 @@ public sealed class ScheduleFlagEndpoint : IEndpoint
 		{
 			return await scheduleFlagHandler.HandleAsync(key, request);
 		})
-		.RequireAuthorization()
-		.AddEndpointFilter<ValidationFilter<ScheduleFlagRequestValidator>>()
+		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
+		.AddEndpointFilter<ValidationFilter<ScheduleFlagRequest>>()
 		.WithName("ScheduleFeatureFlag")
-		.WithTags("Feature Flags", "Scheduling", "Management")
-		.Produces<FeatureFlagDto>();
-	}
-
-	public sealed class ScheduleFlagRequestValidator : AbstractValidator<ScheduleFlagRequest>
-	{
-		public ScheduleFlagRequestValidator()
-		{
-			RuleFor(c => c.EnableDate.ToUniversalTime())
-				.LessThanOrEqualTo(DateTime.UtcNow)
-				.WithMessage("Unable to schedule feature flag for backward date. Use simple toggling instead");
-		}
+		.WithTags("Feature Flags", "Lifecycle Management", "Operations", "Management Api")
+		.Produces<FeatureFlagDto>()
+		.ProducesValidationProblem();
 	}
 }
 
@@ -45,30 +37,70 @@ public sealed class ScheduleFlagHandler(
 {
 	public async Task<IResult> HandleAsync(string key, ScheduleFlagRequest request)
 	{
+		if (string.IsNullOrWhiteSpace(key))
+		{
+			return HttpProblemFactory.BadRequest("Feature flag key cannot be empty or null", logger);
+		}
+
 		try
 		{
 			var flag = await repository.GetAsync(key);
 			if (flag == null)
-				return Results.NotFound($"Feature flag '{key}' not found");
+			{
+				return HttpProblemFactory.NotFound("Feature flag", key, logger);
+			}
 
+			// Validate business rules
+			if (flag.IsPermanent)
+			{
+				return HttpProblemFactory.BadRequest(
+					"Cannot Schedule Permanent Flag",
+					$"The feature flag '{key}' is marked as permanent and cannot be scheduled for automatic changes",
+					logger);
+			}
+
+			// Update flag for scheduling
 			flag.Status = FeatureFlagStatus.Scheduled;
-			flag.ScheduledEnableDate = request.EnableDate;
-			flag.ScheduledDisableDate = request.DisableDate;
-			flag.UpdatedBy = currentUserService.UserName;
+			flag.ScheduledEnableDate = request.EnableDate.ToUniversalTime();
+			flag.ScheduledDisableDate = request.DisableDate?.ToUniversalTime();
+			flag.UpdatedBy = currentUserService.UserName!;
 
-			await repository.UpdateAsync(flag);
+			var updatedFlag = await repository.UpdateAsync(flag);
 			await cache.RemoveAsync(key);
 
-			logger.LogInformation("Feature flag {Key} scheduled by {User} for {EnableDate}",
-				key, currentUserService.UserName, request.EnableDate);
+			var scheduleInfo = request.DisableDate.HasValue 
+				? $"enable at {request.EnableDate:yyyy-MM-dd HH:mm} UTC, disable at {request.DisableDate:yyyy-MM-dd HH:mm} UTC"
+				: $"enable at {request.EnableDate:yyyy-MM-dd HH:mm} UTC";
 
-			return Results.Ok(new FeatureFlagDto(flag));
+			logger.LogInformation("Feature flag {Key} scheduled by {User} to {ScheduleInfo}",
+				key, currentUserService.UserName, scheduleInfo);
+
+			return Results.Ok(new FeatureFlagDto(updatedFlag));
 		}
 		catch (Exception ex)
 		{
-			logger.LogError(ex, "Error scheduling feature flag {Key}", key);
-			return Results.StatusCode(500);
+			return HttpProblemFactory.InternalServerError(ex, logger);
 		}
+	}
+}
+
+public sealed class ScheduleFlagRequestValidator : AbstractValidator<ScheduleFlagRequest>
+{
+	public ScheduleFlagRequestValidator()
+	{
+		RuleFor(c => c.EnableDate)
+			.GreaterThan(DateTime.UtcNow)
+			.WithMessage("Enable date must be in the future. Use immediate operations for current changes");
+
+		RuleFor(c => c.DisableDate)
+			.GreaterThan(c => c.EnableDate)
+			.When(c => c.DisableDate.HasValue)
+			.WithMessage("Disable date must be after enable date");
+
+		RuleFor(c => c.DisableDate)
+			.GreaterThan(DateTime.UtcNow)
+			.When(c => c.DisableDate.HasValue)
+			.WithMessage("Disable date must be in the future");
 	}
 }
 

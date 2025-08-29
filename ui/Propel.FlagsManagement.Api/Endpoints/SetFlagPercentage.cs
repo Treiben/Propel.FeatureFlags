@@ -7,6 +7,7 @@ using Propel.FlagsManagement.Api.Endpoints.Shared;
 namespace Propel.FlagsManagement.Api.Endpoints;
 
 public record SetPercentageRequest(int Percentage);
+
 public sealed class SetPercentageEndpoint : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder epRoutBuilder)
@@ -20,20 +21,11 @@ public sealed class SetPercentageEndpoint : IEndpoint
 				return await setPercentageHandler.HandleAsync(key, request);
 			})
 			.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
-			.AddEndpointFilter<ValidationFilter<SetPercentageRequestValidator>>()
+			.AddEndpointFilter<ValidationFilter<SetPercentageRequest>>()
 			.WithName("SetPercentage")
-			.WithTags("Feature Flags", "Percentage Rollout", "Management")
-			.Produces<FeatureFlagDto>();
-	}
-
-	public sealed class SetPercentageRequestValidator : AbstractValidator<SetPercentageRequest>
-	{
-		public SetPercentageRequestValidator()
-		{
-			RuleFor(c => c.Percentage)
-				.Must(p => p >= 0 && p <= 100)
-				.WithMessage("Feature flag rollout percentage must be between 0 and 100.");
-		}
+			.WithTags("Feature Flags", "Operations", "Rollout Control", "Management Api")
+			.Produces<FeatureFlagDto>()
+			.ProducesValidationProblem();
 	}
 }
 
@@ -45,29 +37,72 @@ public sealed class SetPercentageHandler(
 {
 	public async Task<IResult> HandleAsync(string key, SetPercentageRequest request)
 	{
+		// Validate key parameter
+		if (string.IsNullOrWhiteSpace(key))
+		{
+			return HttpProblemFactory.BadRequest("Feature flag key cannot be empty or null", logger);
+		}
+
 		try
 		{
 			var flag = await repository.GetAsync(key);
 			if (flag == null)
-				return Results.NotFound($"Feature flag '{key}' not found");
+			{
+				return HttpProblemFactory.NotFound("Feature flag", key, logger);
+			}
 
-			flag.Status = FeatureFlagStatus.Percentage;
-			flag.PercentageEnabled = request.Percentage;
-			flag.UpdatedBy = currentUserService.UserName;
+			// Validate business rules
+			if (flag.IsPermanent)
+			{
+				return HttpProblemFactory.BadRequest(
+					"Cannot Change Percentage of Permanent Flag",
+					$"The feature flag '{key}' is marked as permanent and cannot have its percentage changed",
+					logger);
+			}
 
-			await repository.UpdateAsync(flag);
+			// Special case: 0% effectively disables the flag
+			if (request.Percentage == 0)
+			{
+				flag.Status = FeatureFlagStatus.Disabled;
+				flag.PercentageEnabled = 0;
+			}
+			// Special case: 100% enables the flag for everyone
+			else if (request.Percentage == 100)
+			{
+				flag.Status = FeatureFlagStatus.Enabled;
+				flag.PercentageEnabled = 100;
+			}
+			// Standard percentage rollout
+			else
+			{
+				flag.Status = FeatureFlagStatus.Percentage;
+				flag.PercentageEnabled = request.Percentage;
+			}
+
+			flag.UpdatedBy = currentUserService.UserName!;
+
+			var updatedFlag = await repository.UpdateAsync(flag);
 			await cache.RemoveAsync(key);
 
-			logger.LogInformation("Feature flag {Key} percentage set to {Percentage}% by {User}",
-				key, request.Percentage, currentUserService.UserName);
+			logger.LogInformation("Feature flag {Key} percentage set to {Percentage}% by {User} (status: {Status})",
+				key, request.Percentage, currentUserService.UserName, flag.Status);
 
-			return Results.Ok(new FeatureFlagDto(flag));
+			return Results.Ok(new FeatureFlagDto(updatedFlag));
 		}
 		catch (Exception ex)
 		{
-			logger.LogError(ex, "Error setting percentage for feature flag {Key}", key);
-			return Results.StatusCode(500);
+			return HttpProblemFactory.InternalServerError(ex, logger);
 		}
+	}
+}
+
+public sealed class SetPercentageRequestValidator : AbstractValidator<SetPercentageRequest>
+{
+	public SetPercentageRequestValidator()
+	{
+		RuleFor(c => c.Percentage)
+			.InclusiveBetween(0, 100)
+			.WithMessage("Feature flag rollout percentage must be between 0 and 100");
 	}
 }
 

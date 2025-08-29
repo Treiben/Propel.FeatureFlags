@@ -43,7 +43,8 @@ public sealed class CreateFlag : IEndpoint
 		.AddEndpointFilter<ValidationFilter<CreateFeatureFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("CreateFeatureFlag")
-		.WithTags("Feature Flags", "Management"); 
+		.WithTags("Feature Flags", "CRUD Operations", "Create", "Management Api")
+		.Produces<FeatureFlagDto>(StatusCodes.Status201Created);
 	}
 }
 
@@ -58,9 +59,6 @@ public sealed class CreateFlagHandler(
 		var businessValidationResult = request.ValidateBusinessRules();
 		if (!businessValidationResult.IsValid)
 		{
-			logger.LogWarning("Business rule validation failed for feature flag {Key}: {Errors}",
-				request.Key, string.Join(", ", businessValidationResult.Errors));
-
 			return HttpProblemFactory.ValidationFailed(businessValidationResult.Errors, logger);
 		}
 
@@ -69,9 +67,6 @@ public sealed class CreateFlagHandler(
 			var existingFlag = await repository.GetAsync(request.Key);
 			if (existingFlag != null)
 			{
-				logger.LogWarning("Attempt to create duplicate feature flag {Key} by {User}",
-					request.Key, currentUserService.UserName);
-
 				return HttpProblemFactory.Conflict($"A feature flag with the key '{request.Key}' already exists. Please use a different key or update the existing flag.",
 					logger);
 			}
@@ -88,7 +83,6 @@ public sealed class CreateFlagHandler(
 		}
 		catch (Exception ex)
 		{
-			logger.LogError(ex, "Error creating feature flag");
 			return HttpProblemFactory.InternalServerError(ex, logger);
 		}
 	}
@@ -279,31 +273,31 @@ public static class CreateFeatureFlagRequestExtensions
 		}
 	}
 
-	public static FeatureFlag Map(this CreateFeatureFlagRequest request, string creatorUserName)
+	public static FeatureFlag Map(this CreateFeatureFlagRequest source, string creatorUserName)
 	{
 		return new FeatureFlag
 		{
-			Key = request.Key,
-			Name = request.Name,
-			Description = request.Description ?? string.Empty,
-			Status = request.Status,
+			Key = source.Key,
+			Name = source.Name,
+			Description = source.Description ?? string.Empty,
+			Status = source.Status,
 			CreatedBy = creatorUserName,
 			UpdatedBy = creatorUserName,
-			ExpirationDate = request.ExpirationDate,
-			ScheduledEnableDate = request.ScheduledEnableDate,
-			ScheduledDisableDate = request.ScheduledDisableDate,
-			WindowStartTime = request.WindowStartTime?.ToTimeSpan(),
-			WindowEndTime = request.WindowEndTime?.ToTimeSpan(),
-			TimeZone = request.TimeZone,
-			WindowDays = request.WindowDays,
-			PercentageEnabled = request.PercentageEnabled,
-			TargetingRules = request.TargetingRules ?? [],
-			EnabledUsers = request.EnabledUsers ?? [],
-			DisabledUsers = request.DisabledUsers ?? [],
-			Variations = request.Variations ?? new() { ["on"] = true, ["off"] = false },
-			DefaultVariation = request.DefaultVariation ?? "off",
-			Tags = request.Tags ?? [],
-			IsPermanent = request.IsPermanent
+			ExpirationDate = source.ExpirationDate,
+			ScheduledEnableDate = source.ScheduledEnableDate,
+			ScheduledDisableDate = source.ScheduledDisableDate,
+			WindowStartTime = source.WindowStartTime?.ToTimeSpan(),
+			WindowEndTime = source.WindowEndTime?.ToTimeSpan(),
+			TimeZone = source.TimeZone,
+			WindowDays = source.WindowDays,
+			PercentageEnabled = source.PercentageEnabled,
+			TargetingRules = source.TargetingRules ?? [],
+			EnabledUsers = source.EnabledUsers ?? [],
+			DisabledUsers = source.DisabledUsers ?? [],
+			Variations = source.Variations ?? new() { ["on"] = true, ["off"] = false },
+			DefaultVariation = source.DefaultVariation ?? "off",
+			Tags = source.Tags ?? [],
+			IsPermanent = source.IsPermanent
 		};
 	}
 }
