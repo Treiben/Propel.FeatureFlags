@@ -15,6 +15,7 @@ var featureFlagOptions = builder.Configuration.GetSection("PropelFeatureFlags").
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddProblemDetails();
 
 builder.Services.AddHttpContextAccessor();
 
@@ -112,6 +113,8 @@ else
 {
 	app.UseCors("AllowFrontend"); // Restricted for production
 }
+
+app.UseStatusCodePages();
 
 app.UseAuthentication();
 app.UseAuthorization();
