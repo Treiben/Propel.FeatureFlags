@@ -2,25 +2,16 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
 using System.Diagnostics;
 
-namespace FeatureRabbit.Management.Api.HealthChecks;
+namespace Propel.FlagsManagement.Api.Healthchecks;
 
 /// <summary>
 /// Deep health check for PostgreSQL that verifies not just connection but also query execution and schema status
 /// </summary>
-public class PostgresDeepHealthCheck : IHealthCheck
+public class PostgresDeepHealthCheck(IConfiguration configuration, ILogger<PostgresDeepHealthCheck> logger) : IHealthCheck
 {
-	private readonly IConfiguration _configuration;
-	private readonly ILogger<PostgresDeepHealthCheck> _logger;
-
-	public PostgresDeepHealthCheck(IConfiguration configuration, ILogger<PostgresDeepHealthCheck> logger)
-	{
-		_configuration = configuration;
-		_logger = logger;
-	}
-
 	public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
 	{
-		var connectionString = _configuration.GetConnectionString("PostgresDb");
+		var connectionString = configuration.GetConnectionString("PostgresDb");
 		if (string.IsNullOrEmpty(connectionString))
 		{
 			return HealthCheckResult.Unhealthy("PostgreSQL connection string is missing");
@@ -82,7 +73,7 @@ public class PostgresDeepHealthCheck : IHealthCheck
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "PostgreSQL health check failed");
+			logger.LogError(ex, "PostgreSQL health check failed");
 			return HealthCheckResult.Unhealthy("PostgreSQL check failed", ex, data);
 		}
 	}

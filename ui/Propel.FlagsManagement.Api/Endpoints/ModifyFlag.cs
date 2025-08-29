@@ -1,10 +1,10 @@
-﻿using FeatureRabbit.Flags.Cache;
-using FeatureRabbit.Flags.Core;
-using FeatureRabbit.Flags.Persistence;
-using FeatureRabbit.Management.Api.Endpoints.Shared;
-using FluentValidation;
+﻿using FluentValidation;
+using Propel.FeatureFlags;
+using Propel.FeatureFlags.Cache;
+using Propel.FeatureFlags.Core;
+using Propel.FlagsManagement.Api.Endpoints.Shared;
 
-namespace FeatureRabbit.Management.Api.Endpoints;
+namespace Propel.FlagsManagement.Api.Endpoints;
 
 public record ModifyFlagRequest
 {

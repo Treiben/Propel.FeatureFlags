@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
 
-namespace FeatureRabbit.Management.Api.Endpoints;
+namespace Propel.FlagsManagement.Api.Endpoints;
 
 public static class ServiceCollectionExtensions
 {

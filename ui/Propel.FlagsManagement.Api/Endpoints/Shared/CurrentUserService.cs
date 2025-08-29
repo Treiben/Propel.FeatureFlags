@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
 
-namespace FeatureRabbit.Management.Api.Endpoints.Shared;
+namespace Propel.FlagsManagement.Api.Endpoints.Shared;
 
 public sealed class CurrentUserService(IHttpContextAccessor httpContextAccessor)
 {

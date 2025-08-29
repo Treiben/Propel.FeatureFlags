@@ -1,10 +1,10 @@
-﻿using FeatureRabbit.Flags.Cache;
-using FeatureRabbit.Flags.Core;
-using FeatureRabbit.Flags.Persistence;
-using FeatureRabbit.Management.Api.Endpoints.Shared;
-using FluentValidation;
+﻿using FluentValidation;
+using Propel.FeatureFlags;
+using Propel.FeatureFlags.Cache;
+using Propel.FeatureFlags.Core;
+using Propel.FlagsManagement.Api.Endpoints.Shared;
 
-namespace FeatureRabbit.Management.Api.Endpoints;
+namespace Propel.FlagsManagement.Api.Endpoints;
 
 public record SetPercentageRequest(int Percentage);
 public sealed class SetPercentageEndpoint : IEndpoint
@@ -37,46 +37,35 @@ public sealed class SetPercentageEndpoint : IEndpoint
 	}
 }
 
-public sealed class SetPercentageHandler
+public sealed class SetPercentageHandler(
+	IFeatureFlagRepository repository,
+	IFeatureFlagCache cache,
+	ILogger<SetPercentageHandler> logger,
+	CurrentUserService currentUserService)
 {
-	private readonly IFeatureFlagRepository _repository;
-	private readonly IFeatureFlagCache _cache;
-	private readonly ILogger<SetPercentageHandler> _logger;
-	private readonly CurrentUserService _currentUserService;
-	public SetPercentageHandler(
-		IFeatureFlagRepository repository,
-		IFeatureFlagCache cache,
-		ILogger<SetPercentageHandler> logger,
-		CurrentUserService currentUserService)
-	{
-		_repository = repository;
-		_cache = cache;
-		_logger = logger;
-		_currentUserService = currentUserService;
-	}
 	public async Task<IResult> HandleAsync(string key, SetPercentageRequest request)
 	{
 		try
 		{
-			var flag = await _repository.GetAsync(key);
+			var flag = await repository.GetAsync(key);
 			if (flag == null)
 				return Results.NotFound($"Feature flag '{key}' not found");
 
 			flag.Status = FeatureFlagStatus.Percentage;
 			flag.PercentageEnabled = request.Percentage;
-			flag.UpdatedBy = _currentUserService.UserName;
+			flag.UpdatedBy = currentUserService.UserName;
 
-			await _repository.UpdateAsync(flag);
-			await _cache.RemoveAsync(key);
+			await repository.UpdateAsync(flag);
+			await cache.RemoveAsync(key);
 
-			_logger.LogInformation("Feature flag {Key} percentage set to {Percentage}% by {User}",
-				key, request.Percentage, _currentUserService.UserName);
+			logger.LogInformation("Feature flag {Key} percentage set to {Percentage}% by {User}",
+				key, request.Percentage, currentUserService.UserName);
 
 			return Results.Ok(new FeatureFlagDto(flag));
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Error setting percentage for feature flag {Key}", key);
+			logger.LogError(ex, "Error setting percentage for feature flag {Key}", key);
 			return Results.StatusCode(500);
 		}
 	}

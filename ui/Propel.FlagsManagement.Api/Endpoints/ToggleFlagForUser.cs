@@ -1,8 +1,8 @@
-﻿using FeatureRabbit.Flags.Cache;
-using FeatureRabbit.Flags.Persistence;
-using FeatureRabbit.Management.Api.Endpoints.Shared;
+﻿using Propel.FeatureFlags;
+using Propel.FeatureFlags.Cache;
+using Propel.FlagsManagement.Api.Endpoints.Shared;
 
-namespace FeatureRabbit.Management.Api.Endpoints;
+namespace Propel.FlagsManagement.Api.Endpoints;
 
 public record ManageUsersRequest(List<string> UserIds);
 public sealed class EnableForUserEndpoint : IEndpoint

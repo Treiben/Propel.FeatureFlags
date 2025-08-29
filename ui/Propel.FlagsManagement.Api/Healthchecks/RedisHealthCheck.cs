@@ -2,25 +2,16 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using StackExchange.Redis;
 using System.Diagnostics;
 
-namespace FeatureRabbit.Management.Api.HealthChecks;
+namespace Propel.FlagsManagement.Api.Healthchecks;
 
 /// <summary>
 /// Deep health check for Redis that verifies connection, basic operations, and server info
 /// </summary>
-public class RedisDeepHealthCheck : IHealthCheck
+public class RedisDeepHealthCheck(IConfiguration configuration, ILogger<RedisDeepHealthCheck> logger) : IHealthCheck
 {
-	private readonly IConfiguration _configuration;
-	private readonly ILogger<RedisDeepHealthCheck> _logger;
-
-	public RedisDeepHealthCheck(IConfiguration configuration, ILogger<RedisDeepHealthCheck> logger)
-	{
-		_configuration = configuration;
-		_logger = logger;
-	}
-
 	public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
 	{
-		var connectionString = _configuration.GetConnectionString("RedisCache");
+		var connectionString = configuration.GetConnectionString("RedisCache");
 		if (string.IsNullOrEmpty(connectionString))
 		{
 			return HealthCheckResult.Degraded("Redis connection string is missing");
@@ -78,7 +69,7 @@ public class RedisDeepHealthCheck : IHealthCheck
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Redis health check failed");
+			logger.LogError(ex, "Redis health check failed");
 			return HealthCheckResult.Degraded("Redis check failed", ex, data);
 		}
 	}

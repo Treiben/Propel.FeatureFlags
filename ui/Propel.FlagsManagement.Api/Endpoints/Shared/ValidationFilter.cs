@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
 
-namespace FeatureRabbit.Management.Api.Endpoints.Shared;
+namespace Propel.FlagsManagement.Api.Endpoints.Shared;
 
 // Validation Filter for automatic validation
 public class ValidationFilter<T> : IEndpointFilter where T : class
@@ -19,18 +19,18 @@ public class ValidationFilter<T> : IEndpointFilter where T : class
 					var failureDictionary = new Dictionary<string, string[]>();
 					foreach (var error in validation.Errors)
 					{
-						if (!failureDictionary.ContainsKey(error.PropertyName))
+						if (!failureDictionary.TryGetValue(error.PropertyName, out string[]? value))
 						{
-							failureDictionary[error.PropertyName] = new string[] { error.ErrorMessage };
+							failureDictionary[error.PropertyName] = [error.ErrorMessage];
 						}
 						else
 						{
-							var existingErrors = failureDictionary[error.PropertyName].ToList();
+							var existingErrors = value.ToList();
 							existingErrors.Add(error.ErrorMessage);
-							failureDictionary[error.PropertyName] = existingErrors.ToArray();
+							failureDictionary[error.PropertyName] = [.. existingErrors];
 						}
 					}
-					return (IResult)Results.ValidationProblem(failureDictionary);
+					return Results.ValidationProblem(failureDictionary);
 				}
 			}
 		}

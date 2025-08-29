@@ -1,11 +1,11 @@
-using FeatureRabbit.Flags;
-using FeatureRabbit.Flags.Cache.Redis;
-using FeatureRabbit.Flags.Core;
-using FeatureRabbit.Flags.Persistence.PostgresSQL;
-using FeatureRabbit.Management.Api.Endpoints;
-using FeatureRabbit.Management.Api.Endpoints.Shared;
-using FeatureRabbit.Management.Api.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Propel.FeatureFlags; 
+using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.PostgresSql;
+using Propel.FeatureFlags.Redis;
+using Propel.FlagsManagement.Api.Endpoints;
+using Propel.FlagsManagement.Api.Endpoints.Shared;
+using Propel.FlagsManagement.Api.Healthchecks;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -59,12 +59,12 @@ builder.Services.AddAuthorizationBuilder()
 	.AddPolicy("ApiScope", policy =>
 	{
 		policy.RequireAuthenticatedUser();
-		policy.RequireClaim("scope", "featuretogglesmanagementapi");
+		policy.RequireClaim("scope", "propel-management-api");
 	});
 
 builder.Services.AddFeatureFlags(featureFlagOptions);
-builder.Services.AddFeatureFlagsPostgresRepository(featureFlagOptions);
-builder.Services.AddFeatureFlagsRedisCache(featureFlagOptions);
+builder.Services.AddPostgresSqlFeatureFlags(featureFlagOptions.SqlConnectionString);
+builder.Services.AddRedisCache(featureFlagOptions.RedisConnectionString);
 
 builder.Services.AddScoped<CurrentUserService>();
 builder.Services.AddValidators();
@@ -78,10 +78,10 @@ var healthChecksBuilder = builder.Services.AddHealthChecks();
 healthChecksBuilder.AddCheck("self", () => HealthCheckResult.Healthy("Application is running"), tags: ["liveness"]);
 
 // Add PostgreSQL health check only if connection string is available
-if (!string.IsNullOrEmpty(featureFlagOptions.SQLConnectionString))
+if (!string.IsNullOrEmpty(featureFlagOptions.SqlConnectionString))
 {
 	healthChecksBuilder.AddNpgSql(
-		connectionString: featureFlagOptions.SQLConnectionString,
+		connectionString: featureFlagOptions.SqlConnectionString,
 		healthQuery: "SELECT 1;",
 		name: "postgres",
 		failureStatus: HealthStatus.Unhealthy,

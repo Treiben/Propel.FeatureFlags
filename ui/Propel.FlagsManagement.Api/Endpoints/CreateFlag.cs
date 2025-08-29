@@ -1,10 +1,10 @@
-﻿using FeatureRabbit.Flags.Cache;
-using FeatureRabbit.Flags.Core;
-using FeatureRabbit.Flags.Persistence;
-using FeatureRabbit.Management.Api.Endpoints.Shared;
-using FluentValidation;
+﻿using FluentValidation;
+using Propel.FeatureFlags;
+using Propel.FeatureFlags.Cache;
+using Propel.FeatureFlags.Core;
+using Propel.FlagsManagement.Api.Endpoints.Shared;
 
-namespace FeatureRabbit.Management.Api.Endpoints;
+namespace Propel.FlagsManagement.Api.Endpoints;
 
 public record CreateFeatureFlagRequest
 {
@@ -94,12 +94,12 @@ public sealed class CreateFlagHandler(
 				TimeZone = request.TimeZone,
 				WindowDays = request.WindowDays,
 				PercentageEnabled = request.PercentageEnabled,
-				TargetingRules = request.TargetingRules ?? new(),
-				EnabledUsers = request.EnabledUsers ?? new(),
-				DisabledUsers = request.DisabledUsers ?? new(),
+				TargetingRules = request.TargetingRules ?? [],
+				EnabledUsers = request.EnabledUsers ?? [],
+				DisabledUsers = request.DisabledUsers ?? [],
 				Variations = request.Variations ?? new() { ["on"] = true, ["off"] = false },
 				DefaultVariation = request.DefaultVariation ?? "off",
-				Tags = request.Tags ?? new(),
+				Tags = request.Tags ?? [],
 				IsPermanent = request.IsPermanent
 			};
 			await repository.CreateAsync(flag);

@@ -20,13 +20,16 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\FeatureRabbit.Flags.Cache.Redis\FeatureRabbit.Flags.Cache.Redis.csproj" />
-    <ProjectReference Include="..\..\src\FeatureRabbit.Flags.Persistence.PostgresSQL\FeatureRabbit.Flags.Persistence.PostgresSQL.csproj" />
-  </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Healthchecks\" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.PostgresSql\Propel.FeatureFlags.PostgresSql.csproj" />
+    <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.Redis\Propel.FeatureFlags.Redis.csproj" />
+    <ProjectReference Include="..\..\src\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
   </ItemGroup>
 
 </Project>

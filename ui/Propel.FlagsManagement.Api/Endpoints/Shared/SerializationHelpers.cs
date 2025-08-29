@@ -1,4 +1,4 @@
-﻿namespace FeatureRabbit.Management.Api.Endpoints.Shared;
+﻿namespace Propel.FlagsManagement.Api.Endpoints.Shared;
 
 public static class SerializationHelpers
 {

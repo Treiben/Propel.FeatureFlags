@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace FeatureRabbit.Management.Api.Endpoints.Shared;
+namespace Propel.FlagsManagement.Api.Endpoints.Shared;
 
 public interface IEndpoint
 {

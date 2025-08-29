@@ -1,9 +1,9 @@
-﻿using FeatureRabbit.Flags.Core;
-using FeatureRabbit.Management.Api.Endpoints.Shared;
-using FeatureRabbit.Flags.Persistence;
-using FluentValidation;
+﻿using FluentValidation;
+using Propel.FeatureFlags;
+using Propel.FeatureFlags.Core;
+using Propel.FlagsManagement.Api.Endpoints.Shared;
 
-namespace FeatureRabbit.Management.Api.Endpoints;
+namespace Propel.FlagsManagement.Api.Endpoints;
 
 public record FeatureFlagDto
 {
@@ -23,12 +23,12 @@ public record FeatureFlagDto
 	public string? TimeZone { get; set; }
 	public List<DayOfWeek>? WindowDays { get; set; }
 	public int PercentageEnabled { get; set; }
-	public List<TargetingRule> TargetingRules { get; set; } = new();
-	public List<string> EnabledUsers { get; set; } = new();
-	public List<string> DisabledUsers { get; set; } = new();
-	public Dictionary<string, object> Variations { get; set; } = new();
+	public List<TargetingRule> TargetingRules { get; set; } = [];
+	public List<string> EnabledUsers { get; set; } = [];
+	public List<string> DisabledUsers { get; set; } = [];
+	public Dictionary<string, object> Variations { get; set; } = [];
 	public string DefaultVariation { get; set; } = string.Empty;
-	public Dictionary<string, string> Tags { get; set; } = new();
+	public Dictionary<string, string> Tags { get; set; } = [];
 	public bool IsPermanent { get; set; }
 
 	public FeatureFlagDto() { }

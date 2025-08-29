@@ -1,8 +1,8 @@
-﻿using FeatureRabbit.Flags.Core;
-using FeatureRabbit.Flags.Persistence;
-using FeatureRabbit.Management.Api.Endpoints.Shared;
+﻿using Propel.FeatureFlags;
+using Propel.FeatureFlags.Core;
+using Propel.FlagsManagement.Api.Endpoints.Shared;
 
-namespace FeatureRabbit.Management.Api.Endpoints;
+namespace Propel.FlagsManagement.Api.Endpoints;
 
 public sealed class SearchFlagsEndpoint : IEndpoint
 {
@@ -23,18 +23,10 @@ public sealed class SearchFlagsEndpoint : IEndpoint
 	}
 }
 
-public sealed class SearchHandler
+public sealed class SearchHandler(
+	IFeatureFlagRepository repository,
+	ILogger<SearchHandler> logger)
 {
-	private readonly IFeatureFlagRepository _repository;
-	private readonly ILogger<SearchHandler> _logger;
-	public SearchHandler(
-		IFeatureFlagRepository repository,
-		ILogger<SearchHandler> logger)
-	{
-		_repository = repository;
-		_logger = logger;
-	}
-
 	public async Task<IResult> HandleAsync(string? tag = null, string? status = null)
 	{
 		try
@@ -46,16 +38,16 @@ public sealed class SearchHandler
 				var tagParts = tag.Split(':', 2);
 				var tagKey = tagParts[0];
 				var tagValue = tagParts.Length > 1 ? tagParts[1] : "";
-				flags = await _repository.GetByTagsAsync(new Dictionary<string, string> { [tagKey] = tagValue });
+				flags = await repository.GetByTagsAsync(new Dictionary<string, string> { [tagKey] = tagValue });
 			}
 			else
 			{
-				flags = await _repository.GetAllAsync();
+				flags = await repository.GetAllAsync();
 			}
 
 			if (IsValidStatus(status, out var statusEnum))
 			{
-				flags = flags.Where(f => f.Status == statusEnum).ToList();
+				flags = [.. flags.Where(f => f.Status == statusEnum)];
 			}
 
 			var flagDtos = flags.Select(f => new FeatureFlagDto(f)).ToList();
@@ -63,15 +55,15 @@ public sealed class SearchHandler
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Error searching flags");
+			logger.LogError(ex, "Error searching flags");
 			return Results.StatusCode(500);
 		}
 	}
 
-	private bool IsValidStatus(string status, out FeatureFlagStatus statusEnum)
+	private static bool IsValidStatus(string status, out FeatureFlagStatus statusEnum)
 	{
 		bool isValidStatus = !string.IsNullOrEmpty(status) 
-			&& Enum.GetNames(typeof(FeatureFlagStatus)).Any(s => s.Equals(status, StringComparison.OrdinalIgnoreCase));
+			&& Enum.GetNames<FeatureFlagStatus>().Any(s => s.Equals(status, StringComparison.OrdinalIgnoreCase));
 
 		if (isValidStatus &&  Enum.TryParse(status, true, out statusEnum))
 		{

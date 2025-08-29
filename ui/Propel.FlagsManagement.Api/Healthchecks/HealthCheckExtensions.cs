@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace FeatureRabbit.Management.Api.HealthChecks;
+namespace Propel.FlagsManagement.Api.Healthchecks;
 
 public static class HealthCheckExtensions
 {

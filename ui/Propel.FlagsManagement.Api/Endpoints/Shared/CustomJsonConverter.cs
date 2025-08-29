@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace FeatureRabbit.Management.Api.Endpoints.Shared;
+namespace Propel.FlagsManagement.Api.Endpoints.Shared;
 
 public class CustomJsonConverter<T> : JsonConverter<T> where T : struct, Enum
 {

@@ -1,9 +1,8 @@
-﻿using FeatureRabbit.Flags.Client;
-using FeatureRabbit.Flags.Core;
-using FeatureRabbit.Management.Api.Endpoints.Shared;
-using FluentValidation;
+﻿using FluentValidation;
+using Propel.FeatureFlags.Client;
+using Propel.FlagsManagement.Api.Endpoints.Shared;
 
-namespace FeatureRabbit.Management.Api.Endpoints;
+namespace Propel.FlagsManagement.Api.Endpoints;
 
 public record EvaluateMultipleRequest
 {
@@ -50,7 +49,7 @@ public sealed class MultiFlagEvaluatorHandler(IFeatureFlagClient client,
 			var results = new Dictionary<string, EvaluationResult>();
 			foreach (var flagKey in request.FlagKeys)
 			{
-				results[flagKey] = await client.EvaluateAsync(flagKey, request.UserId, request.Attributes);
+				results[flagKey] = await client.EvaluateAsync(flagKey: flagKey, userId: request.UserId, attributes: request.Attributes);
 			}
 
 			return Results.Ok(results);
@@ -103,7 +102,7 @@ public sealed class EvaluationHandler(IFeatureFlagClient client,
 					attributeDict = deserializedAttributes;
 				}
 			}
-			var result = await client.EvaluateAsync(key, userId, attributeDict);
+			var result = await client.EvaluateAsync(flagKey: key, userId: userId, attributes: attributeDict);
 			return Results.Ok(result);
 		}
 		catch (Exception ex)
