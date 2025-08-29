@@ -29,3 +29,5 @@ services:
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
       - ./usage-demo/Propel.ClientApi:/app/source:ro
       - ./usage-demo/Propel.ClientApi/appsettings.Development.json:/app/appsettings.Development.json:ro
+      - ./usage-demo/Propel.FlagsManagement.Api:/app/source:ro
+      - ./usage-demo/Propel.FlagsManagement.Api/appsettings.Development.json:/app/appsettings.Development.json:ro
