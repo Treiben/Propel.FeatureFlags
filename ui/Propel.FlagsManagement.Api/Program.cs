@@ -11,7 +11,7 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var featureFlagOptions = builder.Configuration.GetSection("FeatureRabbit").Get<FlagOptions>() ?? new();
+var featureFlagOptions = builder.Configuration.GetSection("PropelFeatureFlags").Get<FlagOptions>() ?? new();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
