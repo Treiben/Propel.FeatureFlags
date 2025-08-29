@@ -6,7 +6,7 @@ public static class ServiceCollectionExtensions
 {
 	public static IServiceCollection AddValidators(this IServiceCollection services)
 	{
-		services.AddScoped<IValidator<CreateFeatureFlagRequest>, CreateFlag.CreateFeatureFlagRequestValidator>();
+		services.AddScoped<IValidator<CreateFeatureFlagRequest>, CreateFeatureFlagRequestValidator>();
 		services.AddScoped<IValidator<ModifyFlagRequest>, ModifyFlag.ModifyFeatureFlagRequestValidator>();
 		services.AddScoped<IValidator<EvaluateMultipleRequest>, EvaluateMultipleEndpoint.EvaluateMultipleRequestValidator>();
 		services.AddScoped<IValidator<ScheduleFlagRequest>, ScheduleFlagEndpoint.ScheduleFlagRequestValidator>();
