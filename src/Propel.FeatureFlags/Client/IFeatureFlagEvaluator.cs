@@ -44,7 +44,7 @@ namespace Propel.FeatureFlags.Client
 					return new EvaluationResult
 					(
 						isEnabled: false,
-						reason: "Flag not found, using default disabled flag"
+						reason: "Flag not found, created default disabled flag"
 					);
 				}
 
