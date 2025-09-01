@@ -250,10 +250,10 @@ export const apiService = {
     // Feature flags CRUD
     flags: {
         // Get all flags
-        getAll: () => apiRequest<FeatureFlagDto[]>('/flags'),
+        getAll: () => apiRequest<FeatureFlagDto[]>('/feature-flags'),
 
         // Get specific flag
-        get: (key: string) => apiRequest<FeatureFlagDto>(`/flags/${key}`),
+        get: (key: string) => apiRequest<FeatureFlagDto>(`/feature-flags/${key}`),
 
         // Create flag
         create: (request: CreateFeatureFlagRequest) =>

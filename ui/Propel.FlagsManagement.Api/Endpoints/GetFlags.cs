@@ -65,7 +65,7 @@ public sealed class GetFlagsEndpoint : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapGet("/api/flags", async (IFeatureFlagRepository repository, ILogger<GetFlagsEndpoint> logger) =>
+		app.MapGet("/api/feature-flags", async (IFeatureFlagRepository repository, ILogger<GetFlagsEndpoint> logger) =>
 		{
 			try
 			{
@@ -89,7 +89,7 @@ public sealed class GetFlagEndpoint : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapGet("/api/flags/{key}", async (string key, IFeatureFlagRepository repository, ILogger<GetFlagEndpoint> logger) =>
+		app.MapGet("/api/feature-flags/{key}", async (string key, IFeatureFlagRepository repository, ILogger<GetFlagEndpoint> logger) =>
 		{
 			// Validate key parameter
 			if (string.IsNullOrWhiteSpace(key))
