@@ -61,11 +61,30 @@ public record FeatureFlagDto
 	}
 }
 
+public record PagedFeatureFlagsResponse
+{
+	public List<FeatureFlagDto> Items { get; init; } = [];
+	public int TotalCount { get; init; }
+	public int Page { get; init; }
+	public int PageSize { get; init; }
+	public int TotalPages { get; init; }
+	public bool HasNextPage { get; init; }
+	public bool HasPreviousPage { get; init; }
+}
+
+public record GetFlagsRequest
+{
+	public int Page { get; init; } = 1;
+	public int PageSize { get; init; } = 10;
+	public string? Status { get; init; }
+	public Dictionary<string, string>? Tags { get; init; }
+}
+
 public sealed class GetFlagsEndpoint : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapGet("/api/feature-flags", async (IFeatureFlagRepository repository, ILogger<GetFlagsEndpoint> logger) =>
+		app.MapGet("/api/feature-flags/all", async (IFeatureFlagRepository repository, ILogger<GetFlagsEndpoint> logger) =>
 		{
 			try
 			{
@@ -82,8 +101,51 @@ public sealed class GetFlagsEndpoint : IEndpoint
 		.WithName("GetAllFlags")
 		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api")
 		.Produces<List<FeatureFlagDto>>();
+
+		app.MapGet("/api/feature-flags", 
+			async ([AsParameters] GetFlagsRequest request,
+					IFeatureFlagRepository repository,
+					ILogger<GetFlagsEndpoint> logger) =>
+		{
+			try
+			{
+				FeatureFlagFilter? filter = null;
+				if (!string.IsNullOrEmpty(request.Status) || request.Tags?.Count > 0)
+				{
+					filter = new FeatureFlagFilter
+					{
+						Status = request.Status,
+						Tags = request.Tags
+					};
+				}
+
+				var result = await repository.GetPagedAsync(request.Page, request.PageSize, filter);
+
+				var response = new PagedFeatureFlagsResponse
+				{
+					Items = [.. result.Items.Select(f => new FeatureFlagDto(f))],
+					TotalCount = result.TotalCount,
+					Page = result.Page,
+					PageSize = result.PageSize,
+					TotalPages = result.TotalPages,
+					HasNextPage = result.HasNextPage,
+					HasPreviousPage = result.HasPreviousPage
+				};
+
+				return Results.Ok(response);
+			}
+			catch (Exception ex)
+			{
+				return HttpProblemFactory.InternalServerError(ex, logger);
+			}
+		})
+		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
+		.WithName("GetPagedFlags")
+		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api", "Paging")
+		.Produces<PagedFeatureFlagsResponse>();
 	}
 }
+
 
 public sealed class GetFlagEndpoint : IEndpoint
 {
