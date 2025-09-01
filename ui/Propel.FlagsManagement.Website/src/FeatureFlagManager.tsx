@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Clock, Users, Percent, Settings, Eye, EyeOff, X, Plus, AlertCircle, Filter, Search, ChevronLeft, ChevronRight, Trash2, Lock, Shield } from 'lucide-react';
+import { Calendar, Clock, Users, Percent, Settings, Eye, EyeOff, X, Plus, AlertCircle, Filter, Search, ChevronLeft, ChevronRight, Trash2, Lock, Shield, PlayCircle } from 'lucide-react';
 import { useFeatureFlags } from './hooks/useFeatureFlags';
 import {
     type CreateFeatureFlagRequest,
@@ -44,6 +44,77 @@ const FeatureFlagManager = () => {
         tagKeys: [''],
         tagValues: [''],
     });
+
+    // Helper function to check if a flag is currently enabled due to scheduling
+    const isScheduledActive = (flag: FeatureFlagDto): boolean => {
+        if (flag.status !== 'Scheduled') return false;
+        
+        const now = new Date();
+        const enableDate = flag.scheduledEnableDate ? new Date(flag.scheduledEnableDate) : null;
+        const disableDate = flag.scheduledDisableDate ? new Date(flag.scheduledDisableDate) : null;
+
+        // If there's an enable date and it's in the past
+        if (enableDate && enableDate <= now) {
+            // If there's no disable date, it's active
+            if (!disableDate) return true;
+            // If there's a disable date and it's in the future, it's active
+            if (disableDate > now) return true;
+        }
+
+        return false;
+    };
+
+    // Helper function to get schedule status information
+    const getScheduleStatus = (flag: FeatureFlagDto): {
+        isActive: boolean;
+        phase: 'upcoming' | 'active' | 'expired' | 'none';
+        nextAction?: string;
+        nextActionTime?: Date;
+    } => {
+        if (flag.status !== 'Scheduled') {
+            return { isActive: false, phase: 'none' };
+        }
+
+        const now = new Date();
+        const enableDate = flag.scheduledEnableDate ? new Date(flag.scheduledEnableDate) : null;
+        const disableDate = flag.scheduledDisableDate ? new Date(flag.scheduledDisableDate) : null;
+
+        if (enableDate && enableDate > now) {
+            return {
+                isActive: false,
+                phase: 'upcoming',
+                nextAction: 'Enable',
+                nextActionTime: enableDate
+            };
+        }
+
+        if (enableDate && enableDate <= now) {
+            if (!disableDate) {
+                return {
+                    isActive: true,
+                    phase: 'active',
+                };
+            }
+            
+            if (disableDate > now) {
+                return {
+                    isActive: true,
+                    phase: 'active',
+                    nextAction: 'Disable',
+                    nextActionTime: disableDate
+                };
+            }
+            
+            if (disableDate <= now) {
+                return {
+                    isActive: false,
+                    phase: 'expired'
+                };
+            }
+        }
+
+        return { isActive: false, phase: 'none' };
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -113,6 +184,26 @@ const FeatureFlagManager = () => {
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'Not set';
         return new Date(dateString).toLocaleString();
+    };
+
+    const formatRelativeTime = (date: Date): string => {
+        const now = new Date();
+        const diff = date.getTime() - now.getTime();
+        const absDiff = Math.abs(diff);
+
+        const minutes = Math.floor(absDiff / (1000 * 60));
+        const hours = Math.floor(absDiff / (1000 * 60 * 60));
+        const days = Math.floor(absDiff / (1000 * 60 * 60 * 24));
+
+        if (days > 0) {
+            return diff > 0 ? `in ${days} day${days > 1 ? 's' : ''}` : `${days} day${days > 1 ? 's' : ''} ago`;
+        } else if (hours > 0) {
+            return diff > 0 ? `in ${hours} hour${hours > 1 ? 's' : ''}` : `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        } else if (minutes > 0) {
+            return diff > 0 ? `in ${minutes} minute${minutes > 1 ? 's' : ''}` : `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+        } else {
+            return 'now';
+        }
     };
 
     // Helper function to safely check if tags exist and have content
@@ -582,6 +673,8 @@ const FeatureFlagManager = () => {
         });
         const [operationLoading, setOperationLoading] = useState(false);
 
+        const scheduleStatus = getScheduleStatus(flag);
+
         const handlePercentageSubmit = async () => {
             try {
                 setOperationLoading(true);
@@ -617,9 +710,15 @@ const FeatureFlagManager = () => {
                         <div className="flex items-center gap-2 mb-2">
                             <h3 className="text-lg font-semibold text-gray-900">{flag.name}</h3>
                             {flag.isPermanent && (
-                                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">
-                                    <Lock className="w-3 h-3" />
-                                    <span className="font-medium">PERM</span>
+                                <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">
+                                    <Shield className="w-3 h-3" />
+                                    Permanent
+                                </div>
+                            )}
+                            {scheduleStatus.isActive && (
+                                <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                    <PlayCircle className="w-3 h-3" />
+                                    Live
                                 </div>
                             )}
                         </div>
@@ -643,6 +742,57 @@ const FeatureFlagManager = () => {
                 </div>
 
                 <p className="text-gray-600 mb-6">{flag.description || 'No description provided'}</p>
+
+                {/* Scheduled Status Indicator */}
+                {flag.status === 'Scheduled' && (
+                    <div className={`mb-4 p-3 rounded-lg border ${
+                        scheduleStatus.isActive 
+                            ? 'bg-green-50 border-green-200' 
+                            : scheduleStatus.phase === 'upcoming'
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'bg-gray-50 border-gray-200'
+                    }`}>
+                        <div className="flex items-center gap-2 mb-1">
+                            {scheduleStatus.isActive ? (
+                                <>
+                                    <PlayCircle className="w-4 h-4 text-green-600" />
+                                    <span className="font-medium text-green-800">Schedule Currently Active</span>
+                                </>
+                            ) : scheduleStatus.phase === 'upcoming' ? (
+                                <>
+                                    <Clock className="w-4 h-4 text-blue-600" />
+                                    <span className="font-medium text-blue-800">Schedule Upcoming</span>
+                                </>
+                            ) : scheduleStatus.phase === 'expired' ? (
+                                <>
+                                    <Clock className="w-4 h-4 text-gray-600" />
+                                    <span className="font-medium text-gray-800">Schedule Expired</span>
+                                </>
+                            ) : null}
+                        </div>
+                        
+                        {scheduleStatus.nextAction && scheduleStatus.nextActionTime && (
+                            <p className={`text-sm ${
+                                scheduleStatus.isActive ? 'text-green-700' : 
+                                scheduleStatus.phase === 'upcoming' ? 'text-blue-700' : 'text-gray-700'
+                            }`}>
+                                {scheduleStatus.nextAction} {formatRelativeTime(scheduleStatus.nextActionTime)}
+                            </p>
+                        )}
+                        
+                        {scheduleStatus.isActive && !scheduleStatus.nextAction && (
+                            <p className="text-sm text-green-700">
+                                Flag is currently enabled via schedule (no end date)
+                            </p>
+                        )}
+                        
+                        {scheduleStatus.phase === 'expired' && (
+                            <p className="text-sm text-gray-700">
+                                Scheduled period has ended
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 {/* Quick Actions */}
                 <div className="grid grid-cols-2 gap-3 mb-6">
@@ -890,68 +1040,83 @@ const FeatureFlagManager = () => {
                     </div>
 
                     <div className="space-y-3">
-                        {flags.map((flag) => (
-                            <div
-                                key={flag.key}
-                                onClick={() => selectFlag(flag)}
-                                className={`bg-white border rounded-lg p-4 cursor-pointer transition-all ${
-                                    selectedFlag?.key === flag.key
-                                        ? 'border-blue-500 ring-2 ring-blue-200'
-                                        : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                            >
-                                <div className="flex justify-between items-start">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="font-medium text-gray-900">{flag.name}</h3>
-                                            {flag.isPermanent && (
-                                                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">
-                                                    <Lock className="w-3 h-3" />
-                                                    <span className="font-medium">PERM</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <p className="text-sm text-gray-500 font-mono">{flag.key}</p>
-                                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{flag.description || 'No description'}</p>
-                                    </div>
-
-                                    <div className="flex flex-col items-end gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(flag.status)}`}>
-                                                {getStatusIcon(flag.status)}
-                                                {flag.status}
-                                            </span>
-                                            {!flag.isPermanent && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setShowDeleteConfirm(flag.key);
-                                                    }}
-                                                    className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                                                    title="Delete Flag"
-                                                >
-                                                    <Trash2 className="w-3 h-3" />
-                                                </button>
-                                            )}
+                        {flags.map((flag) => {
+                            const scheduleStatus = getScheduleStatus(flag);
+                            return (
+                                <div
+                                    key={flag.key}
+                                    onClick={() => selectFlag(flag)}
+                                    className={`bg-white border rounded-lg p-4 cursor-pointer transition-all ${
+                                        selectedFlag?.key === flag.key
+                                            ? 'border-blue-500 ring-2 ring-blue-200'
+                                            : 'border-gray-200 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h3 className="font-medium text-gray-900">{flag.name}</h3>
+                                                {flag.isPermanent && (
+                                                    <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">
+                                                        <Lock className="w-3 h-3" />
+                                                        <span className="font-medium">PERM</span>
+                                                    </div>
+                                                )}
+                                                {scheduleStatus.isActive && (
+                                                    <div className="flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs">
+                                                        <PlayCircle className="w-3 h-3" />
+                                                        <span className="font-medium">LIVE</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <p className="text-sm text-gray-500 font-mono">{flag.key}</p>
+                                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{flag.description || 'No description'}</p>
                                         </div>
 
-                                        {flag.status === 'Percentage' && (
-                                            <span className="text-xs text-gray-500">{flag.percentageEnabled || 0}%</span>
-                                        )}
+                                        <div className="flex flex-col items-end gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(flag.status)}`}>
+                                                    {getStatusIcon(flag.status)}
+                                                    {flag.status}
+                                                </span>
+                                                {!flag.isPermanent && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setShowDeleteConfirm(flag.key);
+                                                        }}
+                                                        className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                        title="Delete Flag"
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {flag.status === 'Percentage' && (
+                                                <span className="text-xs text-gray-500">{flag.percentageEnabled || 0}%</span>
+                                            )}
+
+                                            {flag.status === 'Scheduled' && scheduleStatus.nextAction && scheduleStatus.nextActionTime && (
+                                                <span className="text-xs text-gray-500">
+                                                    {scheduleStatus.nextAction} {formatRelativeTime(scheduleStatus.nextActionTime)}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
+
+                                    {hasValidTags(flag.tags) && (
+                                        <div className="flex flex-wrap gap-1 mt-2">
+                                            {getTagEntries(flag.tags).slice(0, 3).map(([key, value]) => (
+                                                <span key={key} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                                                    {key}: {value}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-
-                                {hasValidTags(flag.tags) && (
-                                    <div className="flex flex-wrap gap-1 mt-2">
-                                        {getTagEntries(flag.tags).slice(0, 3).map(([key, value]) => (
-                                            <span key={key} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                                                {key}: {value}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {/* Pagination Controls */}
