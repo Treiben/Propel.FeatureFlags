@@ -16,6 +16,7 @@
     </None>
     <None Include="docker-compose.yml" />
     <None Include=".dockerignore" />
+    <None Include="http ui\Propel.FlagsManagement.Api\http\Propel.FlagsManagement.Api.http" />
     <None Include="http ui\Propel.FlagsManagement.Api\Propel.FlagsManagement.Api.http" />
   </ItemGroup>
 </Project>
