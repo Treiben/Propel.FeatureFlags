@@ -50,15 +50,6 @@ public sealed class ScheduleFlagHandler(
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
 			}
 
-			// Validate business rules
-			if (flag.IsPermanent)
-			{
-				return HttpProblemFactory.BadRequest(
-					"Cannot Schedule Permanent Flag",
-					$"The feature flag '{key}' is marked as permanent and cannot be scheduled for automatic changes",
-					logger);
-			}
-
 			// Update flag for scheduling
 			flag.Status = FeatureFlagStatus.Scheduled;
 			flag.ScheduledEnableDate = request.EnableDate.ToUniversalTime();

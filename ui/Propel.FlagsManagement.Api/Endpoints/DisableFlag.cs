@@ -51,15 +51,6 @@ public sealed class DisableFlagHandler(
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
 			}
 
-			// Validate business rules
-			if (flag.IsPermanent)
-			{
-				return HttpProblemFactory.BadRequest(
-					"Cannot Toggle Permanent Flag",
-					$"The feature flag '{key}' is marked as permanent and cannot be toggled",
-					logger);
-			}
-
 			var status = FeatureFlagStatus.Disabled;
 			// Check if the flag is already in the requested state
 			if (flag.Status == status)

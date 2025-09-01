@@ -7,7 +7,7 @@ namespace Propel.FlagsManagement.Api.Endpoints;
 
 public record ManageUsersRequest(List<string> UserIds);
 
-public sealed class EnableForUserEndpoint : IEndpoint
+public sealed class ToggleFlagForUserEndpoints : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder epRoutBuilder)
 	{
@@ -25,21 +25,15 @@ public sealed class EnableForUserEndpoint : IEndpoint
 		.WithTags("Feature Flags", "Operations", "User Targeting", "Toggle Control", "Management Api")
 		.Produces<FeatureFlagDto>()
 		.ProducesValidationProblem();
-	}
-}
 
-public sealed class DisableForUserEndpoint : IEndpoint
-{
-	public void AddEndpoint(IEndpointRouteBuilder epRoutBuilder)
-	{
 		epRoutBuilder.MapPost("/api/feature-flags/{key}/users/disable",
 			async (
 				string key,
 				ManageUsersRequest request,
 				UserAccessHandler userAccessHandler) =>
-		{
-			return await userAccessHandler.HandleAsync(key, request.UserIds, false);
-		})
+				{
+					return await userAccessHandler.HandleAsync(key, request.UserIds, false);
+				})
 		.AddEndpointFilter<ValidationFilter<ManageUsersRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("DisableForUser")
@@ -101,15 +95,6 @@ public sealed class UserAccessHandler(
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
 			}
 
-			// Validate business rules
-			if (flag.IsPermanent)
-			{
-				return HttpProblemFactory.BadRequest(
-					"Cannot Manage Users for Permanent Flag",
-					$"The feature flag '{key}' is marked as permanent and cannot have user-specific targeting",
-					logger);
-			}
-
 			// Track changes for logging
 			var addedUsers = new List<string>();
 			var removedUsers = new List<string>();
@@ -129,7 +114,7 @@ public sealed class UserAccessHandler(
 					{
 						noChangeUsers.Add(userId);
 					}
-					
+
 					if (flag.DisabledUsers.Remove(userId))
 					{
 						removedUsers.Add($"{userId} (from disabled)");
@@ -147,7 +132,7 @@ public sealed class UserAccessHandler(
 					{
 						noChangeUsers.Add(userId);
 					}
-					
+
 					if (flag.EnabledUsers.Remove(userId))
 					{
 						removedUsers.Add($"{userId} (from enabled)");
@@ -162,7 +147,7 @@ public sealed class UserAccessHandler(
 			// Log detailed changes
 			var action = enable ? "enabled" : "disabled";
 			var targetList = enable ? "enabled users" : "disabled users";
-			
+
 			logger.LogInformation(
 				"Feature flag {Key} user access updated by {User}: {Action} for {UserCount} users. " +
 				"Added to {TargetList}: [{AddedUsers}]. Removed: [{RemovedUsers}]. No change: [{NoChangeUsers}]",

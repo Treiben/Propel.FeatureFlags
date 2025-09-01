@@ -51,15 +51,6 @@ public sealed class SetPercentageHandler(
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
 			}
 
-			// Validate business rules
-			if (flag.IsPermanent)
-			{
-				return HttpProblemFactory.BadRequest(
-					"Cannot Change Percentage of Permanent Flag",
-					$"The feature flag '{key}' is marked as permanent and cannot have its percentage changed",
-					logger);
-			}
-
 			// Special case: 0% effectively disables the flag
 			if (request.Percentage == 0)
 			{
