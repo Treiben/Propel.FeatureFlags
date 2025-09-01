@@ -22,6 +22,8 @@ export interface UseFeatureFlagsState {
     totalPages: number;
     hasNextPage: boolean;
     hasPreviousPage: boolean;
+    // Current filters state
+    currentFilters: GetFlagsParams;
 }
 
 export interface UseFeatureFlagsActions {
@@ -55,6 +57,7 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         totalPages: 0,
         hasNextPage: false,
         hasPreviousPage: false,
+        currentFilters: {},
     });
 
     const updateState = (updates: Partial<UseFeatureFlagsState>) => {
@@ -108,6 +111,9 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
                 ...params
             };
 
+            // Store current filters
+            updateState({ currentFilters: defaultParams });
+
             const response = await apiService.flags.getPaged(defaultParams);
             console.log('Paged flags loaded successfully:', response);
             updateStateFromPagedResponse(response);
@@ -121,10 +127,12 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         try {
             updateState({ loading: true, error: null });
 
+            // Merge current filters with new params, but use current filters as base
             const pageParams = {
+                ...state.currentFilters,
+                ...params,
                 page,
                 pageSize: state.pageSize,
-                ...params
             };
 
             const response = await apiService.flags.getPaged(pageParams);
@@ -132,7 +140,7 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         } catch (error) {
             handleError(error, 'load flags page');
         }
-    }, [state.pageSize]);
+    }, [state.pageSize, state.currentFilters]);
 
     const selectFlag = useCallback((flag: FeatureFlagDto | null) => {
         updateState({ selectedFlag: flag });
@@ -142,16 +150,16 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         try {
             updateState({ error: null });
             const newFlag = await apiService.flags.create(request);
-            setState(prev => ({
-                ...prev,
-                flags: [...prev.flags, newFlag],
-            }));
+            
+            // Reload the current page to maintain pagination consistency
+            await loadFlagsPage(state.currentPage);
+            
             return newFlag;
         } catch (error) {
             handleError(error, 'create flag');
             throw error;
         }
-    }, []);
+    }, [loadFlagsPage, state.currentPage]);
 
     const updateFlag = useCallback(async (key: string, request: ModifyFlagRequest): Promise<FeatureFlagDto> => {
         try {
@@ -169,16 +177,19 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         try {
             updateState({ error: null });
             await apiService.flags.delete(key);
-            setState(prev => ({
-                ...prev,
-                flags: prev.flags.filter(flag => flag.key !== key),
-                selectedFlag: prev.selectedFlag?.key === key ? null : prev.selectedFlag,
-            }));
+            
+            // Reload the current page to maintain pagination consistency
+            await loadFlagsPage(state.currentPage);
+            
+            // Clear selection if deleted flag was selected
+            if (state.selectedFlag?.key === key) {
+                updateState({ selectedFlag: null });
+            }
         } catch (error) {
             handleError(error, 'delete flag');
             throw error;
         }
-    }, []);
+    }, [loadFlagsPage, state.currentPage, state.selectedFlag]);
 
     const enableFlag = useCallback(async (key: string, reason: string): Promise<FeatureFlagDto> => {
         try {
@@ -265,7 +276,8 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
                 currentPage: 1,
                 totalPages: 1,
                 hasNextPage: false,
-                hasPreviousPage: false
+                hasPreviousPage: false,
+                currentFilters: {} // Reset filters for search
             });
         } catch (error) {
             handleError(error, 'search flags');
@@ -275,11 +287,17 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
     const filterFlags = useCallback(async (params: GetFlagsParams): Promise<void> => {
         try {
             updateState({ loading: true, error: null });
-            const response = await apiService.flags.getPaged({
+            
+            const filterParams = {
                 page: 1, // Reset to first page when filtering
                 pageSize: state.pageSize,
                 ...params
-            });
+            };
+            
+            // Store the new filters
+            updateState({ currentFilters: filterParams });
+            
+            const response = await apiService.flags.getPaged(filterParams);
             updateStateFromPagedResponse(response);
         } catch (error) {
             handleError(error, 'filter flags');
@@ -296,7 +314,8 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
             totalCount: 0,
             totalPages: 0,
             hasNextPage: false,
-            hasPreviousPage: false
+            hasPreviousPage: false,
+            currentFilters: {}
         });
     }, []);
 
