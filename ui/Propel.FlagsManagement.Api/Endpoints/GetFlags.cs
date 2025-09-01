@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Propel.FeatureFlags;
 using Propel.FeatureFlags.Core;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
@@ -74,84 +75,22 @@ public record PagedFeatureFlagsResponse
 
 public record GetFlagsRequest
 {
-	public int Page { get; init; } = 1;
-	public int PageSize { get; init; } = 10;
+	public int? Page { get; init; }
+	public int? PageSize { get; init; }
 	public string? Status { get; init; }
-	public Dictionary<string, string>? Tags { get; init; }
+
+	// Tag filtering using tag keys only
+	public string[]? TagKeys { get; init; }
+
+	// Tag filtering by suing tags in key:value format
+	public string[]? Tags { get; init; }
 }
 
 public sealed class GetFlagsEndpoint : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapGet("/api/feature-flags/all", async (IFeatureFlagRepository repository, ILogger<GetFlagsEndpoint> logger) =>
-		{
-			try
-			{
-				var flags = await repository.GetAllAsync();
-				var flagDtos = flags.Select(f => new FeatureFlagDto(f)).ToList();
-				return Results.Ok(flagDtos);
-			}
-			catch (Exception ex)
-			{
-				return HttpProblemFactory.InternalServerError(ex, logger);
-			}
-		})
-		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
-		.WithName("GetAllFlags")
-		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api")
-		.Produces<List<FeatureFlagDto>>();
-
-		app.MapGet("/api/feature-flags", 
-			async ([AsParameters] GetFlagsRequest request,
-					IFeatureFlagRepository repository,
-					ILogger<GetFlagsEndpoint> logger) =>
-		{
-			try
-			{
-				FeatureFlagFilter? filter = null;
-				if (!string.IsNullOrEmpty(request.Status) || request.Tags?.Count > 0)
-				{
-					filter = new FeatureFlagFilter
-					{
-						Status = request.Status,
-						Tags = request.Tags
-					};
-				}
-
-				var result = await repository.GetPagedAsync(request.Page, request.PageSize, filter);
-
-				var response = new PagedFeatureFlagsResponse
-				{
-					Items = [.. result.Items.Select(f => new FeatureFlagDto(f))],
-					TotalCount = result.TotalCount,
-					Page = result.Page,
-					PageSize = result.PageSize,
-					TotalPages = result.TotalPages,
-					HasNextPage = result.HasNextPage,
-					HasPreviousPage = result.HasPreviousPage
-				};
-
-				return Results.Ok(response);
-			}
-			catch (Exception ex)
-			{
-				return HttpProblemFactory.InternalServerError(ex, logger);
-			}
-		})
-		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
-		.WithName("GetPagedFlags")
-		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api", "Paging")
-		.Produces<PagedFeatureFlagsResponse>();
-	}
-}
-
-
-public sealed class GetFlagEndpoint : IEndpoint
-{
-	public void AddEndpoint(IEndpointRouteBuilder app)
-	{
-		app.MapGet("/api/feature-flags/{key}", async (string key, IFeatureFlagRepository repository, ILogger<GetFlagEndpoint> logger) =>
+		app.MapGet("/api/feature-flags/{key}", async (string key, IFeatureFlagRepository repository, ILogger<GetFlagsEndpoint> logger) =>
 		{
 			// Validate key parameter
 			if (string.IsNullOrWhiteSpace(key))
@@ -178,5 +117,155 @@ public sealed class GetFlagEndpoint : IEndpoint
 		.WithName("GetFlag")
 		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api")
 		.Produces<FeatureFlagDto>();
+
+		app.MapGet("/api/feature-flags/all", async (IFeatureFlagRepository repository, ILogger<GetFlagsEndpoint> logger) =>
+		{
+			try
+			{
+				var flags = await repository.GetAllAsync();
+				var flagDtos = flags.Select(f => new FeatureFlagDto(f)).ToList();
+				return Results.Ok(flagDtos);
+			}
+			catch (Exception ex)
+			{
+				return HttpProblemFactory.InternalServerError(ex, logger);
+			}
+		})
+		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
+		.WithName("GetAllFlags")
+		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api")
+		.Produces<List<FeatureFlagDto>>();
+
+		app.MapGet("/api/feature-flags", async ([AsParameters] GetFlagsRequest request, IFeatureFlagRepository repository, ILogger<GetFlagsEndpoint> logger) =>
+		{
+			try
+			{
+				FeatureFlagFilter? filter = null;
+				if (!string.IsNullOrEmpty(request.Status) || request.Tags?.Length > 0 || request.TagKeys?.Length > 0)
+				{
+					filter = new FeatureFlagFilter
+					{
+						Status = request.Status,
+						Tags = request.BuildTagDictionary()
+					};
+				}
+
+				var result = await repository.GetPagedAsync(request.Page ?? 1,
+						request.PageSize ?? 10
+						, filter);
+
+				var response = new PagedFeatureFlagsResponse
+				{
+					Items = [.. result.Items.Select(f => new FeatureFlagDto(f))],
+					TotalCount = result.TotalCount,
+					Page = result.Page,
+					PageSize = result.PageSize,
+					TotalPages = result.TotalPages,
+					HasNextPage = result.HasNextPage,
+					HasPreviousPage = result.HasPreviousPage
+				};
+
+				return Results.Ok(response);
+			}
+			catch (Exception ex)
+			{
+				return HttpProblemFactory.InternalServerError(ex, logger);
+			}
+		})
+		.AddEndpointFilter<ValidationFilter<GetFlagsRequest>>()
+		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
+		.WithName("GetPagedFlags")
+		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api", "Paging")
+		.Produces<PagedFeatureFlagsResponse>();
+	}
+}
+
+public static class GetFlagsRequestExtensions
+{
+	public static Dictionary<string, string>? BuildTagDictionary(this GetFlagsRequest request)
+	{
+		var tags = new Dictionary<string, string>();
+		// Handle Tags array (key:value format)
+		if (request.Tags != null)
+		{
+			foreach (var tag in request.Tags)
+			{
+				var parts = tag.Split(':', 2);
+				if (parts.Length == 2)
+				{
+					var key = parts[0].Trim();
+					var value = parts[1].Trim();
+					if (!string.IsNullOrEmpty(key))
+					{
+						tags[key] = value;
+					}
+				}
+				else if (parts.Length == 1)
+				{
+					var key = parts[0].Trim();
+					if (!string.IsNullOrEmpty(key))
+					{
+						tags[key] = "";
+					}
+				}
+			}
+		}
+		// Handle TagKeys
+		if (request.TagKeys != null)
+		{
+			for (int i = 0; i < request.TagKeys.Length; i++)
+			{
+				var key = request.TagKeys[i].Trim();
+				if (!string.IsNullOrEmpty(key))
+				{
+					tags[key] = "";
+				}
+			}
+		}
+		return tags.Count > 0 ? tags : null;
+	}
+}
+
+public class GetFlagsRequestValidator : AbstractValidator<GetFlagsRequest>
+{
+	public GetFlagsRequestValidator()
+	{
+		RuleFor(x => x.Page)
+			.GreaterThan(0)
+			.WithMessage("Page must be greater than 0");
+
+		RuleFor(x => x.PageSize)
+			.InclusiveBetween(1, 100)
+			.WithMessage("Page size must be between 1 and 100");
+
+		RuleFor(x => x.Status)
+			.Must(BeValidStatus)
+			.When(x => !string.IsNullOrEmpty(x.Status))
+			.WithMessage("Status must be one of: Disabled, Enabled, Scheduled, TimeWindow, UserTargeted, Percentage");
+
+		RuleFor(x => x.Tags)
+			.Must(BeValidTagFormat)
+			.When(x => x.Tags != null && x.Tags.Length > 0)
+			.WithMessage("Tags must be in format 'key:value' or just 'key' for key-only searches");
+	}
+
+	private static bool BeValidStatus(string? status)
+	{
+		if (string.IsNullOrEmpty(status)) return true;
+		return Enum.TryParse<FeatureFlagStatus>(status, true, out _);
+	}
+
+	private static bool BeValidTagFormat(string[]? tags)
+	{
+		if (tags == null) return true;
+
+		return tags.All(tag =>
+		{
+			if (string.IsNullOrWhiteSpace(tag)) return false;
+
+			// Allow format "key:value" or just "key"
+			var parts = tag.Split(':', 2);
+			return parts.Length is 1 or 2 && !string.IsNullOrWhiteSpace(parts[0]);
+		});
 	}
 }

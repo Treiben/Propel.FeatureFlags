@@ -14,6 +14,7 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<IValidator<ManageUsersRequest>, ManageUsersRequestValidator>();
 		services.AddScoped<IValidator<EnableFlagRequest>, EnableFlagRequestValidator>();
 		services.AddScoped<IValidator<DisableFlagRequest>, DisableFlagRequestValidator>();
+		services.AddScoped<IValidator<GetFlagsRequest>, GetFlagsRequestValidator>();
 
 		return services;
 	}

@@ -1,4 +1,4 @@
-@Ui_Api_HostAddress_Https = https://localhost:7113
+﻿@Ui_Api_HostAddress_Https = https://localhost:7113
 @Ui_Api_HostAddress_Http = http://localhost:5038
 @Ui_Api_HostAddress_Docker = http://localhost:5003
 
@@ -34,6 +34,390 @@ Content-Type: application/json
 Authorization: Bearer {{active_token}}
 
 ###
+### ================== SETUP TEST DATA FOR PAGING/FILTERING ==================
+
+### Setup 1. Create Test Flags for Paging Tests
+# Test: Create multiple flags for pagination testing
+# Expected: 201 Created - Environment Production Flag
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "env-prod-flag-{{$randomInt}}",
+  "name": "Production Environment Flag",
+  "description": "Flag for production environment",
+  "status": "Enabled",
+  "tags": {
+    "environment": "production",
+    "team": "backend",
+    "priority": "high"
+  },
+  "isPermanent": false
+}
+
+###
+### Setup 2. Create Second Test Flag
+# Test: Create second flag with different tags and status
+# Expected: 201 Created - Environment Staging Flag
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "env-staging-flag-{{$randomInt}}",
+  "name": "Staging Environment Flag",
+  "description": "Flag for staging environment",
+  "status": "Disabled",
+  "tags": {
+    "environment": "staging",
+    "team": "frontend",
+    "priority": "medium"
+  },
+  "isPermanent": false
+}
+
+###
+### Setup 3. Create Third Test Flag
+# Test: Create third flag for comprehensive testing
+# Expected: 201 Created - Development Flag
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "env-dev-flag-{{$randomInt}}",
+  "name": "Development Environment Flag",
+  "description": "Flag for development environment",
+  "status": "Percentage",
+  "percentageEnabled": 50,
+  "tags": {
+    "environment": "development",
+    "team": "backend",
+    "priority": "low"
+  },
+  "isPermanent": false
+}
+
+###
+### Setup 4. Create Fourth Test Flag
+# Test: Create flag without environment tag
+# Expected: 201 Created - Feature Flag without environment
+POST {{baseUrl}}/feature-flags
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "key": "feature-experimental-{{$randomInt}}",
+  "name": "Experimental Feature Flag",
+  "description": "Experimental feature flag",
+  "status": "Scheduled",
+  "tags": {
+    "type": "experimental",
+    "team": "research",
+    "priority": "high"
+  },
+  "isPermanent": false
+}
+
+###
+### ================== PAGING TESTS ==================
+
+### Get All Flags
+# Test: Get all flags
+# Expected: 200 OK with all flags
+GET {{baseUrl}}/feature-flags/all
+Authorization: Bearer {{active_token}}
+
+### Paging 1. Get First Page - Default Parameters
+# Test: Get first page with default page size (10)
+# Expected: 200 OK with PagedFeatureFlagsResponse, page=1, pageSize=10
+GET {{baseUrl}}/feature-flags/
+Authorization: Bearer {{active_token}}
+
+###
+### Paging 2. Get First Page - Custom Page Size
+# Test: Get first page with custom page size
+# Expected: 200 OK with PagedFeatureFlagsResponse, page=1, pageSize=5
+GET {{baseUrl}}/feature-flags?page=1&pageSize=5
+Authorization: Bearer {{active_token}}
+
+###
+### Paging 3. Get Second Page
+# Test: Get second page to verify pagination works
+# Expected: 200 OK with PagedFeatureFlagsResponse, page=2, pageSize=5
+GET {{baseUrl}}/feature-flags?page=2&pageSize=5
+Authorization: Bearer {{active_token}}
+
+###
+### Paging 4. Test Page Size Limit
+# Test: Verify page size is limited to maximum allowed
+# Expected: 200 OK with PagedFeatureFlagsResponse, pageSize should be capped at 100
+GET {{baseUrl}}/feature-flags?page=1&pageSize=150
+Authorization: Bearer {{active_token}}
+
+###
+### Paging 5. Test Invalid Page Number (0)
+# Test: Verify page number validation (should default to 1)
+# Expected: 400 Bad Request with validation error OR 200 OK with page defaulted to 1
+GET {{baseUrl}}/feature-flags?page=0&pageSize=10
+Authorization: Bearer {{active_token}}
+
+###
+### Paging 6. Test Invalid Page Number (Negative)
+# Test: Verify negative page number validation
+# Expected: 400 Bad Request with validation error
+GET {{baseUrl}}/feature-flags?page=-1&pageSize=10
+Authorization: Bearer {{active_token}}
+
+###
+### Paging 7. Test Invalid Page Size (0)
+# Test: Verify page size validation
+# Expected: 400 Bad Request with validation error
+GET {{baseUrl}}/feature-flags?page=1&pageSize=0
+Authorization: Bearer {{active_token}}
+
+###
+### Paging 8. Test Invalid Page Size (Negative)
+# Test: Verify negative page size validation
+# Expected: 400 Bad Request with validation error
+GET {{baseUrl}}/feature-flags?page=1&pageSize=-5
+Authorization: Bearer {{active_token}}
+
+###
+### ================== STATUS FILTERING TESTS ==================
+
+### Filter 1. Filter by Status - Enabled
+# Test: Filter flags by Enabled status
+# Expected: 200 OK with PagedFeatureFlagsResponse containing only Enabled flags
+GET {{baseUrl}}/feature-flags?status=Enabled
+Authorization: Bearer {{active_token}}
+
+###
+### Filter 2. Filter by Status - Disabled
+# Test: Filter flags by Disabled status
+# Expected: 200 OK with PagedFeatureFlagsResponse containing only Disabled flags
+GET {{baseUrl}}/feature-flags?status=Disabled
+Authorization: Bearer {{active_token}}
+
+###
+### Filter 3. Filter by Status - Percentage
+# Test: Filter flags by Percentage status
+# Expected: 200 OK with PagedFeatureFlagsResponse containing only Percentage flags
+GET {{baseUrl}}/feature-flags?status=Percentage
+Authorization: Bearer {{active_token}}
+
+###
+### Filter 4. Filter by Status - Scheduled
+# Test: Filter flags by Scheduled status
+# Expected: 200 OK with PagedFeatureFlagsResponse containing only Scheduled flags
+GET {{baseUrl}}/feature-flags?status=Scheduled
+Authorization: Bearer {{active_token}}
+
+###
+### Filter 5. Filter by Invalid Status
+# Test: Verify validation fails for invalid status values
+# Expected: 400 Bad Request with validation error about valid status values
+GET {{baseUrl}}/feature-flags?status=InvalidStatus
+Authorization: Bearer {{active_token}}
+
+###
+### Filter 6. Filter by Status with Pagination
+# Test: Combine status filtering with pagination
+# Expected: 200 OK with paginated results for specific status
+GET {{baseUrl}}/feature-flags?status=Enabled&page=1&pageSize=3
+Authorization: Bearer {{active_token}}
+
+###
+### ================== TAG FILTERING TESTS ==================
+
+### Tag Filter 1. Filter by Single Tag (Key:Value Format)
+# Test: Filter flags by environment:production tag
+# Expected: 200 OK with flags that have environment=production tag
+GET {{baseUrl}}/feature-flags?tags=environment:production
+Authorization: Bearer {{active_token}}
+
+###
+### Tag Filter 2. Filter by Multiple Tags (Key:Value Format)
+# Test: Filter flags by multiple tags using key:value format
+# Expected: 200 OK with flags matching both environment=production AND team=backend
+GET {{baseUrl}}/feature-flags?tags=environment:production&tags=team:backend
+Authorization: Bearer {{active_token}}
+
+###
+### Tag Filter 3. Filter by Tag Key Only
+# Test: Filter flags by tag key only (any value)
+# Expected: 200 OK with flags that have 'environment' tag (any value)
+GET {{baseUrl}}/feature-flags?tags=environment
+Authorization: Bearer {{active_token}}
+
+###
+### Tag Filter 4. Filter by Tag Keys/Values Arrays
+# Test: Filter using parallel tagKeys and tagValues arrays
+# Expected: 200 OK with flags matching environment=staging
+GET {{baseUrl}}/feature-flags?tagKeys=environment&tagValues=staging
+Authorization: Bearer {{active_token}}
+
+###
+### Tag Filter 5. Filter by Multiple Tag Keys/Values Arrays
+# Test: Filter using multiple tagKeys and tagValues
+# Expected: 200 OK with flags matching environment=development AND team=backend
+GET {{baseUrl}}/feature-flags?tagKeys=environment&tagKeys=team&tagValues=development&tagValues=backend
+Authorization: Bearer {{active_token}}
+
+###
+### Tag Filter 6. Filter by Tag Key Only (Keys/Values Arrays)
+# Test: Filter by tag key without corresponding value
+# Expected: 200 OK with flags that have 'priority' tag (any value)
+GET {{baseUrl}}/feature-flags?tagKeys=priority
+Authorization: Bearer {{active_token}}
+
+###
+### Tag Filter 7. Mismatched TagKeys and TagValues Arrays
+# Test: Verify validation when tagKeys and tagValues have different lengths
+# Expected: 400 Bad Request with validation error about array length mismatch
+GET {{baseUrl}}/feature-flags?tagKeys=environment&tagKeys=team&tagValues=production
+Authorization: Bearer {{active_token}}
+
+###
+### Tag Filter 8. Invalid Tag Format
+# Test: Verify validation for malformed tag format
+# Expected: 400 Bad Request with validation error about tag format
+GET {{baseUrl}}/feature-flags?tags=:invalid-format
+Authorization: Bearer {{active_token}}
+
+###
+### Tag Filter 9. Empty Tag Value
+# Test: Test empty tag values (should work as key-only search)
+# Expected: 200 OK with flags that have the specified tag key
+GET {{baseUrl}}/feature-flags?tags=team:
+Authorization: Bearer {{active_token}}
+
+###
+### ================== COMBINED FILTERING TESTS ==================
+
+### Combined 1. Status + Tag Filtering
+# Test: Combine status and tag filtering
+# Expected: 200 OK with flags that are Enabled AND have environment=production
+GET {{baseUrl}}/feature-flags?status=Enabled&tags=environment:production
+Authorization: Bearer {{active_token}}
+
+###
+### Combined 2. Status + Multiple Tags + Pagination
+# Test: Combine all filtering options with pagination
+# Expected: 200 OK with paginated results for complex filter
+GET {{baseUrl}}/feature-flags?status=Enabled&tags=environment:production&tags=team:backend&page=1&pageSize=2
+Authorization: Bearer {{active_token}}
+
+###
+### Combined 3. Tag Filtering + Pagination (Large Page)
+# Test: Tag filtering with larger page size
+# Expected: 200 OK with tag-filtered results in larger page
+GET {{baseUrl}}/feature-flags?tags=team:backend&page=1&pageSize=20
+Authorization: Bearer {{active_token}}
+
+###
+### Combined 4. Multiple Tags with Different Formats
+# Test: Mix key:value and key-only tag filters
+# Expected: 200 OK with flags matching environment=staging AND having priority tag (any value)
+GET {{baseUrl}}/feature-flags?tags=environment:staging&tags=priority
+Authorization: Bearer {{active_token}}
+
+###
+### ================== EDGE CASES AND VALIDATION ==================
+
+### Edge 1. No Results Found
+# Test: Filter that should return no results
+# Expected: 200 OK with empty items array, totalCount=0
+GET {{baseUrl}}/feature-flags?status=Enabled&tags=environment:nonexistent
+Authorization: Bearer {{active_token}}
+
+###
+### Edge 2. Very Large Page Number
+# Test: Request page that doesn't exist
+# Expected: 200 OK with empty items array, but valid pagination metadata
+GET {{baseUrl}}/feature-flags?page=999&pageSize=10
+Authorization: Bearer {{active_token}}
+
+###
+### Edge 3. Case Sensitivity - Status
+# Test: Verify status filtering is case-insensitive or properly handled
+# Expected: 200 OK (if case-insensitive) OR 400 Bad Request (if case-sensitive)
+GET {{baseUrl}}/feature-flags?status=enabled
+Authorization: Bearer {{active_token}}
+
+###
+### Edge 4. Special Characters in Tag Values
+# Test: Tag values with special characters
+# Expected: 200 OK with proper handling of special characters
+GET {{baseUrl}}/feature-flags?tags=description:test%20flag%20with%20spaces
+Authorization: Bearer {{active_token}}
+
+###
+### Edge 5. Unicode Characters in Tag Values
+# Test: Tag values with unicode characters
+# Expected: 200 OK with proper unicode handling
+GET {{baseUrl}}/feature-flags?tags=team:测试团队
+Authorization: Bearer {{active_token}}
+
+###
+### ================== RESPONSE VALIDATION TESTS ==================
+
+### Response 1. Verify Pagination Metadata
+# Test: Ensure all pagination fields are present and correct
+# Expected: 200 OK with complete PagedFeatureFlagsResponse structure
+GET {{baseUrl}}/feature-flags?page=1&pageSize=3
+Authorization: Bearer {{active_token}}
+
+###
+### Response 2. Verify Empty Results Structure
+# Test: Ensure proper structure when no results found
+# Expected: 200 OK with empty items but valid pagination structure
+GET {{baseUrl}}/feature-flags?tags=nonexistent:tag
+Authorization: Bearer {{active_token}}
+
+###
+### Response 3. Verify FeatureFlagDto Structure
+# Test: Ensure complete FeatureFlagDto structure in response
+# Expected: 200 OK with properly structured FeatureFlagDto objects
+GET {{baseUrl}}/feature-flags?pageSize=1
+Authorization: Bearer {{active_token}}
+
+###
+### ================== PERFORMANCE TESTS ==================
+
+### Performance 1. Large Page Size
+# Test: Request maximum allowed page size
+# Expected: 200 OK with good response time for 100 items
+GET {{baseUrl}}/feature-flags?page=1&pageSize=100
+Authorization: Bearer {{active_token}}
+
+###
+### Performance 2. Complex Multi-Tag Filter
+# Test: Filter with multiple complex tag combinations
+# Expected: 200 OK with reasonable response time
+GET {{baseUrl}}/feature-flags?tags=environment:production&tags=team:backend&tags=priority:high&status=Enabled
+Authorization: Bearer {{active_token}}
+
+###
+### ================== BACKWARD COMPATIBILITY TESTS ==================
+
+### Compat 1. Old GetAll Endpoint Still Works
+# Test: Verify /all endpoint still functions for backward compatibility
+# Expected: 200 OK with List<FeatureFlagDto> (not paged response)
+GET {{baseUrl}}/feature-flags/all
+Authorization: Bearer {{active_token}}
+
+###
+### Compat 2. Compare Paged vs GetAll Results
+# Test: Verify paged endpoint returns same data as GetAll when requesting all data
+# Expected: First page with large pageSize should match /all results
+GET {{baseUrl}}/feature-flags?page=1&pageSize=1000
+Authorization: Bearer {{active_token}}
+
+###
+### ================== EXISTING TESTS (KEEP ALL ORIGINAL TESTS) ==================
+
 ### 1. Create Feature Flag - Valid Request
 # Test: Create a new feature flag with valid data
 # Expected: 201 Created with FeatureFlagDto response
@@ -91,21 +475,21 @@ Authorization: Bearer {{active_token}}
 ### 4. Get All Feature Flags
 # Test: Retrieve all feature flags from the system
 # Expected: 200 OK with List<FeatureFlagDto> containing all flags
-GET {{baseUrl}}/flags
+GET {{baseUrl}}/feature-flags/all
 Authorization: Bearer {{active_token}}
 
 ###
 ### 5. Get Specific Feature Flag
 # Test: Retrieve a specific flag by key
 # Expected: 200 OK with FeatureFlagDto for the requested flag
-GET {{baseUrl}}/flags/{{testFlagKey}}
+GET {{baseUrl}}/feature-flags/{{testFlagKey}}
 Authorization: Bearer {{active_token}}
 
 ###
 ### 6. Get Non-existent Feature Flag
 # Test: Verify proper error handling for missing flag
 # Expected: 404 Not Found with problem details
-GET {{baseUrl}}/flags/non-existent-flag
+GET {{baseUrl}}/feature-flags/non-existent-flag
 Authorization: Bearer {{active_token}}
 
 ###
