@@ -126,11 +126,11 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			using var connection = new NpgsqlConnection(_connectionString);
 			using var countCommand = new NpgsqlCommand(countSql, connection);
 
-			AddFilterParameters(countCommand, parameters);
+			countCommand.AddFilterParameters(parameters);
 
 			// Get paged data
 			using var dataCommand = new NpgsqlCommand(dataSql, connection);
-			AddFilterParameters(dataCommand, parameters);
+			dataCommand.AddFilterParameters(parameters);
 			dataCommand.Parameters.AddWithValue("pageSize", pageSize);
 			dataCommand.Parameters.AddWithValue("offset", (page - 1) * pageSize);
 
@@ -165,63 +165,6 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		}
 	}
 
-	private static (string whereClause, Dictionary<string, object> parameters) BuildFilterConditions(FeatureFlagFilter? filter)
-	{
-		var conditions = new List<string>();
-		var parameters = new Dictionary<string, object>();
-
-		if (filter == null)
-			return (string.Empty, parameters);
-
-		// Status filtering
-		if (!string.IsNullOrEmpty(filter.Status) && Enum.TryParse<FeatureFlagStatus>(filter.Status, true, out var status))
-		{
-			conditions.Add("status = @status");
-			parameters["status"] = (int)status;
-		}
-
-		// Tags filtering
-		if (filter.Tags != null && filter.Tags.Count > 0)
-		{
-			for (int i = 0; i < filter.Tags.Count; i++)
-			{
-				var tag = filter.Tags.ElementAt(i);
-				if (string.IsNullOrEmpty(tag.Value))
-				{
-					// Search by tag key only when value is null or empty
-					conditions.Add($"tags ? @tagKey{i}");
-					parameters[$"tagKey{i}"] = tag.Key;
-				}
-				else
-				{
-					// Search by exact key-value match
-					conditions.Add($"tags @> @tag{i}");
-					parameters[$"tag{i}"] = JsonSerializer.Serialize(new Dictionary<string, string> { [tag.Key] = tag.Value });
-				}
-			}
-		}
-
-		var whereClause = conditions.Count > 0 ? " WHERE " + string.Join(" AND ", conditions) : string.Empty;
-		return (whereClause, parameters);
-	}
-
-	private static void AddFilterParameters(NpgsqlCommand command, Dictionary<string, object> parameters)
-	{
-		foreach (var (key, value) in parameters)
-		{
-			if (key.StartsWith("tag") && !key.StartsWith("tagKey"))
-			{
-				// JSONB parameter
-				var parameter = command.Parameters.Add(key, NpgsqlDbType.Jsonb);
-				parameter.Value = value;
-			}
-			else
-			{
-				command.Parameters.AddWithValue(key, value);
-			}
-		}
-	}
-
 	public async Task<FeatureFlag> CreateAsync(FeatureFlag flag, CancellationToken cancellationToken = default)
 	{
 		_logger.LogDebug("Creating feature flag with key: {Key}", flag.Key);
@@ -246,7 +189,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		{
 			using var connection = new NpgsqlConnection(_connectionString);
 			using var command = new NpgsqlCommand(sql, connection);
-			AddParameters(command, flag);
+			command.AddParameters(flag);
 
 			await connection.OpenAsync(cancellationToken);
 			await command.ExecuteNonQueryAsync(cancellationToken);
@@ -281,7 +224,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		{
 			using var connection = new NpgsqlConnection(_connectionString);
 			using var command = new NpgsqlCommand(sql, connection);
-			AddParameters(command, flag);
+			command.AddParameters(flag);
 
 			await connection.OpenAsync(cancellationToken);
 			var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
@@ -465,7 +408,50 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		};
 	}
 
-	private static void AddParameters(NpgsqlCommand command, FeatureFlag flag)
+	private static (string whereClause, Dictionary<string, object> parameters) BuildFilterConditions(FeatureFlagFilter? filter)
+	{
+		var conditions = new List<string>();
+		var parameters = new Dictionary<string, object>();
+
+		if (filter == null)
+			return (string.Empty, parameters);
+
+		// Status filtering
+		if (!string.IsNullOrEmpty(filter.Status) && Enum.TryParse<FeatureFlagStatus>(filter.Status, true, out var status))
+		{
+			conditions.Add("status = @status");
+			parameters["status"] = (int)status;
+		}
+
+		// Tags filtering
+		if (filter.Tags != null && filter.Tags.Count > 0)
+		{
+			for (int i = 0; i < filter.Tags.Count; i++)
+			{
+				var tag = filter.Tags.ElementAt(i);
+				if (string.IsNullOrEmpty(tag.Value))
+				{
+					// Search by tag key only when value is null or empty
+					conditions.Add($"tags ? @tagKey{i}");
+					parameters[$"tagKey{i}"] = tag.Key;
+				}
+				else
+				{
+					// Search by exact key-value match
+					conditions.Add($"tags @> @tag{i}");
+					parameters[$"tag{i}"] = JsonSerializer.Serialize(new Dictionary<string, string> { [tag.Key] = tag.Value });
+				}
+			}
+		}
+
+		var whereClause = conditions.Count > 0 ? " WHERE " + string.Join(" AND ", conditions) : string.Empty;
+		return (whereClause, parameters);
+	}
+}
+
+public static class NpgsqlCommandExtensions
+{
+	public static void AddParameters(this NpgsqlCommand command, FeatureFlag flag)
 	{
 		command.Parameters.AddWithValue("key", flag.Key);
 		command.Parameters.AddWithValue("name", flag.Name);
@@ -514,11 +500,27 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 		command.Parameters.AddWithValue("is_permanent", flag.IsPermanent);
 	}
+
+	public static void AddFilterParameters(this NpgsqlCommand command, Dictionary<string, object> parameters)
+	{
+		foreach (var (key, value) in parameters)
+		{
+			if (key.StartsWith("tag") && !key.StartsWith("tagKey"))
+			{
+				// JSONB parameter
+				var parameter = command.Parameters.Add(key, NpgsqlDbType.Jsonb);
+				parameter.Value = value;
+			}
+			else
+			{
+				command.Parameters.AddWithValue(key, value);
+			}
+		}
+	}
 }
 
 public static class NpgsqlDataReaderExtensions
 {
-
 	public static async Task<T> Deserialize<T>(this NpgsqlDataReader reader, string columnName)
 	{
 		var ordinal = reader.GetOrdinal(columnName);
@@ -533,7 +535,6 @@ public static class NpgsqlDataReaderExtensions
 		var ordinal = reader.GetOrdinal(columnName);
 		return await reader.IsDBNullAsync(ordinal) ? default! : await reader.GetFieldValueAsync<T>(ordinal);
 	}
-
 	public static async Task<TimeSpan?> GetTimeOnly(this NpgsqlDataReader reader, string columnName)
 	{
 		var ordinal = reader.GetOrdinal(columnName);
