@@ -94,6 +94,134 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		}
 	}
 
+	public async Task<PagedResult<FeatureFlag>> GetPagedAsync(int page, int pageSize, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default)
+	{
+		_logger.LogDebug("Getting paged feature flags - Page: {Page}, PageSize: {PageSize}, Filter: {@Filter}", page, pageSize, filter);
+
+		// Validate pagination parameters
+		if (page < 1) page = 1;
+		if (pageSize < 1) pageSize = 10;
+		if (pageSize > 100) pageSize = 100; // Limit maximum page size
+
+		var (whereClause, parameters) = BuildFilterConditions(filter);
+
+		// Count query
+		var countSql = $"SELECT COUNT(*) FROM feature_flags{whereClause}";
+
+		// Data query with pagination
+		var dataSql = $@"
+                SELECT key, name, description, status, created_at, updated_at, created_by, updated_by,
+                       expiration_date, scheduled_enable_date, scheduled_disable_date,
+                       window_start_time, window_end_time, time_zone, window_days,
+                       percentage_enabled, targeting_rules, enabled_users, disabled_users,
+					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
+                       variations, default_variation, tags, is_permanent
+                FROM feature_flags
+                {whereClause}
+                ORDER BY name
+                LIMIT @pageSize OFFSET @offset";
+
+		try
+		{
+			using var connection = new NpgsqlConnection(_connectionString);
+			using var countCommand = new NpgsqlCommand(countSql, connection);
+
+			AddFilterParameters(countCommand, parameters);
+
+			// Get paged data
+			using var dataCommand = new NpgsqlCommand(dataSql, connection);
+			AddFilterParameters(dataCommand, parameters);
+			dataCommand.Parameters.AddWithValue("pageSize", pageSize);
+			dataCommand.Parameters.AddWithValue("offset", (page - 1) * pageSize);
+
+			await connection.OpenAsync(cancellationToken);
+
+			int totalCount = Convert.ToInt32(await countCommand.ExecuteScalarAsync(cancellationToken));
+			using var reader = await dataCommand.ExecuteReaderAsync(cancellationToken);
+
+			var flags = new List<FeatureFlag>();
+			while (await reader.ReadAsync(cancellationToken))
+			{
+				flags.Add(await MapFromReader(reader));
+			}
+
+			var result = new PagedResult<FeatureFlag>
+			{
+				Items = flags,
+				TotalCount = totalCount,
+				Page = page,
+				PageSize = pageSize
+			};
+
+			_logger.LogDebug("Retrieved {Count} feature flags from page {Page} of {TotalPages} (total: {TotalCount})",
+				flags.Count, page, result.TotalPages, totalCount);
+
+			return result;
+		}
+		catch (Exception ex) when (ex is not OperationCanceledException)
+		{
+			_logger.LogError(ex, "Error retrieving paged feature flags");
+			throw;
+		}
+	}
+
+	private static (string whereClause, Dictionary<string, object> parameters) BuildFilterConditions(FeatureFlagFilter? filter)
+	{
+		var conditions = new List<string>();
+		var parameters = new Dictionary<string, object>();
+
+		if (filter == null)
+			return (string.Empty, parameters);
+
+		// Status filtering
+		if (!string.IsNullOrEmpty(filter.Status) && Enum.TryParse<FeatureFlagStatus>(filter.Status, true, out var status))
+		{
+			conditions.Add("status = @status");
+			parameters["status"] = (int)status;
+		}
+
+		// Tags filtering
+		if (filter.Tags != null && filter.Tags.Count > 0)
+		{
+			for (int i = 0; i < filter.Tags.Count; i++)
+			{
+				var tag = filter.Tags.ElementAt(i);
+				if (string.IsNullOrEmpty(tag.Value))
+				{
+					// Search by tag key only when value is null or empty
+					conditions.Add($"tags ? @tagKey{i}");
+					parameters[$"tagKey{i}"] = tag.Key;
+				}
+				else
+				{
+					// Search by exact key-value match
+					conditions.Add($"tags @> @tag{i}");
+					parameters[$"tag{i}"] = JsonSerializer.Serialize(new Dictionary<string, string> { [tag.Key] = tag.Value });
+				}
+			}
+		}
+
+		var whereClause = conditions.Count > 0 ? " WHERE " + string.Join(" AND ", conditions) : string.Empty;
+		return (whereClause, parameters);
+	}
+
+	private static void AddFilterParameters(NpgsqlCommand command, Dictionary<string, object> parameters)
+	{
+		foreach (var (key, value) in parameters)
+		{
+			if (key.StartsWith("tag") && !key.StartsWith("tagKey"))
+			{
+				// JSONB parameter
+				var parameter = command.Parameters.Add(key, NpgsqlDbType.Jsonb);
+				parameter.Value = value;
+			}
+			else
+			{
+				command.Parameters.AddWithValue(key, value);
+			}
+		}
+	}
+
 	public async Task<FeatureFlag> CreateAsync(FeatureFlag flag, CancellationToken cancellationToken = default)
 	{
 		_logger.LogDebug("Creating feature flag with key: {Key}", flag.Key);
@@ -353,20 +481,20 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		command.Parameters.AddWithValue("window_start_time", (object?)flag.WindowStartTime ?? DBNull.Value);
 		command.Parameters.AddWithValue("window_end_time", (object?)flag.WindowEndTime ?? DBNull.Value);
 		command.Parameters.AddWithValue("time_zone", (object?)flag.TimeZone ?? DBNull.Value);
-		
+
 		// JSONB parameters require explicit type specification
 		var windowDaysParam = command.Parameters.Add("window_days", NpgsqlDbType.Jsonb);
 		windowDaysParam.Value = JsonSerializer.Serialize(flag.WindowDays ?? [], JsonDefaults.JsonOptions);
-		
+
 		command.Parameters.AddWithValue("percentage_enabled", flag.PercentageEnabled);
 		command.Parameters.AddWithValue("tenant_percentage_enabled", flag.TenantPercentageEnabled);
 
 		var targetingRulesParam = command.Parameters.Add("targeting_rules", NpgsqlDbType.Jsonb);
 		targetingRulesParam.Value = JsonSerializer.Serialize(flag.TargetingRules, JsonDefaults.JsonOptions);
-		
+
 		var enabledUsersParam = command.Parameters.Add("enabled_users", NpgsqlDbType.Jsonb);
 		enabledUsersParam.Value = JsonSerializer.Serialize(flag.EnabledUsers, JsonDefaults.JsonOptions);
-		
+
 		var disabledUsersParam = command.Parameters.Add("disabled_users", NpgsqlDbType.Jsonb);
 		disabledUsersParam.Value = JsonSerializer.Serialize(flag.DisabledUsers, JsonDefaults.JsonOptions);
 
@@ -378,12 +506,12 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 		var variationsParam = command.Parameters.Add("variations", NpgsqlDbType.Jsonb);
 		variationsParam.Value = JsonSerializer.Serialize(flag.Variations, JsonDefaults.JsonOptions);
-		
+
 		command.Parameters.AddWithValue("default_variation", flag.DefaultVariation);
-		
+
 		var tagsParam = command.Parameters.Add("tags", NpgsqlDbType.Jsonb);
 		tagsParam.Value = JsonSerializer.Serialize(flag.Tags, JsonDefaults.JsonOptions);
-		
+
 		command.Parameters.AddWithValue("is_permanent", flag.IsPermanent);
 	}
 }
