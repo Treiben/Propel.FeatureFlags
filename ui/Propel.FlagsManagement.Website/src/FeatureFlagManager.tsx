@@ -29,6 +29,7 @@ const FeatureFlagManager = () => {
         enableFlag,
         disableFlag,
         scheduleFlag,
+        setTimeWindow,
         setPercentage,
         loadFlagsPage,
         filterFlags,
@@ -74,9 +75,24 @@ const FeatureFlagManager = () => {
 
     const handleScheduleFlag = async (flag: any, enableDate: string, disableDate?: string) => {
         try {
-            await scheduleFlag(flag.key, enableDate, disableDate);
+            await scheduleFlag(flag.key, {
+                enableDate,
+                disableDate,
+                removeSchedule: false
+            });
         } catch (error) {
             console.error('Failed to schedule flag:', error);
+        }
+    };
+
+    const handleClearSchedule = async (flag: any) => {
+        try {
+            await scheduleFlag(flag.key, {
+                enableDate: new Date().toISOString(), // Required but ignored when removing
+                removeSchedule: true
+            });
+        } catch (error) {
+            console.error('Failed to clear schedule:', error);
         }
     };
 
@@ -87,16 +103,56 @@ const FeatureFlagManager = () => {
         windowDays: string[];
     }) => {
         try {
-            const updateRequest: ModifyFlagRequest = {
+            // Convert string days to DayOfWeek numbers
+            const dayMap: Record<string, number> = {
+                'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+                'Thursday': 4, 'Friday': 5, 'Saturday': 6
+            };
+            
+            const windowDaysNumbers = timeWindowData.windowDays
+                .map(day => dayMap[day])
+                .filter(day => day !== undefined);
+
+            await setTimeWindow(flag.key, {
                 windowStartTime: timeWindowData.windowStartTime,
                 windowEndTime: timeWindowData.windowEndTime,
                 timeZone: timeWindowData.timeZone,
-                windowDays: timeWindowData.windowDays,
-                status: 'TimeWindow' // Set status to TimeWindow when configuring time window
+                windowDays: windowDaysNumbers,
+                removeTimeWindow: false
+            });
+        } catch (error) {
+            console.error('Failed to update time window:', error);
+        }
+    };
+
+    const handleClearTimeWindow = async (flag: any) => {
+        try {
+            await setTimeWindow(flag.key, {
+                windowStartTime: '00:00:00', // Required but ignored when removing
+                windowEndTime: '23:59:59',   // Required but ignored when removing
+                timeZone: 'UTC',             // Required but ignored when removing
+                windowDays: [],              // Required but ignored when removing
+                removeTimeWindow: true
+            });
+        } catch (error) {
+            console.error('Failed to clear time window:', error);
+        }
+    };
+
+    const handleUpdateFlag = async (flag: any, updates: {
+        name?: string;
+        description?: string;
+        expirationDate?: string;
+        isPermanent?: boolean;
+        tags?: Record<string, string>;
+    }) => {
+        try {
+            const updateRequest: ModifyFlagRequest = {
+                ...updates
             };
             await updateFlag(flag.key, updateRequest);
         } catch (error) {
-            console.error('Failed to update time window:', error);
+            console.error('Failed to update flag:', error);
         }
     };
 
@@ -283,7 +339,10 @@ const FeatureFlagManager = () => {
                                 onToggle={quickToggle}
                                 onSetPercentage={handleSetPercentage}
                                 onSchedule={handleScheduleFlag}
+                                onClearSchedule={handleClearSchedule}
                                 onUpdateTimeWindow={handleUpdateTimeWindow}
+                                onClearTimeWindow={handleClearTimeWindow}
+                                onUpdateFlag={handleUpdateFlag}
                                 onDelete={(key) => setShowDeleteConfirm(key)}
                             />
                         </>

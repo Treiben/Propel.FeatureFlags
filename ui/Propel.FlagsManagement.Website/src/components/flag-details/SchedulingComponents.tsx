@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Clock, PlayCircle } from 'lucide-react';
+import { Calendar, Clock, PlayCircle, X } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
 import { 
     getScheduleStatus, 
@@ -70,12 +70,14 @@ export const SchedulingStatusIndicator: React.FC<SchedulingStatusIndicatorProps>
 interface SchedulingSectionProps {
     flag: FeatureFlagDto;
     onSchedule: (flag: FeatureFlagDto, enableDate: string, disableDate?: string) => Promise<void>;
+    onClearSchedule: () => Promise<void>;
     operationLoading: boolean;
 }
 
 export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
     flag,
     onSchedule,
+    onClearSchedule,
     operationLoading
 }) => {
     const [editingSchedule, setEditingSchedule] = useState(false);
@@ -97,18 +99,39 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
         }
     };
 
+    const handleClearSchedule = async () => {
+        try {
+            await onClearSchedule();
+        } catch (error) {
+            console.error('Failed to clear schedule:', error);
+        }
+    };
+
     return (
         <div className="space-y-4 mb-6">
             <div className="flex justify-between items-center">
                 <h4 className="font-medium text-gray-900">Scheduling</h4>
-                <button
-                    onClick={() => setEditingSchedule(true)}
-                    disabled={operationLoading}
-                    className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1 disabled:opacity-50"
-                >
-                    <Calendar className="w-4 h-4" />
-                    Schedule
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setEditingSchedule(true)}
+                        disabled={operationLoading}
+                        className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1 disabled:opacity-50"
+                    >
+                        <Calendar className="w-4 h-4" />
+                        Schedule
+                    </button>
+                    {flag.status === 'Scheduled' && (
+                        <button
+                            onClick={handleClearSchedule}
+                            disabled={operationLoading}
+                            className="text-red-600 hover:text-red-800 text-sm flex items-center gap-1 disabled:opacity-50"
+                            title="Clear Schedule"
+                        >
+                            <X className="w-4 h-4" />
+                            Clear
+                        </button>
+                    )}
+                </div>
             </div>
 
             {editingSchedule ? (

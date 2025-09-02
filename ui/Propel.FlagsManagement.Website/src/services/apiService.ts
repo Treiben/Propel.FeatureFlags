@@ -80,15 +80,7 @@ export interface CreateFeatureFlagRequest {
 export interface ModifyFlagRequest {
 	name?: string;
 	description?: string;
-	status?: string;
 	expirationDate?: string;
-	scheduledEnableDate?: string;
-	scheduledDisableDate?: string;
-	windowStartTime?: string;
-	windowEndTime?: string;
-	timeZone?: string;
-	windowDays?: string[];
-	percentageEnabled?: number;
 	targetingRules?: TargetingRule[];
 	enabledUsers?: string[];
 	disabledUsers?: string[];
@@ -109,6 +101,15 @@ export interface DisableFlagRequest {
 export interface ScheduleFlagRequest {
 	enableDate: string;
 	disableDate?: string;
+	removeSchedule: boolean;
+}
+
+export interface SetTimeWindowRequest {
+	windowStartTime: string;
+	windowEndTime: string;
+	timeZone: string;
+	windowDays: number[];
+	removeTimeWindow: boolean;
 }
 
 export interface SetPercentageRequest {
@@ -405,6 +406,13 @@ export const apiService = {
 			apiRequest<FeatureFlagDto>(`/feature-flags/${key}/schedule`, {
 				method: 'POST',
 				body: JSON.stringify(request),
+			}),
+
+		// Set time window
+		setTimeWindow: (key: string, request: SetTimeWindowRequest) =>
+			apiRequest<FeatureFlagDto>(`/feature-flags/${key}/time-window`, {
+					method: 'POST',
+					body: JSON.stringify(request),
 			}),
 
 		// Set percentage

@@ -6,7 +6,9 @@ import {
     type ModifyFlagRequest,
     type PagedFeatureFlagsResponse,
     type GetFlagsParams,
-    ApiError
+    ApiError,
+    type SetTimeWindowRequest,
+    type ScheduleFlagRequest
 } from '../services/apiService';
 import { config } from '../config/environment';
 
@@ -35,7 +37,8 @@ export interface UseFeatureFlagsActions {
     deleteFlag: (key: string) => Promise<void>;
     enableFlag: (key: string, reason: string) => Promise<FeatureFlagDto>;
     disableFlag: (key: string, reason: string) => Promise<FeatureFlagDto>;
-    scheduleFlag: (key: string, enableDate: string, disableDate?: string) => Promise<FeatureFlagDto>;
+    scheduleFlag: (key: string, request: ScheduleFlagRequest) => Promise<FeatureFlagDto>;
+	setTimeWindow: (key: string, request: SetTimeWindowRequest) => Promise<FeatureFlagDto>;
     setPercentage: (key: string, percentage: number) => Promise<FeatureFlagDto>;
     enableUsers: (key: string, userIds: string[]) => Promise<FeatureFlagDto>;
     disableUsers: (key: string, userIds: string[]) => Promise<FeatureFlagDto>;
@@ -215,14 +218,26 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         }
     }, []);
 
-    const scheduleFlag = useCallback(async (key: string, enableDate: string, disableDate?: string): Promise<FeatureFlagDto> => {
+    const scheduleFlag = useCallback(async (key: string, request: ScheduleFlagRequest): Promise<FeatureFlagDto> => {
         try {
             updateState({ error: null });
-            const updatedFlag = await apiService.operations.schedule(key, { enableDate, disableDate });
+            const updatedFlag = await apiService.operations.schedule(key, request);
             updateFlagInState(updatedFlag);
             return updatedFlag;
         } catch (error) {
             handleError(error, 'schedule flag');
+            throw error;
+        }
+    }, []);
+
+    const setTimeWindow = useCallback(async (key: string, request: SetTimeWindowRequest): Promise<FeatureFlagDto> => {
+        try {
+            updateState({ error: null });
+            const updatedFlag = await apiService.operations.setTimeWindow(key, request);
+            updateFlagInState(updatedFlag);
+            return updatedFlag;
+        } catch (error) {
+            handleError(error, 'set time window');
             throw error;
         }
     }, []);
@@ -336,6 +351,7 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         enableFlag,
         disableFlag,
         scheduleFlag,
+        setTimeWindow,
         setPercentage,
         enableUsers,
         disableUsers,

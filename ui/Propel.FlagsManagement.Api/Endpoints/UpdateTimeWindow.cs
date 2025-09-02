@@ -135,8 +135,7 @@ public sealed class UpdateTimeWindowRequestValidator : AbstractValidator<UpdateT
 
 		try
 		{
-			TimeZoneInfo.FindSystemTimeZoneById(timeZone);
-			return true;
+			return TimeZoneInfo.FindSystemTimeZoneById(timeZone) != null;
 		}
 		catch
 		{

@@ -21,7 +21,8 @@ import {
     ExpirationWarning, 
     PermanentFlagWarning, 
     UserLists, 
-    FlagMetadata 
+    FlagMetadata,
+    FlagEditSection
 } from './flag-details/UtilityComponents';
 
 interface FlagDetailsProps {
@@ -29,11 +30,20 @@ interface FlagDetailsProps {
     onToggle: (flag: FeatureFlagDto) => Promise<void>;
     onSetPercentage: (flag: FeatureFlagDto, percentage: number) => Promise<void>;
     onSchedule: (flag: FeatureFlagDto, enableDate: string, disableDate?: string) => Promise<void>;
+    onClearSchedule: (flag: FeatureFlagDto) => Promise<void>;
     onUpdateTimeWindow: (flag: FeatureFlagDto, timeWindowData: {
         windowStartTime: string;
         windowEndTime: string;
         timeZone: string;
         windowDays: string[];
+    }) => Promise<void>;
+    onClearTimeWindow: (flag: FeatureFlagDto) => Promise<void>;
+    onUpdateFlag: (flag: FeatureFlagDto, updates: {
+        name?: string;
+        description?: string;
+        expirationDate?: string;
+        isPermanent?: boolean;
+        tags?: Record<string, string>;
     }) => Promise<void>;
     onDelete: (key: string) => void;
 }
@@ -43,7 +53,10 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     onToggle,
     onSetPercentage,
     onSchedule,
+    onClearSchedule,
     onUpdateTimeWindow,
+    onClearTimeWindow,
+    onUpdateFlag,
     onDelete
 }) => {
     const [editingPercentage, setEditingPercentage] = useState(false);
@@ -79,10 +92,43 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
         }
     };
 
+    const handleClearScheduleWrapper = async () => {
+        setOperationLoading(true);
+        try {
+            await onClearSchedule(flag);
+        } finally {
+            setOperationLoading(false);
+        }
+    };
+
     const handleUpdateTimeWindowWrapper = async (flag: FeatureFlagDto, timeWindowData: any) => {
         setOperationLoading(true);
         try {
             await onUpdateTimeWindow(flag, timeWindowData);
+        } finally {
+            setOperationLoading(false);
+        }
+    };
+
+    const handleClearTimeWindowWrapper = async () => {
+        setOperationLoading(true);
+        try {
+            await onClearTimeWindow(flag);
+        } finally {
+            setOperationLoading(false);
+        }
+    };
+
+    const handleUpdateFlagWrapper = async (updates: {
+        name?: string;
+        description?: string;
+        expirationDate?: string;
+        isPermanent?: boolean;
+        tags?: Record<string, string>;
+    }) => {
+        setOperationLoading(true);
+        try {
+            await onUpdateFlag(flag, updates);
         } finally {
             setOperationLoading(false);
         }
@@ -158,16 +204,25 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 />
             )}
 
+            {/* Flag Edit Section */}
+            <FlagEditSection
+                flag={flag}
+                onUpdateFlag={handleUpdateFlagWrapper}
+                operationLoading={operationLoading}
+            />
+
             {/* Business Logic Sections */}
             <SchedulingSection
                 flag={flag}
                 onSchedule={handleScheduleWrapper}
+                onClearSchedule={handleClearScheduleWrapper}
                 operationLoading={operationLoading}
             />
 
             <TimeWindowSection
                 flag={flag}
                 onUpdateTimeWindow={handleUpdateTimeWindowWrapper}
+                onClearTimeWindow={handleClearTimeWindowWrapper}
                 operationLoading={operationLoading}
             />
 

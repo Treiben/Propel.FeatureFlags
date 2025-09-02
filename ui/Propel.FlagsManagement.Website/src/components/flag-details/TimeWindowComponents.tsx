@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Clock, Timer } from 'lucide-react';
+import { Clock, Timer, X } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
 import { getTimeZones, getDaysOfWeek } from '../../services/apiService';
 import { 
@@ -50,12 +50,14 @@ interface TimeWindowSectionProps {
         timeZone: string;
         windowDays: string[];
     }) => Promise<void>;
+    onClearTimeWindow: () => Promise<void>;
     operationLoading: boolean;
 }
 
 export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
     flag,
     onUpdateTimeWindow,
+    onClearTimeWindow,
     operationLoading
 }) => {
     const [editingTimeWindow, setEditingTimeWindow] = useState(false);
@@ -75,6 +77,14 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
         }
     };
 
+    const handleClearTimeWindow = async () => {
+        try {
+            await onClearTimeWindow();
+        } catch (error) {
+            console.error('Failed to clear time window:', error);
+        }
+    };
+
     const toggleWindowDay = (day: string) => {
         setTimeWindowData(prev => ({
             ...prev,
@@ -88,14 +98,27 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
         <div className="space-y-4 mb-6">
             <div className="flex justify-between items-center">
                 <h4 className="font-medium text-gray-900">Time Window</h4>
-                <button
-                    onClick={() => setEditingTimeWindow(true)}
-                    disabled={operationLoading}
-                    className="text-indigo-600 hover:text-indigo-800 text-sm flex items-center gap-1 disabled:opacity-50"
-                >
-                    <Clock className="w-4 h-4" />
-                    Configure
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setEditingTimeWindow(true)}
+                        disabled={operationLoading}
+                        className="text-indigo-600 hover:text-indigo-800 text-sm flex items-center gap-1 disabled:opacity-50"
+                    >
+                        <Clock className="w-4 h-4" />
+                        Configure
+                    </button>
+                    {flag.status === 'TimeWindow' && (
+                        <button
+                            onClick={handleClearTimeWindow}
+                            disabled={operationLoading}
+                            className="text-red-600 hover:text-red-800 text-sm flex items-center gap-1 disabled:opacity-50"
+                            title="Clear Time Window"
+                        >
+                            <X className="w-4 h-4" />
+                            Clear
+                        </button>
+                    )}
+                </div>
             </div>
 
             {editingTimeWindow ? (
