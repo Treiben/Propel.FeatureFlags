@@ -19,53 +19,67 @@
 @active_token = {{full_access_jwt}}
 
 ###
-### 1. Modify Feature Flag - Full Update
-# Test: Update all modifiable properties of a feature flag
-# Expected: 200 OK with updated FeatureFlagDto reflecting all changes
-PUT {{baseUrl}}/feature-flags/{{testFlagKey}}
+### 1. Schedule Feature Flag - Valid Future Dates
+# Test: Schedule flag to enable and disable at future dates
+# Expected: 200 OK with updated FeatureFlagDto (status: "Scheduled")
+POST {{baseUrl}}/feature-flags/{{testFlagKey}}/schedule
 Content-Type: application/json
 Authorization: Bearer {{active_token}}
 
 {
-  "name": "Updated Test Feature Flag",
-  "description": "Updated description for testing",
-  "status": "Enabled",
-  "percentageEnabled": 50,
-  "windowStartTime": "09:00:00",
-  "windowEndTime": "17:00:00",
-  "timeZone": "UTC",
-  "windowDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-  "targetingRules": [
-    {
-      "attribute": "department",
-      "operator": "In",
-      "values": ["engineering", "qa"],
-      "variation": "on"
-    }
-  ],
-  "enabledUsers": ["{{testUserId}}"],
-  "variations": {
-    "on": true,
-    "off": false,
-    "beta": "beta-value"
-  },
-  "defaultVariation": "off",
-  "tags": {
-    "environment": "test",
-    "team": "platform",
-    "version": "v2"
-  }
+  "enableDate": "{{$datetime iso8601 1 d}}",
+  "disableDate": "{{$datetime iso8601 7 d}}"
 }
 
 ###
-### 2. Modify Feature Flag - Partial Update
-# Test: Update only specific properties (name and percentage)
-# Expected: 200 OK with FeatureFlagDto showing only specified changes
-PUT {{baseUrl}}/feature-flags/{{testFlagKey}}
+### 2. Schedule Feature Flag - Past Date Validation
+# Test: Verify validation fails for past enable date
+# Expected: 400 Bad Request with validation problem details
+POST {{baseUrl}}/feature-flags/{{testFlagKey}}/schedule
 Content-Type: application/json
 Authorization: Bearer {{active_token}}
 
 {
-  "name": "Partially Updated Flag",
-  "percentageEnabled": 75
+  "enableDate": "{{$datetime iso8601 -1 d}}"
+}
+
+###
+### 3. Remove Schedule - Basic Removal
+# Test: Remove schedule from a previously scheduled flag
+# Expected: 200 OK with updated FeatureFlagDto (scheduledEnableDate and scheduledDisableDate should be null)
+POST {{baseUrl}}/feature-flags/{{testFlagKey}}/schedule
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "enableDate": "2025-01-01T00:00:00Z",
+  "disableDate": "2025-01-02T00:00:00Z",
+  "removeSchedule": true
+}
+
+###
+### 4. Remove Schedule - Validation Bypass
+# Test: Verify that date validation is bypassed when removeSchedule is true
+# Expected: 200 OK (past dates should be ignored when removing schedule)
+POST {{baseUrl}}/feature-flags/{{testFlagKey}}/schedule
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "enableDate": "{{$datetime iso8601 -1 d}}",
+  "disableDate": "{{$datetime iso8601 -2 d}}",
+  "removeSchedule": true
+}
+
+###
+### 5. Remove Schedule - Nonexistent Flag
+# Test: Attempt to remove schedule from a flag that doesn't exist
+# Expected: 404 Not Found
+POST {{baseUrl}}/feature-flags/nonexistent-flag-key/schedule
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "enableDate": "2025-01-01T00:00:00Z",
+  "removeSchedule": true
 }

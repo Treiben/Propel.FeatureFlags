@@ -19,7 +19,7 @@
 @active_token = {{full_access_jwt}}
 
 ###
-### 44. Test Authorization - Read Only Token
+### 1. Test Authorization - Read Only Token
 # Test: Verify read-only token cannot perform write operations
 # Expected: 403 Forbidden
 POST {{baseUrl}}/feature-flags
@@ -33,7 +33,7 @@ Authorization: Bearer {{readonly_jwt}}
 }
 
 ###
-### 45. Test Authorization - No Token
+### 2. Test Authorization - No Token
 # Test: Verify requests without token are rejected
 # Expected: 401 Unauthorized
 GET {{baseUrl}}/flags
