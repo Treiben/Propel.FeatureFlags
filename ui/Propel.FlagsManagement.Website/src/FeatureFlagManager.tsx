@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AlertCircle, Filter, Plus, Settings, X } from 'lucide-react';
 import { useFeatureFlags } from './hooks/useFeatureFlags';
-import type { CreateFeatureFlagRequest, GetFlagsParams } from './services/apiService';
+import type { CreateFeatureFlagRequest, GetFlagsParams, ModifyFlagRequest } from './services/apiService';
 
 // Import components
 import { FlagCard } from './components/FlagCard';
@@ -25,6 +25,7 @@ const FeatureFlagManager = () => {
         hasPreviousPage,
         selectFlag,
         createFlag,
+        updateFlag,
         enableFlag,
         disableFlag,
         scheduleFlag,
@@ -76,6 +77,26 @@ const FeatureFlagManager = () => {
             await scheduleFlag(flag.key, enableDate, disableDate);
         } catch (error) {
             console.error('Failed to schedule flag:', error);
+        }
+    };
+
+    const handleUpdateTimeWindow = async (flag: any, timeWindowData: {
+        windowStartTime: string;
+        windowEndTime: string;
+        timeZone: string;
+        windowDays: string[];
+    }) => {
+        try {
+            const updateRequest: ModifyFlagRequest = {
+                windowStartTime: timeWindowData.windowStartTime,
+                windowEndTime: timeWindowData.windowEndTime,
+                timeZone: timeWindowData.timeZone,
+                windowDays: timeWindowData.windowDays,
+                status: 'TimeWindow' // Set status to TimeWindow when configuring time window
+            };
+            await updateFlag(flag.key, updateRequest);
+        } catch (error) {
+            console.error('Failed to update time window:', error);
         }
     };
 
@@ -262,6 +283,7 @@ const FeatureFlagManager = () => {
                                 onToggle={quickToggle}
                                 onSetPercentage={handleSetPercentage}
                                 onSchedule={handleScheduleFlag}
+                                onUpdateTimeWindow={handleUpdateTimeWindow}
                                 onDelete={(key) => setShowDeleteConfirm(key)}
                             />
                         </>

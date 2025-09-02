@@ -7,6 +7,12 @@ export interface ScheduleStatus {
     nextActionTime?: Date;
 }
 
+export interface TimeWindowStatus {
+    isActive: boolean;
+    phase: 'active' | 'inactive' | 'none';
+    reason?: string;
+}
+
 // Helper function to check if a flag is currently enabled due to scheduling
 export const isScheduledActive = (flag: FeatureFlagDto): boolean => {
     if (flag.status !== 'Scheduled') return false;
@@ -24,6 +30,88 @@ export const isScheduledActive = (flag: FeatureFlagDto): boolean => {
     }
 
     return false;
+};
+
+// Helper function to check if a TimeWindow flag is currently active
+export const isTimeWindowActive = (flag: FeatureFlagDto): boolean => {
+    if (flag.status !== 'TimeWindow') return false;
+    
+    const now = new Date();
+    const timeZone = flag.timeZone || 'UTC';
+    
+    try {
+        // Convert current time to the flag's timezone
+        const nowInTimeZone = new Date(now.toLocaleString("en-US", { timeZone }));
+        const currentDay = nowInTimeZone.toLocaleDateString('en-US', { weekday: 'long', timeZone });
+        const currentTime = nowInTimeZone.toTimeString().slice(0, 8); // HH:MM:SS format
+        
+        // Check if current day is in the allowed window days
+        if (flag.windowDays && flag.windowDays.length > 0 && !flag.windowDays.includes(currentDay)) {
+            return false;
+        }
+        
+        // Check if current time is within the window
+        if (flag.windowStartTime && flag.windowEndTime) {
+            const startTime = flag.windowStartTime;
+            const endTime = flag.windowEndTime;
+            
+            if (startTime <= endTime) {
+                // Same day window (e.g., 09:00 - 17:00)
+                return currentTime >= startTime && currentTime <= endTime;
+            } else {
+                // Overnight window (e.g., 22:00 - 06:00)
+                return currentTime >= startTime || currentTime <= endTime;
+            }
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Error checking time window:', error);
+        return false;
+    }
+};
+
+// Helper function to get time window status information
+export const getTimeWindowStatus = (flag: FeatureFlagDto): TimeWindowStatus => {
+    if (flag.status !== 'TimeWindow') {
+        return { isActive: false, phase: 'none' };
+    }
+
+    const isActive = isTimeWindowActive(flag);
+    
+    if (!flag.windowStartTime || !flag.windowEndTime) {
+        return { 
+            isActive: false, 
+            phase: 'inactive', 
+            reason: 'Time window not properly configured' 
+        };
+    }
+    
+    if (flag.windowDays && flag.windowDays.length > 0) {
+        const now = new Date();
+        const timeZone = flag.timeZone || 'UTC';
+        const currentDay = now.toLocaleDateString('en-US', { weekday: 'long', timeZone });
+        
+        if (!flag.windowDays.includes(currentDay)) {
+            return { 
+                isActive: false, 
+                phase: 'inactive', 
+                reason: `Not active on ${currentDay}` 
+            };
+        }
+    }
+    
+    return { 
+        isActive, 
+        phase: isActive ? 'active' : 'inactive',
+        reason: isActive ? 'Within time window' : 'Outside time window'
+    };
+};
+
+// Helper function to check if a flag has expired
+export const isExpired = (flag: FeatureFlagDto): boolean => {
+    if (!flag.expirationDate) return false;
+    return new Date(flag.expirationDate) <= new Date();
 };
 
 // Helper function to get schedule status information
@@ -88,6 +176,11 @@ export const getStatusColor = (status: string): string => {
 export const formatDate = (dateString?: string): string => {
     if (!dateString) return 'Not set';
     return new Date(dateString).toLocaleString();
+};
+
+export const formatTime = (timeString?: string): string => {
+    if (!timeString) return 'Not set';
+    return timeString;
 };
 
 export const formatRelativeTime = (date: Date): string => {
