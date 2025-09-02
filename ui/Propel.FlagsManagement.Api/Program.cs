@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Propel.FeatureFlags; 
+using Propel.FeatureFlags;
 using Propel.FeatureFlags.Core;
 using Propel.FeatureFlags.PostgresSql;
 using Propel.FeatureFlags.Redis;
-using Propel.FlagsManagement.Api.Endpoints;
+using Propel.FlagsManagement.Api;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 using Propel.FlagsManagement.Api.Healthchecks;
 using System.Text.Json;

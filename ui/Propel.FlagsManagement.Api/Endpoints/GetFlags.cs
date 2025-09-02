@@ -86,11 +86,11 @@ public record GetFlagsRequest
 	public string[]? Tags { get; init; }
 }
 
-public sealed class GetFlagsEndpoint : IEndpoint
+public sealed class FetchFlagsEndpoints : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapGet("/api/feature-flags/{key}", async (string key, IFeatureFlagRepository repository, ILogger<GetFlagsEndpoint> logger) =>
+		app.MapGet("/api/feature-flags/{key}", async (string key, IFeatureFlagRepository repository, ILogger<FetchFlagsEndpoints> logger) =>
 		{
 			// Validate key parameter
 			if (string.IsNullOrWhiteSpace(key))
@@ -118,7 +118,7 @@ public sealed class GetFlagsEndpoint : IEndpoint
 		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api")
 		.Produces<FeatureFlagDto>();
 
-		app.MapGet("/api/feature-flags/all", async (IFeatureFlagRepository repository, ILogger<GetFlagsEndpoint> logger) =>
+		app.MapGet("/api/feature-flags/all", async (IFeatureFlagRepository repository, ILogger<FetchFlagsEndpoints> logger) =>
 		{
 			try
 			{
@@ -136,7 +136,7 @@ public sealed class GetFlagsEndpoint : IEndpoint
 		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api")
 		.Produces<List<FeatureFlagDto>>();
 
-		app.MapGet("/api/feature-flags", async ([AsParameters] GetFlagsRequest request, IFeatureFlagRepository repository, ILogger<GetFlagsEndpoint> logger) =>
+		app.MapGet("/api/feature-flags", async ([AsParameters] GetFlagsRequest request, IFeatureFlagRepository repository, ILogger<FetchFlagsEndpoints> logger) =>
 		{
 			try
 			{

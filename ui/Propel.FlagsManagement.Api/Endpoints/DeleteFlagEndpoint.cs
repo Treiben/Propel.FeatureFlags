@@ -5,7 +5,7 @@ using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
 
-public sealed class DeleteFlag : IEndpoint
+public sealed class DeleteFlagEndpoint : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder app)
 	{

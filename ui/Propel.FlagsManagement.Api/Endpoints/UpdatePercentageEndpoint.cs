@@ -6,22 +6,22 @@ using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
 
-public record SetPercentageRequest(int Percentage);
+public record UpdatePercentageRequest(int Percentage);
 
-public sealed class SetPercentageEndpoint : IEndpoint
+public sealed class UpdatePercentageEndpoint : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder epRoutBuilder)
 	{
 		epRoutBuilder.MapPost("/api/feature-flags/{key}/percentage",
 			async (
 				string key,
-				SetPercentageRequest request,
-				SetPercentageHandler setPercentageHandler) =>
+				UpdatePercentageRequest request,
+				UpdatePercentageHandler setPercentageHandler) =>
 			{
 				return await setPercentageHandler.HandleAsync(key, request);
 			})
 			.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
-			.AddEndpointFilter<ValidationFilter<SetPercentageRequest>>()
+			.AddEndpointFilter<ValidationFilter<UpdatePercentageRequest>>()
 			.WithName("SetPercentage")
 			.WithTags("Feature Flags", "Operations", "Rollout Control", "Management Api")
 			.Produces<FeatureFlagDto>()
@@ -29,13 +29,13 @@ public sealed class SetPercentageEndpoint : IEndpoint
 	}
 }
 
-public sealed class SetPercentageHandler(
+public sealed class UpdatePercentageHandler(
 	IFeatureFlagRepository repository,
 	IFeatureFlagCache cache,
-	ILogger<SetPercentageHandler> logger,
+	ILogger<UpdatePercentageHandler> logger,
 	CurrentUserService currentUserService)
 {
-	public async Task<IResult> HandleAsync(string key, SetPercentageRequest request)
+	public async Task<IResult> HandleAsync(string key, UpdatePercentageRequest request)
 	{
 		// Validate key parameter
 		if (string.IsNullOrWhiteSpace(key))
@@ -87,9 +87,9 @@ public sealed class SetPercentageHandler(
 	}
 }
 
-public sealed class SetPercentageRequestValidator : AbstractValidator<SetPercentageRequest>
+public sealed class UpdatePercentageRequestValidator : AbstractValidator<UpdatePercentageRequest>
 {
-	public SetPercentageRequestValidator()
+	public UpdatePercentageRequestValidator()
 	{
 		RuleFor(c => c.Percentage)
 			.InclusiveBetween(0, 100)

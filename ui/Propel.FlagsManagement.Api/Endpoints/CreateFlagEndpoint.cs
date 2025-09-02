@@ -6,7 +6,7 @@ using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
 
-public record CreateFeatureFlagRequest
+public record CreateFlagRequest
 {
 	public string Key { get; set; } = string.Empty;
 	public string Name { get; set; } = string.Empty;
@@ -29,18 +29,18 @@ public record CreateFeatureFlagRequest
 	public bool IsPermanent { get; set; } = false;
 }
 
-public sealed class CreateFlag : IEndpoint
+public sealed class CreateFlagEndpoint : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder app)
 	{
 
 		app.MapPost("/api/feature-flags",
-			async (CreateFeatureFlagRequest request,
+			async (CreateFlagRequest request,
 					CreateFlagHandler createFlagHandler) =>
 		{
 			return await createFlagHandler.HandleAsync(request);
 		})
-		.AddEndpointFilter<ValidationFilter<CreateFeatureFlagRequest>>()
+		.AddEndpointFilter<ValidationFilter<CreateFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("CreateFeatureFlag")
 		.WithTags("Feature Flags", "CRUD Operations", "Create", "Management Api")
@@ -54,7 +54,7 @@ public sealed class CreateFlagHandler(
 	ILogger<CreateFlagHandler> logger,
 	CurrentUserService currentUserService)
 {
-	public async Task<IResult> HandleAsync(CreateFeatureFlagRequest request)
+	public async Task<IResult> HandleAsync(CreateFlagRequest request)
 	{
 		var businessValidationResult = request.ValidateBusinessRules();
 		if (!businessValidationResult.IsValid)
@@ -88,9 +88,9 @@ public sealed class CreateFlagHandler(
 	}
 }
 
-public sealed class CreateFeatureFlagRequestValidator : AbstractValidator<CreateFeatureFlagRequest>
+public sealed class CreateFlagRequestValidator : AbstractValidator<CreateFlagRequest>
 {
-	public CreateFeatureFlagRequestValidator()
+	public CreateFlagRequestValidator()
 	{
 		RuleFor(c => c.Key)
 			.NotEmpty()
@@ -188,9 +188,9 @@ public sealed class CreateFeatureFlagRequestValidator : AbstractValidator<Create
 	}
 }
 
-public static class CreateFeatureFlagRequestExtensions
+public static class CreateFlagRequestExtensions
 {
-	public static BusinessValidationResult ValidateBusinessRules(this CreateFeatureFlagRequest request)
+	public static BusinessValidationResult ValidateBusinessRules(this CreateFlagRequest request)
 	{
 		var errors = new Dictionary<string, List<string>>();
 
@@ -273,7 +273,7 @@ public static class CreateFeatureFlagRequestExtensions
 		}
 	}
 
-	public static FeatureFlag Map(this CreateFeatureFlagRequest source, string creatorUserName)
+	public static FeatureFlag Map(this CreateFlagRequest source, string creatorUserName)
 	{
 		return new FeatureFlag
 		{

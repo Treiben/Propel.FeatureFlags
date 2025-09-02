@@ -1,0 +1,71 @@
+@Ui_Api_HostAddress_Https = https://localhost:7113
+@Ui_Api_HostAddress_Http = http://localhost:5038
+@Ui_Api_HostAddress_Docker = http://localhost:5003
+
+### Variables
+@baseUrl = {{Ui_Api_HostAddress_Docker}}/api
+@testFlagKey = test-flag-4851245
+@testUserId = user-{{$randomInt}}
+
+### Authentication Tokens
+### dotnet user-jwts create --scope "featuretogglesmanagementapi" --name "ApiScopeUser" --project "ui/FeatureToggles.Management.Api"
+### dotnet user-jwts create --scope "featuretogglesmanagementapi" --scope "read" --name "ReadUser" --project "ui/FeatureToggles.Management.Api"
+### dotnet user-jwts create --scope "featuretogglesmanagementapi" --scope "read" --scope "write" --name "WriteUser" --project "ui/FeatureToggles.Management.Api"
+### dotnet user-jwts create --scope "featuretogglesmanagementapi" --scope "read" --scope "write" --claim "sub=test-user-123" --claim "name=Test User" --claim "email=test@example.com" --name "FullAccessUser" --project "ui/FeatureToggles.Management.Api"
+@api_jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IkFwaVNjb3BlVXNlciIsInN1YiI6IkFwaVNjb3BlVXNlciIsImp0aSI6IjNhZWVjZWRlIiwic2NvcGUiOiJmZWF0dXJldG9nZ2xlc21hbmFnZW1lbnRhcGkiLCJhdWQiOlsiaHR0cDovL2xvY2FsaG9zdDo1MDM4IiwiaHR0cHM6Ly9sb2NhbGhvc3Q6NzExMyJdLCJuYmYiOjE3NTM1MDAyNjEsImV4cCI6MTc2MTQ0OTA2MSwiaWF0IjoxNzUzNTAwMjYyLCJpc3MiOiJkb3RuZXQtdXNlci1qd3RzIn0.r1u7xaYjgAFoVsx6ddDJLtXIuYWlyUHAQC7UZkjojIw
+@readonly_jwt =  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IlJlYWRVc2VyIiwic3ViIjoiUmVhZFVzZXIiLCJqdGkiOiI2MTczNDRlIiwic2NvcGUiOlsiZmVhdHVyZXRvZ2dsZXNtYW5hZ2VtZW50YXBpIiwicmVhZCJdLCJhdWQiOlsiaHR0cDovL2xvY2FsaG9zdDo1MDM4IiwiaHR0cHM6Ly9sb2NhbGhvc3Q6NzExMyJdLCJuYmYiOjE3NTM1MDAzNDgsImV4cCI6MTc2MTQ0OTE0OCwiaWF0IjoxNzUzNTAwMzQ5LCJpc3MiOiJkb3RuZXQtdXNlci1qd3RzIn0.YiW9_-swA8YXVaukSsKiZg-us_3YW0QCGwMtWb-HB4M
+@full_access_jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IldyaXRlVXNlciIsInN1YiI6IldyaXRlVXNlciIsImp0aSI6IjkyZjZhNzNmIiwic2NvcGUiOlsiZmVhdHVyZXRvZ2dsZXNtYW5hZ2VtZW50YXBpIiwicmVhZCIsIndyaXRlIl0sImF1ZCI6WyJodHRwOi8vbG9jYWxob3N0OjUwMzgiLCJodHRwczovL2xvY2FsaG9zdDo3MTEzIl0sIm5iZiI6MTc1MzUwMDM3NCwiZXhwIjoxNzYxNDQ5MTc0LCJpYXQiOjE3NTM1MDAzNzQsImlzcyI6ImRvdG5ldC11c2VyLWp3dHMifQ.7_mWTTJ_Jbq1I6Kg65ulyEjTP5mb6VEfhJH1w3iOF0o
+
+@active_token = {{full_access_jwt}}
+
+###
+### 1. Modify Feature Flag - Full Update
+# Test: Update all modifiable properties of a feature flag
+# Expected: 200 OK with updated FeatureFlagDto reflecting all changes
+PUT {{baseUrl}}/feature-flags/{{testFlagKey}}
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "name": "Updated Test Feature Flag",
+  "description": "Updated description for testing",
+  "status": "Enabled",
+  "percentageEnabled": 50,
+  "windowStartTime": "09:00:00",
+  "windowEndTime": "17:00:00",
+  "timeZone": "UTC",
+  "windowDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+  "targetingRules": [
+    {
+      "attribute": "department",
+      "operator": "In",
+      "values": ["engineering", "qa"],
+      "variation": "on"
+    }
+  ],
+  "enabledUsers": ["{{testUserId}}"],
+  "variations": {
+    "on": true,
+    "off": false,
+    "beta": "beta-value"
+  },
+  "defaultVariation": "off",
+  "tags": {
+    "environment": "test",
+    "team": "platform",
+    "version": "v2"
+  }
+}
+
+###
+### 2. Modify Feature Flag - Partial Update
+# Test: Update only specific properties (name and percentage)
+# Expected: 200 OK with FeatureFlagDto showing only specified changes
+PUT {{baseUrl}}/feature-flags/{{testFlagKey}}
+Content-Type: application/json
+Authorization: Bearer {{active_token}}
+
+{
+  "name": "Partially Updated Flag",
+  "percentageEnabled": 75
+}
