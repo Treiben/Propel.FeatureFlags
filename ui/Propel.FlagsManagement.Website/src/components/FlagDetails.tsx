@@ -185,6 +185,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                     flag={flag}
                     isEditing={editingPercentage}
                     onStartEditing={() => setEditingPercentage(true)}
+                    onCancelEditing={() => setEditingPercentage(false)}
                     onSetPercentage={handleSetPercentageWrapper}
                     operationLoading={operationLoading}
                 />
@@ -192,17 +193,6 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
             {/* Warnings */}
             <PermanentFlagWarning flag={flag} />
-
-            {/* Percentage Editor (when editing) */}
-            {editingPercentage && (
-                <PercentageEditor
-                    flag={flag}
-                    isEditing={true}
-                    onStartEditing={() => {}}
-                    onSetPercentage={handleSetPercentageWrapper}
-                    operationLoading={operationLoading}
-                />
-            )}
 
             {/* Flag Edit Section */}
             <FlagEditSection

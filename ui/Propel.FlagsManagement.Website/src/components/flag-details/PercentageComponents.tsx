@@ -22,6 +22,7 @@ interface PercentageEditorProps {
     flag: FeatureFlagDto;
     isEditing: boolean;
     onStartEditing: () => void;
+    onCancelEditing: () => void;
     onSetPercentage: (flag: FeatureFlagDto, percentage: number) => Promise<void>;
     operationLoading: boolean;
 }
@@ -30,6 +31,7 @@ export const PercentageEditor: React.FC<PercentageEditorProps> = ({
     flag,
     isEditing,
     onStartEditing,
+    onCancelEditing,
     onSetPercentage,
     operationLoading
 }) => {
@@ -47,6 +49,11 @@ export const PercentageEditor: React.FC<PercentageEditorProps> = ({
         }
     };
 
+    const handleCancel = () => {
+        setNewPercentage(flag.percentageEnabled || 0);
+        onCancelEditing();
+    };
+
     if (!isEditing) {
         return (
             <button
@@ -61,7 +68,7 @@ export const PercentageEditor: React.FC<PercentageEditorProps> = ({
     }
 
     return (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+        <div className="col-span-2 bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
             <h4 className="font-medium text-yellow-800 mb-2">Set Percentage Rollout</h4>
             <div className="flex items-center gap-3">
                 <input
@@ -84,7 +91,7 @@ export const PercentageEditor: React.FC<PercentageEditorProps> = ({
                     {localLoading ? 'Applying...' : 'Apply'}
                 </button>
                 <button
-                    onClick={() => setNewPercentage(flag.percentageEnabled || 0)}
+                    onClick={handleCancel}
                     disabled={localLoading || operationLoading}
                     className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400 disabled:opacity-50"
                 >
