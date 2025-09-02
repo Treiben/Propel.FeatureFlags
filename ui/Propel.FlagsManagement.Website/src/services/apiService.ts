@@ -268,6 +268,36 @@ function buildQueryParams(params: GetFlagsParams): URLSearchParams {
 	return searchParams;
 }
 
+// Helper functions for time zone handling
+export const getTimeZones = (): string[] => {
+	return [
+		'UTC',
+		'America/New_York',
+		'America/Chicago',
+		'America/Denver',
+		'America/Los_Angeles',
+		'Europe/London',
+		'Europe/Paris',
+		'Europe/Berlin',
+		'Asia/Tokyo',
+		'Asia/Shanghai',
+		'Asia/Kolkata',
+		'Australia/Sydney'
+	];
+};
+
+export const getDaysOfWeek = (): { value: string; label: string }[] => {
+	return [
+		{ value: 'Sunday', label: 'Sunday' },
+		{ value: 'Monday', label: 'Monday' },
+		{ value: 'Tuesday', label: 'Tuesday' },
+		{ value: 'Wednesday', label: 'Wednesday' },
+		{ value: 'Thursday', label: 'Thursday' },
+		{ value: 'Friday', label: 'Friday' },
+		{ value: 'Saturday', label: 'Saturday' }
+	];
+};
+
 // API Service
 export const apiService = {
 	// Authentication
