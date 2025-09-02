@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Trash2, Eye, EyeOff } from 'lucide-react';
 import type { FeatureFlagDto } from '../services/apiService';
 import { StatusBadge } from './StatusBadge';
@@ -61,6 +61,11 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 }) => {
     const [editingPercentage, setEditingPercentage] = useState(false);
     const [operationLoading, setOperationLoading] = useState(false);
+
+    // Reset editing states when flag changes (when a different flag is selected)
+    useEffect(() => {
+        setEditingPercentage(false);
+    }, [flag.key]);
 
     const handleToggle = async () => {
         try {

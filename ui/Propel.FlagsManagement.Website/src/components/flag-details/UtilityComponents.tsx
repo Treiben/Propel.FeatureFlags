@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Lock, AlertCircle, Edit3, Calendar, FileText } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
 import { isExpired, formatDate, hasValidTags, getTagEntries } from '../../utils/flagHelpers';
@@ -98,7 +98,6 @@ export const FlagMetadata: React.FC<FlagMetadataProps> = ({ flag }) => {
                             {key}: {value}
                         </span>
                     ))}
-
                 </div>
             )}
         </div>
@@ -129,6 +128,16 @@ export const FlagEditSection: React.FC<FlagEditSectionProps> = ({
         expirationDate: flag.expirationDate ? flag.expirationDate.slice(0, 16) : '',
         isPermanent: flag.isPermanent
     });
+
+    // Update local state when flag changes (when a different flag is selected)
+    useEffect(() => {
+        setFormData({
+            name: flag.name,
+            description: flag.description || '',
+            expirationDate: flag.expirationDate ? flag.expirationDate.slice(0, 16) : '',
+            isPermanent: flag.isPermanent
+        });
+    }, [flag.key, flag.name, flag.description, flag.expirationDate, flag.isPermanent]);
 
     const handleSubmit = async () => {
         try {

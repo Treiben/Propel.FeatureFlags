@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Percent } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
 
@@ -37,6 +37,11 @@ export const PercentageEditor: React.FC<PercentageEditorProps> = ({
 }) => {
     const [newPercentage, setNewPercentage] = useState(flag.percentageEnabled || 0);
     const [localLoading, setLocalLoading] = useState(false);
+
+    // Update local state when flag changes (when a different flag is selected)
+    useEffect(() => {
+        setNewPercentage(flag.percentageEnabled || 0);
+    }, [flag.key, flag.percentageEnabled]);
 
     const handlePercentageSubmit = async () => {
         try {

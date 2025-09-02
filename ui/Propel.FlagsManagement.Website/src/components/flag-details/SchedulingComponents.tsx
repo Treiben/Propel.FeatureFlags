@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, Clock, PlayCircle, X } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
 import { 
@@ -85,6 +85,14 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
         enableDate: flag.scheduledEnableDate ? flag.scheduledEnableDate.slice(0, 16) : '',
         disableDate: flag.scheduledDisableDate ? flag.scheduledDisableDate.slice(0, 16) : ''
     });
+
+    // Update local state when flag changes (when a different flag is selected)
+    useEffect(() => {
+        setScheduleData({
+            enableDate: flag.scheduledEnableDate ? flag.scheduledEnableDate.slice(0, 16) : '',
+            disableDate: flag.scheduledDisableDate ? flag.scheduledDisableDate.slice(0, 16) : ''
+        });
+    }, [flag.key, flag.scheduledEnableDate, flag.scheduledDisableDate]);
 
     const handleScheduleSubmit = async () => {
         try {

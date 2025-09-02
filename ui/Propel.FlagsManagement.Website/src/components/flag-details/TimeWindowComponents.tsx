@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock, Timer, X } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
 import { getTimeZones, getDaysOfWeek } from '../../services/apiService';
@@ -67,6 +67,16 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
         timeZone: flag.timeZone || 'UTC',
         windowDays: flag.windowDays || []
     });
+
+    // Update local state when flag changes (when a different flag is selected)
+    useEffect(() => {
+        setTimeWindowData({
+            windowStartTime: flag.windowStartTime || '09:00',
+            windowEndTime: flag.windowEndTime || '17:00',
+            timeZone: flag.timeZone || 'UTC',
+            windowDays: flag.windowDays || []
+        });
+    }, [flag.key, flag.windowStartTime, flag.windowEndTime, flag.timeZone, flag.windowDays]);
 
     const handleTimeWindowSubmit = async () => {
         try {
