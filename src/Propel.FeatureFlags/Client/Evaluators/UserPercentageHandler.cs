@@ -6,7 +6,14 @@ public sealed class UserPercentageHandler: FlagEvaluationHandlerBase<UserPercent
 {
 	protected override bool CanProcess(FeatureFlag flag, EvaluationContext context)
 	{
-		return flag.Status == FeatureFlagStatus.Percentage;
+		return flag.Status is FeatureFlagStatus.Percentage
+			or FeatureFlagStatus.PercentageWithUserTargeting
+			or FeatureFlagStatus.ScheduledWithPercentage
+			or FeatureFlagStatus.ScheduledWithPercentageAndUserTargeting
+			or FeatureFlagStatus.ScheduledWithTimeWindowAndPercentage
+			or FeatureFlagStatus.ScheduledWithTimeWindowAndPercentageAndUserTargeting
+			or FeatureFlagStatus.TimeWindowWithPercentage
+			or FeatureFlagStatus.TimeWindowWithPercentageAndUserTargeting;
 	}
 
 	protected override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)

@@ -14,8 +14,8 @@ namespace Propel.FeatureFlags.Client.Evaluators
 		{
 			var evaluationTime = context.EvaluationTime ?? DateTime.UtcNow;
 
-			return new EvaluationResult(isEnabled: false, variation: flag.DefaultVariation,
-				reason: $"Flag {flag.Key} expired at {flag.ExpirationDate!.Value}, current time {evaluationTime}");
+			return new EvaluationResult(isEnabled: true, variation: flag.DefaultVariation,
+				reason: $"Flag {flag.Key} expired at {flag.ExpirationDate!.Value}, current time {evaluationTime} but it still might be used in the code base.");
 		}
 	}
 }

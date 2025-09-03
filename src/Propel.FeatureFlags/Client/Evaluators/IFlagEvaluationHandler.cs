@@ -23,8 +23,9 @@ namespace Propel.FeatureFlags.Client.Evaluators
 			// Handle the evaluation
 			var result = await ProcessEvaluation(flag, context);
 
-			// If result is inconclusive and we have a next evaluator, continue the chain
-			if (result == null && NextHandler != null)
+			// If result is inconclusive or is true and we have a complex flag, such as scheduled + rollout percentange + time window
+			// and we have a next evaluator, continue the chain
+			if ((result == null || result.IsEnabled == true) && NextHandler != null)
 			{
 				return await NextHandler.Handle(flag, context);
 			}

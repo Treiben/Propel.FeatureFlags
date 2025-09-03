@@ -6,7 +6,14 @@ namespace Propel.FeatureFlags.Client.Evaluators
 	{
 		protected override bool CanProcess(FeatureFlag flag, EvaluationContext context)
 		{
-			return flag.Status == FeatureFlagStatus.UserTargeted;
+			return flag.Status is FeatureFlagStatus.UserTargeted
+				or FeatureFlagStatus.PercentageWithUserTargeting
+				or FeatureFlagStatus.ScheduledWithPercentageAndUserTargeting
+				or FeatureFlagStatus.ScheduledWithTimeWindowAndPercentageAndUserTargeting
+				or FeatureFlagStatus.ScheduledWithTimeWindowAndUserTargeting
+				or FeatureFlagStatus.ScheduledWithUserTargeting
+				or FeatureFlagStatus.TimeWindowWithPercentageAndUserTargeting
+				or FeatureFlagStatus.TimeWindowWithUserTargeting;
 		}
 
 		protected override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
