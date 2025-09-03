@@ -54,19 +54,13 @@ public sealed class UpdatePercentageHandler(
 			// Special case: 0% effectively disables the flag
 			if (request.Percentage == 0)
 			{
-				flag.Status = FeatureFlagStatus.Disabled;
+				flag.Status = flag.Status.Decrement(FeatureFlagStatus.Percentage);
 				flag.PercentageEnabled = 0;
-			}
-			// Special case: 100% enables the flag for everyone
-			else if (request.Percentage == 100)
-			{
-				flag.Status = FeatureFlagStatus.Enabled;
-				flag.PercentageEnabled = 100;
 			}
 			// Standard percentage rollout
 			else
 			{
-				flag.Status = FeatureFlagStatus.Percentage;
+				flag.Status = flag.Status.Increment(FeatureFlagStatus.Percentage);
 				flag.PercentageEnabled = request.Percentage;
 			}
 

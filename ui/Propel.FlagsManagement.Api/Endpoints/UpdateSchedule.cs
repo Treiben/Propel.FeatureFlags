@@ -56,28 +56,15 @@ public sealed class UpdateScheduleHandler(
 
 			if (request.RemoveSchedule)
 			{
+				flag.Status = flag.Status.Decrement(FeatureFlagStatus.Scheduled);
 				flag.ScheduledEnableDate = null;
 				flag.ScheduledDisableDate = null;
-				if (flag.PercentageEnabled > 0 && flag.PercentageEnabled < 100)
-				{
-					flag.Status = FeatureFlagStatus.Percentage;
-				}
-				else if (flag.EnabledUsers != null && flag.EnabledUsers.Count > 0)
-				{
-					flag.Status = FeatureFlagStatus.UserTargeted;
-				}
-				else if (flag.WindowStartTime != null && flag.WindowEndTime != null && flag.WindowDays != null && flag.WindowDays.Count > 0)
-				{
-					flag.Status = FeatureFlagStatus.TimeWindow;
-				}
-				else
-					flag.Status = FeatureFlagStatus.Disabled; // Revert to disabled if schedule is removed
 			}
 			else
 			{
+				flag.Status = flag.Status.Increment(FeatureFlagStatus.Scheduled);
 				flag.ScheduledEnableDate = request.EnableDate.ToUniversalTime();
 				flag.ScheduledDisableDate = request.DisableDate?.ToUniversalTime(); 
-				flag.Status = FeatureFlagStatus.Scheduled;
 			}
 
 			var updatedFlag = await repository.UpdateAsync(flag);

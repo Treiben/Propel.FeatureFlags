@@ -59,28 +59,14 @@ public sealed class UpdateTimeWindowHandler(
 
 			if (request.RemoveTimeWindow)
 			{
+				flag.Status = flag.Status.Decrement(FeatureFlagStatus.TimeWindow);
 				flag.WindowStartTime = null;
 				flag.WindowEndTime = null;
 				flag.WindowDays = null;
-				
-				if (flag.PercentageEnabled > 0)
-				{
-					flag.Status = FeatureFlagStatus.Percentage;
-				}
-				else if (flag.EnabledUsers != null && flag.EnabledUsers.Count > 0)
-				{
-					flag.Status = FeatureFlagStatus.UserTargeted;
-				}
-				else if (flag.ScheduledEnableDate != null)
-				{
-					flag.Status = FeatureFlagStatus.Scheduled;
-				}
-				else
-					flag.Status = FeatureFlagStatus.Disabled; // Revert to disabled if schedule is removed
 			}
 			else
 			{
-				flag.Status = FeatureFlagStatus.TimeWindow;
+				flag.Status = flag.Status.Increment(FeatureFlagStatus.TimeWindow);
 				flag.WindowStartTime = request.WindowStartTime.ToTimeSpan();
 				flag.WindowEndTime = request.WindowEndTime.ToTimeSpan();
 				flag.TimeZone = request.TimeZone;
