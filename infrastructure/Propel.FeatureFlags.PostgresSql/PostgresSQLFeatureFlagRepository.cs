@@ -46,7 +46,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 				return null;
 			}
 
-			var flag = await MapFromReader(reader);
+			var flag = await reader.CreateFlag();
 			_logger.LogDebug("Retrieved feature flag: {Key} with status {Status}", flag.Key, flag.Status);
 			return flag;
 		}
@@ -81,7 +81,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			var flags = new List<FeatureFlag>();
 			while (await reader.ReadAsync(cancellationToken))
 			{
-				flags.Add(await MapFromReader(reader));
+				flags.Add(await reader.CreateFlag());
 			}
 
 			_logger.LogDebug("Retrieved {Count} feature flags", flags.Count);
@@ -142,7 +142,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			var flags = new List<FeatureFlag>();
 			while (await reader.ReadAsync(cancellationToken))
 			{
-				flags.Add(await MapFromReader(reader));
+				flags.Add(await reader.CreateFlag());
 			}
 
 			var result = new PagedResult<FeatureFlag>
@@ -299,7 +299,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			var flags = new List<FeatureFlag>();
 			while (await reader.ReadAsync(cancellationToken))
 			{
-				flags.Add(await MapFromReader(reader));
+				flags.Add(await reader.CreateFlag());
 			}
 
 			_logger.LogDebug("Retrieved {Count} expiring feature flags", flags.Count);
@@ -362,7 +362,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			var flags = new List<FeatureFlag>();
 			while (await reader.ReadAsync(cancellationToken))
 			{
-				flags.Add(await MapFromReader(reader));
+				flags.Add(await reader.CreateFlag());
 			}
 
 			_logger.LogDebug("Retrieved {Count} feature flags matching tags {@Tags}", flags.Count, tags);
@@ -373,39 +373,6 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			_logger.LogError(ex, "Error retrieving feature flags by tags {@Tags}", tags);
 			throw;
 		}
-	}
-
-	private static async Task<FeatureFlag> MapFromReader(NpgsqlDataReader reader)
-	{
-		return new FeatureFlag
-		{
-			Key = await reader.GetDataAsync<string>("key"),
-			Name = await reader.GetDataAsync<string>("name"),
-			Description = await reader.GetDataAsync<string>("description"),
-			Status = (FeatureFlagStatus)await reader.GetDataAsync<int>("status"),
-			CreatedAt = await reader.GetDataAsync<DateTime>("created_at"),
-			UpdatedAt = await reader.GetDataAsync<DateTime>("updated_at"),
-			CreatedBy = await reader.GetDataAsync<string>("created_by"),
-			UpdatedBy = await reader.GetDataAsync<string>("updated_by"),
-			ExpirationDate = await reader.GetDataAsync<DateTime>("expiration_date"),
-			ScheduledEnableDate = await reader.GetDataAsync<DateTime>("scheduled_enable_date"),
-			ScheduledDisableDate = await reader.GetDataAsync<DateTime>("scheduled_disable_date"),
-			WindowStartTime = await reader.GetTimeOnly("window_start_time"),
-			WindowEndTime = await reader.GetTimeOnly("window_end_time"),
-			TimeZone = await reader.GetDataAsync<string>("time_zone"),
-			WindowDays = await reader.Deserialize<List<DayOfWeek>>("window_days"),
-			PercentageEnabled = await reader.GetDataAsync<int>("percentage_enabled"),
-			TargetingRules = await reader.Deserialize<List<TargetingRule>>("targeting_rules"),
-			EnabledUsers = await reader.Deserialize<List<string>>("enabled_users"),
-			DisabledUsers = await reader.Deserialize<List<string>>("disabled_users"),
-			EnabledTenants = await reader.Deserialize<List<string>>("enabled_tenants"),
-			DisabledTenants = await reader.Deserialize<List<string>>("disabled_tenants"),
-			TenantPercentageEnabled = await reader.GetDataAsync<int>("tenant_percentage_enabled"),
-			Variations = await reader.Deserialize<Dictionary<string, object>>("variations"),
-			DefaultVariation = await reader.GetDataAsync<string>("default_variation"),
-			Tags = await reader.Deserialize<Dictionary<string, string>>("tags"),
-			IsPermanent = await reader.GetDataAsync<bool>("is_permanent")
-		};
 	}
 
 	private static (string whereClause, Dictionary<string, object> parameters) BuildFilterConditions(FeatureFlagFilter? filter)
@@ -541,5 +508,37 @@ public static class NpgsqlDataReaderExtensions
 		if (await reader.IsDBNullAsync(ordinal))
 			return null;
 		return await reader.GetDataAsync<TimeSpan>(columnName);
+	}
+	public static async Task<FeatureFlag> CreateFlag(this NpgsqlDataReader reader)
+	{
+		return new FeatureFlag
+		{
+			Key = await reader.GetDataAsync<string>("key"),
+			Name = await reader.GetDataAsync<string>("name"),
+			Description = await reader.GetDataAsync<string>("description"),
+			Status = (FeatureFlagStatus)await reader.GetDataAsync<int>("status"),
+			CreatedAt = await reader.GetDataAsync<DateTime>("created_at"),
+			UpdatedAt = await reader.GetDataAsync<DateTime>("updated_at"),
+			CreatedBy = await reader.GetDataAsync<string>("created_by"),
+			UpdatedBy = await reader.GetDataAsync<string>("updated_by"),
+			ExpirationDate = await reader.GetDataAsync<DateTime>("expiration_date"),
+			ScheduledEnableDate = await reader.GetDataAsync<DateTime>("scheduled_enable_date"),
+			ScheduledDisableDate = await reader.GetDataAsync<DateTime>("scheduled_disable_date"),
+			WindowStartTime = await reader.GetTimeOnly("window_start_time"),
+			WindowEndTime = await reader.GetTimeOnly("window_end_time"),
+			TimeZone = await reader.GetDataAsync<string>("time_zone"),
+			WindowDays = await reader.Deserialize<List<DayOfWeek>>("window_days"),
+			PercentageEnabled = await reader.GetDataAsync<int>("percentage_enabled"),
+			TargetingRules = await reader.Deserialize<List<TargetingRule>>("targeting_rules"),
+			EnabledUsers = await reader.Deserialize<List<string>>("enabled_users"),
+			DisabledUsers = await reader.Deserialize<List<string>>("disabled_users"),
+			EnabledTenants = await reader.Deserialize<List<string>>("enabled_tenants"),
+			DisabledTenants = await reader.Deserialize<List<string>>("disabled_tenants"),
+			TenantPercentageEnabled = await reader.GetDataAsync<int>("tenant_percentage_enabled"),
+			Variations = await reader.Deserialize<Dictionary<string, object>>("variations"),
+			DefaultVariation = await reader.GetDataAsync<string>("default_variation"),
+			Tags = await reader.Deserialize<Dictionary<string, string>>("tags"),
+			IsPermanent = await reader.GetDataAsync<bool>("is_permanent")
+		};
 	}
 }
