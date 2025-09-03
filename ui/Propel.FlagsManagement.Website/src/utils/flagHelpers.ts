@@ -13,9 +13,155 @@ export interface TimeWindowStatus {
     reason?: string;
 }
 
+// New interface for compound status information
+export interface StatusComponents {
+    isScheduled: boolean;
+    hasTimeWindow: boolean;
+    hasPercentage: boolean;
+    hasUserTargeting: boolean;
+    baseStatus: 'Enabled' | 'Disabled';
+}
+
+// Helper function to parse compound status into components
+export const parseStatusComponents = (status: string): StatusComponents => {
+    const components: StatusComponents = {
+        isScheduled: false,
+        hasTimeWindow: false,
+        hasPercentage: false,
+        hasUserTargeting: false,
+        baseStatus: 'Disabled'
+    };
+
+    switch (status) {
+        case 'Enabled':
+		case 'enabled':
+        case '1':
+            components.baseStatus = 'Enabled';
+            break;
+        case 'Disabled':
+        case 'disabled':
+		case '0':
+            components.baseStatus = 'Disabled';
+            break;
+        case 'Scheduled':
+        case 'scheduled':
+		case '2':
+            components.isScheduled = true;
+            break;
+        case 'TimeWindow':
+        case 'timeWindow':
+		case '3':
+            components.hasTimeWindow = true;
+            break;
+        case 'ScheduledWithTimeWindow':
+        case 'scheduledWithTimeWindow':
+		case '5':
+            components.isScheduled = true;
+            components.hasTimeWindow = true;
+            break;
+        case 'Percentage':
+        case 'percentage':
+		case '6':
+            components.hasPercentage = true;
+            break;
+        case 'ScheduledWithPercentage':
+        case 'scheduledWithPercentage':
+		case '8':
+            components.isScheduled = true;
+            components.hasPercentage = true;
+            break;
+        case 'TimeWindowWithPercentage':
+        case 'timeWindowWithPercentage':
+		case '9':
+            components.hasTimeWindow = true;
+            components.hasPercentage = true;
+            break;
+        case 'ScheduledWithTimeWindowAndPercentage':
+        case 'scheduledWithTimeWindowAndPercentage':
+		case '11':
+            components.isScheduled = true;
+            components.hasTimeWindow = true;
+            components.hasPercentage = true;
+            break;
+        case 'UserTargeted':
+        case 'userTargeted':
+		case '12':
+            components.hasUserTargeting = true;
+            break;
+        case 'ScheduledWithUserTargeting':
+        case 'scheduledWithUserTargeting':
+		case '14':
+            components.isScheduled = true;
+            components.hasUserTargeting = true;
+            break;
+        case 'TimeWindowWithUserTargeting':
+        case 'timeWindowWithUserTargeting':
+		case '15':
+            components.hasTimeWindow = true;
+            components.hasUserTargeting = true;
+            break;
+        case 'ScheduledWithTimeWindowAndUserTargeting':
+        case 'scheduledWithTimeWindowAndUserTargeting':
+		case '17':
+            components.isScheduled = true;
+            components.hasTimeWindow = true;
+            components.hasUserTargeting = true;
+            break;
+        case 'PercentageWithUserTargeting':
+        case 'percentageWithUserTargeting':
+		case '18':
+            components.hasPercentage = true;
+            components.hasUserTargeting = true;
+            break;
+        case 'ScheduledWithPercentageAndUserTargeting':
+        case 'scheduledWithPercentageAndUserTargeting':
+        case '20':
+            components.isScheduled = true;
+            components.hasPercentage = true;
+            components.hasUserTargeting = true;
+            break;
+        case 'TimeWindowWithPercentageAndUserTargeting':
+        case 'timeWindowWithPercentageAndUserTargeting':
+		case '21':
+            components.hasTimeWindow = true;
+            components.hasPercentage = true;
+            components.hasUserTargeting = true;
+            break;
+        case 'ScheduledWithTimeWindowAndPercentageAndUserTargeting':
+        case 'scheduledWithTimeWindowAndPercentageAndUserTargeting':
+		case '23':
+            components.isScheduled = true;
+            components.hasTimeWindow = true;
+            components.hasPercentage = true;
+            components.hasUserTargeting = true;
+            break;
+    }
+
+    return components;
+};
+
+// Helper function to get a human-readable status description
+export const getStatusDescription = (status: string): string => {
+    const components = parseStatusComponents(status);
+    const features: string[] = [];
+
+    if (components.baseStatus === 'Enabled') return 'Enabled';
+    if (components.baseStatus === 'Disabled' && !components.isScheduled && !components.hasTimeWindow && !components.hasPercentage && !components.hasUserTargeting) {
+        return 'Disabled';
+    }
+
+    if (components.isScheduled) features.push('Scheduled');
+    if (components.hasTimeWindow) features.push('Time Window');
+    if (components.hasPercentage) features.push('Percentage');
+    if (components.hasUserTargeting) features.push('User Targeted');
+
+    return features.join(' + ');
+};
+
 // Helper function to check if a flag is currently enabled due to scheduling
 export const isScheduledActive = (flag: FeatureFlagDto): boolean => {
-    if (flag.status !== 'Scheduled') return false;
+    const components = parseStatusComponents(flag.status);
+    if (!components.isScheduled) return false;
     
     const now = new Date();
     const enableDate = flag.scheduledEnableDate ? new Date(flag.scheduledEnableDate) : null;
@@ -34,7 +180,8 @@ export const isScheduledActive = (flag: FeatureFlagDto): boolean => {
 
 // Helper function to check if a TimeWindow flag is currently active
 export const isTimeWindowActive = (flag: FeatureFlagDto): boolean => {
-    if (flag.status !== 'TimeWindow') return false;
+    const components = parseStatusComponents(flag.status);
+    if (!components.hasTimeWindow) return false;
     
     const now = new Date();
     const timeZone = flag.timeZone || 'UTC';
@@ -73,7 +220,8 @@ export const isTimeWindowActive = (flag: FeatureFlagDto): boolean => {
 
 // Helper function to get time window status information
 export const getTimeWindowStatus = (flag: FeatureFlagDto): TimeWindowStatus => {
-    if (flag.status !== 'TimeWindow') {
+    const components = parseStatusComponents(flag.status);
+    if (!components.hasTimeWindow) {
         return { isActive: false, phase: 'none' };
     }
 
@@ -116,7 +264,8 @@ export const isExpired = (flag: FeatureFlagDto): boolean => {
 
 // Helper function to get schedule status information
 export const getScheduleStatus = (flag: FeatureFlagDto): ScheduleStatus => {
-    if (flag.status !== 'Scheduled') {
+    const components = parseStatusComponents(flag.status);
+    if (!components.isScheduled) {
         return { isActive: false, phase: 'none' };
     }
 
@@ -161,16 +310,33 @@ export const getScheduleStatus = (flag: FeatureFlagDto): ScheduleStatus => {
     return { isActive: false, phase: 'none' };
 };
 
+// Updated function to get status color based on primary feature
 export const getStatusColor = (status: string): string => {
-    switch (status) {
-        case 'Enabled': return 'bg-green-100 text-green-800';
-        case 'Disabled': return 'bg-red-100 text-red-800';
-        case 'Scheduled': return 'bg-blue-100 text-blue-800';
-        case 'Percentage': return 'bg-yellow-100 text-yellow-800';
-        case 'UserTargeted': return 'bg-purple-100 text-purple-800';
-        case 'TimeWindow': return 'bg-indigo-100 text-indigo-800';
-        default: return 'bg-gray-100 text-gray-800';
+    const components = parseStatusComponents(status);
+
+    // Base statuses
+    if (components.baseStatus === 'Enabled') {
+        return 'bg-green-100 text-green-800';
     }
+    if (components.baseStatus === 'Disabled' && !components.isScheduled && !components.hasTimeWindow && !components.hasPercentage && !components.hasUserTargeting) {
+        return 'bg-red-100 text-red-800';
+    }
+
+    // For compound statuses, prioritize based on most prominent feature
+    if (components.isScheduled) {
+        return 'bg-blue-100 text-blue-800';
+    }
+    if (components.hasTimeWindow) {
+        return 'bg-indigo-100 text-indigo-800';
+    }
+    if (components.hasPercentage) {
+        return 'bg-yellow-100 text-yellow-800';
+    }
+    if (components.hasUserTargeting) {
+        return 'bg-purple-100 text-purple-800';
+    }
+
+    return 'bg-gray-100 text-gray-800';
 };
 
 export const formatDate = (dateString?: string): string => {

@@ -1,9 +1,10 @@
-import { Shield, PlayCircle, Timer, AlertCircle } from 'lucide-react';
+import { Shield, PlayCircle, Timer, AlertCircle, Percent, Users } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
 import { 
     getScheduleStatus, 
     getTimeWindowStatus, 
-    isExpired 
+    isExpired,
+    parseStatusComponents
 } from '../../utils/flagHelpers';
 
 interface FlagStatusIndicatorsProps {
@@ -11,6 +12,7 @@ interface FlagStatusIndicatorsProps {
 }
 
 export const FlagStatusIndicators: React.FC<FlagStatusIndicatorsProps> = ({ flag }) => {
+    const components = parseStatusComponents(flag.status);
     const scheduleStatus = getScheduleStatus(flag);
     const timeWindowStatus = getTimeWindowStatus(flag);
     const flagExpired = isExpired(flag);
@@ -23,16 +25,28 @@ export const FlagStatusIndicators: React.FC<FlagStatusIndicatorsProps> = ({ flag
                     Permanent
                 </div>
             )}
-            {scheduleStatus.isActive && (
+            {components.isScheduled && scheduleStatus.isActive && (
                 <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                     <PlayCircle className="w-3 h-3" />
                     Live
                 </div>
             )}
-            {timeWindowStatus.isActive && (
+            {components.hasTimeWindow && timeWindowStatus.isActive && (
                 <div className="flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
                     <Timer className="w-3 h-3" />
                     Active Window
+                </div>
+            )}
+            {components.hasPercentage && flag.percentageEnabled > 0 && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
+                    <Percent className="w-3 h-3" />
+                    {flag.percentageEnabled}%
+                </div>
+            )}
+            {components.hasUserTargeting && (flag.enabledUsers?.length > 0 || flag.disabledUsers?.length > 0) && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                    <Users className="w-3 h-3" />
+                    {(flag.enabledUsers?.length || 0) + (flag.disabledUsers?.length || 0)} Users
                 </div>
             )}
             {flagExpired && (

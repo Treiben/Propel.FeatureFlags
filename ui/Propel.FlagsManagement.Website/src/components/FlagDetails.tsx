@@ -5,6 +5,7 @@ import { StatusBadge } from './StatusBadge';
 
 // Import business logic components
 import { FlagStatusIndicators } from './flag-details/FlagStatusIndicators';
+import { CompoundStatusOverview } from './flag-details/CompoundStatusOverview';
 import { 
     SchedulingStatusIndicator, 
     SchedulingSection 
@@ -151,7 +152,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                     <p className="text-sm text-gray-500 font-mono">{flag.key}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <StatusBadge status={flag.status} />
+                    <StatusBadge status={flag.status} showDescription={true} />
                     {!flag.isPermanent && (
                         <button
                             onClick={() => onDelete(flag.key)}
@@ -165,6 +166,9 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             </div>
 
             <p className="text-gray-600 mb-6">{flag.description || 'No description provided'}</p>
+
+            {/* Compound Status Overview */}
+            <CompoundStatusOverview flag={flag} />
 
             {/* Status Indicators */}
             <ExpirationWarning flag={flag} />

@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Percent } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
+import { parseStatusComponents } from '../../utils/flagHelpers';
 
 interface PercentageStatusIndicatorProps {
     flag: FeatureFlagDto;
 }
 
 export const PercentageStatusIndicator: React.FC<PercentageStatusIndicatorProps> = ({ flag }) => {
-    if (flag.status !== 'Percentage') return null;
+    const components = parseStatusComponents(flag.status);
+    
+    if (!components.hasPercentage) return null;
 
     return (
         <div className="mt-4 p-3 bg-yellow-50 rounded-lg">

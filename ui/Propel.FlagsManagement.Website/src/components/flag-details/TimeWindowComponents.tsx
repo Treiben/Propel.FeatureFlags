@@ -4,7 +4,8 @@ import type { FeatureFlagDto } from '../../services/apiService';
 import { getTimeZones, getDaysOfWeek } from '../../services/apiService';
 import { 
     getTimeWindowStatus, 
-    formatTime 
+    formatTime,
+    parseStatusComponents
 } from '../../utils/flagHelpers';
 
 interface TimeWindowStatusIndicatorProps {
@@ -12,9 +13,10 @@ interface TimeWindowStatusIndicatorProps {
 }
 
 export const TimeWindowStatusIndicator: React.FC<TimeWindowStatusIndicatorProps> = ({ flag }) => {
+    const components = parseStatusComponents(flag.status);
     const timeWindowStatus = getTimeWindowStatus(flag);
 
-    if (flag.status !== 'TimeWindow') return null;
+    if (!components.hasTimeWindow) return null;
 
     return (
         <div className={`mb-4 p-3 rounded-lg border ${
@@ -68,6 +70,8 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
         windowDays: flag.windowDays || []
     });
 
+    const components = parseStatusComponents(flag.status);
+
     // Update local state when flag changes (when a different flag is selected)
     useEffect(() => {
         setTimeWindowData({
@@ -117,7 +121,7 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
                         <Clock className="w-4 h-4" />
                         Configure
                     </button>
-                    {flag.status === 'TimeWindow' && (
+                    {components.hasTimeWindow && (
                         <button
                             onClick={handleClearTimeWindow}
                             disabled={operationLoading}

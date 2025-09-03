@@ -4,7 +4,8 @@ import type { FeatureFlagDto } from '../../services/apiService';
 import { 
     getScheduleStatus, 
     formatDate, 
-    formatRelativeTime 
+    formatRelativeTime,
+    parseStatusComponents
 } from '../../utils/flagHelpers';
 
 interface SchedulingStatusIndicatorProps {
@@ -12,9 +13,10 @@ interface SchedulingStatusIndicatorProps {
 }
 
 export const SchedulingStatusIndicator: React.FC<SchedulingStatusIndicatorProps> = ({ flag }) => {
+    const components = parseStatusComponents(flag.status);
     const scheduleStatus = getScheduleStatus(flag);
 
-    if (flag.status !== 'Scheduled') return null;
+    if (!components.isScheduled) return null;
 
     return (
         <div className={`mb-4 p-3 rounded-lg border ${
@@ -86,6 +88,8 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
         disableDate: flag.scheduledDisableDate ? flag.scheduledDisableDate.slice(0, 16) : ''
     });
 
+    const components = parseStatusComponents(flag.status);
+
     // Update local state when flag changes (when a different flag is selected)
     useEffect(() => {
         setScheduleData({
@@ -128,7 +132,7 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
                         <Calendar className="w-4 h-4" />
                         Schedule
                     </button>
-                    {flag.status === 'Scheduled' && (
+                    {components.isScheduled && (
                         <button
                             onClick={handleClearSchedule}
                             disabled={operationLoading}
