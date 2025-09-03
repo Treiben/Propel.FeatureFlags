@@ -45,7 +45,7 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
 				return null;
 			}
 
-			var flag = await MapFromReader(reader);
+			var flag = await reader.CreateFlag();
 			_logger.LogDebug("Retrieved feature flag: {Key} with status {Status}", flag.Key, flag.Status);
 			return flag;
 		}
@@ -80,7 +80,7 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
 			var flags = new List<FeatureFlag>();
 			while (await reader.ReadAsync(cancellationToken))
 			{
-				flags.Add(await MapFromReader(reader));
+				flags.Add(await reader.CreateFlag());
 			}
 
 			_logger.LogDebug("Retrieved {Count} feature flags", flags.Count);
@@ -89,6 +89,78 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
 		catch (Exception ex) when (ex is not OperationCanceledException)
 		{
 			_logger.LogError(ex, "Error retrieving all feature flags");
+			throw;
+		}
+	}
+
+	public async Task<PagedResult<FeatureFlag>> GetPagedAsync(int page, int pageSize, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default)
+	{
+		_logger.LogDebug("Getting paged feature flags - Page: {Page}, PageSize: {PageSize}, Filter: {@Filter}", page, pageSize, filter);
+
+		// Validate pagination parameters
+		if (page < 1) page = 1;
+		if (pageSize < 1) pageSize = 10;
+		if (pageSize > 100) pageSize = 100; // Limit maximum page size
+
+		var (whereClause, parameters) = BuildFilterConditions(filter);
+
+		// Count query
+		var countSql = $"SELECT COUNT(*) FROM feature_flags{whereClause}";
+
+		// Data query with pagination
+		var dataSql = $@"
+				SELECT [key], [name], [description], [status], created_at, updated_at, created_by, updated_by,
+					   expiration_date, scheduled_enable_date, scheduled_disable_date,
+					   window_start_time, window_end_time, time_zone, window_days,
+					   percentage_enabled, targeting_rules, enabled_users, disabled_users,
+					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
+					   variations, default_variation, tags, is_permanent
+				FROM feature_flags
+				{whereClause}
+				ORDER BY [name]
+				OFFSET @offset ROWS
+				FETCH NEXT @pageSize ROWS ONLY";
+
+		try
+		{
+			using var connection = new SqlConnection(_connectionString);
+			using var countCommand = new SqlCommand(countSql, connection);
+
+			countCommand.AddFilterParameters(parameters);
+
+			// Get paged data
+			using var dataCommand = new SqlCommand(dataSql, connection);
+			dataCommand.AddFilterParameters(parameters);
+			dataCommand.Parameters.AddWithValue("pageSize", pageSize);
+			dataCommand.Parameters.AddWithValue("offset", (page - 1) * pageSize);
+
+			await connection.OpenAsync(cancellationToken);
+
+			int totalCount = Convert.ToInt32(await countCommand.ExecuteScalarAsync(cancellationToken));
+			using var reader = await dataCommand.ExecuteReaderAsync(cancellationToken);
+
+			var flags = new List<FeatureFlag>();
+			while (await reader.ReadAsync(cancellationToken))
+			{
+				flags.Add(await reader.CreateFlag());
+			}
+
+			var result = new PagedResult<FeatureFlag>
+			{
+				Items = flags,
+				TotalCount = totalCount,
+				Page = page,
+				PageSize = pageSize
+			};
+
+			_logger.LogDebug("Retrieved {Count} feature flags from page {Page} of {TotalPages} (total: {TotalCount})",
+				flags.Count, page, result.TotalPages, totalCount);
+
+			return result;
+		}
+		catch (Exception ex) when (ex is not OperationCanceledException)
+		{
+			_logger.LogError(ex, "Error retrieving paged feature flags");
 			throw;
 		}
 	}
@@ -119,7 +191,7 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
 			await connection.OpenAsync(cancellationToken);
 
 			using var command = new SqlCommand(sql, connection);
-			AddParameters(command, flag);
+			command.AddParameters(flag);
 
 			await command.ExecuteNonQueryAsync(cancellationToken);
 
@@ -155,7 +227,7 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
 			await connection.OpenAsync(cancellationToken);
 
 			using var command = new SqlCommand(sql, connection);
-			AddParameters(command, flag);
+			command.AddParameters(flag);
 
 			var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
 			if (rowsAffected == 0)
@@ -231,7 +303,7 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
 			var flags = new List<FeatureFlag>();
 			while (await reader.ReadAsync(cancellationToken))
 			{
-				flags.Add(await MapFromReader(reader));
+				flags.Add(await reader.CreateFlag());
 			}
 
 			_logger.LogDebug("Retrieved {Count} expiring feature flags", flags.Count);
@@ -273,7 +345,7 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
 			var flags = new List<FeatureFlag>();
 			while (await reader.ReadAsync(cancellationToken))
 			{
-				flags.Add(await MapFromReader(reader));
+				flags.Add(await reader.CreateFlag());
 			}
 
 			_logger.LogDebug("Retrieved {Count} feature flags matching tags {@Tags}", flags.Count, tags);
@@ -286,7 +358,111 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
 		}
 	}
 
-	private static async Task<FeatureFlag> MapFromReader(SqlDataReader reader)
+	private static (string whereClause, Dictionary<string, object> parameters) BuildFilterConditions(FeatureFlagFilter? filter)
+	{
+		var conditions = new List<string>();
+		var parameters = new Dictionary<string, object>();
+
+		if (filter == null)
+			return (string.Empty, parameters);
+
+		// Status filtering
+		if (!string.IsNullOrEmpty(filter.Status) && Enum.TryParse<FeatureFlagStatus>(filter.Status, true, out var status))
+		{
+			conditions.Add("[status] = @status");
+			parameters["status"] = (int)status;
+		}
+
+		// Tags filtering
+		if (filter.Tags != null && filter.Tags.Count > 0)
+		{
+			for (int i = 0; i < filter.Tags.Count; i++)
+			{
+				var tag = filter.Tags.ElementAt(i);
+				if (string.IsNullOrEmpty(tag.Value))
+				{
+					// Search by tag key only - check if JSON path exists
+					conditions.Add($"JSON_VALUE([tags], '$.{tag.Key}') IS NOT NULL");
+				}
+				else
+				{
+					// Search by exact key-value match
+					conditions.Add($"JSON_VALUE([tags], '$.{tag.Key}') = @tagValue{i}");
+					parameters[$"tagValue{i}"] = tag.Value;
+				}
+			}
+		}
+
+		var whereClause = conditions.Count > 0 ? " WHERE " + string.Join(" AND ", conditions) : string.Empty;
+		return (whereClause, parameters);
+	}
+}
+
+public static class SqlCommandExtensions
+{
+	public static void AddParameters(this SqlCommand command, FeatureFlag flag)
+	{
+		command.Parameters.AddWithValue("key", flag.Key);
+		command.Parameters.AddWithValue("name", flag.Name);
+		command.Parameters.AddWithValue("description", flag.Description);
+		command.Parameters.AddWithValue("status", (int)flag.Status);
+		command.Parameters.AddWithValue("created_at", flag.CreatedAt);
+		command.Parameters.AddWithValue("updated_at", flag.UpdatedAt);
+		command.Parameters.AddWithValue("created_by", flag.CreatedBy);
+		command.Parameters.AddWithValue("updated_by", flag.UpdatedBy);
+		command.Parameters.AddWithValue("expiration_date", (object?)flag.ExpirationDate ?? DBNull.Value);
+		command.Parameters.AddWithValue("scheduled_enable_date", (object?)flag.ScheduledEnableDate ?? DBNull.Value);
+		command.Parameters.AddWithValue("scheduled_disable_date", (object?)flag.ScheduledDisableDate ?? DBNull.Value);
+		command.Parameters.AddWithValue("window_start_time", (object?)flag.WindowStartTime ?? DBNull.Value);
+		command.Parameters.AddWithValue("window_end_time", (object?)flag.WindowEndTime ?? DBNull.Value);
+		command.Parameters.AddWithValue("time_zone", (object?)flag.TimeZone ?? DBNull.Value);
+		command.Parameters.AddWithValue("window_days", JsonSerializer.Serialize(flag.WindowDays ?? new()));
+		command.Parameters.AddWithValue("percentage_enabled", flag.PercentageEnabled);
+		command.Parameters.AddWithValue("targeting_rules", JsonSerializer.Serialize(flag.TargetingRules));
+		command.Parameters.AddWithValue("enabled_users", JsonSerializer.Serialize(flag.EnabledUsers));
+		command.Parameters.AddWithValue("disabled_users", JsonSerializer.Serialize(flag.DisabledUsers));
+		command.Parameters.AddWithValue("enabled_tenants", JsonSerializer.Serialize(flag.EnabledTenants));
+		command.Parameters.AddWithValue("disabled_tenants", JsonSerializer.Serialize(flag.DisabledTenants));
+		command.Parameters.AddWithValue("tenant_percentage_enabled", flag.TenantPercentageEnabled);
+		command.Parameters.AddWithValue("variations", JsonSerializer.Serialize(flag.Variations));
+		command.Parameters.AddWithValue("default_variation", flag.DefaultVariation);
+		command.Parameters.AddWithValue("tags", JsonSerializer.Serialize(flag.Tags));
+		command.Parameters.AddWithValue("is_permanent", flag.IsPermanent);
+	}
+
+	public static void AddFilterParameters(this SqlCommand command, Dictionary<string, object> parameters)
+	{
+		foreach (var param in parameters)
+		{
+			command.Parameters.AddWithValue(param.Key, param.Value);
+		}
+	}
+}
+public static class SqlDataReaderExtensions
+{
+	public static async Task<T> Deserialize<T>(this SqlDataReader reader, string columnName)
+	{
+		int ordinal = reader.GetOrdinal(columnName);
+		if (reader.IsDBNull(ordinal))
+			return default!;
+
+		var json = reader.GetString(ordinal);
+		return JsonSerializer.Deserialize<T>(json) ?? default!;
+	}
+
+	public static async Task<DateTime?> GetNullableDateTimeAsync(this SqlDataReader reader, string columnName)
+	{
+		int ordinal = reader.GetOrdinal(columnName);
+		return reader.IsDBNull(ordinal) ? null : reader.GetDateTime(ordinal);
+	}
+
+	public static async Task<TimeSpan?> GetTimeOnly(this SqlDataReader reader, string columnName)
+	{
+		int ordinal = reader.GetOrdinal(columnName);
+		return reader.IsDBNull(ordinal) ? null : reader.GetTimeSpan(ordinal);
+	}
+
+	public static async Task<FeatureFlag> CreateFlag(this SqlDataReader reader)
 	{
 		return new FeatureFlag
 		{
@@ -317,60 +493,5 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
 			Tags = await reader.Deserialize<Dictionary<string, string>>("tags"),
 			IsPermanent = reader.GetBoolean(reader.GetOrdinal("is_permanent"))
 		};
-	}
-
-	private static void AddParameters(SqlCommand command, FeatureFlag flag)
-	{
-		command.Parameters.AddWithValue("key", flag.Key);
-		command.Parameters.AddWithValue("name", flag.Name);
-		command.Parameters.AddWithValue("description", flag.Description);
-		command.Parameters.AddWithValue("status", (int)flag.Status);
-		command.Parameters.AddWithValue("created_at", flag.CreatedAt);
-		command.Parameters.AddWithValue("updated_at", flag.UpdatedAt);
-		command.Parameters.AddWithValue("created_by", flag.CreatedBy);
-		command.Parameters.AddWithValue("updated_by", flag.UpdatedBy);
-		command.Parameters.AddWithValue("expiration_date", (object?)flag.ExpirationDate ?? DBNull.Value);
-		command.Parameters.AddWithValue("scheduled_enable_date", (object?)flag.ScheduledEnableDate ?? DBNull.Value);
-		command.Parameters.AddWithValue("scheduled_disable_date", (object?)flag.ScheduledDisableDate ?? DBNull.Value);
-		command.Parameters.AddWithValue("window_start_time", (object?)flag.WindowStartTime ?? DBNull.Value);
-		command.Parameters.AddWithValue("window_end_time", (object?)flag.WindowEndTime ?? DBNull.Value);
-		command.Parameters.AddWithValue("time_zone", (object?)flag.TimeZone ?? DBNull.Value);
-		command.Parameters.AddWithValue("window_days", JsonSerializer.Serialize(flag.WindowDays ?? new()));
-		command.Parameters.AddWithValue("percentage_enabled", flag.PercentageEnabled);
-		command.Parameters.AddWithValue("targeting_rules", JsonSerializer.Serialize(flag.TargetingRules));
-		command.Parameters.AddWithValue("enabled_users", JsonSerializer.Serialize(flag.EnabledUsers));
-		command.Parameters.AddWithValue("disabled_users", JsonSerializer.Serialize(flag.DisabledUsers));
-		command.Parameters.AddWithValue("enabled_tenants", JsonSerializer.Serialize(flag.EnabledTenants));
-		command.Parameters.AddWithValue("disabled_tenants", JsonSerializer.Serialize(flag.DisabledTenants));
-		command.Parameters.AddWithValue("tenant_percentage_enabled", flag.TenantPercentageEnabled);
-		command.Parameters.AddWithValue("variations", JsonSerializer.Serialize(flag.Variations));
-		command.Parameters.AddWithValue("default_variation", flag.DefaultVariation);
-		command.Parameters.AddWithValue("tags", JsonSerializer.Serialize(flag.Tags));
-		command.Parameters.AddWithValue("is_permanent", flag.IsPermanent);
-	}
-}
-
-public static class SqlDataReaderExtensions
-{
-	public static async Task<T> Deserialize<T>(this SqlDataReader reader, string columnName)
-	{
-		int ordinal = reader.GetOrdinal(columnName);
-		if (reader.IsDBNull(ordinal))
-			return default!;
-
-		var json = reader.GetString(ordinal);
-		return JsonSerializer.Deserialize<T>(json) ?? default!;
-	}
-
-	public static async Task<DateTime?> GetNullableDateTimeAsync(this SqlDataReader reader, string columnName)
-	{
-		int ordinal = reader.GetOrdinal(columnName);
-		return reader.IsDBNull(ordinal) ? null : reader.GetDateTime(ordinal);
-	}
-
-	public static async Task<TimeSpan?> GetTimeOnly(this SqlDataReader reader, string columnName)
-	{
-		int ordinal = reader.GetOrdinal(columnName);
-		return reader.IsDBNull(ordinal) ? null : reader.GetTimeSpan(ordinal);
 	}
 }
