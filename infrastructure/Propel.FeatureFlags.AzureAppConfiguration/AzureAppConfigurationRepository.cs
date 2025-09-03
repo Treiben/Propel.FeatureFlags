@@ -94,4 +94,9 @@ public class AzureAppConfigurationRepository : IFeatureFlagRepository
 		var allFlags = await GetAllAsync(cancellationToken);
 		return allFlags.Where(f => tags.All(tag => f.Tags.ContainsKey(tag.Key) && f.Tags[tag.Key] == tag.Value)).ToList();
 	}
+
+	public Task<PagedResult<FeatureFlag>> GetPagedAsync(int page, int pageSize, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default)
+	{
+		throw new NotImplementedException();
+	}
 }
