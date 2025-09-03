@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using Propel.ClientApi.MinimalApiEndpoints;
 using Propel.ClientApi.Services;
 using Propel.FeatureFlags;
@@ -26,7 +25,11 @@ builder.Services.AddFeatureFlags(featureFlagOptions);
 // If you want to use PostgreSQL for feature flag storage, uncomment the line below
 // 0. Add the Propel.FeatureFlags.PostgresSql package
 // 1. Add the PostgreSQL connection string to appsettings.json
-builder.Services.AddPostgresSqlFeatureFlags(featureFlagOptions.SqlConnectionString);
+var postgresConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+	?? featureFlagOptions.SqlConnectionString // fallback to the configured SQL connection string
+	?? throw new InvalidOperationException("PostgreSQL connection string is required but not found in configuration");
+
+builder.Services.AddPostgresSqlFeatureFlags(postgresConnectionString);
 // Otherwise,you can follow the similar steps to use other storage options like MongoDB, SQL Server, Azure AppConfiguration, etc.
 //-----------------------------------------------------------------------------
 
@@ -35,7 +38,7 @@ builder.Services.AddPostgresSqlFeatureFlags(featureFlagOptions.SqlConnectionStri
 // 0. Add the Propel.FeatureFlags.Redis package
 // 1. Add the Redis connection string to appsettings.json
 // 2. Register the Redis cache
-if (featureFlagOptions.UseCache == true && string.IsNullOrEmpty(featureFlagOptions.RedisConnectionString))
+if (featureFlagOptions.UseCache == true && !string.IsNullOrEmpty(featureFlagOptions.RedisConnectionString))
 	builder.Services.AddRedisCache(featureFlagOptions.RedisConnectionString);
 // If featureFlagOptions.UseCache is true and Redis is not configured, then it will use in-memory caching by default
 // If you don't want any caching, set UseCache to false in appsettings.json
@@ -59,8 +62,12 @@ builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+//-----------------------------------------------------------------------------
+// Ensure database is initialized before handling requests
+await app.InitializeFeatureFlagsDatabase();
+//-----------------------------------------------------------------------------
 
+// Configure the HTTP request pipeline.
 app.UseHttpsRedirection();
 
 app.MapHealthChecks("/health");
@@ -247,6 +254,32 @@ public static class  AppExtensions
 			var ip when ip.StartsWith("192.168") => "US", // Local dev
 			_ => "US" // Default
 		};
+	}
+
+	public static async Task InitializeFeatureFlagsDatabase(this WebApplication app)
+	{
+		try
+		{
+			app.Logger.LogInformation("Starting feature flags database initialization...");
+
+			// This will create the database and tables if they don't exist
+			await app.Services.EnsureFeatureFlagsDatabaseAsync();
+
+			app.Logger.LogInformation("Feature flags database initialization completed successfully");
+		}
+		catch (Exception ex)
+		{
+			app.Logger.LogError(ex, "Failed to initialize feature flags database. Application will continue but feature flags may not work properly.");
+
+			// Decide whether to continue or exit based on your requirements
+			if (app.Environment.IsProduction())
+			{
+				// In production, you might want to exit if database setup fails
+				app.Logger.LogCritical("Exiting application due to database initialization failure in production environment");
+				throw; // Re-throw to stop application startup
+			}
+			// In development/staging, continue running so developers can troubleshoot
+		}
 	}
 }
 
