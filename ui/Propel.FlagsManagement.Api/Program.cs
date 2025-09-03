@@ -61,7 +61,8 @@ builder.Services.AddAuthorizationBuilder()
 	{
 		policy.RequireAuthenticatedUser();
 		policy.RequireClaim("scope", "propel-management-api");
-	});
+	})
+	.AddFallbackPolicy("RequiresReadRights", AuthorizationPolicies.HasReadActionPolicy);
 
 builder.Services.AddFeatureFlags(featureFlagOptions);
 builder.Services.AddPostgresSqlFeatureFlags(featureFlagOptions.SqlConnectionString);
@@ -101,6 +102,8 @@ if (!string.IsNullOrEmpty(featureFlagOptions.RedisConnectionString))
 
 var app = builder.Build();
 
+await app.InitializeFeatureFlagsDatabase();
+
 // Configure the HTTP request pipeline.
 app.UseHttpsRedirection();
 
@@ -123,3 +126,32 @@ app.MapHealthCheckEndpoints();
 app.MapApplicationEndpoints();
 
 app.Run();
+
+public static class AppExtensions
+{
+	public static async Task InitializeFeatureFlagsDatabase(this WebApplication app)
+	{
+		try
+		{
+			app.Logger.LogInformation("Starting feature flags database initialization...");
+
+			// This will create the database and tables if they don't exist
+			await app.Services.EnsureFeatureFlagsDatabaseAsync();
+
+			app.Logger.LogInformation("Feature flags database initialization completed successfully");
+		}
+		catch (Exception ex)
+		{
+			app.Logger.LogError(ex, "Failed to initialize feature flags database. Application will continue but feature flags may not work properly.");
+
+			// Decide whether to continue or exit based on your requirements
+			if (app.Environment.IsProduction())
+			{
+				// In production, you might want to exit if database setup fails
+				app.Logger.LogCritical("Exiting application due to database initialization failure in production environment");
+				throw; // Re-throw to stop application startup
+			}
+			// In development/staging, continue running so developers can troubleshoot
+		}
+	}
+}
