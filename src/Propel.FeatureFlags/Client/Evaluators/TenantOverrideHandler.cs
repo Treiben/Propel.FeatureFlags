@@ -1,59 +1,47 @@
 ﻿using Propel.FeatureFlags.Core;
 
-namespace Propel.FeatureFlags.Client.Evaluators
+namespace Propel.FeatureFlags.Client.Evaluators;
+
+public sealed class TenantOverrideHandler: ChainableEvaluationHandler<TenantOverrideHandler>, IOrderedEvaluationHandler
 {
-	public sealed class TenantOverrideHandler: FlagEvaluationHandlerBase<TenantOverrideHandler>
+	public int EvaluationOrder => 1;
+
+	bool IOrderedEvaluationHandler.CanProcess(FeatureFlag flag, EvaluationContext context)
 	{
-		protected override bool CanProcess(FeatureFlag flag, EvaluationContext context)
+		return CanProcess(flag, context);
+	}
+
+	Task<EvaluationResult?> IOrderedEvaluationHandler.ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
+	{
+		return ProcessEvaluation(flag, context);
+	}
+
+	protected override bool CanProcess(FeatureFlag flag, EvaluationContext context)
+	{
+		// Always check tenant overrides first if tenant ID is provided
+		return !string.IsNullOrWhiteSpace(context.TenantId);
+	}
+
+	protected override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
+	{
+		var tenantId = context.TenantId!;
+		if (!flag.Tenants.IsTenantExplicitlySet(tenantId))
 		{
-			// Always check tenant overrides first if tenant ID is provided
-			return !string.IsNullOrWhiteSpace(context.TenantId);
-		}
-
-		protected override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
-		{
-			var tenantId = context.TenantId!;
-
-			// Check explicit tenant overrides first
-			if (flag.DisabledTenants.Contains(tenantId, StringComparer.OrdinalIgnoreCase))
-			{
-				return new EvaluationResult(isEnabled: false, variation: flag.DefaultVariation, reason: "Tenant explicitly disabled");
-			}
-
-			if (flag.EnabledTenants.Contains(tenantId, StringComparer.OrdinalIgnoreCase))
-			{
-				// Continue to user-level evaluation - tenant is allowed
-				return null;
-			}
 			// Check tenant-level percentage rollout
-			var tenantAllowed = EvaluateTenantPercentage(flag, tenantId);
+			var tenantAllowed = flag.Tenants.IsInTenantPercentageRollout(flag.Key, tenantId);
 			if (!tenantAllowed)
 			{
-				return new EvaluationResult(isEnabled: false, variation: flag.DefaultVariation, reason: "Tenant not in percentage rollout");
+				return new EvaluationResult(isEnabled: false, variation: flag.Variations.DefaultVariation, reason: "Tenant not in percentage rollout");
 			}
-			// Continue to user-level evaluation - tenant is allowed
-			return null;
 		}
 
-		private bool EvaluateTenantPercentage(FeatureFlag flag, string tenantId)
+		// Check explicit tenant overrides
+		if (!flag.Tenants.IsTenantEnabled(tenantId))
 		{
-			if (flag.TenantPercentageEnabled <= 0)
-			{
-				return false;
-			}
-
-			if (flag.TenantPercentageEnabled >= 100)
-			{
-				return true;
-			}
-
-			// Use consistent hashing to ensure same tenant always gets same result
-			var hashInput = $"{flag.Key}:tenant:{tenantId}";
-			var hash = Hasher.ComputeHash(hashInput);
-			var percentage = hash % 100;
-			var isAllowed = percentage < flag.TenantPercentageEnabled;
-
-			return isAllowed;
+			return new EvaluationResult(isEnabled: false, variation: flag.Variations.DefaultVariation, reason: "Tenant explicitly disabled");
 		}
+
+		// Continue to user-level evaluation - tenant is allowed
+		return null;
 	}
 }

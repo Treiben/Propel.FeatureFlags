@@ -1,33 +1,38 @@
 using Propel.FeatureFlags.Core;
 
-namespace Propel.FeatureFlags.Client.Evaluators
+namespace Propel.FeatureFlags.Client.Evaluators;
+
+public sealed class UserOverrideHandler : ChainableEvaluationHandler<UserOverrideHandler>, IOrderedEvaluationHandler
 {
-	public sealed class UserOverrideHandler : FlagEvaluationHandlerBase<UserOverrideHandler>
+	public int EvaluationOrder => 2;
+
+	bool IOrderedEvaluationHandler.CanProcess(FeatureFlag flag, EvaluationContext context)
 	{
-		protected override bool CanProcess(FeatureFlag flag, EvaluationContext context)
+		return CanProcess(flag, context);
+	}
+
+	Task<EvaluationResult?> IOrderedEvaluationHandler.ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
+	{
+		return ProcessEvaluation(flag, context);
+	}
+
+	protected override bool CanProcess(FeatureFlag flag, EvaluationContext context)
+	{
+		// Check user overrides if user ID is provided
+		return !string.IsNullOrWhiteSpace(context.UserId);
+	}
+
+	protected override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
+	{
+		var userId = context.UserId!;
+
+		if (!flag.Users.IsUserExplicitlySet(userId))
 		{
-			// Check user overrides if user ID is provided
-			return !string.IsNullOrWhiteSpace(context.UserId);
-		}
-
-		protected override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
-		{
-			var userId = context.UserId!;
-
-			// Check explicit user disabled list
-			if (flag.DisabledUsers.Contains(userId))
-			{
-				return new EvaluationResult(isEnabled: false, variation: flag.DefaultVariation, reason: "User explicitly disabled");
-			}
-
-			// Check explicit user enabled list
-			if (flag.EnabledUsers.Contains(userId))
-			{
-				return new EvaluationResult(isEnabled: true, variation: "on", reason: "User explicitly enabled");
-			}
-
-			// User not in any override lists, continue to next evaluator
 			return await CallNext(flag, context);
 		}
+
+		return flag.Users.IsUserEnabled(userId)
+			? new EvaluationResult(isEnabled: true, variation: "on", reason: "User explicitly enabled")
+			: new EvaluationResult(isEnabled: false, variation: flag.Variations.DefaultVariation, reason: "User explicitly disabled");
 	}
 }

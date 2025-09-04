@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Propel.FeatureFlags.Cache;
 using Propel.FeatureFlags.Client;
+using Propel.FeatureFlags.Client.Evaluators;
 using Propel.FeatureFlags.Core;
 
 namespace Propel.FeatureFlags;
@@ -14,8 +15,19 @@ public static class ServiceCollectionExtensions
 		services.AddSingleton<IFeatureFlagEvaluator, FeatureFlagEvaluator>();
 		services.AddSingleton<IFeatureFlagClient, FeatureFlagClient>();
 
-		// Register chain builder and context evaluator
-		services.AddSingleton(_ => EvaluatorChainBuilder.BuildChain());
+		// Register chain builder with all handlers
+		//services.AddSingleton<IChainableEvaluationHandler>(_ => EvaluatorChainBuilder.BuildChain());
+
+		// Register evaluation manager with all handlers
+		services.AddSingleton(_ => new FlagEvaluationManager(
+			[	new TenantOverrideHandler(),
+				new UserOverrideHandler(),
+				new ScheduledFlagHandler(),
+				new TimeWindowFlagHandler(),
+				new TargetedFlagHandler(),
+				new UserPercentageHandler(),
+				new StatusBasedFlagHandler()
+			]));
 
 		if (options.UseCache == true && string.IsNullOrEmpty(options.RedisConnectionString))
 			services.TryAddSingleton<IFeatureFlagCache, MemoryFeatureFlagCache>();

@@ -1,70 +1,74 @@
 ﻿using Propel.FeatureFlags.Core;
 
-namespace Propel.FeatureFlags.Client.Evaluators
+namespace Propel.FeatureFlags.Client.Evaluators;
+
+public sealed class TargetedFlagHandler : ChainableEvaluationHandler<TargetedFlagHandler>, IOrderedEvaluationHandler
 {
-	public sealed class TargetedFlagHandler : FlagEvaluationHandlerBase<TargetedFlagHandler>
+	public int EvaluationOrder => 5;
+
+	bool IOrderedEvaluationHandler.CanProcess(FeatureFlag flag, EvaluationContext context)
 	{
-		protected override bool CanProcess(FeatureFlag flag, EvaluationContext context)
+		return CanProcess(flag, context);
+	}
+
+	Task<EvaluationResult?> IOrderedEvaluationHandler.ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
+	{
+		return ProcessEvaluation(flag, context);
+	}
+
+	protected override bool CanProcess(FeatureFlag flag, EvaluationContext context)
+	{
+		return flag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.UserTargeted]);
+	}
+
+	protected override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
+	{
+		// Build enriched attributes that include tenant and user context
+		var enrichedAttributes = new Dictionary<string, object>(context.Attributes);
+		if (!string.IsNullOrWhiteSpace(context.TenantId))
 		{
-			return flag.Status is FeatureFlagStatus.UserTargeted
-				or FeatureFlagStatus.PercentageWithUserTargeting
-				or FeatureFlagStatus.ScheduledWithPercentageAndUserTargeting
-				or FeatureFlagStatus.ScheduledWithTimeWindowAndPercentageAndUserTargeting
-				or FeatureFlagStatus.ScheduledWithTimeWindowAndUserTargeting
-				or FeatureFlagStatus.ScheduledWithUserTargeting
-				or FeatureFlagStatus.TimeWindowWithPercentageAndUserTargeting
-				or FeatureFlagStatus.TimeWindowWithUserTargeting;
+			enrichedAttributes["tenantId"] = context.TenantId;
+		}
+		if (!string.IsNullOrWhiteSpace(context.UserId))
+		{
+			enrichedAttributes["userId"] = context.UserId;
 		}
 
-		protected override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
+		// Evaluate targeting rules
+		foreach (var rule in flag.TargetingRules)
 		{
-			// Build enriched attributes that include tenant and user context
-			var enrichedAttributes = new Dictionary<string, object>(context.Attributes);
-			if (!string.IsNullOrWhiteSpace(context.TenantId))
+			if (EvaluateTargetingRule(rule, enrichedAttributes))
 			{
-				enrichedAttributes["tenantId"] = context.TenantId;
+				return new EvaluationResult(isEnabled: true, variation: rule.Variation, reason: $"Targeting rule matched: {rule.Attribute} {rule.Operator} {string.Join(",", rule.Values)}");
 			}
-			if (!string.IsNullOrWhiteSpace(context.UserId))
-			{
-				enrichedAttributes["userId"] = context.UserId;
-			}
-
-			// Evaluate targeting rules
-			foreach (var rule in flag.TargetingRules)
-			{
-				if (EvaluateTargetingRule(rule, enrichedAttributes))
-				{
-					return new EvaluationResult(isEnabled: true, variation: rule.Variation, reason: $"Targeting rule matched: {rule.Attribute} {rule.Operator} {string.Join(",", rule.Values)}");
-				}
-			}
-
-			return new EvaluationResult(isEnabled: false, variation: flag.DefaultVariation, reason: "No targeting rules matched");
 		}
 
-		private bool EvaluateTargetingRule(TargetingRule rule, Dictionary<string, object> attributes)
+		return new EvaluationResult(isEnabled: false, variation: flag.Variations.DefaultVariation, reason: "No targeting rules matched");
+	}
+
+	private bool EvaluateTargetingRule(TargetingRule rule, Dictionary<string, object> attributes)
+	{
+		if (!attributes.TryGetValue(rule.Attribute, out var attributeValue))
 		{
-			if (!attributes.TryGetValue(rule.Attribute, out var attributeValue))
-			{
-				return false;
-			}
-
-			var stringValue = attributeValue?.ToString() ?? string.Empty;
-			var result = rule.Operator switch
-			{
-				TargetingOperator.Equals => rule.Values.Contains(stringValue, StringComparer.OrdinalIgnoreCase),
-				TargetingOperator.NotEquals => !rule.Values.Contains(stringValue, StringComparer.OrdinalIgnoreCase),
-				TargetingOperator.Contains => rule.Values.Any(v => stringValue.IndexOf(v, StringComparison.OrdinalIgnoreCase) >= 0),
-				TargetingOperator.NotContains => rule.Values.All(v => stringValue.IndexOf(v, StringComparison.OrdinalIgnoreCase) < 0),
-				TargetingOperator.In => rule.Values.Contains(stringValue, StringComparer.OrdinalIgnoreCase),
-				TargetingOperator.NotIn => !rule.Values.Contains(stringValue, StringComparer.OrdinalIgnoreCase),
-				TargetingOperator.GreaterThan => double.TryParse(stringValue, out var numValue) &&
-											   rule.Values.Any(v => double.TryParse(v, out var ruleValue) && numValue > ruleValue),
-				TargetingOperator.LessThan => double.TryParse(stringValue, out var numValue2) &&
-											rule.Values.Any(v => double.TryParse(v, out var ruleValue) && numValue2 < ruleValue),
-				_ => false
-			};
-
-			return result;
+			return false;
 		}
+
+		var stringValue = attributeValue?.ToString() ?? string.Empty;
+		var result = rule.Operator switch
+		{
+			TargetingOperator.Equals => rule.Values.Contains(stringValue, StringComparer.OrdinalIgnoreCase),
+			TargetingOperator.NotEquals => !rule.Values.Contains(stringValue, StringComparer.OrdinalIgnoreCase),
+			TargetingOperator.Contains => rule.Values.Any(v => stringValue.IndexOf(v, StringComparison.OrdinalIgnoreCase) >= 0),
+			TargetingOperator.NotContains => rule.Values.All(v => stringValue.IndexOf(v, StringComparison.OrdinalIgnoreCase) < 0),
+			TargetingOperator.In => rule.Values.Contains(stringValue, StringComparer.OrdinalIgnoreCase),
+			TargetingOperator.NotIn => !rule.Values.Contains(stringValue, StringComparer.OrdinalIgnoreCase),
+			TargetingOperator.GreaterThan => double.TryParse(stringValue, out var numValue) &&
+										   rule.Values.Any(v => double.TryParse(v, out var ruleValue) && numValue > ruleValue),
+			TargetingOperator.LessThan => double.TryParse(stringValue, out var numValue2) &&
+										rule.Values.Any(v => double.TryParse(v, out var ruleValue) && numValue2 < ruleValue),
+			_ => false
+		};
+
+		return result;
 	}
 }
