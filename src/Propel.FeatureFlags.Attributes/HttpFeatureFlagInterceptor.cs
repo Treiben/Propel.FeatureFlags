@@ -137,7 +137,7 @@ namespace Propel.FeatureFlags.Attributes
 			return context.FeatureFlags()?.IsEnabledAsync(flagKey).Result ?? false;
 		}
 
-		private object? GetDefaultValue(Type type)
+		private static object? GetDefaultValue(Type type)
 		{
 			return type.IsValueType ? Activator.CreateInstance(type) : null;
 		}

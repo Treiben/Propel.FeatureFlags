@@ -1,6 +1,5 @@
 ﻿using Castle.Core.Internal;
 using Castle.DynamicProxy;
-using Propel.FeatureFlags.Client;
 using System.Reflection;
 
 namespace Propel.FeatureFlags.Attributes
@@ -136,7 +135,7 @@ namespace Propel.FeatureFlags.Attributes
 			return (T)GetDefaultValue(typeof(T))!;
 		}
 
-		private object? GetDefaultValue(Type type)
+		private static object? GetDefaultValue(Type type)
 		{
 			return type.IsValueType ? Activator.CreateInstance(type) : null;
 		}

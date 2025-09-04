@@ -1,14 +1,9 @@
 ﻿namespace Propel.FeatureFlags.Attributes
 {
-	public class FeatureFlaggedAttribute : Attribute
+	[AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+	public class FeatureFlaggedAttribute(string flagKey, string? fallbackMethod = null) : Attribute
 	{
-		public string FlagKey { get; }
-		public string FallbackMethod { get; }
-
-		public FeatureFlaggedAttribute(string flagKey, string fallbackMethod = null)
-		{
-			FlagKey = flagKey;
-			FallbackMethod = fallbackMethod;
-		} 
+		public string FlagKey { get; } = flagKey;
+		public string? FallbackMethod { get; } = fallbackMethod;
 	}
 }
