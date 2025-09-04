@@ -1,29 +1,14 @@
-﻿using Propel.FeatureFlags.Client;
+﻿namespace Propel.FeatureFlags.AspNetCore;
 
-namespace Propel.FeatureFlags.AspNetCore;
-
-public class HttpContextFeatureFlagEvaluator
+public class HttpContextFeatureFlagEvaluator(IFeatureFlagClient client, string? tenantId, string? userId, Dictionary<string, object> attributes)
 {
-	private readonly IFeatureFlagClient _client;
-	private readonly string ? _tenantId;
-	private readonly string? _userId;
-	private readonly Dictionary<string, object> _attributes;
-
-	public HttpContextFeatureFlagEvaluator(IFeatureFlagClient client, string? tenantId, string? userId, Dictionary<string, object> attributes)
-	{
-		_client = client;
-		_tenantId = tenantId;
-		_userId = userId;
-		_attributes = attributes;
-	}
-
 	public async Task<bool> IsEnabledAsync(string flagKey)
 	{
-		return await _client.IsEnabledAsync(flagKey: flagKey, tenantId: _tenantId, userId: _userId, attributes: _attributes);
+		return await client.IsEnabledAsync(flagKey: flagKey, tenantId: tenantId, userId: userId, attributes: attributes);
 	}
 
 	public async Task<T> GetVariationAsync<T>(string flagKey, T defaultValue)
 	{
-		return await _client.GetVariationAsync(flagKey: flagKey, defaultValue: defaultValue, tenantId: _tenantId, userId: _userId, attributes: _attributes); 
+		return await client.GetVariationAsync(flagKey: flagKey, defaultValue: defaultValue, tenantId: tenantId, userId: userId, attributes: attributes); 
 	}
 }

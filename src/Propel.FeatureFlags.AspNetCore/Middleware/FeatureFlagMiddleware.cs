@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Propel.FeatureFlags.Client;
 
 namespace Propel.FeatureFlags.AspNetCore.Middleware;
 
