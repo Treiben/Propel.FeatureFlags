@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Propel.FeatureFlags.Cache;
-using Propel.FeatureFlags.Client;
-using Propel.FeatureFlags.Client.Evaluators;
 using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Evaluation;
+using Propel.FeatureFlags.Evaluation.Handlers;
 
 namespace Propel.FeatureFlags;
 

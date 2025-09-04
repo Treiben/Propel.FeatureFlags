@@ -1,4 +1,6 @@
-﻿namespace Propel.FeatureFlags.Client;
+﻿using Propel.FeatureFlags.Evaluation;
+
+namespace Propel.FeatureFlags;
 
 public interface IFeatureFlagClient
 {

@@ -1,4 +1,4 @@
-﻿namespace Propel.FeatureFlags.Client;
+﻿namespace Propel.FeatureFlags.Evaluation;
 
 public class EvaluationResult
 {

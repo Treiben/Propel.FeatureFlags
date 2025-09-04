@@ -6,7 +6,7 @@ public class FlagUserLevelControl
 	public List<string> DisabledUsers { get; set; } = [];
 	public int PercentageEnabled { get; set; }
 
-	public static FlagUserLevelControl Unrestricted => new FlagUserLevelControl
+	public static FlagUserLevelControl Unrestricted => new()
 	{
 		EnabledUsers = [],
 		DisabledUsers = [],

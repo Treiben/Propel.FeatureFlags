@@ -1,9 +1,9 @@
 ﻿using Propel.FeatureFlags.Cache;
-using Propel.FeatureFlags.Client.Evaluators;
 using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Evaluation.Handlers;
 using System.Text.Json;
 
-namespace Propel.FeatureFlags.Client;
+namespace Propel.FeatureFlags.Evaluation;
 
 public interface IFeatureFlagEvaluator
 {
@@ -77,7 +77,7 @@ public sealed class FeatureFlagEvaluator : IFeatureFlagEvaluator
 				flag = await _repository.GetAsync(flagKey, cancellationToken);
 			}
 
-			if (flag?.Variations.Variations.TryGetValue(result.Variation, out var variationValue) == true)
+			if (flag?.Variations.Values.TryGetValue(result.Variation, out var variationValue) == true)
 			{
 				if (variationValue is JsonElement jsonElement)
 				{

@@ -1,6 +1,7 @@
 ﻿using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Evaluation.Handlers;
 
-namespace Propel.FeatureFlags.Client.Evaluators;
+namespace Propel.FeatureFlags.Evaluation;
 
 public sealed class FlagEvaluationManager
 {

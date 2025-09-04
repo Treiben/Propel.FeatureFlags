@@ -13,7 +13,8 @@ public class FlagSchedule
 
 	public bool IsSet()
 	{
-		return ScheduledEnableDate.HasValue || ScheduledDisableDate.HasValue;
+		return (ScheduledEnableDate.HasValue && ScheduledEnableDate != DateTime.MinValue)
+			|| (ScheduledDisableDate.HasValue && ScheduledDisableDate != DateTime.MinValue);
 	}
 
 	public (bool, string) IsEnabled(DateTime evaluationTime)

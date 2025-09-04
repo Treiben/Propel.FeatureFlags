@@ -2,12 +2,12 @@
 
 public class FlagVariations
 {
-	public Dictionary<string, object> Variations { get; set; } = [];
+	public Dictionary<string, object> Values { get; set; } = [];
 	public string DefaultVariation { get; set; } = "off";
 
-	public static FlagVariations OnOff => new FlagVariations
+	public static FlagVariations OnOff => new()
 	{
-		Variations = new Dictionary<string, object>
+		Values = new Dictionary<string, object>
 		{
 			{ "off", false },
 			{ "on", true }

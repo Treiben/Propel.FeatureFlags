@@ -1,6 +1,6 @@
 using Propel.FeatureFlags.Core;
 
-namespace Propel.FeatureFlags.Client.Evaluators;
+namespace Propel.FeatureFlags.Evaluation.Handlers;
 
 public sealed class UserOverrideHandler : ChainableEvaluationHandler<UserOverrideHandler>, IOrderedEvaluationHandler
 {
