@@ -15,6 +15,14 @@ public class FlagEvaluationModeSet
 {
 	public FlagEvaluationMode[] EvaluationModes { get; private set; } = [FlagEvaluationMode.Disabled];
 
+	public static FlagEvaluationModeSet LoadModes(FlagEvaluationMode[] modes)
+	{
+		var modeSet = new FlagEvaluationModeSet();
+		foreach (var mode in modes)
+			modeSet.AddMode(mode);
+		return modeSet;
+	}
+
 	public FlagEvaluationModeSet AddMode(FlagEvaluationMode mode)
 	{
 		if (mode == FlagEvaluationMode.Disabled)

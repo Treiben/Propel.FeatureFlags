@@ -179,7 +179,7 @@ public class FlagUserAccessControl
 			return this; // No change needed
 		}
 
-		return new FlagUserAccessControl(AllowedUsers.ToList(), BlockedUsers.ToList(), percentage);
+		return new FlagUserAccessControl([.. AllowedUsers], [.. BlockedUsers], percentage);
 	}
 
 	private bool IsUserAllowed(string userId)

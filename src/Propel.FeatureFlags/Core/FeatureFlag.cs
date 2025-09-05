@@ -18,5 +18,5 @@ public class FeatureFlag
 	// Metadata
 	public Dictionary<string, string> Tags { get; set; } = [];
 	public bool IsPermanent { get; set; } = false;
-	public FlagAuditRecord AutidRecord { get; set; } = FlagAuditRecord.NewFlag();
+	public FlagAuditRecord AuditRecord { get; set; } = FlagAuditRecord.NewFlag();
 }
