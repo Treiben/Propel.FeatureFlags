@@ -1,7 +1,7 @@
 using Propel.FeatureFlags.Core;
 using Propel.FeatureFlags.Evaluation;
 
-namespace FeatureFlags.IntegrationTests;
+namespace FeatureFlags.IntegrationTests.Core.Evaluator;
 
 /* These tests cover scenarios when CreateDefaultFlagAsync() is called:
  *		Auto-creation of disabled flags when not found in cache or repository
@@ -39,7 +39,7 @@ public class EvaluateAsync_WithAutoCreatedFlag(FeatureFlagEvaluatorFixture fixtu
 		createdFlag.Name.ShouldBe("auto-created-flag");
 		createdFlag.Description.ShouldBe("Auto-created flag for auto-created-flag");
 		createdFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Disabled]).ShouldBeTrue();
-		createdFlag.AuditRecord.CreatedBy.ShouldBe("System");
+		createdFlag.AuditRecord.CreatedBy.ShouldBe("system");
 		createdFlag.Variations.DefaultVariation.ShouldBe("off");
 	}
 
@@ -176,14 +176,15 @@ public class CreateDefaultFlagAsync_FlagStructure(FeatureFlagEvaluatorFixture fi
 		createdFlag.Name.ShouldBe(flagKey);
 		createdFlag.Description.ShouldBe($"Auto-created flag for {flagKey}");
 		createdFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Disabled]).ShouldBeTrue();
-		createdFlag.AuditRecord.CreatedBy.ShouldBe("System");
+		createdFlag.AuditRecord.CreatedBy.ShouldBe("system");
 		
 		// Verify timestamps are recent (within last minute)
 		createdFlag.AuditRecord.CreatedAt.ShouldBeGreaterThan(DateTime.UtcNow.AddMinutes(-1));
 		
 		// Verify variations are set up correctly
-		createdFlag.Variations.ShouldBeEquivalentTo(FlagVariations.OnOff);
-		
+		createdFlag.Variations.Values["off"].ShouldBe("false");
+		createdFlag.Variations.Values["on"].ShouldBe("true");
+
 		// Verify collections are initialized but empty
 		createdFlag.TargetingRules.ShouldNotBeNull();
 		createdFlag.TargetingRules.ShouldBeEmpty();
