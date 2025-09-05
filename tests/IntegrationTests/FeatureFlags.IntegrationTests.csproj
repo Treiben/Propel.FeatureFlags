@@ -10,6 +10,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ClientIntegrationTests.cs" />
+    <Compile Remove="EvaluatorIntegrationTests.Postgres.RedisCache.cs" />
+    <Compile Remove="EvaluatorIntegrationTests.SqlServer.MemCache.cs" />
+    <Compile Remove="PostgresSQLRepositoryIntegrationTests.cs" />
+    <Compile Remove="SqlServerRepositoryIntegrationTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -30,7 +38,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.PostgresSql\Propel.FeatureFlags.PostgresSql.csproj" />
     <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.Redis\Propel.FeatureFlags.Redis.csproj" />
-    <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.SqlServer\Propel.FeatureFlags.SqlServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

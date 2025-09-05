@@ -29,7 +29,7 @@ public class CreateAsync_WithValidFlag : IClassFixture<PostgreSQLFeatureFlagRepo
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("create-test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("create-test", FlagEvaluationMode.Enabled);
 
 		// Act
 		var result = await _fixture.Repository.CreateAsync(flag);
@@ -48,7 +48,7 @@ public class CreateAsync_WithValidFlag : IClassFixture<PostgreSQLFeatureFlagRepo
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("time-flag", FeatureFlagStatus.TimeWindow);
+		var flag = _fixture.CreateTestFlag("time-flag", FlagEvaluationMode.TimeWindow);
 		flag.ExpirationDate = DateTime.UtcNow.AddDays(30);
 		flag.ScheduledEnableDate = DateTime.UtcNow.AddHours(1);
 		flag.ScheduledDisableDate = DateTime.UtcNow.AddDays(7);
@@ -78,7 +78,7 @@ public class CreateAsync_WithValidFlag : IClassFixture<PostgreSQLFeatureFlagRepo
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("percentage-flag", FeatureFlagStatus.Percentage);
+		var flag = _fixture.CreateTestFlag("percentage-flag", FlagEvaluationMode.UserRolloutPercentage);
 		flag.PercentageEnabled = 75;
 
 		// Act
@@ -105,13 +105,13 @@ public class When_FlagExists : IClassFixture<PostgreSQLFeatureFlagRepositoryFixt
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("update-test", FeatureFlagStatus.Disabled);
+		var flag = _fixture.CreateTestFlag("update-test", FlagEvaluationMode.Disabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		var originalUpdatedAt = flag.UpdatedAt;
 		await Task.Delay(10); // Ensure time difference
 
-		flag.Status = FeatureFlagStatus.Enabled;
+		flag.Status = FlagEvaluationMode.Enabled;
 		flag.Name = "Updated Name";
 		flag.Description = "Updated Description";
 		flag.UpdatedBy = "updater";
@@ -126,7 +126,7 @@ public class When_FlagExists : IClassFixture<PostgreSQLFeatureFlagRepositoryFixt
 		// Verify changes in database
 		var retrieved = await _fixture.Repository.GetAsync("update-test");
 		retrieved.ShouldNotBeNull();
-		retrieved.Status.ShouldBe(FeatureFlagStatus.Enabled);
+		retrieved.Status.ShouldBe(FlagEvaluationMode.Enabled);
 		retrieved.Name.ShouldBe("Updated Name");
 		retrieved.Description.ShouldBe("Updated Description");
 		retrieved.UpdatedBy.ShouldBe("updater");
@@ -138,7 +138,7 @@ public class When_FlagExists : IClassFixture<PostgreSQLFeatureFlagRepositoryFixt
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("complex-update", FeatureFlagStatus.UserTargeted);
+		var flag = _fixture.CreateTestFlag("complex-update", FlagEvaluationMode.UserTargeted);
 		await _fixture.Repository.CreateAsync(flag);
 
 		flag.TargetingRules = new List<TargetingRule>
@@ -178,7 +178,7 @@ public class When_FlagExists : IClassFixture<PostgreSQLFeatureFlagRepositoryFixt
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("delete-test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("delete-test", FlagEvaluationMode.Enabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -197,7 +197,7 @@ public class When_FlagExists : IClassFixture<PostgreSQLFeatureFlagRepositoryFixt
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("test-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("test-flag", FlagEvaluationMode.Enabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -207,7 +207,7 @@ public class When_FlagExists : IClassFixture<PostgreSQLFeatureFlagRepositoryFixt
 		result.ShouldNotBeNull();
 		result.Key.ShouldBe("test-flag");
 		result.Name.ShouldBe(flag.Name);
-		result.Status.ShouldBe(FeatureFlagStatus.Enabled);
+		result.Status.ShouldBe(FlagEvaluationMode.Enabled);
 		result.CreatedBy.ShouldBe(flag.CreatedBy);
 		result.UpdatedBy.ShouldBe(flag.UpdatedBy);
 	}
@@ -217,7 +217,7 @@ public class When_FlagExists : IClassFixture<PostgreSQLFeatureFlagRepositoryFixt
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("test-flag", FeatureFlagStatus.Disabled);
+		var flag = _fixture.CreateTestFlag("test-flag", FlagEvaluationMode.Disabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -227,7 +227,7 @@ public class When_FlagExists : IClassFixture<PostgreSQLFeatureFlagRepositoryFixt
 		result.ShouldNotBeNull();
 		result.Key.ShouldBe("test-flag");
 		result.Name.ShouldBe(flag.Name);
-		result.Status.ShouldBe(FeatureFlagStatus.Disabled);
+		result.Status.ShouldBe(FlagEvaluationMode.Disabled);
 		result.CreatedBy.ShouldBe(flag.CreatedBy);
 		result.UpdatedBy.ShouldBe(flag.UpdatedBy);
 	}
@@ -237,7 +237,7 @@ public class When_FlagExists : IClassFixture<PostgreSQLFeatureFlagRepositoryFixt
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("complex-flag", FeatureFlagStatus.UserTargeted);
+		var flag = _fixture.CreateTestFlag("complex-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = new List<TargetingRule>
 		{
 			new TargetingRule
@@ -296,11 +296,11 @@ public class When_FlagExists : IClassFixture<PostgreSQLFeatureFlagRepositoryFixt
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag1 = _fixture.CreateTestFlag("flag-1", FeatureFlagStatus.Enabled);
+		var flag1 = _fixture.CreateTestFlag("flag-1", FlagEvaluationMode.Enabled);
 		flag1.Name = "Alpha Flag";
-		var flag2 = _fixture.CreateTestFlag("flag-2", FeatureFlagStatus.Disabled);
+		var flag2 = _fixture.CreateTestFlag("flag-2", FlagEvaluationMode.Disabled);
 		flag2.Name = "Beta Flag";
-		var flag3 = _fixture.CreateTestFlag("flag-3", FeatureFlagStatus.Scheduled);
+		var flag3 = _fixture.CreateTestFlag("flag-3", FlagEvaluationMode.Scheduled);
 		flag3.Name = "Gamma Flag";
 
 		await _fixture.Repository.CreateAsync(flag1);
@@ -347,7 +347,7 @@ public class When_FlagDoesNotExist : IClassFixture<PostgreSQLFeatureFlagReposito
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("non-existent", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("non-existent", FlagEvaluationMode.Enabled);
 
 		// Act & Assert
 		var exception = await Should.ThrowAsync<InvalidOperationException>(
@@ -394,19 +394,19 @@ public class GetExpiringAsync_WithExpiringFlags : IClassFixture<PostgreSQLFeatur
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var expiredFlag = _fixture.CreateTestFlag("expired-flag", FeatureFlagStatus.Enabled);
+		var expiredFlag = _fixture.CreateTestFlag("expired-flag", FlagEvaluationMode.Enabled);
 		expiredFlag.ExpirationDate = DateTime.UtcNow.AddDays(-1);
 		expiredFlag.IsPermanent = false;
 
-		var expiringFlag = _fixture.CreateTestFlag("expiring-flag", FeatureFlagStatus.Enabled);
+		var expiringFlag = _fixture.CreateTestFlag("expiring-flag", FlagEvaluationMode.Enabled);
 		expiringFlag.ExpirationDate = DateTime.UtcNow.AddHours(1);
 		expiringFlag.IsPermanent = false;
 
-		var permanentFlag = _fixture.CreateTestFlag("permanent-flag", FeatureFlagStatus.Enabled);
+		var permanentFlag = _fixture.CreateTestFlag("permanent-flag", FlagEvaluationMode.Enabled);
 		permanentFlag.ExpirationDate = DateTime.UtcNow.AddDays(-1);
 		permanentFlag.IsPermanent = true;
 
-		var futureFlag = _fixture.CreateTestFlag("future-flag", FeatureFlagStatus.Enabled);
+		var futureFlag = _fixture.CreateTestFlag("future-flag", FlagEvaluationMode.Enabled);
 		futureFlag.ExpirationDate = DateTime.UtcNow.AddDays(30);
 		futureFlag.IsPermanent = false;
 
@@ -431,7 +431,7 @@ public class GetExpiringAsync_WithExpiringFlags : IClassFixture<PostgreSQLFeatur
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("future-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("future-flag", FlagEvaluationMode.Enabled);
 		flag.ExpirationDate = DateTime.UtcNow.AddDays(30);
 		flag.IsPermanent = false;
 		await _fixture.Repository.CreateAsync(flag);
@@ -458,21 +458,21 @@ public class GetByTagsAsync_WithMatchingTags : IClassFixture<PostgreSQLFeatureFl
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag1 = _fixture.CreateTestFlag("platform-flag", FeatureFlagStatus.Enabled);
+		var flag1 = _fixture.CreateTestFlag("platform-flag", FlagEvaluationMode.Enabled);
 		flag1.Tags = new Dictionary<string, string>
 		{
 			{ "team", "platform" },
 			{ "environment", "production" }
 		};
 
-		var flag2 = _fixture.CreateTestFlag("feature-flag", FeatureFlagStatus.Enabled);
+		var flag2 = _fixture.CreateTestFlag("feature-flag", FlagEvaluationMode.Enabled);
 		flag2.Tags = new Dictionary<string, string>
 		{
 			{ "team", "features" },
 			{ "environment", "production" }
 		};
 
-		var flag3 = _fixture.CreateTestFlag("dev-flag", FeatureFlagStatus.Enabled);
+		var flag3 = _fixture.CreateTestFlag("dev-flag", FlagEvaluationMode.Enabled);
 		flag3.Tags = new Dictionary<string, string>
 		{
 			{ "team", "platform" },
@@ -501,14 +501,14 @@ public class GetByTagsAsync_WithMatchingTags : IClassFixture<PostgreSQLFeatureFl
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag1 = _fixture.CreateTestFlag("exact-match", FeatureFlagStatus.Enabled);
+		var flag1 = _fixture.CreateTestFlag("exact-match", FlagEvaluationMode.Enabled);
 		flag1.Tags = new Dictionary<string, string>
 		{
 			{ "team", "platform" },
 			{ "environment", "production" }
 		};
 
-		var flag2 = _fixture.CreateTestFlag("partial-match", FeatureFlagStatus.Enabled);
+		var flag2 = _fixture.CreateTestFlag("partial-match", FlagEvaluationMode.Enabled);
 		flag2.Tags = new Dictionary<string, string>
 		{
 			{ "team", "platform" },
@@ -536,7 +536,7 @@ public class GetByTagsAsync_WithMatchingTags : IClassFixture<PostgreSQLFeatureFl
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("no-match", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("no-match", FlagEvaluationMode.Enabled);
 		flag.Tags = new Dictionary<string, string>
 		{
 			{ "team", "platform" }
@@ -568,7 +568,7 @@ public class PostgreSQLFeatureFlagRepository_CancellationToken : IClassFixture<P
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("cancellation-test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("cancellation-test", FlagEvaluationMode.Enabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		using var cts = new CancellationTokenSource();
@@ -600,8 +600,8 @@ public class PostgreSQLFeatureFlagRepository_DatabaseErrors : IClassFixture<Post
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag1 = _fixture.CreateTestFlag("duplicate-key", FeatureFlagStatus.Enabled);
-		var flag2 = _fixture.CreateTestFlag("duplicate-key", FeatureFlagStatus.Disabled);
+		var flag1 = _fixture.CreateTestFlag("duplicate-key", FlagEvaluationMode.Enabled);
+		var flag2 = _fixture.CreateTestFlag("duplicate-key", FlagEvaluationMode.Disabled);
 
 		await _fixture.Repository.CreateAsync(flag1);
 
@@ -616,7 +616,7 @@ public class PostgreSQLFeatureFlagRepository_DatabaseErrors : IClassFixture<Post
 		// Arrange
 		var logger = new Mock<ILogger<PostgreSQLFeatureFlagRepository>>();
 		var invalidRepository = new PostgreSQLFeatureFlagRepository("invalid-connection-string", logger.Object);
-		var flag = _fixture.CreateTestFlag("test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("test", FlagEvaluationMode.Enabled);
 
 		// Act & Assert
 		await Should.ThrowAsync<ArgumentException>(
@@ -638,7 +638,7 @@ public class CreateAsync_WithTenantData : IClassFixture<PostgreSQLFeatureFlagRep
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("tenant-overrides-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-overrides-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = new List<string> { "tenant1", "tenant2", "premium-tenant" };
 		flag.DisabledTenants = new List<string> { "blocked-tenant", "test-tenant" };
 		flag.TenantPercentageEnabled = 75;
@@ -662,7 +662,7 @@ public class CreateAsync_WithTenantData : IClassFixture<PostgreSQLFeatureFlagRep
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("empty-tenant-lists-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("empty-tenant-lists-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = new List<string>();
 		flag.DisabledTenants = new List<string>();
 		flag.TenantPercentageEnabled = 0;
@@ -690,7 +690,7 @@ public class CreateAsync_WithTenantData : IClassFixture<PostgreSQLFeatureFlagRep
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag($"tenant-percentage-{tenantPercentage}-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag($"tenant-percentage-{tenantPercentage}-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = tenantPercentage;
 
 		// Act
@@ -717,7 +717,7 @@ public class When_FlagExistsWithTenantData : IClassFixture<PostgreSQLFeatureFlag
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("update-tenant-lists", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("update-tenant-lists", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = new List<string> { "original-tenant" };
 		flag.DisabledTenants = new List<string> { "original-blocked" };
 		flag.TenantPercentageEnabled = 50;
@@ -753,7 +753,7 @@ public class When_FlagExistsWithTenantData : IClassFixture<PostgreSQLFeatureFlag
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("clear-tenant-lists", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("clear-tenant-lists", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = new List<string> { "tenant1", "tenant2" };
 		flag.DisabledTenants = new List<string> { "blocked1", "blocked2" };
 		flag.TenantPercentageEnabled = 60;
@@ -780,7 +780,7 @@ public class When_FlagExistsWithTenantData : IClassFixture<PostgreSQLFeatureFlag
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("complex-tenant-flag", FeatureFlagStatus.UserTargeted);
+		var flag = _fixture.CreateTestFlag("complex-tenant-flag", FlagEvaluationMode.UserTargeted);
 		flag.EnabledTenants = new List<string> { "premium-tenant", "enterprise-tenant" };
 		flag.DisabledTenants = new List<string> { "blocked-tenant-1", "blocked-tenant-2" };
 		flag.TenantPercentageEnabled = 40;
@@ -839,17 +839,17 @@ public class GetAllAsync_WithTenantData : IClassFixture<PostgreSQLFeatureFlagRep
 		// Arrange
 		await _fixture.ClearAllFlags();
 		
-		var flag1 = _fixture.CreateTestFlag("tenant-flag-1", FeatureFlagStatus.Enabled);
+		var flag1 = _fixture.CreateTestFlag("tenant-flag-1", FlagEvaluationMode.Enabled);
 		flag1.Name = "Alpha Tenant Flag";
 		flag1.EnabledTenants = new List<string> { "tenant-alpha" };
 		flag1.TenantPercentageEnabled = 25;
 
-		var flag2 = _fixture.CreateTestFlag("tenant-flag-2", FeatureFlagStatus.Enabled);
+		var flag2 = _fixture.CreateTestFlag("tenant-flag-2", FlagEvaluationMode.Enabled);
 		flag2.Name = "Beta Tenant Flag";
 		flag2.DisabledTenants = new List<string> { "blocked-beta" };
 		flag2.TenantPercentageEnabled = 75;
 
-		var flag3 = _fixture.CreateTestFlag("tenant-flag-3", FeatureFlagStatus.Enabled);
+		var flag3 = _fixture.CreateTestFlag("tenant-flag-3", FlagEvaluationMode.Enabled);
 		flag3.Name = "Gamma Tenant Flag";
 		flag3.EnabledTenants = new List<string> { "vip1", "vip2" };
 		flag3.DisabledTenants = new List<string> { "blocked1", "blocked2" };
@@ -895,7 +895,7 @@ public class PostgreSQL_TenantData_EdgeCases : IClassFixture<PostgreSQLFeatureFl
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("special-chars-tenant", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("special-chars-tenant", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = new List<string> 
 		{ 
 			"tenant@company.com", 
@@ -930,7 +930,7 @@ public class PostgreSQL_TenantData_EdgeCases : IClassFixture<PostgreSQLFeatureFl
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("duplicate-tenants", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("duplicate-tenants", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = new List<string> { "tenant1", "tenant1", "tenant2", "tenant1" };
 		flag.DisabledTenants = new List<string> { "blocked", "blocked", "other-blocked" };
 
@@ -952,7 +952,7 @@ public class PostgreSQL_TenantData_EdgeCases : IClassFixture<PostgreSQLFeatureFl
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("large-tenant-lists", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("large-tenant-lists", FlagEvaluationMode.Enabled);
 		
 		// Create large lists
 		flag.EnabledTenants = Enumerable.Range(1, 1000).Select(i => $"enabled-tenant-{i}").ToList();
@@ -987,7 +987,7 @@ public class PostgreSQL_TenantData_EdgeCases : IClassFixture<PostgreSQLFeatureFl
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag($"edge-percentage-{Math.Abs(percentage)}", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag($"edge-percentage-{Math.Abs(percentage)}", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = percentage;
 
 		// Act
@@ -1004,7 +1004,7 @@ public class PostgreSQL_TenantData_EdgeCases : IClassFixture<PostgreSQLFeatureFl
 	{
 		// Arrange - Test PostgreSQL-specific JSONB functionality for tenant data
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("jsonb-tenant-test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("jsonb-tenant-test", FlagEvaluationMode.Enabled);
 		
 		// Complex tenant IDs that test JSONB serialization
 		flag.EnabledTenants = new List<string> 
@@ -1123,7 +1123,7 @@ public class PostgreSQLFeatureFlagRepositoryFixture : IAsyncLifetime
 		await command.ExecuteNonQueryAsync();
 	}
 
-	public FeatureFlag CreateTestFlag(string key, FeatureFlagStatus status)
+	public FeatureFlag CreateTestFlag(string key, FlagEvaluationMode status)
 	{
 		return new FeatureFlag
 		{

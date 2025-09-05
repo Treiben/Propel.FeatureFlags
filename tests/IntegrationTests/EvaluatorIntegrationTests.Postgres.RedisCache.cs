@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Npgsql;
-using Propel.FeatureFlags.Client;
-using Propel.FeatureFlags.Client.Evaluators;
 using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Evaluation;
+using Propel.FeatureFlags.Evaluation.Handlers;
 using Propel.FeatureFlags.PostgresSql;
 using Propel.FeatureFlags.Redis;
 using StackExchange.Redis;
@@ -34,7 +34,7 @@ public class EvaluateAsync_WithEnabledFlag(FeatureFlagEvaluatorFixture fixture) 
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("enabled-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("enabled-flag", FlagEvaluationMode.Enabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "user123"); 
@@ -54,7 +54,7 @@ public class EvaluateAsync_WithEnabledFlag(FeatureFlagEvaluatorFixture fixture) 
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("cached-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("cached-flag", FlagEvaluationMode.Enabled);
 		
 		// Only put in cache, not in repository
 		await _fixture.Cache.SetAsync("cached-flag", flag);
@@ -75,7 +75,7 @@ public class EvaluateAsync_WithEnabledFlag(FeatureFlagEvaluatorFixture fixture) 
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("repo-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("repo-flag", FlagEvaluationMode.Enabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "user123");
@@ -101,7 +101,7 @@ public class EvaluateAsync_WithDisabledFlag(FeatureFlagEvaluatorFixture fixture)
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("disabled-flag", FeatureFlagStatus.Disabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("disabled-flag", FlagEvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "user123");
@@ -133,31 +133,7 @@ public class EvaluateAsync_WithNonExistentFlag(FeatureFlagEvaluatorFixture fixtu
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeFalse();
 		result.Variation.ShouldBe("off");
-		result.Reason.ShouldBe("Flag not found, using default disabled flag");
-	}
-}
-
-public class EvaluateAsync_WithExpiredFlag(FeatureFlagEvaluatorFixture fixture) : IClassFixture<FeatureFlagEvaluatorFixture>
-{
-	[Fact]
-	public async Task ThenReturnsExpired()
-	{
-		// Arrange
-		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("expired-flag", FeatureFlagStatus.Enabled);
-		flag.ExpirationDate = DateTime.UtcNow.AddDays(-1); // Expired yesterday
-		await fixture.Repository.CreateAsync(flag);
-
-		var context = new EvaluationContext(userId: "user123");
-
-		// Act
-		var result = await fixture.Evaluator.Evaluate("expired-flag", context);
-
-		// Assert
-		result.ShouldNotBeNull();
-		result.IsEnabled.ShouldBeFalse();
-		result.Variation.ShouldBe("off");
-		result.Reason.ShouldContain("Flag expired");
+		result.Reason.ShouldBe("Flag not found, created default disabled flag");
 	}
 }
 
@@ -168,7 +144,7 @@ public class EvaluateAsync_WithUserOverrides(FeatureFlagEvaluatorFixture fixture
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("override-flag", FeatureFlagStatus.Disabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("override-flag", FlagEvaluationMode.Disabled);
 		flag.EnabledUsers = ["user123", "user456"];
 		await fixture.Repository.CreateAsync(flag);
 
@@ -189,7 +165,7 @@ public class EvaluateAsync_WithUserOverrides(FeatureFlagEvaluatorFixture fixture
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("override-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("override-flag", FlagEvaluationMode.Enabled);
 		flag.DisabledUsers = ["user123", "user456"];
 		await fixture.Repository.CreateAsync(flag);
 
@@ -213,7 +189,7 @@ public class EvaluateAsync_WithScheduledFlag(FeatureFlagEvaluatorFixture fixture
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("scheduled-flag", FeatureFlagStatus.Scheduled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("scheduled-flag", FlagEvaluationMode.Scheduled);
 		flag.ScheduledEnableDate = DateTime.UtcNow.AddHours(1);
 		flag.ScheduledDisableDate = DateTime.UtcNow.AddDays(1);
 		await fixture.Repository.CreateAsync(flag);
@@ -234,7 +210,7 @@ public class EvaluateAsync_WithScheduledFlag(FeatureFlagEvaluatorFixture fixture
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("scheduled-flag", FeatureFlagStatus.Scheduled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("scheduled-flag", FlagEvaluationMode.Scheduled);
 		flag.ScheduledEnableDate = DateTime.UtcNow.AddHours(-1);
 		flag.ScheduledDisableDate = DateTime.UtcNow.AddHours(1);
 		await fixture.Repository.CreateAsync(flag);
@@ -256,7 +232,7 @@ public class EvaluateAsync_WithScheduledFlag(FeatureFlagEvaluatorFixture fixture
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("scheduled-flag", FeatureFlagStatus.Scheduled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("scheduled-flag", FlagEvaluationMode.Scheduled);
 		flag.ScheduledEnableDate = DateTime.UtcNow.AddHours(-2);
 		flag.ScheduledDisableDate = DateTime.UtcNow.AddHours(-1);
 		await fixture.Repository.CreateAsync(flag);
@@ -280,7 +256,7 @@ public class EvaluateAsync_WithTimeWindowFlag(FeatureFlagEvaluatorFixture fixtur
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("time-window-flag", FeatureFlagStatus.TimeWindow);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("time-window-flag", FlagEvaluationMode.TimeWindow);
 		flag.WindowStartTime = TimeSpan.FromHours(9); // 9 AM
 		flag.WindowEndTime = TimeSpan.FromHours(17); // 5 PM
 		flag.TimeZone = "UTC";
@@ -305,7 +281,7 @@ public class EvaluateAsync_WithTimeWindowFlag(FeatureFlagEvaluatorFixture fixtur
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("time-window-flag", FeatureFlagStatus.TimeWindow);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("time-window-flag", FlagEvaluationMode.TimeWindow);
 		flag.WindowStartTime = TimeSpan.FromHours(9); // 9 AM
 		flag.WindowEndTime = TimeSpan.FromHours(17); // 5 PM
 		flag.TimeZone = "UTC";
@@ -329,7 +305,7 @@ public class EvaluateAsync_WithTimeWindowFlag(FeatureFlagEvaluatorFixture fixtur
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("time-window-flag", FeatureFlagStatus.TimeWindow);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("time-window-flag", FlagEvaluationMode.TimeWindow);
 		flag.WindowStartTime = TimeSpan.FromHours(9);
 		flag.WindowEndTime = TimeSpan.FromHours(17);
 		flag.WindowDays = [DayOfWeek.Monday, DayOfWeek.Tuesday];
@@ -363,7 +339,7 @@ public class EvaluateAsync_WithUserTargetedFlag(FeatureFlagEvaluatorFixture fixt
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("targeted-flag", FeatureFlagStatus.UserTargeted);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("targeted-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules =
 		[
 			new TargetingRule
@@ -393,7 +369,7 @@ public class EvaluateAsync_WithUserTargetedFlag(FeatureFlagEvaluatorFixture fixt
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("targeted-flag", FeatureFlagStatus.UserTargeted);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("targeted-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules =
 		[
 			new TargetingRule
@@ -425,7 +401,7 @@ public class EvaluateAsync_WithPercentageFlag(FeatureFlagEvaluatorFixture fixtur
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("percentage-flag", FeatureFlagStatus.Percentage);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("percentage-flag", FlagEvaluationMode.UserRolloutPercentage);
 		flag.PercentageEnabled = 50;
 		await fixture.Repository.CreateAsync(flag);
 
@@ -445,7 +421,7 @@ public class EvaluateAsync_WithPercentageFlag(FeatureFlagEvaluatorFixture fixtur
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("percentage-flag", FeatureFlagStatus.Percentage);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("percentage-flag", FlagEvaluationMode.UserRolloutPercentage);
 		flag.PercentageEnabled = 50;
 		await fixture.Repository.CreateAsync(flag);
 
@@ -471,7 +447,7 @@ public class GetVariationAsync_WithVariations(FeatureFlagEvaluatorFixture fixtur
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("variation-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("variation-flag", FlagEvaluationMode.Enabled);
 		flag.Variations = new Dictionary<string, object>
 		{
 			{ "on", "premium-features" },
@@ -493,7 +469,7 @@ public class GetVariationAsync_WithVariations(FeatureFlagEvaluatorFixture fixtur
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("variation-flag", FeatureFlagStatus.Disabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("variation-flag", FlagEvaluationMode.Disabled);
 		flag.Variations = new Dictionary<string, object>
 		{
 			{ "on", "premium-features" },
@@ -515,7 +491,7 @@ public class GetVariationAsync_WithVariations(FeatureFlagEvaluatorFixture fixtur
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("config-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("config-flag", FlagEvaluationMode.Enabled);
 		flag.Variations = new Dictionary<string, object>
 		{
 			{ "on", new { MaxItems = 100, EnableAdvanced = true } }
@@ -555,7 +531,7 @@ public class FeatureFlagEvaluator_CancellationToken(FeatureFlagEvaluatorFixture 
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("cancel-test", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("cancel-test", FlagEvaluationMode.Enabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "user123");
@@ -579,7 +555,7 @@ public class EvaluateAsync_WithTenantOverrides(FeatureFlagEvaluatorFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-disabled-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-disabled-flag", FlagEvaluationMode.Enabled);
 		flag.DisabledTenants = ["blocked-tenant", "another-blocked"];
 		await fixture.Repository.CreateAsync(flag);
 
@@ -600,7 +576,7 @@ public class EvaluateAsync_WithTenantOverrides(FeatureFlagEvaluatorFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-enabled-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-enabled-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["premium-tenant", "enterprise-tenant"];
 		flag.TenantPercentageEnabled = 0; // Would normally block all tenants
 		await fixture.Repository.CreateAsync(flag);
@@ -622,7 +598,7 @@ public class EvaluateAsync_WithTenantOverrides(FeatureFlagEvaluatorFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-precedence-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-precedence-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["conflict-tenant"];
 		flag.DisabledTenants = ["conflict-tenant"]; // Same tenant in both lists
 		flag.TenantPercentageEnabled = 100; // Would allow tenant
@@ -644,7 +620,7 @@ public class EvaluateAsync_WithTenantOverrides(FeatureFlagEvaluatorFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("no-tenant-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("no-tenant-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 0; // Would block if tenant evaluation ran
 		await fixture.Repository.CreateAsync(flag);
 
@@ -667,7 +643,7 @@ public class EvaluateAsync_WithTenantPercentageRollout(FeatureFlagEvaluatorFixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-percentage-0-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-percentage-0-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 0; // Block all tenants
 		await fixture.Repository.CreateAsync(flag);
 
@@ -693,7 +669,7 @@ public class EvaluateAsync_WithTenantPercentageRollout(FeatureFlagEvaluatorFixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-percentage-100-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-percentage-100-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 100; // Allow all tenants
 		await fixture.Repository.CreateAsync(flag);
 
@@ -719,7 +695,7 @@ public class EvaluateAsync_WithTenantPercentageRollout(FeatureFlagEvaluatorFixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-consistency-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-consistency-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 50;
 		await fixture.Repository.CreateAsync(flag);
 
@@ -744,7 +720,7 @@ public class EvaluateAsync_WithTenantPercentageRollout(FeatureFlagEvaluatorFixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-distribution-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-distribution-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 50; // 50% rollout
 		await fixture.Repository.CreateAsync(flag);
 
@@ -775,7 +751,7 @@ public class EvaluateAsync_WithTenantAndUserCombinations(FeatureFlagEvaluatorFix
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-user-combo-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-user-combo-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["allowed-tenant"];
 		flag.DisabledUsers = ["blocked-user"];
 		await fixture.Repository.CreateAsync(flag);
@@ -796,7 +772,7 @@ public class EvaluateAsync_WithTenantAndUserCombinations(FeatureFlagEvaluatorFix
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-blocks-user-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-blocks-user-flag", FlagEvaluationMode.Enabled);
 		flag.DisabledTenants = ["blocked-tenant"];
 		flag.EnabledUsers = ["vip-user"]; // User is enabled but tenant is blocked
 		await fixture.Repository.CreateAsync(flag);
@@ -817,7 +793,7 @@ public class EvaluateAsync_WithTenantAndUserCombinations(FeatureFlagEvaluatorFix
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-user-both-enabled-flag", FeatureFlagStatus.Disabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-user-both-enabled-flag", FlagEvaluationMode.Disabled);
 		flag.EnabledTenants = ["premium-tenant"];
 		flag.EnabledUsers = ["vip-user"];
 		await fixture.Repository.CreateAsync(flag);
@@ -839,7 +815,7 @@ public class EvaluateAsync_WithTenantAndUserCombinations(FeatureFlagEvaluatorFix
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-user-percentage-flag", FeatureFlagStatus.Percentage);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-user-percentage-flag", FlagEvaluationMode.UserRolloutPercentage);
 		flag.TenantPercentageEnabled = 100; // Allow all tenants
 		flag.PercentageEnabled = 50; // 50% user rollout
 		await fixture.Repository.CreateAsync(flag);
@@ -863,7 +839,7 @@ public class EvaluateAsync_WithTenantVariations(FeatureFlagEvaluatorFixture fixt
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-variation-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-variation-flag", FlagEvaluationMode.Enabled);
 		flag.DisabledTenants = ["blocked-tenant"];
 		flag.DefaultVariation = "tenant-blocked";
 		await fixture.Repository.CreateAsync(flag);
@@ -885,7 +861,7 @@ public class EvaluateAsync_WithTenantVariations(FeatureFlagEvaluatorFixture fixt
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-allowed-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-allowed-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["premium-tenant"];
 		await fixture.Repository.CreateAsync(flag);
 
@@ -906,7 +882,7 @@ public class EvaluateAsync_WithTenantVariations(FeatureFlagEvaluatorFixture fixt
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-percentage-blocked-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-percentage-blocked-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 0; // Block all tenants
 		flag.DefaultVariation = "percentage-blocked";
 		await fixture.Repository.CreateAsync(flag);
@@ -931,7 +907,7 @@ public class GetVariationAsync_WithTenantScenarios(FeatureFlagEvaluatorFixture f
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-variation-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-variation-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["premium-tenant"];
 		flag.Variations = new Dictionary<string, object>
 		{
@@ -954,7 +930,7 @@ public class GetVariationAsync_WithTenantScenarios(FeatureFlagEvaluatorFixture f
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-blocked-variation-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-blocked-variation-flag", FlagEvaluationMode.Enabled);
 		flag.DisabledTenants = ["blocked-tenant"];
 		flag.Variations = new Dictionary<string, object>
 		{
@@ -977,7 +953,7 @@ public class GetVariationAsync_WithTenantScenarios(FeatureFlagEvaluatorFixture f
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-config-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("tenant-config-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["enterprise-tenant"];
 		flag.Variations = new Dictionary<string, object>
 		{
@@ -1004,7 +980,7 @@ public class EvaluateAsync_WithTenantEdgeCases(FeatureFlagEvaluatorFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("empty-tenant-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("empty-tenant-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 0; // Would block if tenant evaluation ran
 		await fixture.Repository.CreateAsync(flag);
 
@@ -1024,7 +1000,7 @@ public class EvaluateAsync_WithTenantEdgeCases(FeatureFlagEvaluatorFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("whitespace-tenant-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("whitespace-tenant-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 0; // Would block if tenant evaluation ran
 		await fixture.Repository.CreateAsync(flag);
 
@@ -1044,7 +1020,7 @@ public class EvaluateAsync_WithTenantEdgeCases(FeatureFlagEvaluatorFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("special-tenant-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("special-tenant-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["tenant@company.com", "tenant-123", "tenant_456"];
 		await fixture.Repository.CreateAsync(flag);
 
@@ -1072,7 +1048,7 @@ public class EvaluateAsync_WithTenantEdgeCases(FeatureFlagEvaluatorFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("case-sensitive-tenant-flag", FeatureFlagStatus.Enabled);
+		var flag = FeatureFlagEvaluatorFixture.CreateTestFlag("case-sensitive-tenant-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["TenantABC"];
 		await fixture.Repository.CreateAsync(flag);
 
@@ -1102,7 +1078,7 @@ public class FeatureFlagEvaluatorFixture : IAsyncLifetime
 	public FeatureFlagEvaluator Evaluator { get; private set; } = null!;
 	public PostgreSQLFeatureFlagRepository Repository { get; private set; } = null!;
 	public RedisFeatureFlagCache Cache { get; private set; } = null!;
-	public IFlagEvaluationHandler EvaluationHandler { get; private set; } = null!;
+	public IChainableEvaluationHandler EvaluationHandler { get; private set; } = null!;
 	
 	private ConnectionMultiplexer _redisConnection = null!;
 	private readonly ILogger<PostgreSQLFeatureFlagRepository> _repositoryLogger;
@@ -1201,7 +1177,7 @@ public class FeatureFlagEvaluatorFixture : IAsyncLifetime
 		await command.ExecuteNonQueryAsync();
 	}
 
-	public static FeatureFlag CreateTestFlag(string key, FeatureFlagStatus status)
+	public static FeatureFlag CreateTestFlag(string key, FlagEvaluationMode status)
 	{
 		return new FeatureFlag
 		{

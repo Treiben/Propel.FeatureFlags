@@ -30,7 +30,7 @@ public class CreateAsync_WithValidFlag : IClassFixture<SqlServerFeatureFlagRepos
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("create-test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("create-test", FlagEvaluationMode.Enabled);
 
 		// Act
 		var result = await _fixture.Repository.CreateAsync(flag);
@@ -49,7 +49,7 @@ public class CreateAsync_WithValidFlag : IClassFixture<SqlServerFeatureFlagRepos
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("time-flag", FeatureFlagStatus.TimeWindow);
+		var flag = _fixture.CreateTestFlag("time-flag", FlagEvaluationMode.TimeWindow);
 		flag.ExpirationDate = DateTime.UtcNow.AddDays(30);
 		flag.ScheduledEnableDate = DateTime.UtcNow.AddHours(1);
 		flag.ScheduledDisableDate = DateTime.UtcNow.AddDays(7);
@@ -79,7 +79,7 @@ public class CreateAsync_WithValidFlag : IClassFixture<SqlServerFeatureFlagRepos
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("percentage-flag", FeatureFlagStatus.Percentage);
+		var flag = _fixture.CreateTestFlag("percentage-flag", FlagEvaluationMode.UserRolloutPercentage);
 		flag.PercentageEnabled = 75;
 
 		// Act
@@ -106,7 +106,7 @@ public class CreateAsync_WithTenantData : IClassFixture<SqlServerFeatureFlagRepo
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("tenant-overrides-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-overrides-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = new List<string> { "tenant1", "tenant2", "premium-tenant" };
 		flag.DisabledTenants = new List<string> { "blocked-tenant", "test-tenant" };
 		flag.TenantPercentageEnabled = 75;
@@ -130,7 +130,7 @@ public class CreateAsync_WithTenantData : IClassFixture<SqlServerFeatureFlagRepo
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("empty-tenant-lists-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("empty-tenant-lists-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = new List<string>();
 		flag.DisabledTenants = new List<string>();
 		flag.TenantPercentageEnabled = 0;
@@ -158,7 +158,7 @@ public class CreateAsync_WithTenantData : IClassFixture<SqlServerFeatureFlagRepo
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag($"tenant-percentage-{tenantPercentage}-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag($"tenant-percentage-{tenantPercentage}-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = tenantPercentage;
 
 		// Act
@@ -185,13 +185,13 @@ public class When_FlagExists : IClassFixture<SqlServerFeatureFlagRepositoryFixtu
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("update-test", FeatureFlagStatus.Disabled);
+		var flag = _fixture.CreateTestFlag("update-test", FlagEvaluationMode.Disabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		var originalUpdatedAt = flag.UpdatedAt;
 		await Task.Delay(10); // Ensure time difference
 
-		flag.Status = FeatureFlagStatus.Enabled;
+		flag.Status = FlagEvaluationMode.Enabled;
 		flag.Name = "Updated Name";
 		flag.Description = "Updated Description";
 		flag.UpdatedBy = "updater";
@@ -206,7 +206,7 @@ public class When_FlagExists : IClassFixture<SqlServerFeatureFlagRepositoryFixtu
 		// Verify changes in database
 		var retrieved = await _fixture.Repository.GetAsync("update-test");
 		retrieved.ShouldNotBeNull();
-		retrieved.Status.ShouldBe(FeatureFlagStatus.Enabled);
+		retrieved.Status.ShouldBe(FlagEvaluationMode.Enabled);
 		retrieved.Name.ShouldBe("Updated Name");
 		retrieved.Description.ShouldBe("Updated Description");
 		retrieved.UpdatedBy.ShouldBe("updater");
@@ -218,7 +218,7 @@ public class When_FlagExists : IClassFixture<SqlServerFeatureFlagRepositoryFixtu
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("complex-update", FeatureFlagStatus.UserTargeted);
+		var flag = _fixture.CreateTestFlag("complex-update", FlagEvaluationMode.UserTargeted);
 		await _fixture.Repository.CreateAsync(flag);
 
 		flag.TargetingRules = new List<TargetingRule>
@@ -258,7 +258,7 @@ public class When_FlagExists : IClassFixture<SqlServerFeatureFlagRepositoryFixtu
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("delete-test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("delete-test", FlagEvaluationMode.Enabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -277,7 +277,7 @@ public class When_FlagExists : IClassFixture<SqlServerFeatureFlagRepositoryFixtu
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("test-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("test-flag", FlagEvaluationMode.Enabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -287,7 +287,7 @@ public class When_FlagExists : IClassFixture<SqlServerFeatureFlagRepositoryFixtu
 		result.ShouldNotBeNull();
 		result.Key.ShouldBe("test-flag");
 		result.Name.ShouldBe(flag.Name);
-		result.Status.ShouldBe(FeatureFlagStatus.Enabled);
+		result.Status.ShouldBe(FlagEvaluationMode.Enabled);
 		result.CreatedBy.ShouldBe(flag.CreatedBy);
 		result.UpdatedBy.ShouldBe(flag.UpdatedBy);
 	}
@@ -297,7 +297,7 @@ public class When_FlagExists : IClassFixture<SqlServerFeatureFlagRepositoryFixtu
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("test-flag", FeatureFlagStatus.Disabled);
+		var flag = _fixture.CreateTestFlag("test-flag", FlagEvaluationMode.Disabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -307,7 +307,7 @@ public class When_FlagExists : IClassFixture<SqlServerFeatureFlagRepositoryFixtu
 		result.ShouldNotBeNull();
 		result.Key.ShouldBe("test-flag");
 		result.Name.ShouldBe(flag.Name);
-		result.Status.ShouldBe(FeatureFlagStatus.Disabled);
+		result.Status.ShouldBe(FlagEvaluationMode.Disabled);
 		result.CreatedBy.ShouldBe(flag.CreatedBy);
 		result.UpdatedBy.ShouldBe(flag.UpdatedBy);
 	}
@@ -317,7 +317,7 @@ public class When_FlagExists : IClassFixture<SqlServerFeatureFlagRepositoryFixtu
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("complex-flag", FeatureFlagStatus.UserTargeted);
+		var flag = _fixture.CreateTestFlag("complex-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = new List<TargetingRule>
 		{
 			new TargetingRule
@@ -376,11 +376,11 @@ public class When_FlagExists : IClassFixture<SqlServerFeatureFlagRepositoryFixtu
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag1 = _fixture.CreateTestFlag("flag-1", FeatureFlagStatus.Enabled);
+		var flag1 = _fixture.CreateTestFlag("flag-1", FlagEvaluationMode.Enabled);
 		flag1.Name = "Alpha Flag";
-		var flag2 = _fixture.CreateTestFlag("flag-2", FeatureFlagStatus.Disabled);
+		var flag2 = _fixture.CreateTestFlag("flag-2", FlagEvaluationMode.Disabled);
 		flag2.Name = "Beta Flag";
-		var flag3 = _fixture.CreateTestFlag("flag-3", FeatureFlagStatus.Scheduled);
+		var flag3 = _fixture.CreateTestFlag("flag-3", FlagEvaluationMode.Scheduled);
 		flag3.Name = "Gamma Flag";
 
 		await _fixture.Repository.CreateAsync(flag1);
@@ -427,7 +427,7 @@ public class When_FlagExistsWithTenantData : IClassFixture<SqlServerFeatureFlagR
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("update-tenant-lists", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("update-tenant-lists", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = new List<string> { "original-tenant" };
 		flag.DisabledTenants = new List<string> { "original-blocked" };
 		flag.TenantPercentageEnabled = 50;
@@ -463,7 +463,7 @@ public class When_FlagExistsWithTenantData : IClassFixture<SqlServerFeatureFlagR
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("clear-tenant-lists", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("clear-tenant-lists", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = new List<string> { "tenant1", "tenant2" };
 		flag.DisabledTenants = new List<string> { "blocked1", "blocked2" };
 		flag.TenantPercentageEnabled = 60;
@@ -490,7 +490,7 @@ public class When_FlagExistsWithTenantData : IClassFixture<SqlServerFeatureFlagR
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("complex-tenant-flag", FeatureFlagStatus.UserTargeted);
+		var flag = _fixture.CreateTestFlag("complex-tenant-flag", FlagEvaluationMode.UserTargeted);
 		flag.EnabledTenants = new List<string> { "premium-tenant", "enterprise-tenant" };
 		flag.DisabledTenants = new List<string> { "blocked-tenant-1", "blocked-tenant-2" };
 		flag.TenantPercentageEnabled = 40;
@@ -549,17 +549,17 @@ public class GetAllAsync_WithTenantData : IClassFixture<SqlServerFeatureFlagRepo
 		// Arrange
 		await _fixture.ClearAllFlags();
 		
-		var flag1 = _fixture.CreateTestFlag("tenant-flag-1", FeatureFlagStatus.Enabled);
+		var flag1 = _fixture.CreateTestFlag("tenant-flag-1", FlagEvaluationMode.Enabled);
 		flag1.Name = "Alpha Tenant Flag";
 		flag1.EnabledTenants = new List<string> { "tenant-alpha" };
 		flag1.TenantPercentageEnabled = 25;
 
-		var flag2 = _fixture.CreateTestFlag("tenant-flag-2", FeatureFlagStatus.Enabled);
+		var flag2 = _fixture.CreateTestFlag("tenant-flag-2", FlagEvaluationMode.Enabled);
 		flag2.Name = "Beta Tenant Flag";
 		flag2.DisabledTenants = new List<string> { "blocked-beta" };
 		flag2.TenantPercentageEnabled = 75;
 
-		var flag3 = _fixture.CreateTestFlag("tenant-flag-3", FeatureFlagStatus.Enabled);
+		var flag3 = _fixture.CreateTestFlag("tenant-flag-3", FlagEvaluationMode.Enabled);
 		flag3.Name = "Gamma Tenant Flag";
 		flag3.EnabledTenants = new List<string> { "vip1", "vip2" };
 		flag3.DisabledTenants = new List<string> { "blocked1", "blocked2" };
@@ -605,7 +605,7 @@ public class TenantData_EdgeCases : IClassFixture<SqlServerFeatureFlagRepository
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("special-chars-tenant", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("special-chars-tenant", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = new List<string> 
 		{ 
 			"tenant@company.com", 
@@ -640,7 +640,7 @@ public class TenantData_EdgeCases : IClassFixture<SqlServerFeatureFlagRepository
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("duplicate-tenants", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("duplicate-tenants", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = new List<string> { "tenant1", "tenant1", "tenant2", "tenant1" };
 		flag.DisabledTenants = new List<string> { "blocked", "blocked", "other-blocked" };
 
@@ -662,7 +662,7 @@ public class TenantData_EdgeCases : IClassFixture<SqlServerFeatureFlagRepository
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("large-tenant-lists", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("large-tenant-lists", FlagEvaluationMode.Enabled);
 		
 		// Create large lists
 		flag.EnabledTenants = Enumerable.Range(1, 1000).Select(i => $"enabled-tenant-{i}").ToList();
@@ -697,7 +697,7 @@ public class TenantData_EdgeCases : IClassFixture<SqlServerFeatureFlagRepository
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag($"edge-percentage-{Math.Abs(percentage)}", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag($"edge-percentage-{Math.Abs(percentage)}", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = percentage;
 
 		// Act
@@ -724,7 +724,7 @@ public class SqlServerFeatureFlagRepository_CancellationToken : IClassFixture<Sq
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("cancellation-test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("cancellation-test", FlagEvaluationMode.Enabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		using var cts = new CancellationTokenSource();
@@ -756,8 +756,8 @@ public class SqlServerFeatureFlagRepository_DatabaseErrors : IClassFixture<SqlSe
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag1 = _fixture.CreateTestFlag("duplicate-key", FeatureFlagStatus.Enabled);
-		var flag2 = _fixture.CreateTestFlag("duplicate-key", FeatureFlagStatus.Disabled);
+		var flag1 = _fixture.CreateTestFlag("duplicate-key", FlagEvaluationMode.Enabled);
+		var flag2 = _fixture.CreateTestFlag("duplicate-key", FlagEvaluationMode.Disabled);
 
 		await _fixture.Repository.CreateAsync(flag1);
 
@@ -772,7 +772,7 @@ public class SqlServerFeatureFlagRepository_DatabaseErrors : IClassFixture<SqlSe
 		// Arrange
 		var logger = new Mock<ILogger<SqlServerFeatureFlagRepository>>();
 		var invalidRepository = new SqlServerFeatureFlagRepository("invalid-connection-string", logger.Object);
-		var flag = _fixture.CreateTestFlag("test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("test", FlagEvaluationMode.Enabled);
 
 		// Act & Assert
 		await Should.ThrowAsync<ArgumentException>(
@@ -868,7 +868,7 @@ public class SqlServerFeatureFlagRepositoryFixture : IAsyncLifetime
 	await command.ExecuteNonQueryAsync();
 	}
 
-	public FeatureFlag CreateTestFlag(string key, FeatureFlagStatus status)
+	public FeatureFlag CreateTestFlag(string key, FlagEvaluationMode status)
 	{
 		return new FeatureFlag
 		{

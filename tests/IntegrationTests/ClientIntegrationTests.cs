@@ -1,10 +1,10 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Propel.FeatureFlags;
 using Propel.FeatureFlags.Cache;
-using Propel.FeatureFlags.Client;
-using Propel.FeatureFlags.Client.Evaluators;
 using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Evaluation;
 using Propel.FeatureFlags.SqlServer;
 using Testcontainers.MsSql;
 
@@ -34,7 +34,7 @@ public class IsEnabledAsync_WithEnabledFlag : IClassFixture<FeatureFlagClientFix
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("enabled-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("enabled-flag", FlagEvaluationMode.Enabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -49,7 +49,7 @@ public class IsEnabledAsync_WithEnabledFlag : IClassFixture<FeatureFlagClientFix
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("targeted-flag", FeatureFlagStatus.UserTargeted);
+		var flag = _fixture.CreateTestFlag("targeted-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules =
 		[
 			new() {
@@ -75,7 +75,7 @@ public class IsEnabledAsync_WithEnabledFlag : IClassFixture<FeatureFlagClientFix
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("simple-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("simple-flag", FlagEvaluationMode.Enabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -100,7 +100,7 @@ public class IsEnabledAsync_WithDisabledFlag : IClassFixture<FeatureFlagClientFi
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("disabled-flag", FeatureFlagStatus.Disabled);
+		var flag = _fixture.CreateTestFlag("disabled-flag", FlagEvaluationMode.Disabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -148,7 +148,7 @@ public class GetVariationAsync_WithEnabledFlag : IClassFixture<FeatureFlagClient
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("variation-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("variation-flag", FlagEvaluationMode.Enabled);
 		flag.Variations = new Dictionary<string, object>
 		{
 			{ "on", "premium-features" },
@@ -168,7 +168,7 @@ public class GetVariationAsync_WithEnabledFlag : IClassFixture<FeatureFlagClient
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("string-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("string-flag", FlagEvaluationMode.Enabled);
 		flag.Variations = new Dictionary<string, object>
 		{
 			{ "on", "enabled-string" }
@@ -188,7 +188,7 @@ public class GetVariationAsync_WithEnabledFlag : IClassFixture<FeatureFlagClient
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("int-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("int-flag", FlagEvaluationMode.Enabled);
 		flag.Variations = new Dictionary<string, object>
 		{
 			{ "on", 42 }
@@ -208,7 +208,7 @@ public class GetVariationAsync_WithEnabledFlag : IClassFixture<FeatureFlagClient
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("bool-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("bool-flag", FlagEvaluationMode.Enabled);
 		flag.Variations = new Dictionary<string, object>
 		{
 			{ "on", true }
@@ -238,7 +238,7 @@ public class GetVariationAsync_WithDisabledFlag : IClassFixture<FeatureFlagClien
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("disabled-flag", FeatureFlagStatus.Disabled);
+		var flag = _fixture.CreateTestFlag("disabled-flag", FlagEvaluationMode.Disabled);
 		flag.Variations = new Dictionary<string, object>
 		{
 			{ "on", "should-not-see-this" }
@@ -290,7 +290,7 @@ public class EvaluateAsync_WithEnabledFlag : IClassFixture<FeatureFlagClientFixt
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("eval-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("eval-flag", FlagEvaluationMode.Enabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -308,7 +308,7 @@ public class EvaluateAsync_WithEnabledFlag : IClassFixture<FeatureFlagClientFixt
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("targeted-eval-flag", FeatureFlagStatus.UserTargeted);
+		var flag = _fixture.CreateTestFlag("targeted-eval-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = new List<TargetingRule>
 		{
 			new TargetingRule
@@ -348,7 +348,7 @@ public class EvaluateAsync_WithPercentageFlag : IClassFixture<FeatureFlagClientF
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("percentage-flag", FeatureFlagStatus.Percentage);
+		var flag = _fixture.CreateTestFlag("percentage-flag", FlagEvaluationMode.UserRolloutPercentage);
 		flag.PercentageEnabled = 50;
 		await _fixture.Repository.CreateAsync(flag);
 
@@ -383,7 +383,7 @@ public class FeatureFlagClient_DefaultTimeZone : IClassFixture<FeatureFlagClient
 		// Create client with custom timezone
 		var customClient = new FeatureFlagClient(_fixture.Evaluator, "America/New_York");
 		
-		var flag = _fixture.CreateTestFlag("timezone-flag", FeatureFlagStatus.TimeWindow);
+		var flag = _fixture.CreateTestFlag("timezone-flag", FlagEvaluationMode.TimeWindow);
 		flag.WindowStartTime = TimeSpan.FromHours(9); // 9 AM
 		flag.WindowEndTime = TimeSpan.FromHours(17); // 5 PM
 		flag.TimeZone = "America/New_York";
@@ -406,7 +406,7 @@ public class FeatureFlagClient_DefaultTimeZone : IClassFixture<FeatureFlagClient
 		await _fixture.ClearAllData();
 		
 		// Use default client (UTC timezone)
-		var flag = _fixture.CreateTestFlag("utc-timezone-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("utc-timezone-flag", FlagEvaluationMode.Enabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -432,7 +432,7 @@ public class FeatureFlagClient_CacheIntegration : IClassFixture<FeatureFlagClien
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("cached-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("cached-flag", FlagEvaluationMode.Enabled);
 		
 		// Put flag directly in cache (not in repository)
 		await _fixture.Cache.SetAsync("cached-flag", flag);
@@ -449,7 +449,7 @@ public class FeatureFlagClient_CacheIntegration : IClassFixture<FeatureFlagClien
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("repo-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("repo-flag", FlagEvaluationMode.Enabled);
 		await _fixture.Repository.CreateAsync(flag);
 
 		// Verify not in cache initially
@@ -507,7 +507,7 @@ public class FeatureFlagClientFixture : IAsyncLifetime
 	public FeatureFlagEvaluator Evaluator { get; private set; } = null!;
 	public SqlServerFeatureFlagRepository Repository { get; private set; } = null!;
 	public MemoryFeatureFlagCache Cache { get; private set; } = null!;
-	public IFlagEvaluationHandler EvaluationHandler { get; private set; }
+	public IChainableEvaluationHandler EvaluationHandler { get; private set; }
 	
 	private readonly ILogger<SqlServerFeatureFlagRepository> _repositoryLogger;
 	private MemoryCache _memoryCache = null!;
@@ -596,7 +596,7 @@ public class FeatureFlagClientFixture : IAsyncLifetime
 		await command.ExecuteNonQueryAsync();
 	}
 
-	public FeatureFlag CreateTestFlag(string key, FeatureFlagStatus status)
+	public FeatureFlag CreateTestFlag(string key, FlagEvaluationMode status)
 	{
 		return new FeatureFlag
 		{
@@ -652,7 +652,7 @@ public class IsEnabledAsync_WithTenantOverrides : IClassFixture<FeatureFlagClien
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-disabled-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-disabled-flag", FlagEvaluationMode.Enabled);
 		flag.DisabledTenants = ["blocked-tenant", "another-blocked"];
 		await _fixture.Repository.CreateAsync(flag);
 
@@ -668,7 +668,7 @@ public class IsEnabledAsync_WithTenantOverrides : IClassFixture<FeatureFlagClien
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-enabled-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-enabled-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["premium-tenant", "enterprise-tenant"];
 		flag.TenantPercentageEnabled = 0; // Would normally block all tenants
 		await _fixture.Repository.CreateAsync(flag);
@@ -685,7 +685,7 @@ public class IsEnabledAsync_WithTenantOverrides : IClassFixture<FeatureFlagClien
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-precedence-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-precedence-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["conflict-tenant"];
 		flag.DisabledTenants = ["conflict-tenant"]; // Same tenant in both lists
 		flag.TenantPercentageEnabled = 100; // Would allow tenant
@@ -703,7 +703,7 @@ public class IsEnabledAsync_WithTenantOverrides : IClassFixture<FeatureFlagClien
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("no-tenant-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("no-tenant-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 0; // Would block if tenant evaluation ran
 		await _fixture.Repository.CreateAsync(flag);
 
@@ -729,7 +729,7 @@ public class IsEnabledAsync_WithTenantPercentageRollout : IClassFixture<FeatureF
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-percentage-0-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-percentage-0-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 0; // Block all tenants
 		await _fixture.Repository.CreateAsync(flag);
 
@@ -750,7 +750,7 @@ public class IsEnabledAsync_WithTenantPercentageRollout : IClassFixture<FeatureF
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-percentage-100-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-percentage-100-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 100; // Allow all tenants
 		await _fixture.Repository.CreateAsync(flag);
 
@@ -771,7 +771,7 @@ public class IsEnabledAsync_WithTenantPercentageRollout : IClassFixture<FeatureF
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-consistency-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-consistency-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 50;
 		await _fixture.Repository.CreateAsync(flag);
 
@@ -800,7 +800,7 @@ public class IsEnabledAsync_WithTenantAndUserCombinations : IClassFixture<Featur
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-user-combo-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-user-combo-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["allowed-tenant"];
 		flag.DisabledUsers = ["blocked-user"];
 		await _fixture.Repository.CreateAsync(flag);
@@ -817,7 +817,7 @@ public class IsEnabledAsync_WithTenantAndUserCombinations : IClassFixture<Featur
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-blocks-user-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-blocks-user-flag", FlagEvaluationMode.Enabled);
 		flag.DisabledTenants = ["blocked-tenant"];
 		flag.EnabledUsers = ["vip-user"]; // User is enabled but tenant is blocked
 		await _fixture.Repository.CreateAsync(flag);
@@ -834,7 +834,7 @@ public class IsEnabledAsync_WithTenantAndUserCombinations : IClassFixture<Featur
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-user-both-enabled-flag", FeatureFlagStatus.Disabled);
+		var flag = _fixture.CreateTestFlag("tenant-user-both-enabled-flag", FlagEvaluationMode.Disabled);
 		flag.EnabledTenants = ["premium-tenant"];
 		flag.EnabledUsers = ["vip-user"];
 		await _fixture.Repository.CreateAsync(flag);
@@ -861,7 +861,7 @@ public class GetVariationAsync_WithTenantScenarios : IClassFixture<FeatureFlagCl
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-variation-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-variation-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["premium-tenant"];
 		flag.Variations = new Dictionary<string, object>
 		{
@@ -882,7 +882,7 @@ public class GetVariationAsync_WithTenantScenarios : IClassFixture<FeatureFlagCl
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-blocked-variation-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-blocked-variation-flag", FlagEvaluationMode.Enabled);
 		flag.DisabledTenants = ["blocked-tenant"];
 		flag.Variations = new Dictionary<string, object>
 		{
@@ -903,7 +903,7 @@ public class GetVariationAsync_WithTenantScenarios : IClassFixture<FeatureFlagCl
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-config-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-config-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["enterprise-tenant"];
 		flag.Variations = new Dictionary<string, object>
 		{
@@ -926,7 +926,7 @@ public class GetVariationAsync_WithTenantScenarios : IClassFixture<FeatureFlagCl
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-percentage-blocked-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-percentage-blocked-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 0; // Block all tenants
 		flag.Variations = new Dictionary<string, object>
 		{
@@ -958,7 +958,7 @@ public class EvaluateAsync_WithTenantScenarios : IClassFixture<FeatureFlagClient
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-eval-disabled-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-eval-disabled-flag", FlagEvaluationMode.Enabled);
 		flag.DisabledTenants = ["blocked-tenant"];
 		await _fixture.Repository.CreateAsync(flag);
 
@@ -977,7 +977,7 @@ public class EvaluateAsync_WithTenantScenarios : IClassFixture<FeatureFlagClient
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-eval-enabled-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-eval-enabled-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["premium-tenant"];
 		flag.TenantPercentageEnabled = 0; // Would normally block
 		await _fixture.Repository.CreateAsync(flag);
@@ -997,7 +997,7 @@ public class EvaluateAsync_WithTenantScenarios : IClassFixture<FeatureFlagClient
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-percentage-eval-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("tenant-percentage-eval-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 0; // Block all tenants
 		await _fixture.Repository.CreateAsync(flag);
 
@@ -1015,7 +1015,7 @@ public class EvaluateAsync_WithTenantScenarios : IClassFixture<FeatureFlagClient
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("tenant-targeting-flag", FeatureFlagStatus.UserTargeted);
+		var flag = _fixture.CreateTestFlag("tenant-targeting-flag", FlagEvaluationMode.UserTargeted);
 		flag.EnabledTenants = ["allowed-tenant"];
 		flag.TargetingRules = new List<TargetingRule>
 		{
@@ -1060,7 +1060,7 @@ public class FeatureFlagClient_DefaultTenantId : IClassFixture<FeatureFlagClient
 		// Create client with default tenant ID
 		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "UTC");
 		
-		var flag = _fixture.CreateTestFlag("default-tenant-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("default-tenant-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["default-tenant"];
 		flag.TenantPercentageEnabled = 0; // Would block other tenants
 		await _fixture.Repository.CreateAsync(flag);
@@ -1081,7 +1081,7 @@ public class FeatureFlagClient_DefaultTenantId : IClassFixture<FeatureFlagClient
 		// Create client with default tenant ID
 		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "UTC");
 		
-		var flag = _fixture.CreateTestFlag("override-tenant-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("override-tenant-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["specific-tenant"];
 		flag.DisabledTenants = ["default-tenant"];
 		await _fixture.Repository.CreateAsync(flag);
@@ -1102,7 +1102,7 @@ public class FeatureFlagClient_DefaultTenantId : IClassFixture<FeatureFlagClient
 		// Create client with default tenant ID
 		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "UTC");
 		
-		var flag = _fixture.CreateTestFlag("blocked-override-tenant-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("blocked-override-tenant-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["default-tenant"]; // Default tenant is enabled
 		flag.DisabledTenants = ["blocked-tenant"]; // But provided tenant is blocked
 		await _fixture.Repository.CreateAsync(flag);
@@ -1123,7 +1123,7 @@ public class FeatureFlagClient_DefaultTenantId : IClassFixture<FeatureFlagClient
 		// Create client with default tenant ID
 		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "UTC");
 		
-		var flag = _fixture.CreateTestFlag("default-tenant-variation-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("default-tenant-variation-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["premium-tenant"];
 		flag.Variations = new Dictionary<string, object>
 		{
@@ -1147,7 +1147,7 @@ public class FeatureFlagClient_DefaultTenantId : IClassFixture<FeatureFlagClient
 		// Create client with default tenant ID
 		var clientWithDefaultTenant = new FeatureFlagClient(_fixture.Evaluator, "UTC");
 		
-		var flag = _fixture.CreateTestFlag("default-tenant-eval-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("default-tenant-eval-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["enterprise-tenant"];
 		flag.TenantPercentageEnabled = 0; // Would block other tenants
 		await _fixture.Repository.CreateAsync(flag);
@@ -1176,7 +1176,7 @@ public class FeatureFlagClient_TenantEdgeCases : IClassFixture<FeatureFlagClient
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("empty-tenant-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("empty-tenant-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 0; // Would block if tenant evaluation ran
 		await _fixture.Repository.CreateAsync(flag);
 
@@ -1192,7 +1192,7 @@ public class FeatureFlagClient_TenantEdgeCases : IClassFixture<FeatureFlagClient
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("whitespace-tenant-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("whitespace-tenant-flag", FlagEvaluationMode.Enabled);
 		flag.TenantPercentageEnabled = 0; // Would block if tenant evaluation ran
 		await _fixture.Repository.CreateAsync(flag);
 
@@ -1208,7 +1208,7 @@ public class FeatureFlagClient_TenantEdgeCases : IClassFixture<FeatureFlagClient
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("special-tenant-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("special-tenant-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["tenant@company.com", "tenant-123", "tenant_456"];
 		await _fixture.Repository.CreateAsync(flag);
 
@@ -1229,7 +1229,7 @@ public class FeatureFlagClient_TenantEdgeCases : IClassFixture<FeatureFlagClient
 	{
 		// Arrange
 		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("case-sensitive-tenant-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("case-sensitive-tenant-flag", FlagEvaluationMode.Enabled);
 		flag.EnabledTenants = ["TenantABC"];
 		await _fixture.Repository.CreateAsync(flag);
 

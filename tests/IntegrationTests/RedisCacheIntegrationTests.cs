@@ -4,7 +4,7 @@ using Propel.FeatureFlags.Redis;
 using StackExchange.Redis;
 using Testcontainers.Redis;
 
-namespace FeatureFlags.IntegrationTests.Redis;
+namespace FeatureFlags.IntegrationTests;
 
 /* The tests cover these scenarios:
  *		Cache operations (Get, Set, Remove, Clear)
@@ -29,7 +29,7 @@ public class SetAsync_WithValidFlag : IClassFixture<RedisFeatureFlagCacheFixture
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("cache-test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("cache-test", FlagEvaluationMode.Enabled);
 
 		// Act
 		await _fixture.Cache.SetAsync("cache-test", flag);
@@ -38,7 +38,7 @@ public class SetAsync_WithValidFlag : IClassFixture<RedisFeatureFlagCacheFixture
 		var retrieved = await _fixture.Cache.GetAsync("cache-test");
 		retrieved.ShouldNotBeNull();
 		retrieved.Key.ShouldBe("cache-test");
-		retrieved.Status.ShouldBe(FeatureFlagStatus.Enabled);
+		retrieved.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Enabled]).ShouldBeTrue();
 	}
 
 	[Fact]
@@ -46,21 +46,24 @@ public class SetAsync_WithValidFlag : IClassFixture<RedisFeatureFlagCacheFixture
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("complex-flag", FeatureFlagStatus.UserTargeted);
-		flag.TargetingRules = new List<TargetingRule>
-		{
+		var flag = _fixture.CreateTestFlag("complex-flag", FlagEvaluationMode.UserTargeted);
+		flag.TargetingRules =
+		[
 			new TargetingRule
 			{
 				Attribute = "region",
 				Operator = TargetingOperator.In,
-				Values = new List<string> { "US", "CA", "UK" },
+				Values = ["US", "CA", "UK"],
 				Variation = "region-specific"
 			}
-		};
-		flag.EnabledUsers = new List<string> { "admin1", "admin2" };
-		flag.Variations = new Dictionary<string, object>
+		];
+		flag.UserAccess = FlagUserAccessControl.CreateAccessControl(allowedUsers: ["admin1", "admin2"]);
+		flag.Variations = new FlagVariations
 		{
-			{ "region-specific", new { currency = "USD", language = "en" } }
+			Values = new Dictionary<string, object>()
+				{
+					{ "region-specific", new Dictionary<string, object> { { "currency", "USD" }, { "language", "en" } } }
+				}
 		};
 		flag.Tags = new Dictionary<string, string>
 		{
@@ -77,7 +80,7 @@ public class SetAsync_WithValidFlag : IClassFixture<RedisFeatureFlagCacheFixture
 		retrieved.TargetingRules.Count.ShouldBe(1);
 		retrieved.TargetingRules[0].Attribute.ShouldBe("region");
 		retrieved.TargetingRules[0].Values.ShouldContain("US");
-		retrieved.EnabledUsers.ShouldContain("admin1");
+		retrieved.UserAccess.IsUserExplicitlyManaged("admin1").ShouldBeTrue(); 
 		retrieved.Tags.ShouldContainKeyAndValue("team", "platform");
 	}
 
@@ -86,7 +89,7 @@ public class SetAsync_WithValidFlag : IClassFixture<RedisFeatureFlagCacheFixture
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("expiring-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("expiring-flag", FlagEvaluationMode.Enabled);
 		var expiration = TimeSpan.FromSeconds(2);
 
 		// Act
@@ -109,10 +112,10 @@ public class SetAsync_WithValidFlag : IClassFixture<RedisFeatureFlagCacheFixture
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var originalFlag = _fixture.CreateTestFlag("update-flag", FeatureFlagStatus.Disabled);
+		var originalFlag = _fixture.CreateTestFlag("update-flag", FlagEvaluationMode.Disabled);
 		await _fixture.Cache.SetAsync("update-flag", originalFlag);
 
-		var updatedFlag = _fixture.CreateTestFlag("update-flag", FeatureFlagStatus.Enabled);
+		var updatedFlag = _fixture.CreateTestFlag("update-flag", FlagEvaluationMode.Enabled);
 		updatedFlag.Name = "Updated Name";
 		updatedFlag.Description = "Updated Description";
 
@@ -122,7 +125,7 @@ public class SetAsync_WithValidFlag : IClassFixture<RedisFeatureFlagCacheFixture
 		// Assert
 		var retrieved = await _fixture.Cache.GetAsync("update-flag");
 		retrieved.ShouldNotBeNull();
-		retrieved.Status.ShouldBe(FeatureFlagStatus.Enabled);
+		retrieved.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Enabled]).ShouldBeTrue();
 		retrieved.Name.ShouldBe("Updated Name");
 		retrieved.Description.ShouldBe("Updated Description");
 	}
@@ -142,7 +145,7 @@ public class GetAsync_WhenFlagExists : IClassFixture<RedisFeatureFlagCacheFixtur
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("get-test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("get-test", FlagEvaluationMode.Enabled);
 		await _fixture.Cache.SetAsync("get-test", flag);
 
 		// Act
@@ -151,9 +154,8 @@ public class GetAsync_WhenFlagExists : IClassFixture<RedisFeatureFlagCacheFixtur
 		// Assert
 		result.ShouldNotBeNull();
 		result.Key.ShouldBe("get-test");
-		result.Status.ShouldBe(FeatureFlagStatus.Enabled);
+		result.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Enabled]).ShouldBeTrue();
 		result.Name.ShouldBe(flag.Name);
-		result.CreatedBy.ShouldBe(flag.CreatedBy);
 	}
 
 	[Fact]
@@ -161,14 +163,19 @@ public class GetAsync_WhenFlagExists : IClassFixture<RedisFeatureFlagCacheFixtur
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("time-flag", FeatureFlagStatus.TimeWindow);
+		var flag = _fixture.CreateTestFlag("time-flag", FlagEvaluationMode.TimeWindow);
+
+		var schedule = FlagActivationSchedule.CreateSchedule(
+			DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddDays(7));
+		var operationalWindow = FlagOperationalWindow.CreateWindow(
+			TimeSpan.FromHours(9), 
+			TimeSpan.FromHours(17), 
+			"America/New_York", 
+			[DayOfWeek.Monday, DayOfWeek.Friday]);
+
 		flag.ExpirationDate = DateTime.UtcNow.AddDays(30);
-		flag.ScheduledEnableDate = DateTime.UtcNow.AddHours(1);
-		flag.ScheduledDisableDate = DateTime.UtcNow.AddDays(7);
-		flag.WindowStartTime = TimeSpan.FromHours(9);
-		flag.WindowEndTime = TimeSpan.FromHours(17);
-		flag.TimeZone = "America/New_York";
-		flag.WindowDays = new List<DayOfWeek> { DayOfWeek.Monday, DayOfWeek.Friday };
+		flag.Schedule = schedule;
+		flag.OperationalWindow = operationalWindow;
 
 		await _fixture.Cache.SetAsync("time-flag", flag);
 
@@ -179,22 +186,17 @@ public class GetAsync_WhenFlagExists : IClassFixture<RedisFeatureFlagCacheFixtur
 		result.ShouldNotBeNull();
 		result.ExpirationDate.ShouldNotBeNull();
 		result.ExpirationDate.Value.ShouldBeInRange(flag.ExpirationDate.Value.AddSeconds(-1), flag.ExpirationDate.Value.AddSeconds(1));
-		result.ScheduledEnableDate.ShouldNotBeNull();
-		result.ScheduledEnableDate.Value.ShouldBeInRange(flag.ScheduledEnableDate.Value.AddSeconds(-1), flag.ScheduledEnableDate.Value.AddSeconds(1));
-		result.WindowStartTime.ShouldBe(flag.WindowStartTime);
-		result.WindowEndTime.ShouldBe(flag.WindowEndTime);
-		result.TimeZone.ShouldBe("America/New_York");
-		result.WindowDays.ShouldContain(DayOfWeek.Monday);
-		result.WindowDays.ShouldContain(DayOfWeek.Friday);
+		result.Schedule.ShouldBeEquivalentTo(schedule);
+		result.OperationalWindow.ShouldBeEquivalentTo(operationalWindow);
 	}
 
 	[Fact]
-	public async Task If_FlagWithPercentageData_ThenDeserializesCorrectly()
+	public async Task If_FlagWithUserRolloutPercentage_ThenDeserializesCorrectly()
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("percentage-flag", FeatureFlagStatus.Percentage);
-		flag.PercentageEnabled = 75;
+		var flag = _fixture.CreateTestFlag("percentage-flag", FlagEvaluationMode.UserRolloutPercentage);
+		flag.UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 75);
 
 		await _fixture.Cache.SetAsync("percentage-flag", flag);
 
@@ -203,7 +205,7 @@ public class GetAsync_WhenFlagExists : IClassFixture<RedisFeatureFlagCacheFixtur
 
 		// Assert
 		result.ShouldNotBeNull();
-		result.PercentageEnabled.ShouldBe(75);
+		result.UserAccess.RolloutPercentage.ShouldBe(75);
 	}
 }
 
@@ -244,7 +246,7 @@ public class RemoveAsync_WhenFlagExists : IClassFixture<RedisFeatureFlagCacheFix
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("remove-test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("remove-test", FlagEvaluationMode.Enabled);
 		await _fixture.Cache.SetAsync("remove-test", flag);
 
 		// Verify it exists first
@@ -284,9 +286,9 @@ public class ClearAsync_WithMultipleFlags : IClassFixture<RedisFeatureFlagCacheF
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag1 = _fixture.CreateTestFlag("flag-1", FeatureFlagStatus.Enabled);
-		var flag2 = _fixture.CreateTestFlag("flag-2", FeatureFlagStatus.Disabled);
-		var flag3 = _fixture.CreateTestFlag("flag-3", FeatureFlagStatus.Percentage);
+		var flag1 = _fixture.CreateTestFlag("flag-1", FlagEvaluationMode.Enabled);
+		var flag2 = _fixture.CreateTestFlag("flag-2", FlagEvaluationMode.Disabled);
+		var flag3 = _fixture.CreateTestFlag("flag-3", FlagEvaluationMode.UserRolloutPercentage);
 
 		await _fixture.Cache.SetAsync("flag-1", flag1);
 		await _fixture.Cache.SetAsync("flag-2", flag2);
@@ -323,7 +325,7 @@ public class ClearAsync_WithMultipleFlags : IClassFixture<RedisFeatureFlagCacheF
 		await _fixture.ClearAllFlags();
 		
 		// Set a feature flag
-		var flag = _fixture.CreateTestFlag("test-flag", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("test-flag", FlagEvaluationMode.Enabled);
 		await _fixture.Cache.SetAsync("test-flag", flag);
 
 		// Set a non-feature flag key directly in Redis
@@ -353,7 +355,7 @@ public class RedisFeatureFlagCache_KeyPrefix : IClassFixture<RedisFeatureFlagCac
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("prefix-test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("prefix-test", FlagEvaluationMode.Enabled);
 
 		// Act
 		await _fixture.Cache.SetAsync("prefix-test", flag);
@@ -383,7 +385,7 @@ public class RedisFeatureFlagCache_CancellationToken : IClassFixture<RedisFeatur
 	{
 		// Arrange
 		await _fixture.ClearAllFlags();
-		var flag = _fixture.CreateTestFlag("cancellation-test", FeatureFlagStatus.Enabled);
+		var flag = _fixture.CreateTestFlag("cancellation-test", FlagEvaluationMode.Enabled);
 		await _fixture.Cache.SetAsync("cancellation-test", flag);
 
 		using var cts = new CancellationTokenSource();
@@ -479,31 +481,16 @@ public class RedisFeatureFlagCacheFixture : IAsyncLifetime
 		return _connectionMultiplexer.GetDatabase();
 	}
 
-	public FeatureFlag CreateTestFlag(string key, FeatureFlagStatus status)
+	public FeatureFlag CreateTestFlag(string key, FlagEvaluationMode evaluationMode)
 	{
-		return new FeatureFlag
+		var flag = new FeatureFlag
 		{
 			Key = key,
 			Name = $"Test Flag {key}",
 			Description = "Test flag for integration tests",
-			Status = status,
-			CreatedAt = DateTime.UtcNow,
-			UpdatedAt = DateTime.UtcNow,
-			CreatedBy = "integration-test",
-			UpdatedBy = "integration-test",
-			DefaultVariation = "off",
-			TargetingRules = new List<TargetingRule>(),
-			EnabledUsers = new List<string>(),
-			DisabledUsers = new List<string>(),
-			EnabledTenants = new List<string>(),
-			DisabledTenants = new List<string>(),
-			TenantPercentageEnabled = 0,
-			Variations = new Dictionary<string, object>(),
-			Tags = new Dictionary<string, string>(),
-			WindowDays = new List<DayOfWeek>(),
-			PercentageEnabled = 0,
-			IsPermanent = false
 		};
+		flag.EvaluationModeSet.AddMode(evaluationMode);
+		return flag;
 	}
 
 	// Helper method to clear all feature flags between tests

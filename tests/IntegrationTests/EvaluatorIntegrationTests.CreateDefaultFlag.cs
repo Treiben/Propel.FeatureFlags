@@ -1,13 +1,7 @@
-using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using Propel.FeatureFlags.Cache;
-using Propel.FeatureFlags.Client;
 using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.SqlServer;
-using Testcontainers.MsSql;
+using Propel.FeatureFlags.Evaluation;
 
-namespace FeatureFlags.IntegrationTests.Evaluator;
+namespace FeatureFlags.IntegrationTests;
 
 /* These tests cover scenarios when CreateDefaultFlagAsync() is called:
  *		Auto-creation of disabled flags when not found in cache or repository
@@ -36,7 +30,7 @@ public class EvaluateAsync_WithAutoCreatedFlag(FeatureFlagEvaluatorFixture fixtu
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeFalse();
 		result.Variation.ShouldBe("off");
-		result.Reason.ShouldBe("Flag not found, using default disabled flag");
+		result.Reason.ShouldBe("Flag not found, created default disabled flag");
 
 		// Verify the flag was actually created in the repository
 		var createdFlag = await fixture.Repository.GetAsync("auto-created-flag");
@@ -44,10 +38,9 @@ public class EvaluateAsync_WithAutoCreatedFlag(FeatureFlagEvaluatorFixture fixtu
 		createdFlag.Key.ShouldBe("auto-created-flag");
 		createdFlag.Name.ShouldBe("auto-created-flag");
 		createdFlag.Description.ShouldBe("Auto-created flag for auto-created-flag");
-		createdFlag.Status.ShouldBe(FeatureFlagStatus.Disabled);
-		createdFlag.CreatedBy.ShouldBe("System");
-		createdFlag.UpdatedBy.ShouldBe("System");
-		createdFlag.DefaultVariation.ShouldBe("off");
+		createdFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Disabled]).ShouldBeTrue();
+		createdFlag.AuditRecord.CreatedBy.ShouldBe("System");
+		createdFlag.Variations.DefaultVariation.ShouldBe("off");
 	}
 
 	[Fact]
@@ -142,7 +135,7 @@ public class CreateDefaultFlagAsync_RepositoryFailure(FeatureFlagEvaluatorFixtur
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeFalse();
 		result.Variation.ShouldBe("off");
-		result.Reason.ShouldBe("Flag not found, using default disabled flag");
+		result.Reason.ShouldBe("Flag not found, created default disabled flag");
 	}
 
 	[Fact]
@@ -182,28 +175,19 @@ public class CreateDefaultFlagAsync_FlagStructure(FeatureFlagEvaluatorFixture fi
 		createdFlag.Key.ShouldBe(flagKey);
 		createdFlag.Name.ShouldBe(flagKey);
 		createdFlag.Description.ShouldBe($"Auto-created flag for {flagKey}");
-		createdFlag.Status.ShouldBe(FeatureFlagStatus.Disabled);
-		createdFlag.CreatedBy.ShouldBe("System");
-		createdFlag.UpdatedBy.ShouldBe("System");
-		createdFlag.DefaultVariation.ShouldBe("off");
+		createdFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Disabled]).ShouldBeTrue();
+		createdFlag.AuditRecord.CreatedBy.ShouldBe("System");
 		
 		// Verify timestamps are recent (within last minute)
-		createdFlag.CreatedAt.ShouldBeGreaterThan(DateTime.UtcNow.AddMinutes(-1));
-		createdFlag.UpdatedAt.ShouldBeGreaterThan(DateTime.UtcNow.AddMinutes(-1));
+		createdFlag.AuditRecord.CreatedAt.ShouldBeGreaterThan(DateTime.UtcNow.AddMinutes(-1));
 		
 		// Verify variations are set up correctly
-		createdFlag.Variations.ShouldNotBeNull();
-		createdFlag.Variations.Count.ShouldBe(2);
-		createdFlag.Variations.ShouldContainKey("off");
-		createdFlag.Variations.ShouldContainKey("on");
+		createdFlag.Variations.ShouldBeEquivalentTo(FlagVariations.OnOff);
 		
 		// Verify collections are initialized but empty
 		createdFlag.TargetingRules.ShouldNotBeNull();
 		createdFlag.TargetingRules.ShouldBeEmpty();
-		createdFlag.EnabledUsers.ShouldNotBeNull();
-		createdFlag.EnabledUsers.ShouldBeEmpty();
-		createdFlag.DisabledUsers.ShouldNotBeNull();
-		createdFlag.DisabledUsers.ShouldBeEmpty();
+		createdFlag.UserAccess.HasAccessRestrictions().ShouldBeFalse();
 	}
 
 	[Fact]
@@ -310,7 +294,7 @@ public class CreateDefaultFlagAsync_WithDifferentContexts(FeatureFlagEvaluatorFi
 		var createdFlag = await fixture.Repository.GetAsync("time-flag");
 		createdFlag.ShouldNotBeNull();
 		// The flag's CreatedAt should be current time, not evaluation time
-		createdFlag.CreatedAt.ShouldBeGreaterThan(customTime);
+		createdFlag.AuditRecord.CreatedAt.ShouldBeGreaterThan(customTime);
 	}
 }
 
@@ -332,7 +316,7 @@ public class CreateDefaultFlagAsync_GetVariationIntegration(FeatureFlagEvaluator
 		// Verify the flag was created
 		var createdFlag = await fixture.Repository.GetAsync("variation-auto-flag");
 		createdFlag.ShouldNotBeNull();
-		createdFlag.Status.ShouldBe(FeatureFlagStatus.Disabled);
+		createdFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Disabled]).ShouldBeTrue();
 	}
 
 	[Fact]
