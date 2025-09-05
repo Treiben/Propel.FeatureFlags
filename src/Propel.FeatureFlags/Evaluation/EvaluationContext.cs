@@ -12,7 +12,7 @@ public class EvaluationContext
 		TenantId = tenantId;
 		UserId = userId;
 		Attributes = attributes ?? [];
-		EvaluationTime = evaluationTime ?? DateTime.UtcNow;
+		EvaluationTime = evaluationTime?.ToUniversalTime() ?? DateTime.UtcNow;
 		TimeZone = timeZone;
 	}
 

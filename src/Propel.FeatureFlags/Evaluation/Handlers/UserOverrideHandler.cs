@@ -26,12 +26,12 @@ public sealed class UserOverrideHandler : ChainableEvaluationHandler<UserOverrid
 	{
 		var userId = context.UserId!;
 
-		if (!flag.Users.IsUserExplicitlySet(userId))
+		if (!flag.UserAccess.IsUserExplicitlyManaged(userId))
 		{
 			return await CallNext(flag, context);
 		}
 
-		return flag.Users.IsUserEnabled(userId)
+		return flag.UserAccess.IsUserEnabled(userId)
 			? new EvaluationResult(isEnabled: true, variation: "on", reason: "User explicitly enabled")
 			: new EvaluationResult(isEnabled: false, variation: flag.Variations.DefaultVariation, reason: "User explicitly disabled");
 	}

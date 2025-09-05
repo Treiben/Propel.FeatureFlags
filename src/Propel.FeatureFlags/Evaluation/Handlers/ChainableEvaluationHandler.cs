@@ -63,12 +63,12 @@ public sealed class EvaluatorChainBuilder
 
 		// Create evaluators manually without IServiceProvider
 		//var head = new ExpirationDateHandler();
-		var head = new TenantOverrideHandler();
+		var head = new TenantRolloutHandler();
 		var userOverride = new UserOverrideHandler();
 		var scheduled = new ScheduledFlagHandler();
 		var timeWindow = new TimeWindowFlagHandler();
 		var targeted = new TargetedFlagHandler();
-		var percentage = new UserPercentageHandler();
+		var percentage = new UserRolloutHandler();
 		var statusBased = new StatusBasedFlagHandler();
 
 		// Link the chain

@@ -1,6 +1,6 @@
 ﻿namespace Propel.FeatureFlags.Core;
 
-public class FlagOptions
+public class FeatureFlagConfigurationOptions
 {
 	public string? SqlConnectionString { get; set; }
 	public string? AzureAppConfigConnectionString { get; set; }

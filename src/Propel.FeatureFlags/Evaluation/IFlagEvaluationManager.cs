@@ -3,19 +3,22 @@ using Propel.FeatureFlags.Evaluation.Handlers;
 
 namespace Propel.FeatureFlags.Evaluation;
 
-public sealed class FlagEvaluationManager
+public interface IFlagEvaluationManager
 {
-	private readonly List<IOrderedEvaluationHandler> _handlers;
+	Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context);
+}
 
-	public FlagEvaluationManager(List<IOrderedEvaluationHandler> handlers)
-	{
-		_handlers = handlers?.OrderBy(h => h.EvaluationOrder).ToList()
-						?? throw new ArgumentNullException(nameof(handlers));
-	}
+public sealed class FlagEvaluationManager : IFlagEvaluationManager
+{
+	private readonly IOrderedEvaluator[] _handlers;
 
-	public bool CanProcess(FeatureFlag flag, EvaluationContext context)
+	public FlagEvaluationManager(HashSet<IOrderedEvaluator> handlers)
 	{
-		return _handlers.Any(h => h.CanProcess(flag, context));
+		if (handlers == null)
+			throw new ArgumentNullException(nameof(handlers));
+
+		// Convert HashSet to ordered array to maintain evaluation order
+		_handlers = [.. handlers.OrderBy(h => h.EvaluationOrder)];
 	}
 
 	public async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)

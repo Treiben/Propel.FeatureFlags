@@ -6,8 +6,9 @@ public enum FlagEvaluationMode
 	Enabled = 1,
 	Scheduled = 2,
 	TimeWindow = 3,
-	Percentage = 4,
-	UserTargeted = 5,
+	UserTargeted = 4,
+	UserRolloutPercentage = 5,
+	TenantRolloutPercentage = 6,
 }
 
 public class FlagEvaluationModeSet
@@ -16,7 +17,7 @@ public class FlagEvaluationModeSet
 
 	public FlagEvaluationModeSet AddMode(FlagEvaluationMode mode)
 	{
-		if (mode == FlagEvaluationMode.Disabled && EvaluationModes.Length > 1)
+		if (mode == FlagEvaluationMode.Disabled)
 		{
 			// If adding Disabled, it should be the only status
 			EvaluationModes = [FlagEvaluationMode.Disabled];

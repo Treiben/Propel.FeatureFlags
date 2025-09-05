@@ -8,6 +8,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Core\FlagAudit.cs" />
+    <Compile Remove="Core\FlagTenantLevelControl.cs" />
+    <Compile Remove="Core\FlagTimeWindow.cs" />
+    <Compile Remove="Core\FlagUserLevelControl.cs" />
+    <Compile Remove="Evaluation\Handlers\ChainableEvaluationHandler.cs" />
+    <Compile Remove="Evaluation\Handlers\ExpirationDateHandler.cs" />
+    <Compile Remove="Evaluation\Handlers\StatusBasedFlagHandler.cs" />
+    <Compile Remove="Evaluation\Handlers\UserOverrideHandler.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.8" />
     <PackageReference Include="System.Text.Json" Version="9.0.8" />
   </ItemGroup>

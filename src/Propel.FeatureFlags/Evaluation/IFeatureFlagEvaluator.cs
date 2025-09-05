@@ -1,13 +1,12 @@
 ﻿using Propel.FeatureFlags.Cache;
 using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Evaluation.Handlers;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.Evaluation;
 
 public interface IFeatureFlagEvaluator
 {
-	Task<EvaluationResult> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default);
+	Task<EvaluationResult?> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default);
 	Task<T> GetVariation<T>(string flagKey, T defaultValue, EvaluationContext context, CancellationToken cancellationToken = default);
 }
 
@@ -15,18 +14,19 @@ public sealed class FeatureFlagEvaluator : IFeatureFlagEvaluator
 {
 	private readonly IFeatureFlagRepository _repository;
 	private readonly IFeatureFlagCache? _cache;
-	private readonly FlagEvaluationManager _evaluationManager;
+	private readonly IFlagEvaluationManager _evaluationManager;
 
 	public FeatureFlagEvaluator(
 		IFeatureFlagRepository repository,
-		IChainableEvaluationHandler evaluationHandler,
+		IFlagEvaluationManager evaluationManager,
 		IFeatureFlagCache? cache = null)
 	{
 		_repository = repository ?? throw new ArgumentNullException(nameof(repository));
+		_evaluationManager = evaluationManager ?? throw new ArgumentNullException(nameof(evaluationManager));
 		_cache = cache;
 	}
 
-	public async Task<EvaluationResult> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default)
+	public async Task<EvaluationResult?> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
 		// Try cache first
 		FeatureFlag? flag = null;

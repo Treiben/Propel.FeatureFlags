@@ -2,16 +2,16 @@
 
 namespace Propel.FeatureFlags.Evaluation.Handlers;
 
-public sealed class ExpirationDateHandler : ChainableEvaluationHandler<ExpirationDateHandler>, IOrderedEvaluationHandler
+public sealed class ExpirationDateHandler : ChainableEvaluationHandler<ExpirationDateHandler>, IOrderedEvaluator
 {
 	public int EvaluationOrder => 0;
 
-	bool IOrderedEvaluationHandler.CanProcess(FeatureFlag flag, EvaluationContext context)
+	bool IOrderedEvaluator.CanProcess(FeatureFlag flag, EvaluationContext context)
 	{
 		return CanProcess(flag, context);
 	}
 
-	Task<EvaluationResult?> IOrderedEvaluationHandler.ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
+	Task<EvaluationResult?> IOrderedEvaluator.ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
 	{
 		return ProcessEvaluation(flag, context);
 	}

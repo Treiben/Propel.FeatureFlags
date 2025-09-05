@@ -9,7 +9,7 @@ namespace Propel.FeatureFlags;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddFeatureFlags(this IServiceCollection services, FlagOptions options)
+	public static IServiceCollection AddFeatureFlags(this IServiceCollection services, FeatureFlagConfigurationOptions options)
 	{
 		// Register core services
 		services.AddSingleton<IFeatureFlagEvaluator, FeatureFlagEvaluator>();
@@ -20,14 +20,14 @@ public static class ServiceCollectionExtensions
 
 		// Register evaluation manager with all handlers
 		services.AddSingleton(_ => new FlagEvaluationManager(
-			[	new TenantOverrideHandler(),
-				new UserOverrideHandler(),
-				new ScheduledFlagHandler(),
-				new TimeWindowFlagHandler(),
-				new TargetedFlagHandler(),
-				new UserPercentageHandler(),
-				new StatusBasedFlagHandler()
-			]));
+			new HashSet<IOrderedEvaluator>(
+				[	new ActivationScheduleEvaluator(),
+					new OperationalWindowEvaluator(),
+					new TargetingRulesEvaluator(),
+					new TenantRolloutEvaluator(),
+					new TerminalStateEvaluator(),
+					new UserRolloutEvaluator(),
+				])));
 
 		if (options.UseCache == true && string.IsNullOrEmpty(options.RedisConnectionString))
 			services.TryAddSingleton<IFeatureFlagCache, MemoryFeatureFlagCache>();

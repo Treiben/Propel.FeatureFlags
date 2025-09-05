@@ -2,26 +2,16 @@
 
 namespace Propel.FeatureFlags.Evaluation.Handlers;
 
-public sealed class TargetedFlagHandler : ChainableEvaluationHandler<TargetedFlagHandler>, IOrderedEvaluationHandler
+public sealed class TargetingRulesEvaluator : IOrderedEvaluator
 {
-	public int EvaluationOrder => 5;
+	public EvaluationOrder EvaluationOrder => EvaluationOrder.CustomTargeting;
 
-	bool IOrderedEvaluationHandler.CanProcess(FeatureFlag flag, EvaluationContext context)
-	{
-		return CanProcess(flag, context);
-	}
-
-	Task<EvaluationResult?> IOrderedEvaluationHandler.ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
-	{
-		return ProcessEvaluation(flag, context);
-	}
-
-	protected override bool CanProcess(FeatureFlag flag, EvaluationContext context)
+	public bool CanProcess(FeatureFlag flag, EvaluationContext context)
 	{
 		return flag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.UserTargeted]);
 	}
 
-	protected override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
+	public async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
 	{
 		// Build enriched attributes that include tenant and user context
 		var enrichedAttributes = new Dictionary<string, object>(context.Attributes);
@@ -39,7 +29,8 @@ public sealed class TargetedFlagHandler : ChainableEvaluationHandler<TargetedFla
 		{
 			if (EvaluateTargetingRule(rule, enrichedAttributes))
 			{
-				return new EvaluationResult(isEnabled: true, variation: rule.Variation, reason: $"Targeting rule matched: {rule.Attribute} {rule.Operator} {string.Join(",", rule.Values)}");
+				return new EvaluationResult(isEnabled: true, variation: rule.Variation, 
+					reason: $"Targeting rule matched: {rule.Attribute} {rule.Operator} {string.Join(",", rule.Values)}");
 			}
 		}
 

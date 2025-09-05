@@ -7,16 +7,16 @@ public class FeatureFlag
 	public string Description { get; set; } = string.Empty;
 	public DateTime? ExpirationDate { get; set; }
 	public FlagEvaluationModeSet EvaluationModeSet { get; set; } = FlagEvaluationModeSet.FlagIsDisabled;
-	public FlagSchedule Schedule { get; set; } = FlagSchedule.Unscheduled;
-	public FlagTimeWindow TimeWindow { get; set; } = FlagTimeWindow.AlwaysOpen;
+	public FlagActivationSchedule Schedule { get; set; } = FlagActivationSchedule.Unscheduled;
+	public FlagOperationalWindow OperationalWindow { get; set; } = FlagOperationalWindow.AlwaysOpen;
 	// Targeting
 	public List<TargetingRule> TargetingRules { get; set; } = [];
-	public FlagUserLevelControl Users { get; set; } = FlagUserLevelControl.Unrestricted;
-	public FlagTenantLevelControl Tenants { get; set; } = FlagTenantLevelControl.Unrestricted;
+	public FlagUserAccessControl UserAccess { get; set; } = FlagUserAccessControl.Unrestricted;
+	public FlagTenantAccessControl TenantAccess { get; set; } = FlagTenantAccessControl.Unrestricted;
 	// Variations for A/B testing
 	public FlagVariations Variations { get; set; } = FlagVariations.OnOff;
 	// Metadata
 	public Dictionary<string, string> Tags { get; set; } = [];
 	public bool IsPermanent { get; set; } = false;
-	public FlagAudit Audit { get; set; } = FlagAudit.New;
+	public FlagAuditRecord AutidRecord { get; set; } = FlagAuditRecord.NewFlag();
 }
