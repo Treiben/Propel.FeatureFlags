@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Propel.FeatureFlags;
 using Propel.FeatureFlags.AspNetCore;
 using Propel.FeatureFlags.AspNetCore.Middleware;
-using Propel.FeatureFlags.Client;
 using System.Net;
 using System.Security.Claims;
 

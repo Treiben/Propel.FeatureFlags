@@ -1,7 +1,7 @@
-﻿using Propel.FeatureFlags.Client;
+﻿using Propel.FeatureFlags;
+using Propel.FeatureFlags.Evaluation;
 
 namespace FeatureFlags.UnitTests.Client;
-
 
 public class FeatureFlagClient_AttributesHandling
 {
