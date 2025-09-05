@@ -367,7 +367,7 @@ public class SqlServerFeatureFlagRepository : IFeatureFlagRepository
 			return (string.Empty, parameters);
 
 		// Status filtering
-		if (!string.IsNullOrEmpty(filter.Status) && Enum.TryParse<FeatureFlagStatus>(filter.Status, true, out var status))
+		if (!string.IsNullOrEmpty(filter.Status) && Enum.TryParse<FlagEvaluationMode>(filter.Status, true, out var status))
 		{
 			conditions.Add("[status] = @status");
 			parameters["status"] = (int)status;
@@ -469,7 +469,7 @@ public static class SqlDataReaderExtensions
 			Key = reader.GetString(reader.GetOrdinal("key")),
 			Name = reader.GetString(reader.GetOrdinal("name")),
 			Description = reader.GetString(reader.GetOrdinal("description")),
-			Status = (FeatureFlagStatus)reader.GetInt32(reader.GetOrdinal("status")),
+			Status = (FlagEvaluationMode)reader.GetInt32(reader.GetOrdinal("status")),
 			CreatedAt = reader.GetDateTime(reader.GetOrdinal("created_at")),
 			UpdatedAt = reader.GetDateTime(reader.GetOrdinal("updated_at")),
 			CreatedBy = reader.GetString(reader.GetOrdinal("created_by")),

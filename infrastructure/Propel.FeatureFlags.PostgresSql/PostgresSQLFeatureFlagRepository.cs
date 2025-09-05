@@ -22,7 +22,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 	{
 		_logger.LogDebug("Getting feature flag with key: {Key}", key);
 		const string sql = @"
-                SELECT key, name, description, status, created_at, updated_at, created_by, updated_by,
+                SELECT key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
                        expiration_date, scheduled_enable_date, scheduled_disable_date,
                        window_start_time, window_end_time, time_zone, window_days,
                        percentage_enabled, targeting_rules, enabled_users, disabled_users,
@@ -63,7 +63,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 	{
 		_logger.LogDebug("Retrieving all feature flags");
 		const string sql = @"
-                SELECT key, name, description, status, created_at, updated_at, created_by, updated_by,
+                SELECT key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
                        expiration_date, scheduled_enable_date, scheduled_disable_date,
                        window_start_time, window_end_time, time_zone, window_days,
                        percentage_enabled, targeting_rules, enabled_users, disabled_users,
@@ -112,7 +112,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 		// Data query with pagination
 		var dataSql = $@"
-                SELECT key, name, description, status, created_at, updated_at, created_by, updated_by,
+                SELECT key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
                        expiration_date, scheduled_enable_date, scheduled_disable_date,
                        window_start_time, window_end_time, time_zone, window_days,
                        percentage_enabled, targeting_rules, enabled_users, disabled_users,
@@ -172,14 +172,14 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		_logger.LogDebug("Creating feature flag with key: {Key}", flag.Key);
 		const string sql = @"
                 INSERT INTO feature_flags (
-                    key, name, description, status, created_at, updated_at, created_by, updated_by,
+                    key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
                     expiration_date, scheduled_enable_date, scheduled_disable_date,
                     window_start_time, window_end_time, time_zone, window_days,
                     percentage_enabled, targeting_rules, enabled_users, disabled_users,
 					enabled_tenants, disabled_tenants, tenant_percentage_enabled,
                     variations, default_variation, tags, is_permanent
                 ) VALUES (
-                    @key, @name, @description, @status, @created_at, @updated_at, @created_by, @updated_by,
+                    @key, @name, @description, @evaluation_modes, @created_at, @updated_at, @created_by, @updated_by,
                     @expiration_date, @scheduled_enable_date, @scheduled_disable_date,
                     @window_start_time, @window_end_time, @time_zone, @window_days,
                     @percentage_enabled, @targeting_rules, @enabled_users, @disabled_users,
@@ -212,7 +212,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 		const string sql = @"
                 UPDATE feature_flags SET 
-                    name = @name, description = @description, status = @status, updated_at = @updated_at, updated_by = @updated_by,
+                    name = @name, description = @description, evaluation_modes = @evaluation_modes, updated_at = @updated_at, updated_by = @updated_by,
                     expiration_date = @expiration_date, scheduled_enable_date = @scheduled_enable_date, scheduled_disable_date = @scheduled_disable_date,
                     window_start_time = @window_start_time, window_end_time = @window_end_time, time_zone = @time_zone, window_days = @window_days,
                     percentage_enabled = @percentage_enabled, targeting_rules = @targeting_rules, enabled_users = @enabled_users, disabled_users = @disabled_users,
@@ -277,7 +277,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 	{
 		_logger.LogDebug("Getting feature flags expiring before: {ExpiryDate}", before);
 		const string sql = @"
-                SELECT key, name, description, status, created_at, updated_at, created_by, updated_by,
+                SELECT key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
                        expiration_date, scheduled_enable_date, scheduled_disable_date,
                        window_start_time, window_end_time, time_zone, window_days,
                        percentage_enabled, targeting_rules, enabled_users, disabled_users,
@@ -383,11 +383,15 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		if (filter == null)
 			return (string.Empty, parameters);
 
-		// Status filtering
-		if (!string.IsNullOrEmpty(filter.Status) && Enum.TryParse<FlagEvaluationMode>(filter.Status, true, out var status))
+		// modes filtering
+		if (filter.EvaluationModes != null && filter.EvaluationModes.Length > 0)
 		{
-			conditions.Add("status = @status");
-			parameters["status"] = (int)status;
+			for (int i = 0; i < filter.EvaluationModes.Length; i++)
+			{
+				FlagEvaluationMode[] mode = [filter.EvaluationModes[i]];
+				conditions.Add($"evaluation_modes @> @mode{i}");
+				parameters[$"mode{i}"] = JsonSerializer.Serialize(mode, JsonDefaults.JsonOptions);
+			}
 		}
 
 		// Tags filtering
@@ -411,7 +415,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			}
 		}
 
-		var whereClause = conditions.Count > 0 ? " WHERE " + string.Join(" AND ", conditions) : string.Empty;
+		var whereClause = conditions.Count > 0 ? " WHERE " + string.Join(" OR ", conditions) : string.Empty;
 		return (whereClause, parameters);
 	}
 }
@@ -423,11 +427,10 @@ public static class NpgsqlCommandExtensions
 		command.Parameters.AddWithValue("key", flag.Key);
 		command.Parameters.AddWithValue("name", flag.Name);
 		command.Parameters.AddWithValue("description", flag.Description);
-		command.Parameters.AddWithValue("evaluation_modes", JsonSerializer.Serialize(flag.EvaluationModeSet.EvaluationModes, JsonDefaults.JsonOptions));
 		command.Parameters.AddWithValue("created_at", flag.AuditRecord.CreatedAt);
 		command.Parameters.AddWithValue("updated_at", (object?)flag.AuditRecord.ModifiedAt ?? DBNull.Value);
 		command.Parameters.AddWithValue("created_by", flag.AuditRecord.CreatedBy);
-		command.Parameters.AddWithValue("updated_by", flag.AuditRecord.ModifiedBy);
+		command.Parameters.AddWithValue("updated_by", (object?)flag.AuditRecord.ModifiedBy ?? DBNull.Value);
 		command.Parameters.AddWithValue("expiration_date", (object?)flag.ExpirationDate ?? DBNull.Value);
 		command.Parameters.AddWithValue("scheduled_enable_date", (object?)flag.Schedule.ScheduledEnableDate ?? DBNull.Value);
 		command.Parameters.AddWithValue("scheduled_disable_date", (object?)flag.Schedule.ScheduledDisableDate ?? DBNull.Value);
@@ -436,6 +439,10 @@ public static class NpgsqlCommandExtensions
 		command.Parameters.AddWithValue("time_zone", (object?)flag.OperationalWindow.TimeZone ?? DBNull.Value);
 
 		// JSONB parameters require explicit type specification
+
+		var evaluationModesParam = command.Parameters.Add("evaluation_modes", NpgsqlDbType.Jsonb);
+		evaluationModesParam.Value = JsonSerializer.Serialize(flag.EvaluationModeSet.EvaluationModes, JsonDefaults.JsonOptions);
+
 		var windowDaysParam = command.Parameters.Add("window_days", NpgsqlDbType.Jsonb);
 		windowDaysParam.Value = JsonSerializer.Serialize(flag.OperationalWindow.WindowDays ?? [], JsonDefaults.JsonOptions);
 
@@ -478,6 +485,12 @@ public static class NpgsqlCommandExtensions
 				var parameter = command.Parameters.Add(key, NpgsqlDbType.Jsonb);
 				parameter.Value = value;
 			}
+			else if (key.StartsWith("mode"))
+			{
+				// JSONB parameter
+				var parameter = command.Parameters.Add(key, NpgsqlDbType.Jsonb);
+				parameter.Value = value;
+			}
 			else
 			{
 				command.Parameters.AddWithValue(key, value);
@@ -511,29 +524,29 @@ public static class NpgsqlDataReaderExtensions
 	}
 	public static async Task<FeatureFlag> LoadFlagFromReader(this NpgsqlDataReader reader)
 	{
-		var evaluationModeSet = FlagEvaluationModeSet.LoadModes(await reader.Deserialize<FlagEvaluationMode[]>("evaluation_modes"));
-		var auditRecord = FlagAuditRecord.LoadRecord(
+		var evaluationModeSet = new FlagEvaluationModeSet(await reader.Deserialize<FlagEvaluationMode[]>("evaluation_modes"));
+		var auditRecord = new FlagAuditRecord(
 				createdAt: await reader.GetDataAsync<DateTime>("created_at"),
 				modifiedAt: await reader.GetDataAsync<DateTime>("updated_at"),
 				createdBy: await reader.GetDataAsync<string>("created_by"),
 				modifiedBy: await reader.GetDataAsync<string>("updated_by")
 			);
-		var schedule = FlagActivationSchedule.LoadSchedule(
+		var schedule = new FlagActivationSchedule(
 				scheduledEnableDate: await reader.GetDataAsync<DateTime?>("scheduled_enable_date"),
 				scheduledDisableDate: await reader.GetDataAsync<DateTime?>("scheduled_disable_date")
 			);
-		var window = FlagOperationalWindow.LoadWindow(
+		var window = new FlagOperationalWindow(
 				windowStartTime: await reader.GetTimeOnly("window_start_time") ?? TimeSpan.Zero,
 				windowEndTime: await reader.GetTimeOnly("window_end_time") ?? new TimeSpan(23, 59, 59),
 				timeZone: await reader.GetDataAsync<string?>("time_zone") ?? "UTC",
-				windowDays: await reader.Deserialize<List<DayOfWeek>>("window_days")
+				windowDays: await reader.Deserialize<DayOfWeek[]?>("window_days")
 			);
-		var userAccess = FlagUserAccessControl.LoadAccessControl(
+		var userAccess = new FlagUserAccessControl(
 				allowedUsers: await reader.Deserialize<List<string>>("enabled_users"),
 				blockedUsers: await reader.Deserialize<List<string>>("disabled_users"),
 				rolloutPercentage: await reader.GetDataAsync<int>("percentage_enabled")
 			);
-		var tenantAccess = FlagTenantAccessControl.LoadAccessControl(
+		var tenantAccess = new FlagTenantAccessControl(
 				allowedTenants: await reader.Deserialize<List<string>>("enabled_tenants"),
 				blockedTenants: await reader.Deserialize<List<string>>("disabled_tenants"),
 				rolloutPercentage: await reader.GetDataAsync<int>("tenant_percentage_enabled")

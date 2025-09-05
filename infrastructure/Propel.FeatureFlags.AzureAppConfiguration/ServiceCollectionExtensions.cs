@@ -6,7 +6,7 @@ namespace Propel.FeatureFlags.AzureAppConfiguration;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddAzureAppConfigFeatureFlags(this IServiceCollection services, FlagOptions options)
+	public static IServiceCollection AddAzureAppConfigFeatureFlags(this IServiceCollection services, FeatureFlagConfigurationOptions options)
 	{
 		services.AddSingleton<IFeatureFlagRepository>(sp =>
 						new AzureAppConfigurationRepository(

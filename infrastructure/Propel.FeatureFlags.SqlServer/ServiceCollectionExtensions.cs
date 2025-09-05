@@ -6,7 +6,7 @@ namespace Propel.FeatureFlags.SqlServer;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddSqlServerFeatureFlags(this IServiceCollection services, FlagOptions options)
+	public static IServiceCollection AddSqlServerFeatureFlags(this IServiceCollection services, FeatureFlagConfigurationOptions options)
 	{
 		services.AddSingleton<IFeatureFlagRepository>(sp =>
 			new SqlServerFeatureFlagRepository(

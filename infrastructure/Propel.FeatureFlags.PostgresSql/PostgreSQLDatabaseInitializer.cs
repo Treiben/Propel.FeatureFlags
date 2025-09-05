@@ -111,7 +111,7 @@ CREATE TABLE feature_flags (
     key VARCHAR(255) PRIMARY KEY,
     name VARCHAR(500) NOT NULL,
     description TEXT NOT NULL DEFAULT '',
-    status INTEGER NOT NULL DEFAULT 0,
+    evaluation_modes JSONB NOT NULL DEFAULT '[]',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     created_by VARCHAR(255) NOT NULL,
@@ -165,7 +165,7 @@ CREATE TABLE feature_flag_audit (
 );
 
 -- Create indexes for feature_flags table
-CREATE INDEX IF NOT EXISTS idx_feature_flags_status ON feature_flags (status);
+CREATE INDEX IF NOT EXISTS ix_feature_flags_evaluation_modes ON feature_flags USING GIN(evaluation_modes);
 CREATE INDEX IF NOT EXISTS idx_feature_flags_created_at ON feature_flags (created_at);
 CREATE INDEX IF NOT EXISTS idx_feature_flags_updated_at ON feature_flags (updated_at);
 CREATE INDEX IF NOT EXISTS idx_feature_flags_expiration_date ON feature_flags (expiration_date) WHERE expiration_date IS NOT NULL;
