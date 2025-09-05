@@ -2,25 +2,21 @@ namespace Propel.FeatureFlags.Core;
 
 public class FlagTenantAccessControl
 {
-	public IReadOnlyList<string> AllowedTenants { get; }
-	public IReadOnlyList<string> BlockedTenants { get; }
+	public List<string> AllowedTenants { get; }
+	public List<string> BlockedTenants { get; }
 	public int RolloutPercentage { get; }
 
-	// Internal constructor to prevent direct instantiation
-	internal FlagTenantAccessControl(List<string>? allowedTenants = null, List<string>? blockedTenants = null, int rolloutPercentage = 0)
+	public FlagTenantAccessControl(
+		List<string>? allowedTenants = null, 
+		List<string>? blockedTenants = null, 
+		int rolloutPercentage = 0)
 	{
-		AllowedTenants = (allowedTenants ?? []).AsReadOnly();
-		BlockedTenants = (blockedTenants ?? []).AsReadOnly();
+		AllowedTenants = ValidateAndNormalizeTenantList(allowedTenants, nameof(allowedTenants));
+		BlockedTenants = ValidateAndNormalizeTenantList(blockedTenants, nameof(blockedTenants));
 		RolloutPercentage = rolloutPercentage;
 	}
 
 	public static FlagTenantAccessControl Unrestricted => new(rolloutPercentage: 100);
-
-	// This method is used to load access controls from persistent storage because it skips validation
-	public static FlagTenantAccessControl LoadAccessControl(List<string>? allowedTenants = null, List<string>? blockedTenants = null, int rolloutPercentage = 0)
-	{
-		return new FlagTenantAccessControl(allowedTenants, blockedTenants, rolloutPercentage);
-	}
 
 	// This method is used to create new access controls in valid state
 	public static FlagTenantAccessControl CreateAccessControl(

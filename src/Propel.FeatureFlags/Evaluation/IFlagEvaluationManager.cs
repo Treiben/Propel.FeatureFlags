@@ -23,17 +23,23 @@ public sealed class FlagEvaluationManager : IFlagEvaluationManager
 
 	public async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
 	{
-		foreach (var handler in _handlers.Where(h => h.CanProcess(flag, context)))
+		var processingHandlers = _handlers.Where(h => h.CanProcess(flag, context)).ToList();
+		EvaluationResult result = default;
+		foreach (var handler in processingHandlers)
 		{
-			var result = await handler.ProcessEvaluation(flag, context);
+			result = await handler.ProcessEvaluation(flag, context);
 			if (result != null && result.IsEnabled == false)
 			{
 				return result;
 			}
 		}
 
-		var reason = $"All [{flag.EvaluationModeSet}] conditions met for feature flag activation";
+		if (processingHandlers.Count > 1)
+		{
+			var reason = $"All [{flag.EvaluationModeSet}] conditions met for feature flag activation";
+			return new EvaluationResult(isEnabled: true, variation: "on", reason: reason);
+		}
 
-		return new EvaluationResult(isEnabled: true, variation: flag.Variations.DefaultVariation, reason: reason);
+		return result;
 	}
 }

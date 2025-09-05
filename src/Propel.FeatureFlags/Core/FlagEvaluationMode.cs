@@ -15,21 +15,30 @@ public class FlagEvaluationModeSet
 {
 	public FlagEvaluationMode[] EvaluationModes { get; private set; } = [FlagEvaluationMode.Disabled];
 
-	public static FlagEvaluationModeSet LoadModes(FlagEvaluationMode[] modes)
+	public FlagEvaluationModeSet(FlagEvaluationMode[]? evaluationModes = null)
 	{
-		var modeSet = new FlagEvaluationModeSet();
-		foreach (var mode in modes)
-			modeSet.AddMode(mode);
-		return modeSet;
+		if (evaluationModes == null || evaluationModes.Length == 0)
+		{
+			EvaluationModes = [FlagEvaluationMode.Disabled];
+		}
+		else
+		{
+			foreach (var mode in evaluationModes)
+			{
+				AddMode(mode);
+			}
+		}
 	}
 
-	public FlagEvaluationModeSet AddMode(FlagEvaluationMode mode)
+	public static FlagEvaluationModeSet FlagIsDisabled => new([FlagEvaluationMode.Disabled]);
+
+	public void AddMode(FlagEvaluationMode mode)
 	{
 		if (mode == FlagEvaluationMode.Disabled)
 		{
 			// If adding Disabled, it should be the only status
 			EvaluationModes = [FlagEvaluationMode.Disabled];
-			return this;
+			return;
 		}
 
 		if (mode != FlagEvaluationMode.Disabled && EvaluationModes.Contains(FlagEvaluationMode.Disabled))
@@ -42,16 +51,14 @@ public class FlagEvaluationModeSet
 		{
 			EvaluationModes = [.. EvaluationModes, mode];
 		}
-		return this;
 	}
 
-	public FlagEvaluationModeSet RemoveMode(FlagEvaluationMode mode)
+	public void RemoveMode(FlagEvaluationMode mode)
 	{
 		if (EvaluationModes.Contains(mode))
 		{
 			EvaluationModes = [.. EvaluationModes.Where(s => s != mode)];
 		}
-		return this;
 	}
 
 	public bool ContainsModes(FlagEvaluationMode[] evaluationModes, bool any = true)
@@ -61,8 +68,6 @@ public class FlagEvaluationModeSet
 		else
 			return evaluationModes.All(s => EvaluationModes.Contains(s));
 	}
-
-	public static FlagEvaluationModeSet FlagIsDisabled => new() { EvaluationModes = [FlagEvaluationMode.Disabled] };
 }
 
 //public enum FeatureFlagStatus

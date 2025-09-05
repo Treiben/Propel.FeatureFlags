@@ -1,26 +1,17 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace Propel.FeatureFlags.Core;
+﻿namespace Propel.FeatureFlags.Core;
 
 public class FlagActivationSchedule
 {
 	public DateTime? ScheduledEnableDate { get; }
 	public DateTime? ScheduledDisableDate { get; }
 
-	// Private constructor to prevent direct instantiation
-	internal FlagActivationSchedule(DateTime? scheduledEnableDate = null, DateTime? scheduledDisableDate = null)
+	public FlagActivationSchedule(DateTime? scheduledEnableDate, DateTime? scheduledDisableDate)
 	{
 		ScheduledEnableDate = scheduledEnableDate;
 		ScheduledDisableDate = scheduledDisableDate;
 	}
 
-	public static FlagActivationSchedule Unscheduled => new();
-
-	// This method is used to load schedules from persistent storage because it skips validation
-	public static FlagActivationSchedule LoadSchedule(DateTime? scheduledEnableDate, DateTime? scheduledDisableDate)
-	{
-		return new FlagActivationSchedule(scheduledEnableDate, scheduledDisableDate);
-	}
+	public static FlagActivationSchedule Unscheduled => new(null, null);
 
 	// This method is used to create new flag schedules in valid state
 	public static FlagActivationSchedule CreateSchedule(DateTime scheduledEnableDate, DateTime? scheduledDisableDate = null)

@@ -5,14 +5,17 @@ public class FlagOperationalWindow
 	public TimeSpan WindowStartTime { get; }
 	public TimeSpan WindowEndTime { get; }
 	public string TimeZone { get; }
-	public List<DayOfWeek> WindowDays { get; }
+	public DayOfWeek[] WindowDays { get; }
 
-	// Internal constructor to prevent direct instantiation
-	internal FlagOperationalWindow(TimeSpan windowStartTime, TimeSpan windowEndTime, string timeZone, List<DayOfWeek>? windowDays = null)
+	public FlagOperationalWindow(
+				TimeSpan windowStartTime, 
+				TimeSpan windowEndTime, 
+				string timeZone = "UTC",
+				DayOfWeek[]? windowDays = null)
 	{
 		WindowStartTime = windowStartTime;
 		WindowEndTime = windowEndTime;
-		TimeZone = timeZone;
+		TimeZone = timeZone ?? "UTC";
 		WindowDays = windowDays ?? [DayOfWeek.Monday, 
 			DayOfWeek.Tuesday, 
 			DayOfWeek.Wednesday,
@@ -24,16 +27,7 @@ public class FlagOperationalWindow
 
 	public static FlagOperationalWindow AlwaysOpen => new(
 		windowStartTime: TimeSpan.Zero,
-		windowEndTime: new TimeSpan(23, 59, 59),
-		timeZone: "UTC");
-
-	// This method is used to load windows from persistent storage because it skips validation
-	public static FlagOperationalWindow LoadWindow(TimeSpan windowStartTime, 
-			TimeSpan windowEndTime, string timeZone,
-			List<DayOfWeek>? windowDays = null)
-	{
-		return new FlagOperationalWindow(windowStartTime, windowEndTime, timeZone, windowDays);
-	}
+		windowEndTime: new TimeSpan(23, 59, 59));
 
 	// This method is used to create a new operation window in valid state
 	public static FlagOperationalWindow CreateWindow(
@@ -145,7 +139,7 @@ public class FlagOperationalWindow
 		}
 	}
 
-	private static List<DayOfWeek> ValidateAllowedDays(List<DayOfWeek>? allowedDays)
+	private static DayOfWeek[] ValidateAllowedDays(List<DayOfWeek>? allowedDays)
 	{
 		if (allowedDays == null || allowedDays.Count == 0)
 		{
@@ -160,7 +154,7 @@ public class FlagOperationalWindow
 		}
 
 		// Remove duplicates and validate enum values
-		var distinctDays = allowedDays.Distinct().ToList();
+		var distinctDays = allowedDays.Distinct().ToArray();
 		foreach (var day in distinctDays)
 		{
 			if (!Enum.IsDefined(typeof(DayOfWeek), day))
