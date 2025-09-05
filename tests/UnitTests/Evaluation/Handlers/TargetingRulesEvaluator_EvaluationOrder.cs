@@ -1,7 +1,6 @@
 using Propel.FeatureFlags.Core;
 using Propel.FeatureFlags.Evaluation;
 using Propel.FeatureFlags.Evaluation.Handlers;
-using Shouldly;
 
 namespace FeatureFlags.UnitTests.Evaluation.Handlers;
 

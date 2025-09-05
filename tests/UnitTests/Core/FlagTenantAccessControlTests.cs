@@ -13,7 +13,7 @@ public class FlagTenantAccessControl_Constructor
 		var rolloutPercentage = 75;
 
 		// Act
-		var accessControl = FlagTenantAccessControl.LoadAccessControl(allowedTenants, blockedTenants, rolloutPercentage);
+		var accessControl = new FlagTenantAccessControl(allowedTenants, blockedTenants, rolloutPercentage);
 
 		// Assert
 		accessControl.AllowedTenants.ShouldBe(allowedTenants.AsReadOnly());
@@ -25,7 +25,7 @@ public class FlagTenantAccessControl_Constructor
 	public void If_InternalConstructorWithNulls_ThenSetsEmptyLists()
 	{
 		// Act
-		var accessControl = FlagTenantAccessControl.LoadAccessControl(null, null, 0);
+		var accessControl = new FlagTenantAccessControl(null, null, 0);
 
 		// Assert
 		accessControl.AllowedTenants.Count.ShouldBe(0);
@@ -37,7 +37,7 @@ public class FlagTenantAccessControl_Constructor
 	public void If_InternalConstructorWithDefaults_ThenSetsDefaultValues()
 	{
 		// Act
-		var accessControl = FlagTenantAccessControl.LoadAccessControl();
+		var accessControl = new FlagTenantAccessControl();
 
 		// Assert
 		accessControl.AllowedTenants.Count.ShouldBe(0);
@@ -377,7 +377,7 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 	{
 		// This test actually can't run because CreateAccessControl would throw
 		// Let's test the precedence in the evaluation logic by creating via internal constructor
-		var accessControlWithConflict = FlagTenantAccessControl.LoadAccessControl(
+		var accessControlWithConflict = new FlagTenantAccessControl(
 			allowedTenants: ["conflict-tenant"],
 			blockedTenants: ["conflict-tenant"]);
 
@@ -560,7 +560,7 @@ public class FlagTenantAccessControl_IsTenantExplicitlyManaged
 	public void If_TenantInBothLists_ThenReturnsTrue()
 	{
 		// Arrange - Using internal constructor to bypass validation
-		var accessControl = FlagTenantAccessControl.LoadAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["tenant1"],
 			blockedTenants: ["tenant1"]);
 
@@ -878,7 +878,7 @@ public class FlagTenantAccessControl_WithoutTenant
 	public void If_TenantInBothLists_ThenRemovesFromBoth()
 	{
 		// Arrange - Using internal constructor to bypass validation
-		var accessControl = FlagTenantAccessControl.LoadAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["tenant1", "tenant2"],
 			blockedTenants: ["tenant2", "tenant3"]);
 

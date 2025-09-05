@@ -1,8 +1,6 @@
-using Moq;
 using Propel.FeatureFlags.Core;
 using Propel.FeatureFlags.Evaluation;
 using Propel.FeatureFlags.Evaluation.Handlers;
-using Shouldly;
 
 namespace FeatureFlags.UnitTests.Evaluation;
 
@@ -89,35 +87,6 @@ public class FlagEvaluationManager_ProcessEvaluation_SingleHandler
 	}
 
 	[Fact]
-	public async Task If_HandlerCanProcessAndReturnsEnabled_ThenContinuesProcessing()
-	{
-		// Arrange
-		var mockHandler = new Mock<IOrderedEvaluator>();
-		mockHandler.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.Terminal);
-		mockHandler.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
-		mockHandler.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
-			.ReturnsAsync(new EvaluationResult(isEnabled: true, variation: "enabled", reason: "Handler enabled"));
-
-		var manager = new FlagEvaluationManager(new HashSet<IOrderedEvaluator> { mockHandler.Object });
-		var flag = new FeatureFlag 
-		{ 
-			Key = "test-flag",
-			EvaluationModeSet = new FlagEvaluationModeSet(),
-			Variations = new FlagVariations { DefaultVariation = "fallback" }
-		};
-		var context = new EvaluationContext();
-
-		// Act
-		var result = await manager.ProcessEvaluation(flag, context);
-
-		// Assert
-		result.ShouldNotBeNull();
-		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("fallback"); // Default variation when all conditions met
-		result.Reason.ShouldBe($"All [{flag.EvaluationModeSet}] conditions met for feature flag activation");
-	}
-
-	[Fact]
 	public async Task If_HandlerCannotProcess_ThenSkipsHandler()
 	{
 		// Arrange
@@ -138,10 +107,7 @@ public class FlagEvaluationManager_ProcessEvaluation_SingleHandler
 		var result = await manager.ProcessEvaluation(flag, context);
 
 		// Assert
-		result.ShouldNotBeNull();
-		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("no-handlers");
-		result.Reason.ShouldBe($"All [{flag.EvaluationModeSet}] conditions met for feature flag activation");
+		result.ShouldBeNull();
 		
 		// Verify ProcessEvaluation was never called since CanProcess returned false
 		mockHandler.Verify(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()), Times.Never);
@@ -277,7 +243,7 @@ public class FlagEvaluationManager_ProcessEvaluation_MultipleHandlers
 public class FlagEvaluationManager_ProcessEvaluation_EdgeCases
 {
 	[Fact]
-	public async Task If_NoHandlers_ThenReturnsEnabledWithDefaultMessage()
+	public async Task If_NoHandlers_ThenReturnsNullAsResult()
 	{
 		// Arrange
 		var manager = new FlagEvaluationManager(new HashSet<IOrderedEvaluator>());
@@ -293,10 +259,7 @@ public class FlagEvaluationManager_ProcessEvaluation_EdgeCases
 		var result = await manager.ProcessEvaluation(flag, context);
 
 		// Assert
-		result.ShouldNotBeNull();
-		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("no-evaluators");
-		result.Reason.ShouldBe($"All [{flag.EvaluationModeSet}] conditions met for feature flag activation");
+		result.ShouldBeNull();
 	}
 
 	[Fact]

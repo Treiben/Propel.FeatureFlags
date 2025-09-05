@@ -1,7 +1,6 @@
 using Propel.FeatureFlags.Core;
 using Propel.FeatureFlags.Evaluation;
 using Propel.FeatureFlags.Evaluation.Handlers;
-using Shouldly;
 
 namespace FeatureFlags.UnitTests.Evaluation.Handlers;
 
@@ -395,7 +394,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_ExplicitlyBlockedTenants
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.LoadAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				allowedTenants: allowedTenants,
 				blockedTenants: blockedTenants,
 				rolloutPercentage: 100),

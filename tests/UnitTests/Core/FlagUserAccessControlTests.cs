@@ -13,7 +13,7 @@ public class FlagUserAccessControl_Constructor
 		var rolloutPercentage = 75;
 
 		// Act
-		var accessControl = FlagUserAccessControl.LoadAccessControl(allowedUsers, blockedUsers, rolloutPercentage);
+		var accessControl = new FlagUserAccessControl(allowedUsers, blockedUsers, rolloutPercentage);
 
 		// Assert
 		accessControl.AllowedUsers.ShouldBe(allowedUsers.AsReadOnly());
@@ -25,7 +25,7 @@ public class FlagUserAccessControl_Constructor
 	public void If_InternalConstructorWithNulls_ThenSetsEmptyLists()
 	{
 		// Act
-		var accessControl = FlagUserAccessControl.LoadAccessControl(null, null, 0);
+		var accessControl = new FlagUserAccessControl(null, null, 0);
 
 		// Assert
 		accessControl.AllowedUsers.Count.ShouldBe(0);
@@ -37,7 +37,7 @@ public class FlagUserAccessControl_Constructor
 	public void If_InternalConstructorWithDefaults_ThenSetsDefaultValues()
 	{
 		// Act
-		var accessControl = FlagUserAccessControl.LoadAccessControl();
+		var accessControl = new FlagUserAccessControl();
 
 		// Assert
 		accessControl.AllowedUsers.Count.ShouldBe(0);
@@ -376,7 +376,7 @@ public class FlagUserAccessControl_EvaluateUserAccess
 	public void If_UserBlockedTakesPrecedenceOverAllowed_ThenReturnsDenied()
 	{
 		// Arrange - Using internal constructor to bypass validation
-		var accessControlWithConflict = FlagUserAccessControl.LoadAccessControl(
+		var accessControlWithConflict = new FlagUserAccessControl(
 			allowedUsers: ["conflict-user"],
 			blockedUsers: ["conflict-user"]);
 
@@ -559,7 +559,7 @@ public class FlagUserAccessControl_IsUserExplicitlyManaged
 	public void If_UserInBothLists_ThenReturnsTrue()
 	{
 		// Arrange - Using internal constructor to bypass validation
-		var accessControl = FlagUserAccessControl.LoadAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["user1"],
 			blockedUsers: ["user1"]);
 
@@ -877,7 +877,7 @@ public class FlagUserAccessControl_WithoutUser
 	public void If_UserInBothLists_ThenRemovesFromBoth()
 	{
 		// Arrange - Using internal constructor to bypass validation
-		var accessControl = FlagUserAccessControl.LoadAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["user1", "user2"],
 			blockedUsers: ["user2", "user3"]);
 

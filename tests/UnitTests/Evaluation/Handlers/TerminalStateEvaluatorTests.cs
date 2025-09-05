@@ -1,7 +1,6 @@
 using Propel.FeatureFlags.Core;
 using Propel.FeatureFlags.Evaluation;
 using Propel.FeatureFlags.Evaluation.Handlers;
-using Shouldly;
 
 namespace FeatureFlags.UnitTests.Evaluation.Handlers;
 
@@ -20,7 +19,6 @@ public class TerminalStateEvaluator_EvaluationOrder
 		order.ShouldBe(EvaluationOrder.Terminal);
 	}
 }
-
 public class TerminalStateEvaluator_CanProcess
 {
 	private readonly TerminalStateEvaluator _evaluator;

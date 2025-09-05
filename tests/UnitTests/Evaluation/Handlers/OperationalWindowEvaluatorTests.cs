@@ -1,7 +1,6 @@
 using Propel.FeatureFlags.Core;
 using Propel.FeatureFlags.Evaluation;
 using Propel.FeatureFlags.Evaluation.Handlers;
-using Shouldly;
 
 namespace FeatureFlags.UnitTests.Evaluation.Handlers;
 
@@ -123,7 +122,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation_WindowValidation
 		// Arrange
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = FlagOperationalWindow.LoadWindow(TimeSpan.FromHours(-1), TimeSpan.FromHours(-1), "UTC"),
+			OperationalWindow = new FlagOperationalWindow(TimeSpan.FromHours(-1), TimeSpan.FromHours(-1), "UTC"),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext();

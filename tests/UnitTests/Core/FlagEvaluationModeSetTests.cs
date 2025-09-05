@@ -26,10 +26,9 @@ public class FlagEvaluationModeSet_AddMode
 		var modeSet = new FlagEvaluationModeSet();
 
 		// Act
-		var result = modeSet.AddMode(FlagEvaluationMode.Enabled);
+		modeSet.AddMode(FlagEvaluationMode.Enabled);
 
 		// Assert
-		result.ShouldBe(modeSet);
 		modeSet.EvaluationModes.Length.ShouldBe(1);
 		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Enabled);
 	}
@@ -41,10 +40,9 @@ public class FlagEvaluationModeSet_AddMode
 		var modeSet = new FlagEvaluationModeSet();
 
 		// Act
-		var result = modeSet.AddMode(FlagEvaluationMode.Scheduled);
+		modeSet.AddMode(FlagEvaluationMode.Scheduled);
 
 		// Assert
-		result.ShouldBe(modeSet);
 		modeSet.EvaluationModes.Length.ShouldBe(1);
 		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Scheduled);
 	}
@@ -141,13 +139,11 @@ public class FlagEvaluationModeSet_AddMode
 		var modeSet = new FlagEvaluationModeSet();
 
 		// Act
-		var result = modeSet
-			.AddMode(FlagEvaluationMode.Enabled)
-			.AddMode(FlagEvaluationMode.Scheduled)
-			.AddMode(FlagEvaluationMode.TimeWindow);
+		modeSet.AddMode(FlagEvaluationMode.Enabled);
+		modeSet.AddMode(FlagEvaluationMode.Scheduled);
+		modeSet.AddMode(FlagEvaluationMode.TimeWindow);
 
 		// Assert
-		result.ShouldBe(modeSet);
 		modeSet.EvaluationModes.Length.ShouldBe(3);
 	}
 }
@@ -163,10 +159,9 @@ public class FlagEvaluationModeSet_RemoveMode
 		modeSet.AddMode(FlagEvaluationMode.Scheduled);
 
 		// Act
-		var result = modeSet.RemoveMode(FlagEvaluationMode.Enabled);
+		modeSet.RemoveMode(FlagEvaluationMode.Enabled);
 
 		// Assert
-		result.ShouldBe(modeSet);
 		modeSet.EvaluationModes.Length.ShouldBe(1);
 		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Scheduled);
 	}
@@ -242,12 +237,10 @@ public class FlagEvaluationModeSet_RemoveMode
 		modeSet.AddMode(FlagEvaluationMode.TimeWindow);
 
 		// Act
-		var result = modeSet
-			.RemoveMode(FlagEvaluationMode.Enabled)
-			.RemoveMode(FlagEvaluationMode.Scheduled);
+		modeSet.RemoveMode(FlagEvaluationMode.Enabled);
+		modeSet.RemoveMode(FlagEvaluationMode.Scheduled);
 
 		// Assert
-		result.ShouldBe(modeSet);
 		modeSet.EvaluationModes.Length.ShouldBe(1);
 		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.TimeWindow);
 	}
@@ -390,7 +383,7 @@ public class FlagEvaluationModeSet_ContainsModes
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
 		var allModes = Enum.GetValues<FlagEvaluationMode>();
-		
+
 		foreach (var mode in allModes)
 		{
 			if (mode != FlagEvaluationMode.Disabled)
@@ -446,7 +439,7 @@ public class FlagEvaluationModeSet_StaticFactory
 		// Assert
 		modeSet1.EvaluationModes.Length.ShouldBe(1);
 		modeSet1.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Enabled);
-		
+
 		modeSet2.EvaluationModes.Length.ShouldBe(1);
 		modeSet2.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Disabled);
 	}
@@ -488,15 +481,13 @@ public class FlagEvaluationModeSet_EdgeCases
 		var modeSet = new FlagEvaluationModeSet();
 
 		// Act
-		var result = modeSet
-			.AddMode(FlagEvaluationMode.Enabled)
-			.AddMode(FlagEvaluationMode.Scheduled)
-			.AddMode(FlagEvaluationMode.TimeWindow)
-			.RemoveMode(FlagEvaluationMode.Scheduled)
-			.AddMode(FlagEvaluationMode.UserTargeted);
+		modeSet.AddMode(FlagEvaluationMode.Enabled);
+		modeSet.AddMode(FlagEvaluationMode.Scheduled);
+		modeSet.AddMode(FlagEvaluationMode.TimeWindow);
+		modeSet.RemoveMode(FlagEvaluationMode.Scheduled);
+		modeSet.AddMode(FlagEvaluationMode.UserTargeted);
 
 		// Assert
-		result.ShouldBe(modeSet);
 		modeSet.EvaluationModes.Length.ShouldBe(3);
 		modeSet.EvaluationModes.ShouldContain(FlagEvaluationMode.Enabled);
 		modeSet.EvaluationModes.ShouldContain(FlagEvaluationMode.TimeWindow);
@@ -519,7 +510,7 @@ public class FlagEvaluationModeSet_EdgeCases
 		// Assert - Verify we can read but property setter is private
 		modes.ShouldNotBeNull();
 		modes.Length.ShouldBe(1);
-		
+
 		// Verify that changing the returned array doesn't affect the internal state
 		// (This tests that the array is either copied or the internal state is protected)
 		var internalState = modeSet.EvaluationModes;

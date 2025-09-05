@@ -10,7 +10,7 @@ public class FlagActivationSchedule_EdgeCases
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-1);
 		var disableDate = DateTime.UtcNow.AddHours(1);
-		var schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate);
+		var schedule = new FlagActivationSchedule(enableDate, disableDate);
 		var evaluationTime = DateTime.UtcNow;
 
 		// Act - Multiple calls
@@ -55,7 +55,7 @@ public class FlagActivationSchedule_EdgeCases
 		// Arrange - 365 day window
 		var enableDate = DateTime.UtcNow.AddDays(-100);
 		var disableDate = enableDate.AddDays(365);
-		var schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate);
+		var schedule = new FlagActivationSchedule(enableDate, disableDate);
 		var evaluationTime = DateTime.UtcNow;
 
 		// Act
@@ -73,7 +73,7 @@ public class FlagActivationSchedule_EdgeCases
 		var utcNow = DateTime.UtcNow;
 		var enableDate = utcNow.AddHours(-1);
 		var disableDate = utcNow.AddHours(1);
-		var schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate);
+		var schedule = new FlagActivationSchedule(enableDate, disableDate);
 
 		// Act - Test with various evaluation times around the same UTC moment
 		var results = new List<(bool, string)>

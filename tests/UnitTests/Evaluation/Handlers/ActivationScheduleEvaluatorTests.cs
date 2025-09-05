@@ -139,7 +139,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_ScheduleValidation
 		// Arrange
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(null, null),
+			Schedule = new FlagActivationSchedule(null, null),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext();
@@ -169,7 +169,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_EvaluationTime
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, null),
+			Schedule = new FlagActivationSchedule(enableDate, null),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -191,7 +191,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_EvaluationTime
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, null),
+			Schedule = new FlagActivationSchedule(enableDate, null),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(evaluationTime: null);
@@ -224,7 +224,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_EnableDateLogic
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, null),
+			Schedule = new FlagActivationSchedule(enableDate, null),
 			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -247,7 +247,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_EnableDateLogic
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, null),
+			Schedule = new FlagActivationSchedule(enableDate, null),
 			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: enableDate);
@@ -271,7 +271,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_EnableDateLogic
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, null),
+			Schedule = new FlagActivationSchedule(enableDate, null),
 			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -306,7 +306,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_DisableDateLogic
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate),
+			Schedule = new FlagActivationSchedule(enableDate, disableDate),
 			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -330,7 +330,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_DisableDateLogic
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate),
+			Schedule = new FlagActivationSchedule(enableDate, disableDate),
 			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: disableDate);
@@ -355,7 +355,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_DisableDateLogic
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate),
+			Schedule = new FlagActivationSchedule(enableDate, disableDate),
 			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -380,7 +380,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_DisableDateLogic
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate),
+			Schedule = new FlagActivationSchedule(enableDate, disableDate),
 			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -414,7 +414,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_Variations
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, null),
+			Schedule = new FlagActivationSchedule(enableDate, null),
 			Variations = new FlagVariations { DefaultVariation = "custom-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -438,7 +438,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_Variations
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, null),
+			Schedule = new FlagActivationSchedule(enableDate, null),
 			Variations = new FlagVariations { DefaultVariation = "custom-default" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -463,7 +463,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_Variations
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate),
+			Schedule = new FlagActivationSchedule(enableDate, disableDate),
 			Variations = new FlagVariations { DefaultVariation = "expired-variation" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -497,7 +497,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_EdgeCases
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, null),
+			Schedule = new FlagActivationSchedule(enableDate, null),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -522,7 +522,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_EdgeCases
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate),
+			Schedule = new FlagActivationSchedule(enableDate, disableDate),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -546,7 +546,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_EdgeCases
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(null, disableDate),
+			Schedule = new FlagActivationSchedule(null, disableDate),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -576,7 +576,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_RealWorldScenarios
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(launchDate, endDate),
+			Schedule = new FlagActivationSchedule(launchDate, endDate),
 			Variations = new FlagVariations { DefaultVariation = "feature-disabled" }
 		};
 
@@ -618,7 +618,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_RealWorldScenarios
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(startMaintenance, endMaintenance),
+			Schedule = new FlagActivationSchedule(startMaintenance, endMaintenance),
 			Variations = new FlagVariations { DefaultVariation = "service-unavailable" }
 		};
 
@@ -653,7 +653,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_RealWorldScenarios
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(goLiveDate, null),
+			Schedule = new FlagActivationSchedule(goLiveDate, null),
 			Variations = new FlagVariations { DefaultVariation = "beta-mode" }
 		};
 
@@ -697,7 +697,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_TimeZoneConsideration
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(utcEnableDate, null),
+			Schedule = new FlagActivationSchedule(utcEnableDate, null),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(evaluationTime: utcEvaluationTime);
@@ -719,7 +719,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_TimeZoneConsideration
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.LoadSchedule(enableDate, null),
+			Schedule = new FlagActivationSchedule(enableDate, null),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);

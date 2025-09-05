@@ -11,10 +11,10 @@ public class FlagOperationalWindow_Constructor
 		var startTime = TimeSpan.FromHours(9);
 		var endTime = TimeSpan.FromHours(17);
 		var timeZone = "UTC";
-		var windowDays = new List<DayOfWeek> { DayOfWeek.Monday, DayOfWeek.Tuesday };
+		DayOfWeek[] windowDays = [ DayOfWeek.Monday, DayOfWeek.Tuesday ];
 
 		// Act
-		var window = FlagOperationalWindow.LoadWindow(startTime, endTime, timeZone, windowDays);
+		var window = new FlagOperationalWindow(startTime, endTime, timeZone, windowDays);
 
 		// Assert
 		window.WindowStartTime.ShouldBe(startTime);
@@ -32,10 +32,10 @@ public class FlagOperationalWindow_Constructor
 		var timeZone = "UTC";
 
 		// Act
-		var window = FlagOperationalWindow.LoadWindow(startTime, endTime, timeZone, null);
+		var window = new FlagOperationalWindow(startTime, endTime, timeZone, null);
 
 		// Assert
-		window.WindowDays.Count.ShouldBe(7);
+		window.WindowDays.Length.ShouldBe(7);
 		window.WindowDays.ShouldContain(DayOfWeek.Monday);
 		window.WindowDays.ShouldContain(DayOfWeek.Tuesday);
 		window.WindowDays.ShouldContain(DayOfWeek.Wednesday);
@@ -58,7 +58,7 @@ public class FlagOperationalWindow_AlwaysOpen
 		window.WindowStartTime.ShouldBe(TimeSpan.Zero);
 		window.WindowEndTime.ShouldBe(new TimeSpan(23, 59, 59));
 		window.TimeZone.ShouldBe("UTC");
-		window.WindowDays.Count.ShouldBe(7);
+		window.WindowDays.Length.ShouldBe(7);
 		window.HasWindow().ShouldBeTrue();
 	}
 
@@ -93,7 +93,7 @@ public class FlagOperationalWindow_CreateWindow
 		window.WindowStartTime.ShouldBe(startTime);
 		window.WindowEndTime.ShouldBe(endTime);
 		window.TimeZone.ShouldBe("UTC");
-		window.WindowDays.Count.ShouldBe(7);
+		window.WindowDays.Length.ShouldBe(7);
 	}
 
 	[Fact]
@@ -111,7 +111,7 @@ public class FlagOperationalWindow_CreateWindow
 		window.WindowStartTime.ShouldBe(startTime);
 		window.WindowEndTime.ShouldBe(endTime);
 		window.TimeZone.ShouldBe(timeZone);
-		window.WindowDays.Count.ShouldBe(7);
+		window.WindowDays.Length.ShouldBe(7);
 	}
 
 	[Fact]
@@ -222,7 +222,7 @@ public class FlagOperationalWindow_CreateWindow
 		var window = FlagOperationalWindow.CreateWindow(startTime, endTime, allowedDays: emptyDays);
 
 		// Assert
-		window.WindowDays.Count.ShouldBe(7);
+		window.WindowDays.Length.ShouldBe(7);
 		window.WindowDays.ShouldContain(DayOfWeek.Monday);
 		window.WindowDays.ShouldContain(DayOfWeek.Sunday);
 	}
@@ -246,7 +246,7 @@ public class FlagOperationalWindow_CreateWindow
 		var window = FlagOperationalWindow.CreateWindow(startTime, endTime, allowedDays: duplicateDays);
 
 		// Assert
-		window.WindowDays.Count.ShouldBe(3);
+		window.WindowDays.Length.ShouldBe(3);
 		window.WindowDays.ShouldContain(DayOfWeek.Monday);
 		window.WindowDays.ShouldContain(DayOfWeek.Tuesday);
 		window.WindowDays.ShouldContain(DayOfWeek.Wednesday);

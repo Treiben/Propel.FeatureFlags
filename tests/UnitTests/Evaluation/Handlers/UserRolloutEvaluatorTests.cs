@@ -394,7 +394,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_ExplicitlyBlockedUsers
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.LoadAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				allowedUsers: allowedUsers,
 				blockedUsers: blockedUsers,
 				rolloutPercentage: 100),

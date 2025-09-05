@@ -216,7 +216,7 @@ public class FlagActivationSchedule_IsActiveAt
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-1); // Past enable date
 		var disableDate = DateTime.MaxValue; 
-		var schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate);
+		var schedule = new FlagActivationSchedule(enableDate, disableDate);
 		var evaluationTime = DateTime.UtcNow;
 
 		// Act
@@ -233,7 +233,7 @@ public class FlagActivationSchedule_IsActiveAt
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-2);
 		var disableDate = DateTime.UtcNow.AddHours(-1); // Past disable date
-		var schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate);
+		var schedule = new FlagActivationSchedule(enableDate, disableDate);
 		var evaluationTime = DateTime.UtcNow;
 
 		// Act
@@ -250,7 +250,7 @@ public class FlagActivationSchedule_IsActiveAt
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-1);
 		var disableDate = DateTime.UtcNow;
-		var schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate);
+		var schedule = new FlagActivationSchedule(enableDate, disableDate);
 		var evaluationTime = disableDate; // Exactly at disable date
 
 		// Act
@@ -267,7 +267,7 @@ public class FlagActivationSchedule_IsActiveAt
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-2);
 		var disableDate = DateTime.UtcNow.AddHours(2);
-		var schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate);
+		var schedule = new FlagActivationSchedule(enableDate, disableDate);
 		var evaluationTime = DateTime.UtcNow; // Between enable and disable dates
 
 		// Act
@@ -312,7 +312,7 @@ public class FlagActivationSchedule_IsActiveAt
 		var enableDate = baseTime.AddHours(enableHoursOffset);
 		var disableDate = baseTime.AddHours(disableHoursOffset);
 		var evaluationTime = baseTime.AddHours(evaluationHoursOffset);
-		var schedule = FlagActivationSchedule.LoadSchedule(enableDate, disableDate);
+		var schedule = new FlagActivationSchedule(enableDate, disableDate);
 
 		// Act
 		var (isActive, reason) = schedule.IsActiveAt(evaluationTime);
