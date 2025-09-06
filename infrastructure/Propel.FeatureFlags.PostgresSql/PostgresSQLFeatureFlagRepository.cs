@@ -273,108 +273,6 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		}
 	}
 
-	public async Task<List<FeatureFlag>> GetExpiringAsync(DateTime before, CancellationToken cancellationToken = default)
-	{
-		_logger.LogDebug("Getting feature flags expiring before: {ExpiryDate}", before);
-		const string sql = @"
-                SELECT key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
-                       expiration_date, scheduled_enable_date, scheduled_disable_date,
-                       window_start_time, window_end_time, time_zone, window_days,
-                       percentage_enabled, targeting_rules, enabled_users, disabled_users,
-					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
-                       variations, default_variation, tags, is_permanent
-                FROM feature_flags 
-                WHERE expiration_date <= @before AND is_permanent = false
-                ORDER BY expiration_date";
-
-		try
-		{
-			using var connection = new NpgsqlConnection(_connectionString);
-			using var command = new NpgsqlCommand(sql, connection);
-			command.Parameters.AddWithValue("before", before);
-
-			await connection.OpenAsync(cancellationToken);
-			using var reader = await command.ExecuteReaderAsync(cancellationToken);
-
-			var flags = new List<FeatureFlag>();
-			while (await reader.ReadAsync(cancellationToken))
-			{
-				flags.Add(await reader.LoadFlagFromReader());
-			}
-
-			_logger.LogDebug("Retrieved {Count} expiring feature flags", flags.Count);
-			return flags;
-		}
-		catch (Exception ex) when (ex is not OperationCanceledException)
-		{
-			_logger.LogError(ex, "Error retrieving expiring feature flags before {ExpiryDate}", before);
-			throw;
-		}
-	}
-
-	public async Task<List<FeatureFlag>> GetByTagsAsync(Dictionary<string, string> tags, CancellationToken cancellationToken = default)
-	{
-		_logger.LogDebug("Getting feature flags by tags: {@Tags}", tags);
-		// Implementation for tag-based queries using PostgreSQL JSONB operations
-		var sql = "SELECT * FROM feature_flags WHERE ";
-
-		var conditions = new List<string>();
-		for (int i = 0; i < tags.Count; i++)
-		{
-			var tag = tags.ElementAt(i);
-			if (string.IsNullOrEmpty(tag.Value))
-			{
-				// Search by tag key only when value is null or empty
-				conditions.Add($"tags ? @tagKey{i}");
-			}
-			else
-			{
-				// Search by exact key-value match
-				conditions.Add($"tags @> @tag{i}");
-			}
-		}
-
-		sql += string.Join(" AND ", conditions);
-
-		try
-		{
-			using var connection = new NpgsqlConnection(_connectionString);
-			using var command = new NpgsqlCommand(sql, connection);
-			for (int i = 0; i < tags.Count; i++)
-			{
-				var tag = tags.ElementAt(i);
-				if (string.IsNullOrEmpty(tag.Value))
-				{
-					// Parameter for key-only search
-					command.Parameters.AddWithValue($"tagKey{i}", tag.Key);
-				}
-				else
-				{
-					// Parameter for key-value search
-					var parameter = command.Parameters.Add($"tag{i}", NpgsqlDbType.Jsonb);
-					parameter.Value = JsonSerializer.Serialize(new Dictionary<string, string> { [tag.Key] = tag.Value });
-				}
-			}
-
-			await connection.OpenAsync(cancellationToken);
-			using var reader = await command.ExecuteReaderAsync(cancellationToken);
-
-			var flags = new List<FeatureFlag>();
-			while (await reader.ReadAsync(cancellationToken))
-			{
-				flags.Add(await reader.LoadFlagFromReader());
-			}
-
-			_logger.LogDebug("Retrieved {Count} feature flags matching tags {@Tags}", flags.Count, tags);
-			return flags;
-		}
-		catch (Exception ex) when (ex is not OperationCanceledException)
-		{
-			_logger.LogError(ex, "Error retrieving feature flags by tags {@Tags}", tags);
-			throw;
-		}
-	}
-
 	private static (string whereClause, Dictionary<string, object> parameters) BuildFilterConditions(FeatureFlagFilter? filter)
 	{
 		var conditions = new List<string>();
@@ -383,7 +281,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		if (filter == null)
 			return (string.Empty, parameters);
 
-		// modes filtering
+		// Modes filtering
 		if (filter.EvaluationModes != null && filter.EvaluationModes.Length > 0)
 		{
 			for (int i = 0; i < filter.EvaluationModes.Length; i++)
@@ -392,6 +290,14 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 				conditions.Add($"evaluation_modes @> @mode{i}");
 				parameters[$"mode{i}"] = JsonSerializer.Serialize(mode, JsonDefaults.JsonOptions);
 			}
+		}
+
+		// Expiration filtering
+		if (filter.ExpiringInDays.HasValue && filter.ExpiringInDays.Value > 0)
+		{
+			var expiryDate = DateTime.UtcNow.AddDays(filter.ExpiringInDays.Value);
+			conditions.Add("expiration_date <= @expiryDate AND is_permanent = false");
+			parameters["expiryDate"] = expiryDate;
 		}
 
 		// Tags filtering
@@ -432,8 +338,8 @@ public static class NpgsqlCommandExtensions
 		command.Parameters.AddWithValue("created_by", flag.AuditRecord.CreatedBy);
 		command.Parameters.AddWithValue("updated_by", (object?)flag.AuditRecord.ModifiedBy ?? DBNull.Value);
 		command.Parameters.AddWithValue("expiration_date", (object?)flag.ExpirationDate ?? DBNull.Value);
-		command.Parameters.AddWithValue("scheduled_enable_date", (object?)flag.Schedule.ScheduledEnableDate ?? DBNull.Value);
-		command.Parameters.AddWithValue("scheduled_disable_date", (object?)flag.Schedule.ScheduledDisableDate ?? DBNull.Value);
+		command.Parameters.AddWithValue("scheduled_enable_date", (object?)flag.Schedule.ScheduledEnableUtcDate ?? DBNull.Value);
+		command.Parameters.AddWithValue("scheduled_disable_date", (object?)flag.Schedule.ScheduledDisableUtcDate ?? DBNull.Value);
 		command.Parameters.AddWithValue("window_start_time", (object?)flag.OperationalWindow.WindowStartTime ?? DBNull.Value);
 		command.Parameters.AddWithValue("window_end_time", (object?)flag.OperationalWindow.WindowEndTime ?? DBNull.Value);
 		command.Parameters.AddWithValue("time_zone", (object?)flag.OperationalWindow.TimeZone ?? DBNull.Value);
@@ -532,8 +438,8 @@ public static class NpgsqlDataReaderExtensions
 				modifiedBy: await reader.GetDataAsync<string>("updated_by")
 			);
 		var schedule = new FlagActivationSchedule(
-				scheduledEnableDate: await reader.GetDataAsync<DateTime?>("scheduled_enable_date"),
-				scheduledDisableDate: await reader.GetDataAsync<DateTime?>("scheduled_disable_date")
+				scheduledEnableUtcDate: await reader.GetDataAsync<DateTime?>("scheduled_enable_date"),
+				scheduledDisableUtcDate: await reader.GetDataAsync<DateTime?>("scheduled_disable_date")
 			);
 		var window = new FlagOperationalWindow(
 				windowStartTime: await reader.GetTimeOnly("window_start_time") ?? TimeSpan.Zero,
