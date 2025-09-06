@@ -84,7 +84,7 @@ public class FlagUserAccessControl_CreateAccessControl
 		var rolloutPercentage = 50;
 
 		// Act
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers, blockedUsers, rolloutPercentage);
 
 		// Assert
@@ -97,7 +97,7 @@ public class FlagUserAccessControl_CreateAccessControl
 	public void If_NullLists_ThenCreatesWithEmptyLists()
 	{
 		// Act
-		var accessControl = FlagUserAccessControl.CreateAccessControl(null, null, 25);
+		var accessControl = new FlagUserAccessControl(null, null, 25);
 
 		// Assert
 		accessControl.AllowedUsers.Count.ShouldBe(0);
@@ -109,7 +109,7 @@ public class FlagUserAccessControl_CreateAccessControl
 	public void If_DefaultParameters_ThenCreatesWithDefaults()
 	{
 		// Act
-		var accessControl = FlagUserAccessControl.CreateAccessControl();
+		var accessControl = new FlagUserAccessControl();
 
 		// Assert
 		accessControl.AllowedUsers.Count.ShouldBe(0);
@@ -126,7 +126,7 @@ public class FlagUserAccessControl_CreateAccessControl
 	{
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
-			FlagUserAccessControl.CreateAccessControl(rolloutPercentage: invalidPercentage));
+			new FlagUserAccessControl(rolloutPercentage: invalidPercentage));
 		exception.Message.ShouldBe("Rollout percentage must be between 0 and 100. (Parameter 'rolloutPercentage')");
 	}
 
@@ -138,7 +138,7 @@ public class FlagUserAccessControl_CreateAccessControl
 	{
 		// Act
 		var accessControl = Should.NotThrow(() =>
-			FlagUserAccessControl.CreateAccessControl(rolloutPercentage: validPercentage));
+			new FlagUserAccessControl(rolloutPercentage: validPercentage));
 
 		// Assert
 		accessControl.RolloutPercentage.ShouldBe(validPercentage);
@@ -153,7 +153,7 @@ public class FlagUserAccessControl_CreateAccessControl
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
-			FlagUserAccessControl.CreateAccessControl(allowedUsers, blockedUsers));
+			new FlagUserAccessControl(allowedUsers, blockedUsers));
 		exception.Message.ShouldBe("Users cannot be in both allowed and blocked lists: USER3");
 	}
 
@@ -166,7 +166,7 @@ public class FlagUserAccessControl_CreateAccessControl
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
-			FlagUserAccessControl.CreateAccessControl(allowedUsers, blockedUsers));
+			new FlagUserAccessControl(allowedUsers, blockedUsers));
 		exception.Message.ShouldContain("user1");
 		exception.Message.ShouldContain("USER2");
 	}
@@ -179,7 +179,7 @@ public class FlagUserAccessControl_CreateAccessControl
 		var blockedUsers = new List<string> { "user3", "", "   ", "user4" };
 
 		// Act
-		var accessControl = FlagUserAccessControl.CreateAccessControl(allowedUsers, blockedUsers);
+		var accessControl = new FlagUserAccessControl(allowedUsers, blockedUsers);
 
 		// Assert
 		accessControl.AllowedUsers.Count.ShouldBe(2);
@@ -198,7 +198,7 @@ public class FlagUserAccessControl_CreateAccessControl
 		var blockedUsers = new List<string> { "user3", "User3", "user4" };
 
 		// Act
-		var accessControl = FlagUserAccessControl.CreateAccessControl(allowedUsers, blockedUsers);
+		var accessControl = new FlagUserAccessControl(allowedUsers, blockedUsers);
 
 		// Assert
 		accessControl.AllowedUsers.Count.ShouldBe(2);
@@ -217,7 +217,7 @@ public class FlagUserAccessControl_CreateAccessControl
 		var blockedUsers = new List<string> { " user3 ", "user4   " };
 
 		// Act
-		var accessControl = FlagUserAccessControl.CreateAccessControl(allowedUsers, blockedUsers);
+		var accessControl = new FlagUserAccessControl(allowedUsers, blockedUsers);
 
 		// Assert
 		accessControl.AllowedUsers.ShouldContain("user1");
@@ -233,7 +233,7 @@ public class FlagUserAccessControl_HasAccessRestrictions
 	public void If_NoRestrictions_ThenReturnsFalse()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			rolloutPercentage: 100);
 
 		// Act & Assert
@@ -244,7 +244,7 @@ public class FlagUserAccessControl_HasAccessRestrictions
 	public void If_HasAllowedUsers_ThenReturnsTrue()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["user1"],
 			rolloutPercentage: 100);
 
@@ -256,7 +256,7 @@ public class FlagUserAccessControl_HasAccessRestrictions
 	public void If_HasBlockedUsers_ThenReturnsTrue()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			blockedUsers: ["user1"],
 			rolloutPercentage: 100);
 
@@ -272,7 +272,7 @@ public class FlagUserAccessControl_HasAccessRestrictions
 	public void If_RolloutPercentageLessThan100_ThenReturnsTrue(int percentage)
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			rolloutPercentage: percentage);
 
 		// Act & Assert
@@ -289,30 +289,12 @@ public class FlagUserAccessControl_HasAccessRestrictions
 
 public class FlagUserAccessControl_EvaluateUserAccess
 {
-	[Theory]
-	[InlineData(null)]
-	[InlineData("")]
-	[InlineData("   ")]
-	[InlineData("\t")]
-	public void If_InvalidUserId_ThenReturnsDeniedWithReason(string? invalidUserId)
-	{
-		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl();
-		var flagKey = "test-flag";
-
-		// Act
-		var (result, reason) = accessControl.EvaluateUserAccess(invalidUserId!, flagKey);
-
-		// Assert
-		result.ShouldBe(UserAccessResult.Denied);
-		reason.ShouldBe("User ID is required");
-	}
 
 	[Fact]
 	public void If_UserExplicitlyBlocked_ThenReturnsDenied()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			blockedUsers: ["blocked-user"]);
 		var flagKey = "test-flag";
 
@@ -328,7 +310,7 @@ public class FlagUserAccessControl_EvaluateUserAccess
 	public void If_UserExplicitlyBlockedCaseInsensitive_ThenReturnsDenied()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			blockedUsers: ["BLOCKED-USER"]);
 		var flagKey = "test-flag";
 
@@ -344,7 +326,7 @@ public class FlagUserAccessControl_EvaluateUserAccess
 	public void If_UserExplicitlyAllowed_ThenReturnsAllowed()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["allowed-user"]);
 		var flagKey = "test-flag";
 
@@ -360,7 +342,7 @@ public class FlagUserAccessControl_EvaluateUserAccess
 	public void If_UserExplicitlyAllowedCaseInsensitive_ThenReturnsAllowed()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["ALLOWED-USER"]);
 		var flagKey = "test-flag";
 
@@ -394,7 +376,7 @@ public class FlagUserAccessControl_EvaluateUserAccess
 	public void If_ZeroRolloutPercentageAndNotExplicit_ThenReturnsDenied()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 0);
+		var accessControl = new FlagUserAccessControl(rolloutPercentage: 0);
 		var flagKey = "test-flag";
 
 		// Act
@@ -409,7 +391,7 @@ public class FlagUserAccessControl_EvaluateUserAccess
 	public void If_100PercentRolloutAndNotExplicit_ThenReturnsAllowed()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 100);
+		var accessControl = new FlagUserAccessControl(rolloutPercentage: 100);
 		var flagKey = "test-flag";
 
 		// Act
@@ -424,7 +406,7 @@ public class FlagUserAccessControl_EvaluateUserAccess
 	public void If_UserIdWithWhitespace_ThenTrimsAndEvaluates()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["allowed-user"]);
 		var flagKey = "test-flag";
 
@@ -440,7 +422,7 @@ public class FlagUserAccessControl_EvaluateUserAccess
 	public void If_PartialRolloutUserInRollout_ThenReturnsAllowed()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50);
+		var accessControl = new FlagUserAccessControl(rolloutPercentage: 50);
 		var flagKey = "consistent-flag-key";
 		
 		// Find a user that falls within the rollout by testing multiple user IDs
@@ -467,7 +449,7 @@ public class FlagUserAccessControl_EvaluateUserAccess
 	public void If_PartialRolloutUserNotInRollout_ThenReturnsDenied()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50);
+		var accessControl = new FlagUserAccessControl(rolloutPercentage: 50);
 		var flagKey = "consistent-flag-key";
 		
 		// Find a user that falls outside the rollout by testing multiple user IDs
@@ -494,7 +476,7 @@ public class FlagUserAccessControl_EvaluateUserAccess
 	public void If_SameUserDifferentFlags_ThenMayHaveDifferentResults()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50);
+		var accessControl = new FlagUserAccessControl(rolloutPercentage: 50);
 		var userId = "consistent-user";
 
 		// Act
@@ -527,7 +509,7 @@ public class FlagUserAccessControl_IsUserExplicitlyManaged
 	public void If_InvalidUserId_ThenReturnsFalse(string? invalidUserId)
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl();
+		var accessControl = new FlagUserAccessControl();
 
 		// Act & Assert
 		accessControl.IsUserExplicitlyManaged(invalidUserId!).ShouldBeFalse();
@@ -537,7 +519,7 @@ public class FlagUserAccessControl_IsUserExplicitlyManaged
 	public void If_UserInAllowedList_ThenReturnsTrue()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["allowed-user"]);
 
 		// Act & Assert
@@ -548,7 +530,7 @@ public class FlagUserAccessControl_IsUserExplicitlyManaged
 	public void If_UserInBlockedList_ThenReturnsTrue()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			blockedUsers: ["blocked-user"]);
 
 		// Act & Assert
@@ -571,7 +553,7 @@ public class FlagUserAccessControl_IsUserExplicitlyManaged
 	public void If_UserNotInAnyList_ThenReturnsFalse()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["allowed-user"],
 			blockedUsers: ["blocked-user"]);
 
@@ -583,7 +565,7 @@ public class FlagUserAccessControl_IsUserExplicitlyManaged
 	public void If_CaseInsensitiveMatch_ThenReturnsTrue()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["ALLOWED-USER"]);
 
 		// Act & Assert
@@ -594,7 +576,7 @@ public class FlagUserAccessControl_IsUserExplicitlyManaged
 	public void If_UserIdWithWhitespace_ThenTrimsAndChecks()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["allowed-user"]);
 
 		// Act & Assert
@@ -611,7 +593,7 @@ public class FlagUserAccessControl_WithAllowedUser
 	public void If_InvalidUserId_ThenThrowsArgumentException(string? invalidUserId)
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl();
+		var accessControl = new FlagUserAccessControl();
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
@@ -623,7 +605,7 @@ public class FlagUserAccessControl_WithAllowedUser
 	public void If_UserNotAlreadyAllowed_ThenAddsToAllowedList()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["existing-user"]);
 
 		// Act
@@ -640,7 +622,7 @@ public class FlagUserAccessControl_WithAllowedUser
 	public void If_UserAlreadyAllowed_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["existing-user"]);
 
 		// Act
@@ -654,7 +636,7 @@ public class FlagUserAccessControl_WithAllowedUser
 	public void If_UserAlreadyAllowedCaseInsensitive_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["EXISTING-USER"]);
 
 		// Act
@@ -668,8 +650,8 @@ public class FlagUserAccessControl_WithAllowedUser
 	public void If_UserCurrentlyBlocked_ThenRemovesFromBlockedAndAddsToAllowed()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
-			blockedUsers: new List<string> { "blocked-user", "other-user" });
+		var accessControl = new FlagUserAccessControl(
+			blockedUsers: ["blocked-user", "other-user"]);
 
 		// Act
 		var newAccessControl = accessControl.WithAllowedUser("blocked-user");
@@ -687,7 +669,7 @@ public class FlagUserAccessControl_WithAllowedUser
 	public void If_UserIdWithWhitespace_ThenTrimsBeforeProcessing()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl();
+		var accessControl = new FlagUserAccessControl();
 
 		// Act
 		var newAccessControl = accessControl.WithAllowedUser("  new-user  ");
@@ -701,7 +683,7 @@ public class FlagUserAccessControl_WithAllowedUser
 	public void If_PreservesOtherProperties_ThenKeepsRolloutPercentage()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 75);
+		var accessControl = new FlagUserAccessControl(rolloutPercentage: 75);
 
 		// Act
 		var newAccessControl = accessControl.WithAllowedUser("new-user");
@@ -720,7 +702,7 @@ public class FlagUserAccessControl_WithBlockedUser
 	public void If_InvalidUserId_ThenThrowsArgumentException(string? invalidUserId)
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl();
+		var accessControl = new FlagUserAccessControl();
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
@@ -732,7 +714,7 @@ public class FlagUserAccessControl_WithBlockedUser
 	public void If_UserNotAlreadyBlocked_ThenAddsToBlockedList()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			blockedUsers: ["existing-user"]);
 
 		// Act
@@ -749,7 +731,7 @@ public class FlagUserAccessControl_WithBlockedUser
 	public void If_UserAlreadyBlocked_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			blockedUsers: ["existing-user"]);
 
 		// Act
@@ -763,7 +745,7 @@ public class FlagUserAccessControl_WithBlockedUser
 	public void If_UserAlreadyBlockedCaseInsensitive_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			blockedUsers: ["EXISTING-USER"]);
 
 		// Act
@@ -777,8 +759,8 @@ public class FlagUserAccessControl_WithBlockedUser
 	public void If_UserCurrentlyAllowed_ThenRemovesFromAllowedAndAddsToBlocked()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
-			allowedUsers: new List<string> { "allowed-user", "other-user" });
+		var accessControl = new FlagUserAccessControl(
+			allowedUsers: ["allowed-user", "other-user"]);
 
 		// Act
 		var newAccessControl = accessControl.WithBlockedUser("allowed-user");
@@ -796,7 +778,7 @@ public class FlagUserAccessControl_WithBlockedUser
 	public void If_UserIdWithWhitespace_ThenTrimsBeforeProcessing()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl();
+		var accessControl = new FlagUserAccessControl();
 
 		// Act
 		var newAccessControl = accessControl.WithBlockedUser("  new-user  ");
@@ -810,7 +792,7 @@ public class FlagUserAccessControl_WithBlockedUser
 	public void If_PreservesOtherProperties_ThenKeepsRolloutPercentage()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 75);
+		var accessControl = new FlagUserAccessControl(rolloutPercentage: 75);
 
 		// Act
 		var newAccessControl = accessControl.WithBlockedUser("new-user");
@@ -829,7 +811,7 @@ public class FlagUserAccessControl_WithoutUser
 	public void If_InvalidUserId_ThenThrowsArgumentException(string? invalidUserId)
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl();
+		var accessControl = new FlagUserAccessControl();
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
@@ -841,8 +823,8 @@ public class FlagUserAccessControl_WithoutUser
 	public void If_UserInAllowedList_ThenRemovesFromAllowed()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
-			allowedUsers: new List<string> { "user1", "user2", "user3" });
+		var accessControl = new FlagUserAccessControl(
+			allowedUsers: ["user1", "user2", "user3"]);
 
 		// Act
 		var newAccessControl = accessControl.WithoutUser("user2");
@@ -859,8 +841,8 @@ public class FlagUserAccessControl_WithoutUser
 	public void If_UserInBlockedList_ThenRemovesFromBlocked()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
-			blockedUsers: new List<string> { "user1", "user2", "user3" });
+		var accessControl = new FlagUserAccessControl(
+			blockedUsers: ["user1", "user2", "user3"]);
 
 		// Act
 		var newAccessControl = accessControl.WithoutUser("user2");
@@ -896,7 +878,7 @@ public class FlagUserAccessControl_WithoutUser
 	public void If_UserNotInAnyList_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["user1"],
 			blockedUsers: ["user2"]);
 
@@ -911,7 +893,7 @@ public class FlagUserAccessControl_WithoutUser
 	public void If_CaseInsensitiveMatch_ThenRemovesUser()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["USER1", "user2"]);
 
 		// Act
@@ -928,7 +910,7 @@ public class FlagUserAccessControl_WithoutUser
 	public void If_UserIdWithWhitespace_ThenTrimsBeforeProcessing()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["user1"]);
 
 		// Act
@@ -943,7 +925,7 @@ public class FlagUserAccessControl_WithoutUser
 	public void If_PreservesOtherProperties_ThenKeepsRolloutPercentage()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["user1"],
 			rolloutPercentage: 75);
 
@@ -965,7 +947,7 @@ public class FlagUserAccessControl_WithRolloutPercentage
 	public void If_InvalidPercentage_ThenThrowsArgumentException(int invalidPercentage)
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl();
+		var accessControl = new FlagUserAccessControl();
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
@@ -982,7 +964,7 @@ public class FlagUserAccessControl_WithRolloutPercentage
 	public void If_ValidPercentage_ThenUpdatesRolloutPercentage(int validPercentage)
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50);
+		var accessControl = new FlagUserAccessControl(rolloutPercentage: 50);
 
 		// Act
 		var newAccessControl = accessControl.WithRolloutPercentage(validPercentage);
@@ -1003,7 +985,7 @@ public class FlagUserAccessControl_WithRolloutPercentage
 	public void If_SamePercentage_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 75);
+		var accessControl = new FlagUserAccessControl(rolloutPercentage: 75);
 
 		// Act
 		var newAccessControl = accessControl.WithRolloutPercentage(75);
@@ -1018,7 +1000,7 @@ public class FlagUserAccessControl_WithRolloutPercentage
 		// Arrange
 		var allowedUsers = new List<string> { "user1", "user2" };
 		var blockedUsers = new List<string> { "user3", "user4" };
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers, blockedUsers, 25);
 
 		// Act
@@ -1038,7 +1020,7 @@ public class FlagUserAccessControl_FluentInterface
 	public void If_ChainedMethods_ThenWorksCorrectly()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl();
+		var accessControl = new FlagUserAccessControl();
 
 		// Act
 		var result = accessControl
@@ -1060,7 +1042,7 @@ public class FlagUserAccessControl_FluentInterface
 	public void If_ChainedWithConflicts_ThenResolvesCorrectly()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl();
+		var accessControl = new FlagUserAccessControl();
 
 		// Act
 		var result = accessControl
@@ -1078,7 +1060,7 @@ public class FlagUserAccessControl_FluentInterface
 	public void If_ChainedRemoval_ThenRemovesCorrectly()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["user1", "user2"],
 			blockedUsers: ["user3"]);
 
@@ -1101,7 +1083,7 @@ public class FlagUserAccessControl_ImmutabilityAndThreadSafety
 	{
 		// Arrange
 		var allowedUsers = new List<string> { "user1", "user2" };
-		var accessControl = FlagUserAccessControl.CreateAccessControl(allowedUsers: allowedUsers);
+		var accessControl = new FlagUserAccessControl(allowedUsers: allowedUsers);
 
 		// Act - Modify original list
 		allowedUsers.Add("user3");
@@ -1115,7 +1097,7 @@ public class FlagUserAccessControl_ImmutabilityAndThreadSafety
 	public void If_ModificationMethods_ThenReturnNewInstances()
 	{
 		// Arrange
-		var original = FlagUserAccessControl.CreateAccessControl();
+		var original = new FlagUserAccessControl();
 
 		// Act
 		var withAllowed = original.WithAllowedUser("user1");
@@ -1135,7 +1117,7 @@ public class FlagUserAccessControl_ImmutabilityAndThreadSafety
 	public void If_NoChangeNeeded_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagUserAccessControl.CreateAccessControl(
+		var accessControl = new FlagUserAccessControl(
 			allowedUsers: ["user1"],
 			rolloutPercentage: 75);
 

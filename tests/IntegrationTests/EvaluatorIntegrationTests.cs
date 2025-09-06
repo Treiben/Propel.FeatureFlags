@@ -11,27 +11,20 @@ using Testcontainers.Redis;
 
 namespace FeatureFlags.IntegrationTests.Core.Evaluator;
 
-public class Evaluate_WithEnabledFlag : IClassFixture<FeatureFlagEvaluatorTestFixture>
+public class Evaluate_WithEnabledFlag(FeatureFlagEvaluatorTestFixture fixture) : IClassFixture<FeatureFlagEvaluatorTestFixture>
 {
-	private readonly FeatureFlagEvaluatorTestFixture _fixture;
-
-	public Evaluate_WithEnabledFlag(FeatureFlagEvaluatorTestFixture fixture)
-	{
-		_fixture = fixture;
-	}
-
 	[Fact]
 	public async Task ThenReturnsEnabled()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("enabled-test", FlagEvaluationMode.Enabled);
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagEvaluatorTestFixture.CreateTestFlag("enabled-test", FlagEvaluationMode.Enabled);
+		await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await _fixture.Evaluator.Evaluate("enabled-test", context);
+		var result = await fixture.Evaluator.Evaluate("enabled-test", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -44,14 +37,14 @@ public class Evaluate_WithEnabledFlag : IClassFixture<FeatureFlagEvaluatorTestFi
 	public async Task If_FlagInCache_ThenUsesCache()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("cached-flag", FlagEvaluationMode.Enabled);
-		await _fixture.Cache.SetAsync("cached-flag", flag);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagEvaluatorTestFixture.CreateTestFlag("cached-flag", FlagEvaluationMode.Enabled);
+		await fixture.Cache.SetAsync("cached-flag", flag);
 
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await _fixture.Evaluator.Evaluate("cached-flag", context);
+		var result = await fixture.Evaluator.Evaluate("cached-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -60,27 +53,20 @@ public class Evaluate_WithEnabledFlag : IClassFixture<FeatureFlagEvaluatorTestFi
 	}
 }
 
-public class Evaluate_WithDisabledFlag : IClassFixture<FeatureFlagEvaluatorTestFixture>
+public class Evaluate_WithDisabledFlag(FeatureFlagEvaluatorTestFixture fixture) : IClassFixture<FeatureFlagEvaluatorTestFixture>
 {
-	private readonly FeatureFlagEvaluatorTestFixture _fixture;
-
-	public Evaluate_WithDisabledFlag(FeatureFlagEvaluatorTestFixture fixture)
-	{
-		_fixture = fixture;
-	}
-
 	[Fact]
 	public async Task ThenReturnsDisabled()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("disabled-test", FlagEvaluationMode.Disabled);
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagEvaluatorTestFixture.CreateTestFlag("disabled-test", FlagEvaluationMode.Disabled);
+		await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await _fixture.Evaluator.Evaluate("disabled-test", context);
+		var result = await fixture.Evaluator.Evaluate("disabled-test", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -90,21 +76,14 @@ public class Evaluate_WithDisabledFlag : IClassFixture<FeatureFlagEvaluatorTestF
 	}
 }
 
-public class Evaluate_WithUserTargetedFlag : IClassFixture<FeatureFlagEvaluatorTestFixture>
+public class Evaluate_WithUserTargetedFlag(FeatureFlagEvaluatorTestFixture fixture) : IClassFixture<FeatureFlagEvaluatorTestFixture>
 {
-	private readonly FeatureFlagEvaluatorTestFixture _fixture;
-
-	public Evaluate_WithUserTargetedFlag(FeatureFlagEvaluatorTestFixture fixture)
-	{
-		_fixture = fixture;
-	}
-
 	[Fact]
 	public async Task If_UserIsTargeted_ThenReturnsEnabled()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("targeted-flag", FlagEvaluationMode.UserTargeted);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagEvaluatorTestFixture.CreateTestFlag("targeted-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = [
 			new TargetingRule
 			{
@@ -114,12 +93,12 @@ public class Evaluate_WithUserTargetedFlag : IClassFixture<FeatureFlagEvaluatorT
 				Variation = "premium-features"
 			}
 		];
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "target-user");
 
 		// Act
-		var result = await _fixture.Evaluator.Evaluate("targeted-flag", context);
+		var result = await fixture.Evaluator.Evaluate("targeted-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -132,8 +111,8 @@ public class Evaluate_WithUserTargetedFlag : IClassFixture<FeatureFlagEvaluatorT
 	public async Task If_UserNotTargeted_ThenReturnsDisabled()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("targeted-flag", FlagEvaluationMode.UserTargeted);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagEvaluatorTestFixture.CreateTestFlag("targeted-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = [
 			new TargetingRule
 			{
@@ -143,12 +122,12 @@ public class Evaluate_WithUserTargetedFlag : IClassFixture<FeatureFlagEvaluatorT
 				Variation = "premium-features"
 			}
 		];
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "current-user");
 
 		// Act
-		var result = await _fixture.Evaluator.Evaluate("targeted-flag", context);
+		var result = await fixture.Evaluator.Evaluate("targeted-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -158,30 +137,23 @@ public class Evaluate_WithUserTargetedFlag : IClassFixture<FeatureFlagEvaluatorT
 	}
 }
 
-public class Evaluate_WithUserRolloutFlag : IClassFixture<FeatureFlagEvaluatorTestFixture>
+public class Evaluate_WithUserRolloutFlag(FeatureFlagEvaluatorTestFixture fixture) : IClassFixture<FeatureFlagEvaluatorTestFixture>
 {
-	private readonly FeatureFlagEvaluatorTestFixture _fixture;
-
-	public Evaluate_WithUserRolloutFlag(FeatureFlagEvaluatorTestFixture fixture)
-	{
-		_fixture = fixture;
-	}
-
 	[Fact]
 	public async Task If_UserInAllowedList_ThenReturnsEnabled()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("rollout-flag", FlagEvaluationMode.UserRolloutPercentage);
-		flag.UserAccess = FlagUserAccessControl.CreateAccessControl(
+		await fixture.ClearAllData();
+		var flag = FeatureFlagEvaluatorTestFixture.CreateTestFlag("rollout-flag", FlagEvaluationMode.UserRolloutPercentage);
+		flag.UserAccess = new FlagUserAccessControl(
 			allowedUsers: ["allowed-user"],
 			rolloutPercentage: 0);
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "allowed-user");
 
 		// Act
-		var result = await _fixture.Evaluator.Evaluate("rollout-flag", context);
+		var result = await fixture.Evaluator.Evaluate("rollout-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -194,17 +166,17 @@ public class Evaluate_WithUserRolloutFlag : IClassFixture<FeatureFlagEvaluatorTe
 	public async Task If_UserInBlockedList_ThenReturnsDisabled()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("rollout-flag", FlagEvaluationMode.UserRolloutPercentage);
-		flag.UserAccess = FlagUserAccessControl.CreateAccessControl(
+		await fixture.ClearAllData();
+		var flag = FeatureFlagEvaluatorTestFixture.CreateTestFlag("rollout-flag", FlagEvaluationMode.UserRolloutPercentage);
+		flag.UserAccess = new FlagUserAccessControl(
 			blockedUsers: ["blocked-user"],
 			rolloutPercentage: 100);
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "blocked-user");
 
 		// Act
-		var result = await _fixture.Evaluator.Evaluate("rollout-flag", context);
+		var result = await fixture.Evaluator.Evaluate("rollout-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -214,31 +186,24 @@ public class Evaluate_WithUserRolloutFlag : IClassFixture<FeatureFlagEvaluatorTe
 	}
 }
 
-public class Evaluate_WithTimeWindowFlag : IClassFixture<FeatureFlagEvaluatorTestFixture>
+public class Evaluate_WithTimeWindowFlag(FeatureFlagEvaluatorTestFixture fixture) : IClassFixture<FeatureFlagEvaluatorTestFixture>
 {
-	private readonly FeatureFlagEvaluatorTestFixture _fixture;
-
-	public Evaluate_WithTimeWindowFlag(FeatureFlagEvaluatorTestFixture fixture)
-	{
-		_fixture = fixture;
-	}
-
 	[Fact]
 	public async Task If_WithinTimeWindow_ThenReturnsEnabled()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("window-flag", FlagEvaluationMode.TimeWindow);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagEvaluatorTestFixture.CreateTestFlag("window-flag", FlagEvaluationMode.TimeWindow);
 		flag.OperationalWindow = FlagOperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9),
 			TimeSpan.FromHours(17));
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.Repository.CreateAsync(flag);
 
 		var evaluationTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc);
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
 		// Act
-		var result = await _fixture.Evaluator.Evaluate("window-flag", context);
+		var result = await fixture.Evaluator.Evaluate("window-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -251,18 +216,18 @@ public class Evaluate_WithTimeWindowFlag : IClassFixture<FeatureFlagEvaluatorTes
 	public async Task If_OutsideTimeWindow_ThenReturnsDisabled()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("window-flag", FlagEvaluationMode.TimeWindow);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagEvaluatorTestFixture.CreateTestFlag("window-flag", FlagEvaluationMode.TimeWindow);
 		flag.OperationalWindow = FlagOperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9),
 			TimeSpan.FromHours(17));
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.Repository.CreateAsync(flag);
 
 		var evaluationTime = new DateTime(2024, 1, 15, 20, 0, 0, DateTimeKind.Utc);
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
 		// Act
-		var result = await _fixture.Evaluator.Evaluate("window-flag", context);
+		var result = await fixture.Evaluator.Evaluate("window-flag", context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -272,21 +237,14 @@ public class Evaluate_WithTimeWindowFlag : IClassFixture<FeatureFlagEvaluatorTes
 	}
 }
 
-public class GetVariation_WithComplexVariations : IClassFixture<FeatureFlagEvaluatorTestFixture>
+public class GetVariation_WithComplexVariations(FeatureFlagEvaluatorTestFixture fixture) : IClassFixture<FeatureFlagEvaluatorTestFixture>
 {
-	private readonly FeatureFlagEvaluatorTestFixture _fixture;
-
-	public GetVariation_WithComplexVariations(FeatureFlagEvaluatorTestFixture fixture)
-	{
-		_fixture = fixture;
-	}
-
 	[Fact]
 	public async Task If_VariationIsString_ThenReturnsString()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("string-flag", FlagEvaluationMode.UserTargeted);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagEvaluatorTestFixture.CreateTestFlag("string-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = [
 			new TargetingRule
 			{
@@ -303,12 +261,12 @@ public class GetVariation_WithComplexVariations : IClassFixture<FeatureFlagEvalu
 				{ "string-variant", "Hello World" }
 			}
 		};
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "test-user");
 
 		// Act
-		var result = await _fixture.Evaluator.GetVariation("string-flag", "default", context);
+		var result = await fixture.Evaluator.GetVariation("string-flag", "default", context);
 
 		// Assert
 		result.ShouldBe("Hello World");
@@ -318,8 +276,8 @@ public class GetVariation_WithComplexVariations : IClassFixture<FeatureFlagEvalu
 	public async Task If_VariationIsInteger_ThenReturnsInteger()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("int-flag", FlagEvaluationMode.UserTargeted);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagEvaluatorTestFixture.CreateTestFlag("int-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = [
 			new TargetingRule
 			{
@@ -336,12 +294,12 @@ public class GetVariation_WithComplexVariations : IClassFixture<FeatureFlagEvalu
 				{ "int-variant", 42 }
 			}
 		};
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "test-user");
 
 		// Act
-		var result = await _fixture.Evaluator.GetVariation("int-flag", 0, context);
+		var result = await fixture.Evaluator.GetVariation("int-flag", 0, context);
 
 		// Assert
 		result.ShouldBe(42);
@@ -351,14 +309,14 @@ public class GetVariation_WithComplexVariations : IClassFixture<FeatureFlagEvalu
 	public async Task If_FlagDisabled_ThenReturnsDefaultValue()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("disabled-variation", FlagEvaluationMode.Disabled);
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagEvaluatorTestFixture.CreateTestFlag("disabled-variation", FlagEvaluationMode.Disabled);
+		await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "test-user");
 
 		// Act
-		var result = await _fixture.Evaluator.GetVariation("disabled-variation", "default-value", context);
+		var result = await fixture.Evaluator.GetVariation("disabled-variation", "default-value", context);
 
 		// Assert
 		result.ShouldBe("default-value");
@@ -429,7 +387,18 @@ public class FeatureFlagEvaluatorTestFixture : IAsyncLifetime
 		await _redisContainer.DisposeAsync();
 	}
 
-	public FeatureFlag CreateTestFlag(string key, FlagEvaluationMode evaluationMode)
+	public async Task ClearAllData()
+	{
+		var connectionString = _postgresContainer.GetConnectionString();
+		using var connection = new NpgsqlConnection(connectionString);
+		await connection.OpenAsync();
+		using var command = new NpgsqlCommand("DELETE FROM feature_flags", connection);
+		await command.ExecuteNonQueryAsync();
+
+		await Cache.ClearAsync();
+	}
+
+	public static FeatureFlag CreateTestFlag(string key, FlagEvaluationMode evaluationMode)
 	{
 		var flag = new FeatureFlag
 		{
@@ -442,18 +411,7 @@ public class FeatureFlagEvaluatorTestFixture : IAsyncLifetime
 		return flag;
 	}
 
-	public async Task ClearAllData()
-	{
-		var connectionString = _postgresContainer.GetConnectionString();
-		using var connection = new NpgsqlConnection(connectionString);
-		await connection.OpenAsync();
-		using var command = new NpgsqlCommand("DELETE FROM feature_flags", connection);
-		await command.ExecuteNonQueryAsync();
-
-		await Cache.ClearAsync();
-	}
-
-	private async Task CreateFeatureFlagsTable(string connectionString)
+	private static async Task CreateFeatureFlagsTable(string connectionString)
 	{
 		using var connection = new NpgsqlConnection(connectionString);
 		await connection.OpenAsync();

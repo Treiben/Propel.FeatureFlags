@@ -12,46 +12,32 @@ using Testcontainers.Redis;
 
 namespace FeatureFlags.IntegrationTests.Core.Client;
 
-public class IsEnabledAsync_WithEnabledFlag : IClassFixture<FeatureFlagClientTestFixture>
+public class IsEnabledAsync_WithEnabledFlag(FeatureFlagClientTestFixture fixture) : IClassFixture<FeatureFlagClientTestFixture>
 {
-	private readonly FeatureFlagClientTestFixture _fixture;
-
-	public IsEnabledAsync_WithEnabledFlag(FeatureFlagClientTestFixture fixture)
-	{
-		_fixture = fixture;
-	}
-
 	[Fact]
 	public async Task ThenReturnsTrue()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("client-enabled", FlagEvaluationMode.Enabled);
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagClientTestFixture.CreateTestFlag("client-enabled", FlagEvaluationMode.Enabled);
+		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await _fixture.Client.IsEnabledAsync("client-enabled", userId: "user123");
+		var result = await fixture.Client.IsEnabledAsync("client-enabled", userId: "user123");
 
 		// Assert
 		result.ShouldBeTrue();
 	}
 }
 
-public class IsEnabledAsync_WithTargetedFlag : IClassFixture<FeatureFlagClientTestFixture>
+public class IsEnabledAsync_WithTargetedFlag(FeatureFlagClientTestFixture fixture) : IClassFixture<FeatureFlagClientTestFixture>
 {
-	private readonly FeatureFlagClientTestFixture _fixture;
-
-	public IsEnabledAsync_WithTargetedFlag(FeatureFlagClientTestFixture fixture)
-	{
-		_fixture = fixture;
-	}
-
 	[Fact]
 	public async Task If_UserTargeted_ThenReturnsTrue()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("client-targeted", FlagEvaluationMode.UserTargeted);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagClientTestFixture.CreateTestFlag("client-targeted", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = [
 			new TargetingRule
 			{
@@ -61,10 +47,10 @@ public class IsEnabledAsync_WithTargetedFlag : IClassFixture<FeatureFlagClientTe
 				Variation = "regional-feature"
 			}
 		];
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await _fixture.Client.IsEnabledAsync("client-targeted", 
+		var result = await fixture.Client.IsEnabledAsync("client-targeted", 
 			userId: "user123", 
 			attributes: new Dictionary<string, object> { { "region", "us-west" } });
 
@@ -73,21 +59,14 @@ public class IsEnabledAsync_WithTargetedFlag : IClassFixture<FeatureFlagClientTe
 	}
 }
 
-public class GetVariationAsync_WithStringVariation : IClassFixture<FeatureFlagClientTestFixture>
+public class GetVariationAsync_WithStringVariation(FeatureFlagClientTestFixture fixture) : IClassFixture<FeatureFlagClientTestFixture>
 {
-	private readonly FeatureFlagClientTestFixture _fixture;
-
-	public GetVariationAsync_WithStringVariation(FeatureFlagClientTestFixture fixture)
-	{
-		_fixture = fixture;
-	}
-
 	[Fact]
 	public async Task ThenReturnsVariationValue()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("client-variation", FlagEvaluationMode.UserTargeted);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagClientTestFixture.CreateTestFlag("client-variation", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = [
 			new TargetingRule
 			{
@@ -104,61 +83,47 @@ public class GetVariationAsync_WithStringVariation : IClassFixture<FeatureFlagCl
 				{ "premium-config", "premium-dashboard" }
 			}
 		};
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await _fixture.Client.GetVariationAsync("client-variation", "default", userId: "premium-user");
+		var result = await fixture.Client.GetVariationAsync("client-variation", "default", userId: "premium-user");
 
 		// Assert
 		result.ShouldBe("premium-dashboard");
 	}
 }
 
-public class GetVariationAsync_WithDisabledFlag : IClassFixture<FeatureFlagClientTestFixture>
+public class GetVariationAsync_WithDisabledFlag(FeatureFlagClientTestFixture fixture) : IClassFixture<FeatureFlagClientTestFixture>
 {
-	private readonly FeatureFlagClientTestFixture _fixture;
-
-	public GetVariationAsync_WithDisabledFlag(FeatureFlagClientTestFixture fixture)
-	{
-		_fixture = fixture;
-	}
-
 	[Fact]
 	public async Task ThenReturnsDefaultValue()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("client-disabled", FlagEvaluationMode.Disabled);
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagClientTestFixture.CreateTestFlag("client-disabled", FlagEvaluationMode.Disabled);
+		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await _fixture.Client.GetVariationAsync("client-disabled", "fallback-value", userId: "user123");
+		var result = await fixture.Client.GetVariationAsync("client-disabled", "fallback-value", userId: "user123");
 
 		// Assert
 		result.ShouldBe("fallback-value");
 	}
 }
 
-public class EvaluateAsync_WithTimeWindowFlag : IClassFixture<FeatureFlagClientTestFixture>
+public class EvaluateAsync_WithTimeWindowFlag(FeatureFlagClientTestFixture fixture) : IClassFixture<FeatureFlagClientTestFixture>
 {
-	private readonly FeatureFlagClientTestFixture _fixture;
-
-	public EvaluateAsync_WithTimeWindowFlag(FeatureFlagClientTestFixture fixture)
-	{
-		_fixture = fixture;
-	}
-
 	[Fact]
 	public async Task If_WithinWindow_ThenReturnsEnabledResult()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("client-window", FlagEvaluationMode.TimeWindow);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagClientTestFixture.CreateTestFlag("client-window", FlagEvaluationMode.TimeWindow);
 		flag.OperationalWindow = FlagOperationalWindow.AlwaysOpen;
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await _fixture.Client.EvaluateAsync("client-window", tenantId: "tenant123");
+		var result = await fixture.Client.EvaluateAsync("client-window", tenantId: "tenant123");
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -168,21 +133,14 @@ public class EvaluateAsync_WithTimeWindowFlag : IClassFixture<FeatureFlagClientT
 	}
 }
 
-public class Client_WithTenantAndUser : IClassFixture<FeatureFlagClientTestFixture>
+public class Client_WithTenantAndUser(FeatureFlagClientTestFixture fixture) : IClassFixture<FeatureFlagClientTestFixture>
 {
-	private readonly FeatureFlagClientTestFixture _fixture;
-
-	public Client_WithTenantAndUser(FeatureFlagClientTestFixture fixture)
-	{
-		_fixture = fixture;
-	}
-
 	[Fact]
 	public async Task If_TenantTargeted_ThenReturnsEnabled()
 	{
 		// Arrange
-		await _fixture.ClearAllData();
-		var flag = _fixture.CreateTestFlag("client-tenant", FlagEvaluationMode.UserTargeted);
+		await fixture.ClearAllData();
+		var flag = FeatureFlagClientTestFixture.CreateTestFlag("client-tenant", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = [
 			new TargetingRule
 			{
@@ -192,10 +150,10 @@ public class Client_WithTenantAndUser : IClassFixture<FeatureFlagClientTestFixtu
 				Variation = "enterprise-features"
 			}
 		];
-		await _fixture.Repository.CreateAsync(flag);
+		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await _fixture.Client.IsEnabledAsync("client-tenant", 
+		var result = await fixture.Client.IsEnabledAsync("client-tenant", 
 			tenantId: "enterprise-tenant", 
 			userId: "admin-user");
 
@@ -269,7 +227,18 @@ public class FeatureFlagClientTestFixture : IAsyncLifetime
 		await _redisContainer.DisposeAsync();
 	}
 
-	public FeatureFlag CreateTestFlag(string key, FlagEvaluationMode evaluationMode)
+	public async Task ClearAllData()
+	{
+		var connectionString = _postgresContainer.GetConnectionString();
+		using var connection = new NpgsqlConnection(connectionString);
+		await connection.OpenAsync();
+		using var command = new NpgsqlCommand("DELETE FROM feature_flags", connection);
+		await command.ExecuteNonQueryAsync();
+
+		await Cache.ClearAsync();
+	}
+
+	public static FeatureFlag CreateTestFlag(string key, FlagEvaluationMode evaluationMode)
 	{
 		var flag = new FeatureFlag
 		{
@@ -282,18 +251,7 @@ public class FeatureFlagClientTestFixture : IAsyncLifetime
 		return flag;
 	}
 
-	public async Task ClearAllData()
-	{
-		var connectionString = _postgresContainer.GetConnectionString();
-		using var connection = new NpgsqlConnection(connectionString);
-		await connection.OpenAsync();
-		using var command = new NpgsqlCommand("DELETE FROM feature_flags", connection);
-		await command.ExecuteNonQueryAsync();
-
-		await Cache.ClearAsync();
-	}
-
-	private async Task CreateFeatureFlagsTable(string connectionString)
+	private static async Task CreateFeatureFlagsTable(string connectionString)
 	{
 		using var connection = new NpgsqlConnection(connectionString);
 		await connection.OpenAsync();

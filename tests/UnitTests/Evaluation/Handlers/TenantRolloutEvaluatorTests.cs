@@ -35,7 +35,7 @@ public class TenantRolloutEvaluator_CanProcess
 		// Arrange
 		var flag = new FeatureFlag
 		{
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(allowedTenants: ["tenant123"])
+			TenantAccess = new FlagTenantAccessControl(allowedTenants: ["tenant123"])
 		};
 		var context = new EvaluationContext(tenantId: "tenant123");
 
@@ -71,7 +71,7 @@ public class TenantRolloutEvaluator_CanProcess
 		var flag = new FeatureFlag
 		{
 			EvaluationModeSet = new FlagEvaluationModeSet(),
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50)
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 50)
 		};
 		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TenantRolloutPercentage);
 		var context = new EvaluationContext(tenantId: "tenant123");
@@ -109,7 +109,7 @@ public class TenantRolloutEvaluator_CanProcess
 		var flag = new FeatureFlag
 		{
 			EvaluationModeSet = new FlagEvaluationModeSet(),
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(allowedTenants: ["tenant123"])
+			TenantAccess = new FlagTenantAccessControl(allowedTenants: ["tenant123"])
 		};
 		var context = new EvaluationContext(userId: "user123"); // No tenant ID
 
@@ -127,7 +127,7 @@ public class TenantRolloutEvaluator_CanProcess
 		var flag = new FeatureFlag
 		{
 			EvaluationModeSet = new FlagEvaluationModeSet(),
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(allowedTenants: ["tenant123"])
+			TenantAccess = new FlagTenantAccessControl(allowedTenants: ["tenant123"])
 		};
 		var context = new EvaluationContext(tenantId: ""); // Empty tenant ID
 
@@ -145,7 +145,7 @@ public class TenantRolloutEvaluator_CanProcess
 		var flag = new FeatureFlag
 		{
 			EvaluationModeSet = new FlagEvaluationModeSet(),
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(allowedTenants: ["tenant123"])
+			TenantAccess = new FlagTenantAccessControl(allowedTenants: ["tenant123"])
 		};
 		var context = new EvaluationContext(tenantId: "   "); // Whitespace tenant ID
 
@@ -198,7 +198,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_TenantIdValidation
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(userId: "user123"); // No tenant ID
@@ -216,7 +216,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_TenantIdValidation
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(tenantId: ""); // Empty tenant ID
@@ -234,7 +234,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_TenantIdValidation
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(tenantId: "   "); // Whitespace tenant ID
@@ -262,7 +262,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_ExplicitlyAllowedTenants
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				allowedTenants: ["tenant123", "tenant456"]),
 			Variations = new FlagVariations { DefaultVariation = "disabled" }
 		};
@@ -285,7 +285,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_ExplicitlyAllowedTenants
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				allowedTenants: ["TENANT123"]),
 			Variations = new FlagVariations { DefaultVariation = "disabled" }
 		};
@@ -308,7 +308,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_ExplicitlyAllowedTenants
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				allowedTenants: ["tenant456", "tenant789"],
 				rolloutPercentage: 0),
 			Variations = new FlagVariations { DefaultVariation = "restricted" }
@@ -342,7 +342,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_ExplicitlyBlockedTenants
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				blockedTenants: ["tenant123", "tenant456"],
 				rolloutPercentage: 100), // Even with 100% rollout, blocked takes precedence
 			Variations = new FlagVariations { DefaultVariation = "blocked" }
@@ -366,7 +366,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_ExplicitlyBlockedTenants
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				blockedTenants: ["TENANT123"],
 				rolloutPercentage: 100),
 			Variations = new FlagVariations { DefaultVariation = "blocked" }
@@ -429,7 +429,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_PercentageRollout
 		var flag = new FeatureFlag
 		{
 			Key = "zero-rollout-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 0),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 0),
 			Variations = new FlagVariations { DefaultVariation = "zero-rollout" }
 		};
 		var context = new EvaluationContext(tenantId: "any-tenant");
@@ -451,7 +451,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_PercentageRollout
 		var flag = new FeatureFlag
 		{
 			Key = "full-rollout-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 100),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 100),
 			Variations = new FlagVariations { DefaultVariation = "restricted" }
 		};
 		var context = new EvaluationContext(tenantId: "any-tenant");
@@ -473,7 +473,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_PercentageRollout
 		var flag = new FeatureFlag
 		{
 			Key = "partial-rollout-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "not-in-rollout" }
 		};
 
@@ -511,7 +511,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_PercentageRollout
 		var flag = new FeatureFlag
 		{
 			Key = "distribution-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "not-in-rollout" }
 		};
 
@@ -561,14 +561,14 @@ public class TenantRolloutEvaluator_ProcessEvaluation_PercentageRollout
 		var flag1 = new FeatureFlag
 		{
 			Key = "flag-one",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "flag1-off" }
 		};
 
 		var flag2 = new FeatureFlag
 		{
 			Key = "flag-two",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "flag2-off" }
 		};
 
@@ -623,7 +623,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_Variations
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				allowedTenants: ["tenant123"]),
 			Variations = new FlagVariations { DefaultVariation = "custom-default" }
 		};
@@ -646,7 +646,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_Variations
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				blockedTenants: ["tenant123"]),
 			Variations = new FlagVariations { DefaultVariation = "tenant-blocked" }
 		};
@@ -669,7 +669,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_Variations
 		var flag = new FeatureFlag
 		{
 			Key = "rollout-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 100),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 100),
 			Variations = new FlagVariations { DefaultVariation = "rollout-off" }
 		};
 		var context = new EvaluationContext(tenantId: "any-tenant");
@@ -691,7 +691,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_Variations
 		var flag = new FeatureFlag
 		{
 			Key = "rollout-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 0),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 0),
 			Variations = new FlagVariations { DefaultVariation = "no-rollout" }
 		};
 		var context = new EvaluationContext(tenantId: "any-tenant");
@@ -717,7 +717,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_Variations
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 0),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 0),
 			Variations = new FlagVariations { DefaultVariation = defaultVariation }
 		};
 		var context = new EvaluationContext(tenantId: "any-tenant");
@@ -749,7 +749,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_EdgeCases
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				allowedTenants: ["tenant123"]),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
@@ -773,7 +773,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_EdgeCases
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				allowedTenants: [specialTenantId]),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
@@ -797,7 +797,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_EdgeCases
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 100),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 100),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(tenantId: longTenantId);
@@ -820,7 +820,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_EdgeCases
 		var flag = new FeatureFlag
 		{
 			Key = "unicode-flag",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				allowedTenants: [unicodeTenantId]),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
@@ -853,7 +853,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_RealWorldScenarios
 		var flag = new FeatureFlag
 		{
 			Key = "enterprise-feature",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				allowedTenants: ["premium-corp", "enterprise-inc"],
 				rolloutPercentage: 25), // 25% of other tenants
 			Variations = new FlagVariations { DefaultVariation = "standard-feature" }
@@ -896,7 +896,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_RealWorldScenarios
 		var flag = new FeatureFlag
 		{
 			Key = "beta-feature",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				blockedTenants: ["problematic-tenant", "security-risk-tenant"],
 				rolloutPercentage: 75), // 75% rollout except blocked tenants
 			Variations = new FlagVariations { DefaultVariation = "stable-version" }
@@ -944,7 +944,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_RealWorldScenarios
 		var phase1Flag = new FeatureFlag
 		{
 			Key = baseFlag.Key,
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 10),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 10),
 			Variations = baseFlag.Variations
 		};
 		var phase1Result = await _evaluator.ProcessEvaluation(phase1Flag, context);
@@ -953,7 +953,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_RealWorldScenarios
 		var phase2Flag = new FeatureFlag
 		{
 			Key = baseFlag.Key,
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 50),
 			Variations = baseFlag.Variations
 		};
 		var phase2Result = await _evaluator.ProcessEvaluation(phase2Flag, context);
@@ -962,7 +962,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_RealWorldScenarios
 		var phase3Flag = new FeatureFlag
 		{
 			Key = baseFlag.Key,
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 100),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 100),
 			Variations = baseFlag.Variations
 		};
 		var phase3Result = await _evaluator.ProcessEvaluation(phase3Flag, context);
@@ -997,7 +997,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_RealWorldScenarios
 		var flag = new FeatureFlag
 		{
 			Key = "maintenance-bypass",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(
+			TenantAccess = new FlagTenantAccessControl(
 				allowedTenants: ["critical-hospital", "emergency-services", "government-agency"],
 				rolloutPercentage: 0), // No regular rollout during maintenance
 			Variations = new FlagVariations { DefaultVariation = "maintenance-mode" }
@@ -1050,7 +1050,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation_HashConsistency
 		var flag = new FeatureFlag
 		{
 			Key = "consistency-test",
-			TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 30),
+			TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 30),
 			Variations = new FlagVariations { DefaultVariation = "not-in-rollout" }
 		};
 		var context = new EvaluationContext(tenantId: "consistent-tenant");
@@ -1085,19 +1085,19 @@ public class TenantRolloutEvaluator_ProcessEvaluation_HashConsistency
 			new FeatureFlag
 			{
 				Key = "flag-alpha",
-				TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50),
+				TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 50),
 				Variations = new FlagVariations { DefaultVariation = "alpha-off" }
 			},
 			new FeatureFlag
 			{
 				Key = "flag-beta",
-				TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50),
+				TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 50),
 				Variations = new FlagVariations { DefaultVariation = "beta-off" }
 			},
 			new FeatureFlag
 			{
 				Key = "flag-gamma",
-				TenantAccess = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50),
+				TenantAccess = new FlagTenantAccessControl(rolloutPercentage: 50),
 				Variations = new FlagVariations { DefaultVariation = "gamma-off" }
 			}
 		};

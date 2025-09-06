@@ -134,7 +134,7 @@ public class FeatureFlagEvaluatorFixture : IAsyncLifetime
 			Name = $"Test Flag {key}",
 			Description = "Test flag for integration tests",
 			EvaluationModeSet = new FlagEvaluationModeSet([evaluationMode]),
-			AuditRecord = FlagAuditRecord.CreateRecord(createdAt: DateTime.UtcNow, createdBy: "integration-test"),
+			AuditRecord = new FlagAuditRecord(createdAt: DateTime.UtcNow, createdBy: "integration-test"),
 		};
 	}
 

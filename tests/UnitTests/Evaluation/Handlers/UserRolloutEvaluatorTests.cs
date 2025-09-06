@@ -35,7 +35,7 @@ public class UserRolloutEvaluator_CanProcess
 		// Arrange
 		var flag = new FeatureFlag
 		{
-			UserAccess = FlagUserAccessControl.CreateAccessControl(allowedUsers: ["user123"])
+			UserAccess = new FlagUserAccessControl(allowedUsers: ["user123"])
 		};
 		var context = new EvaluationContext(userId: "user123");
 
@@ -71,7 +71,7 @@ public class UserRolloutEvaluator_CanProcess
 		var flag = new FeatureFlag
 		{
 			EvaluationModeSet = new FlagEvaluationModeSet(),
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50)
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 50)
 		};
 		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.UserRolloutPercentage);
 		var context = new EvaluationContext(userId: "user123");
@@ -109,7 +109,7 @@ public class UserRolloutEvaluator_CanProcess
 		var flag = new FeatureFlag
 		{
 			EvaluationModeSet = new FlagEvaluationModeSet(),
-			UserAccess = FlagUserAccessControl.CreateAccessControl(allowedUsers: ["user123"])
+			UserAccess = new FlagUserAccessControl(allowedUsers: ["user123"])
 		};
 		var context = new EvaluationContext(tenantId: "tenant123"); // No user ID
 
@@ -127,7 +127,7 @@ public class UserRolloutEvaluator_CanProcess
 		var flag = new FeatureFlag
 		{
 			EvaluationModeSet = new FlagEvaluationModeSet(),
-			UserAccess = FlagUserAccessControl.CreateAccessControl(allowedUsers: ["user123"])
+			UserAccess = new FlagUserAccessControl(allowedUsers: ["user123"])
 		};
 		var context = new EvaluationContext(userId: ""); // Empty user ID
 
@@ -145,7 +145,7 @@ public class UserRolloutEvaluator_CanProcess
 		var flag = new FeatureFlag
 		{
 			EvaluationModeSet = new FlagEvaluationModeSet(),
-			UserAccess = FlagUserAccessControl.CreateAccessControl(allowedUsers: ["user123"])
+			UserAccess = new FlagUserAccessControl(allowedUsers: ["user123"])
 		};
 		var context = new EvaluationContext(userId: "   "); // Whitespace user ID
 
@@ -198,7 +198,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_UserIdValidation
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(tenantId: "tenant123"); // No user ID
@@ -216,7 +216,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_UserIdValidation
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(userId: ""); // Empty user ID
@@ -234,7 +234,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_UserIdValidation
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(userId: "   "); // Whitespace user ID
@@ -262,7 +262,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_ExplicitlyAllowedUsers
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				allowedUsers: ["user123", "user456"]),
 			Variations = new FlagVariations { DefaultVariation = "disabled" }
 		};
@@ -285,7 +285,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_ExplicitlyAllowedUsers
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				allowedUsers: ["USER123"]),
 			Variations = new FlagVariations { DefaultVariation = "disabled" }
 		};
@@ -308,7 +308,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_ExplicitlyAllowedUsers
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				allowedUsers: ["user456", "user789"],
 				rolloutPercentage: 0),
 			Variations = new FlagVariations { DefaultVariation = "restricted" }
@@ -342,7 +342,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_ExplicitlyBlockedUsers
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				blockedUsers: ["user123", "user456"],
 				rolloutPercentage: 100), // Even with 100% rollout, blocked takes precedence
 			Variations = new FlagVariations { DefaultVariation = "blocked" }
@@ -366,7 +366,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_ExplicitlyBlockedUsers
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				blockedUsers: ["USER123"],
 				rolloutPercentage: 100),
 			Variations = new FlagVariations { DefaultVariation = "blocked" }
@@ -429,7 +429,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_PercentageRollout
 		var flag = new FeatureFlag
 		{
 			Key = "zero-rollout-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 0),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 0),
 			Variations = new FlagVariations { DefaultVariation = "zero-rollout" }
 		};
 		var context = new EvaluationContext(userId: "any-user");
@@ -451,7 +451,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_PercentageRollout
 		var flag = new FeatureFlag
 		{
 			Key = "full-rollout-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 100),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 100),
 			Variations = new FlagVariations { DefaultVariation = "restricted" }
 		};
 		var context = new EvaluationContext(userId: "any-user");
@@ -473,7 +473,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_PercentageRollout
 		var flag = new FeatureFlag
 		{
 			Key = "partial-rollout-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "not-in-rollout" }
 		};
 
@@ -511,7 +511,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_PercentageRollout
 		var flag = new FeatureFlag
 		{
 			Key = "distribution-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "not-in-rollout" }
 		};
 
@@ -561,14 +561,14 @@ public class UserRolloutEvaluator_ProcessEvaluation_PercentageRollout
 		var flag1 = new FeatureFlag
 		{
 			Key = "flag-one",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "flag1-off" }
 		};
 
 		var flag2 = new FeatureFlag
 		{
 			Key = "flag-two",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 50),
 			Variations = new FlagVariations { DefaultVariation = "flag2-off" }
 		};
 
@@ -623,7 +623,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_Variations
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				allowedUsers: ["user123"]),
 			Variations = new FlagVariations { DefaultVariation = "custom-default" }
 		};
@@ -646,7 +646,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_Variations
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				blockedUsers: ["user123"]),
 			Variations = new FlagVariations { DefaultVariation = "user-blocked" }
 		};
@@ -669,7 +669,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_Variations
 		var flag = new FeatureFlag
 		{
 			Key = "rollout-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 100),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 100),
 			Variations = new FlagVariations { DefaultVariation = "rollout-off" }
 		};
 		var context = new EvaluationContext(userId: "any-user");
@@ -691,7 +691,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_Variations
 		var flag = new FeatureFlag
 		{
 			Key = "rollout-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 0),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 0),
 			Variations = new FlagVariations { DefaultVariation = "no-rollout" }
 		};
 		var context = new EvaluationContext(userId: "any-user");
@@ -717,7 +717,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_Variations
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 0),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 0),
 			Variations = new FlagVariations { DefaultVariation = defaultVariation }
 		};
 		var context = new EvaluationContext(userId: "any-user");
@@ -749,7 +749,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_EdgeCases
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				allowedUsers: ["user123"]),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
@@ -773,7 +773,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_EdgeCases
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				allowedUsers: [specialUserId]),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
@@ -797,7 +797,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_EdgeCases
 		var flag = new FeatureFlag
 		{
 			Key = "test-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 100),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 100),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(userId: longUserId);
@@ -820,7 +820,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_EdgeCases
 		var flag = new FeatureFlag
 		{
 			Key = "unicode-flag",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				allowedUsers: [unicodeUserId]),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
@@ -853,7 +853,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_RealWorldScenarios
 		var flag = new FeatureFlag
 		{
 			Key = "beta-feature",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				allowedUsers: ["beta-tester-1", "beta-tester-2", "product-manager"],
 				rolloutPercentage: 15), // 15% of other users
 			Variations = new FlagVariations { DefaultVariation = "stable-version" }
@@ -896,7 +896,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_RealWorldScenarios
 		var flag = new FeatureFlag
 		{
 			Key = "premium-feature",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				blockedUsers: ["free-tier-user", "suspended-user", "trial-expired-user"],
 				rolloutPercentage: 80), // 80% rollout except blocked users
 			Variations = new FlagVariations { DefaultVariation = "basic-version" }
@@ -944,7 +944,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_RealWorldScenarios
 		var phase1Flag = new FeatureFlag
 		{
 			Key = baseFlag.Key,
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 5),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 5),
 			Variations = baseFlag.Variations
 		};
 		var phase1Result = await _evaluator.ProcessEvaluation(phase1Flag, context);
@@ -953,7 +953,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_RealWorldScenarios
 		var phase2Flag = new FeatureFlag
 		{
 			Key = baseFlag.Key,
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 25),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 25),
 			Variations = baseFlag.Variations
 		};
 		var phase2Result = await _evaluator.ProcessEvaluation(phase2Flag, context);
@@ -962,7 +962,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_RealWorldScenarios
 		var phase3Flag = new FeatureFlag
 		{
 			Key = baseFlag.Key,
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 100),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 100),
 			Variations = baseFlag.Variations
 		};
 		var phase3Result = await _evaluator.ProcessEvaluation(phase3Flag, context);
@@ -997,7 +997,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_RealWorldScenarios
 		var flag = new FeatureFlag
 		{
 			Key = "admin-override",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				allowedUsers: ["admin", "super-admin", "system-maintainer", "on-call-engineer"],
 				rolloutPercentage: 0), // No regular rollout during maintenance
 			Variations = new FlagVariations { DefaultVariation = "maintenance-mode" }
@@ -1041,7 +1041,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_RealWorldScenarios
 		var flag = new FeatureFlag
 		{
 			Key = "canary-deployment",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(
+			UserAccess = new FlagUserAccessControl(
 				allowedUsers: ["power-user-1", "power-user-2", "qa-team-lead"],
 				rolloutPercentage: 10), // 10% canary rollout
 			Variations = new FlagVariations { DefaultVariation = "stable-version" }
@@ -1104,7 +1104,7 @@ public class UserRolloutEvaluator_ProcessEvaluation_HashConsistency
 		var flag = new FeatureFlag
 		{
 			Key = "consistency-test",
-			UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 30),
+			UserAccess = new FlagUserAccessControl(rolloutPercentage: 30),
 			Variations = new FlagVariations { DefaultVariation = "not-in-rollout" }
 		};
 		var context = new EvaluationContext(userId: "consistent-user");
@@ -1139,19 +1139,19 @@ public class UserRolloutEvaluator_ProcessEvaluation_HashConsistency
 			new FeatureFlag
 			{
 				Key = "flag-alpha",
-				UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50),
+				UserAccess = new FlagUserAccessControl(rolloutPercentage: 50),
 				Variations = new FlagVariations { DefaultVariation = "alpha-off" }
 			},
 			new FeatureFlag
 			{
 				Key = "flag-beta",
-				UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50),
+				UserAccess = new FlagUserAccessControl(rolloutPercentage: 50),
 				Variations = new FlagVariations { DefaultVariation = "beta-off" }
 			},
 			new FeatureFlag
 			{
 				Key = "flag-gamma",
-				UserAccess = FlagUserAccessControl.CreateAccessControl(rolloutPercentage: 50),
+				UserAccess = new FlagUserAccessControl(rolloutPercentage: 50),
 				Variations = new FlagVariations { DefaultVariation = "gamma-off" }
 			}
 		};

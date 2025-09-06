@@ -11,8 +11,8 @@ public class FlagActivationSchedule_Unscheduled
 		var schedule = FlagActivationSchedule.Unscheduled;
 
 		// Assert
-		schedule.ScheduledEnableDate.ShouldBeNull();
-		schedule.ScheduledDisableDate.ShouldBeNull();
+		schedule.ScheduledEnableUtcDate.ShouldBeNull();
+		schedule.ScheduledDisableUtcDate.ShouldBeNull();
 	}
 
 	[Fact]
@@ -53,8 +53,8 @@ public class FlagActivationSchedule_CreateSchedule
 		var schedule = FlagActivationSchedule.CreateSchedule(enableDate);
 
 		// Assert
-		schedule.ScheduledEnableDate.ShouldBe(enableDate);
-		schedule.ScheduledDisableDate.ShouldBeNull();
+		schedule.ScheduledEnableUtcDate.ShouldBe(enableDate);
+		schedule.ScheduledDisableUtcDate.ShouldBeNull();
 		schedule.HasSchedule().ShouldBeTrue();
 	}
 
@@ -69,8 +69,8 @@ public class FlagActivationSchedule_CreateSchedule
 		var schedule = FlagActivationSchedule.CreateSchedule(enableDate, disableDate);
 
 		// Assert
-		schedule.ScheduledEnableDate.ShouldBe(enableDate);
-		schedule.ScheduledDisableDate.ShouldBe(disableDate);
+		schedule.ScheduledEnableUtcDate.ShouldBe(enableDate);
+		schedule.ScheduledDisableUtcDate.ShouldBe(disableDate);
 		schedule.HasSchedule().ShouldBeTrue();
 	}
 

@@ -84,7 +84,7 @@ public class FlagTenantAccessControl_CreateAccessControl
 		var rolloutPercentage = 50;
 
 		// Act
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants, blockedTenants, rolloutPercentage);
 
 		// Assert
@@ -97,7 +97,7 @@ public class FlagTenantAccessControl_CreateAccessControl
 	public void If_NullLists_ThenCreatesWithEmptyLists()
 	{
 		// Act
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(null, null, 25);
+		var accessControl = new FlagTenantAccessControl(null, null, 25);
 
 		// Assert
 		accessControl.AllowedTenants.Count.ShouldBe(0);
@@ -109,7 +109,7 @@ public class FlagTenantAccessControl_CreateAccessControl
 	public void If_DefaultParameters_ThenCreatesWithDefaults()
 	{
 		// Act
-		var accessControl = FlagTenantAccessControl.CreateAccessControl();
+		var accessControl = new FlagTenantAccessControl();
 
 		// Assert
 		accessControl.AllowedTenants.Count.ShouldBe(0);
@@ -126,7 +126,7 @@ public class FlagTenantAccessControl_CreateAccessControl
 	{
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
-			FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: invalidPercentage));
+			new FlagTenantAccessControl(rolloutPercentage: invalidPercentage));
 		exception.Message.ShouldBe("Rollout percentage must be between 0 and 100. (Parameter 'rolloutPercentage')");
 	}
 
@@ -138,7 +138,7 @@ public class FlagTenantAccessControl_CreateAccessControl
 	{
 		// Act
 		var accessControl = Should.NotThrow(() =>
-			FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: validPercentage));
+			new FlagTenantAccessControl(rolloutPercentage: validPercentage));
 
 		// Assert
 		accessControl.RolloutPercentage.ShouldBe(validPercentage);
@@ -153,7 +153,7 @@ public class FlagTenantAccessControl_CreateAccessControl
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
-			FlagTenantAccessControl.CreateAccessControl(allowedTenants, blockedTenants));
+			new FlagTenantAccessControl(allowedTenants, blockedTenants));
 		exception.Message.ShouldBe("Tenants cannot be in both allowed and blocked lists: TENANT3");
 	}
 
@@ -166,7 +166,7 @@ public class FlagTenantAccessControl_CreateAccessControl
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
-			FlagTenantAccessControl.CreateAccessControl(allowedTenants, blockedTenants));
+			new FlagTenantAccessControl(allowedTenants, blockedTenants));
 		exception.Message.ShouldContain("tenant1");
 		exception.Message.ShouldContain("TENANT2");
 	}
@@ -179,7 +179,7 @@ public class FlagTenantAccessControl_CreateAccessControl
 		var blockedTenants = new List<string> { "tenant3", "", "   ", "tenant4" };
 
 		// Act
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(allowedTenants, blockedTenants);
+		var accessControl = new FlagTenantAccessControl(allowedTenants, blockedTenants);
 
 		// Assert
 		accessControl.AllowedTenants.Count.ShouldBe(2);
@@ -198,7 +198,7 @@ public class FlagTenantAccessControl_CreateAccessControl
 		var blockedTenants = new List<string> { "tenant3", "Tenant3", "tenant4" };
 
 		// Act
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(allowedTenants, blockedTenants);
+		var accessControl = new FlagTenantAccessControl(allowedTenants, blockedTenants);
 
 		// Assert
 		accessControl.AllowedTenants.Count.ShouldBe(2);
@@ -217,7 +217,7 @@ public class FlagTenantAccessControl_CreateAccessControl
 		var blockedTenants = new List<string> { " tenant3 ", "tenant4   " };
 
 		// Act
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(allowedTenants, blockedTenants);
+		var accessControl = new FlagTenantAccessControl(allowedTenants, blockedTenants);
 
 		// Assert
 		accessControl.AllowedTenants.ShouldContain("tenant1");
@@ -233,7 +233,7 @@ public class FlagTenantAccessControl_HasAccessRestrictions
 	public void If_NoRestrictions_ThenReturnsFalse()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			rolloutPercentage: 100);
 
 		// Act & Assert
@@ -244,7 +244,7 @@ public class FlagTenantAccessControl_HasAccessRestrictions
 	public void If_HasAllowedTenants_ThenReturnsTrue()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["tenant1"],
 			rolloutPercentage: 100);
 
@@ -256,7 +256,7 @@ public class FlagTenantAccessControl_HasAccessRestrictions
 	public void If_HasBlockedTenants_ThenReturnsTrue()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			blockedTenants: ["tenant1"],
 			rolloutPercentage: 100);
 
@@ -272,7 +272,7 @@ public class FlagTenantAccessControl_HasAccessRestrictions
 	public void If_RolloutPercentageLessThan100_ThenReturnsTrue(int percentage)
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			rolloutPercentage: percentage);
 
 		// Act & Assert
@@ -297,7 +297,7 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 	public void If_InvalidTenantId_ThenReturnsDeniedWithReason(string? invalidTenantId)
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl();
+		var accessControl = new FlagTenantAccessControl();
 		var flagKey = "test-flag";
 
 		// Act
@@ -312,7 +312,7 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 	public void If_TenantExplicitlyBlocked_ThenReturnsDenied()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			blockedTenants: ["blocked-tenant"]);
 		var flagKey = "test-flag";
 
@@ -328,7 +328,7 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 	public void If_TenantExplicitlyBlockedCaseInsensitive_ThenReturnsDenied()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			blockedTenants: ["BLOCKED-TENANT"]);
 		var flagKey = "test-flag";
 
@@ -344,7 +344,7 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 	public void If_TenantExplicitlyAllowed_ThenReturnsAllowed()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["allowed-tenant"]);
 		var flagKey = "test-flag";
 
@@ -360,7 +360,7 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 	public void If_TenantExplicitlyAllowedCaseInsensitive_ThenReturnsAllowed()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["ALLOWED-TENANT"]);
 		var flagKey = "test-flag";
 
@@ -395,7 +395,7 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 	public void If_ZeroRolloutPercentageAndNotExplicit_ThenReturnsDenied()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 0);
+		var accessControl = new FlagTenantAccessControl(rolloutPercentage: 0);
 		var flagKey = "test-flag";
 
 		// Act
@@ -410,7 +410,7 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 	public void If_100PercentRolloutAndNotExplicit_ThenReturnsAllowed()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 100);
+		var accessControl = new FlagTenantAccessControl(rolloutPercentage: 100);
 		var flagKey = "test-flag";
 
 		// Act
@@ -425,7 +425,7 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 	public void If_TenantIdWithWhitespace_ThenTrimsAndEvaluates()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["allowed-tenant"]);
 		var flagKey = "test-flag";
 
@@ -441,7 +441,7 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 	public void If_PartialRolloutTenantInRollout_ThenReturnsAllowed()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50);
+		var accessControl = new FlagTenantAccessControl(rolloutPercentage: 50);
 		var flagKey = "consistent-flag-key";
 		
 		// Find a tenant that falls within the rollout by testing multiple tenant IDs
@@ -468,7 +468,7 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 	public void If_PartialRolloutTenantNotInRollout_ThenReturnsDenied()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50);
+		var accessControl = new FlagTenantAccessControl(rolloutPercentage: 50);
 		var flagKey = "consistent-flag-key";
 		
 		// Find a tenant that falls outside the rollout by testing multiple tenant IDs
@@ -495,7 +495,7 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 	public void If_SameTenantDifferentFlags_ThenMayHaveDifferentResults()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50);
+		var accessControl = new FlagTenantAccessControl(rolloutPercentage: 50);
 		var tenantId = "consistent-tenant";
 
 		// Act
@@ -528,7 +528,7 @@ public class FlagTenantAccessControl_IsTenantExplicitlyManaged
 	public void If_InvalidTenantId_ThenReturnsFalse(string? invalidTenantId)
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl();
+		var accessControl = new FlagTenantAccessControl();
 
 		// Act & Assert
 		accessControl.IsTenantExplicitlyManaged(invalidTenantId!).ShouldBeFalse();
@@ -538,7 +538,7 @@ public class FlagTenantAccessControl_IsTenantExplicitlyManaged
 	public void If_TenantInAllowedList_ThenReturnsTrue()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["allowed-tenant"]);
 
 		// Act & Assert
@@ -549,7 +549,7 @@ public class FlagTenantAccessControl_IsTenantExplicitlyManaged
 	public void If_TenantInBlockedList_ThenReturnsTrue()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			blockedTenants: ["blocked-tenant"]);
 
 		// Act & Assert
@@ -572,7 +572,7 @@ public class FlagTenantAccessControl_IsTenantExplicitlyManaged
 	public void If_TenantNotInAnyList_ThenReturnsFalse()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["allowed-tenant"],
 			blockedTenants: ["blocked-tenant"]);
 
@@ -584,7 +584,7 @@ public class FlagTenantAccessControl_IsTenantExplicitlyManaged
 	public void If_CaseInsensitiveMatch_ThenReturnsTrue()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["ALLOWED-TENANT"]);
 
 		// Act & Assert
@@ -595,7 +595,7 @@ public class FlagTenantAccessControl_IsTenantExplicitlyManaged
 	public void If_TenantIdWithWhitespace_ThenTrimsAndChecks()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["allowed-tenant"]);
 
 		// Act & Assert
@@ -612,7 +612,7 @@ public class FlagTenantAccessControl_WithAllowedTenant
 	public void If_InvalidTenantId_ThenThrowsArgumentException(string? invalidTenantId)
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl();
+		var accessControl = new FlagTenantAccessControl();
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
@@ -624,7 +624,7 @@ public class FlagTenantAccessControl_WithAllowedTenant
 	public void If_TenantNotAlreadyAllowed_ThenAddsToAllowedList()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["existing-tenant"]);
 
 		// Act
@@ -641,7 +641,7 @@ public class FlagTenantAccessControl_WithAllowedTenant
 	public void If_TenantAlreadyAllowed_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["existing-tenant"]);
 
 		// Act
@@ -655,7 +655,7 @@ public class FlagTenantAccessControl_WithAllowedTenant
 	public void If_TenantAlreadyAllowedCaseInsensitive_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["EXISTING-TENANT"]);
 
 		// Act
@@ -669,8 +669,8 @@ public class FlagTenantAccessControl_WithAllowedTenant
 	public void If_TenantCurrentlyBlocked_ThenRemovesFromBlockedAndAddsToAllowed()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
-			blockedTenants: new List<string> { "blocked-tenant", "other-tenant" });
+		var accessControl = new FlagTenantAccessControl(
+			blockedTenants: ["blocked-tenant", "other-tenant"]);
 
 		// Act
 		var newAccessControl = accessControl.WithAllowedTenant("blocked-tenant");
@@ -688,7 +688,7 @@ public class FlagTenantAccessControl_WithAllowedTenant
 	public void If_TenantIdWithWhitespace_ThenTrimsBeforeProcessing()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl();
+		var accessControl = new FlagTenantAccessControl();
 
 		// Act
 		var newAccessControl = accessControl.WithAllowedTenant("  new-tenant  ");
@@ -702,7 +702,7 @@ public class FlagTenantAccessControl_WithAllowedTenant
 	public void If_PreservesOtherProperties_ThenKeepsRolloutPercentage()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 75);
+		var accessControl = new FlagTenantAccessControl(rolloutPercentage: 75);
 
 		// Act
 		var newAccessControl = accessControl.WithAllowedTenant("new-tenant");
@@ -721,7 +721,7 @@ public class FlagTenantAccessControl_WithBlockedTenant
 	public void If_InvalidTenantId_ThenThrowsArgumentException(string? invalidTenantId)
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl();
+		var accessControl = new FlagTenantAccessControl();
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
@@ -733,7 +733,7 @@ public class FlagTenantAccessControl_WithBlockedTenant
 	public void If_TenantNotAlreadyBlocked_ThenAddsToBlockedList()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			blockedTenants: ["existing-tenant"]);
 
 		// Act
@@ -750,7 +750,7 @@ public class FlagTenantAccessControl_WithBlockedTenant
 	public void If_TenantAlreadyBlocked_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			blockedTenants: ["existing-tenant"]);
 
 		// Act
@@ -764,7 +764,7 @@ public class FlagTenantAccessControl_WithBlockedTenant
 	public void If_TenantAlreadyBlockedCaseInsensitive_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			blockedTenants: ["EXISTING-TENANT"]);
 
 		// Act
@@ -778,8 +778,8 @@ public class FlagTenantAccessControl_WithBlockedTenant
 	public void If_TenantCurrentlyAllowed_ThenRemovesFromAllowedAndAddsToBlocked()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
-			allowedTenants: new List<string> { "allowed-tenant", "other-tenant" });
+		var accessControl = new FlagTenantAccessControl(
+			allowedTenants: ["allowed-tenant", "other-tenant"]);
 
 		// Act
 		var newAccessControl = accessControl.WithBlockedTenant("allowed-tenant");
@@ -797,7 +797,7 @@ public class FlagTenantAccessControl_WithBlockedTenant
 	public void If_TenantIdWithWhitespace_ThenTrimsBeforeProcessing()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl();
+		var accessControl = new FlagTenantAccessControl();
 
 		// Act
 		var newAccessControl = accessControl.WithBlockedTenant("  new-tenant  ");
@@ -811,7 +811,7 @@ public class FlagTenantAccessControl_WithBlockedTenant
 	public void If_PreservesOtherProperties_ThenKeepsRolloutPercentage()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 75);
+		var accessControl = new FlagTenantAccessControl(rolloutPercentage: 75);
 
 		// Act
 		var newAccessControl = accessControl.WithBlockedTenant("new-tenant");
@@ -830,7 +830,7 @@ public class FlagTenantAccessControl_WithoutTenant
 	public void If_InvalidTenantId_ThenThrowsArgumentException(string? invalidTenantId)
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl();
+		var accessControl = new FlagTenantAccessControl();
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
@@ -842,7 +842,7 @@ public class FlagTenantAccessControl_WithoutTenant
 	public void If_TenantInAllowedList_ThenRemovesFromAllowed()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["tenant1", "tenant2", "tenant3"]);
 
 		// Act
@@ -860,7 +860,7 @@ public class FlagTenantAccessControl_WithoutTenant
 	public void If_TenantInBlockedList_ThenRemovesFromBlocked()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			blockedTenants: ["tenant1", "tenant2", "tenant3"]);
 
 		// Act
@@ -897,7 +897,7 @@ public class FlagTenantAccessControl_WithoutTenant
 	public void If_TenantNotInAnyList_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["tenant1"],
 			blockedTenants: ["tenant2"]);
 
@@ -912,7 +912,7 @@ public class FlagTenantAccessControl_WithoutTenant
 	public void If_CaseInsensitiveMatch_ThenRemovesTenant()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["TENANT1", "tenant2"]);
 
 		// Act
@@ -929,7 +929,7 @@ public class FlagTenantAccessControl_WithoutTenant
 	public void If_TenantIdWithWhitespace_ThenTrimsBeforeProcessing()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["tenant1"]);
 
 		// Act
@@ -944,7 +944,7 @@ public class FlagTenantAccessControl_WithoutTenant
 	public void If_PreservesOtherProperties_ThenKeepsRolloutPercentage()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["tenant1"],
 			rolloutPercentage: 75);
 
@@ -966,7 +966,7 @@ public class FlagTenantAccessControl_WithRolloutPercentage
 	public void If_InvalidPercentage_ThenThrowsArgumentException(int invalidPercentage)
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl();
+		var accessControl = new FlagTenantAccessControl();
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
@@ -983,7 +983,7 @@ public class FlagTenantAccessControl_WithRolloutPercentage
 	public void If_ValidPercentage_ThenUpdatesRolloutPercentage(int validPercentage)
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 50);
+		var accessControl = new FlagTenantAccessControl(rolloutPercentage: 50);
 
 		// Act
 		var newAccessControl = accessControl.WithRolloutPercentage(validPercentage);
@@ -1004,7 +1004,7 @@ public class FlagTenantAccessControl_WithRolloutPercentage
 	public void If_SamePercentage_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(rolloutPercentage: 75);
+		var accessControl = new FlagTenantAccessControl(rolloutPercentage: 75);
 
 		// Act
 		var newAccessControl = accessControl.WithRolloutPercentage(75);
@@ -1019,7 +1019,7 @@ public class FlagTenantAccessControl_WithRolloutPercentage
 		// Arrange
 		var allowedTenants = new List<string> { "tenant1", "tenant2" };
 		var blockedTenants = new List<string> { "tenant3", "tenant4" };
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants, blockedTenants, 25);
 
 		// Act
@@ -1039,7 +1039,7 @@ public class FlagTenantAccessControl_FluentInterface
 	public void If_ChainedMethods_ThenWorksCorrectly()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl();
+		var accessControl = new FlagTenantAccessControl();
 
 		// Act
 		var result = accessControl
@@ -1061,7 +1061,7 @@ public class FlagTenantAccessControl_FluentInterface
 	public void If_ChainedWithConflicts_ThenResolvesCorrectly()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl();
+		var accessControl = new FlagTenantAccessControl();
 
 		// Act
 		var result = accessControl
@@ -1079,7 +1079,7 @@ public class FlagTenantAccessControl_FluentInterface
 	public void If_ChainedRemoval_ThenRemovesCorrectly()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["tenant1", "tenant2"],
 			blockedTenants: ["tenant3"]);
 
@@ -1102,7 +1102,7 @@ public class FlagTenantAccessControl_ImmutabilityAndThreadSafety
 	{
 		// Arrange
 		var allowedTenants = new List<string> { "tenant1", "tenant2" };
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(allowedTenants: allowedTenants);
+		var accessControl = new FlagTenantAccessControl(allowedTenants: allowedTenants);
 
 		// Act - Modify original list
 		allowedTenants.Add("tenant3");
@@ -1116,7 +1116,7 @@ public class FlagTenantAccessControl_ImmutabilityAndThreadSafety
 	public void If_ModificationMethods_ThenReturnNewInstances()
 	{
 		// Arrange
-		var original = FlagTenantAccessControl.CreateAccessControl();
+		var original = new FlagTenantAccessControl();
 
 		// Act
 		var withAllowed = original.WithAllowedTenant("tenant1");
@@ -1136,7 +1136,7 @@ public class FlagTenantAccessControl_ImmutabilityAndThreadSafety
 	public void If_NoChangeNeeded_ThenReturnsSameInstance()
 	{
 		// Arrange
-		var accessControl = FlagTenantAccessControl.CreateAccessControl(
+		var accessControl = new FlagTenantAccessControl(
 			allowedTenants: ["tenant1"],
 			rolloutPercentage: 75);
 
