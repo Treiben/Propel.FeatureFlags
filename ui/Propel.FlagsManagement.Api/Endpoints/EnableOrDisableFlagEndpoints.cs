@@ -19,13 +19,13 @@ public sealed class ToggleFlagEndpoint : IEndpoint
 				EnableFlagRequest request,
 				ToggleFlagHandler toggleFlagHandler) =>
 				{
-					return await toggleFlagHandler.HandleAsync(key, FeatureFlagStatus.Enabled, request.Reason);
+					return await toggleFlagHandler.HandleAsync(key, FlagEvaluationMode.Enabled, request.Reason);
 				})
 		.AddEndpointFilter<ValidationFilter<EnableFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("EnableFlag")
 		.WithTags("Feature Flags", "Operations", "Toggle Control", "Management Api")
-		.Produces<FeatureFlagDto>()
+		.Produces<FeatureFlagResponse>()
 		.ProducesValidationProblem();
 
 		epRoutBuilder.MapPost("/api/feature-flags/{key}/disable",
@@ -34,24 +34,24 @@ public sealed class ToggleFlagEndpoint : IEndpoint
 				DisableFlagRequest request,
 				ToggleFlagHandler toggleFlagHandler) =>
 			{
-				return await toggleFlagHandler.HandleAsync(key, FeatureFlagStatus.Disabled, request.Reason);
+				return await toggleFlagHandler.HandleAsync(key, FlagEvaluationMode.Disabled, request.Reason);
 			})
 		.AddEndpointFilter<ValidationFilter<DisableFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("DisableFlag")
 		.WithTags("Feature Flags", "Operations", "Toggle Control", "Management Api")
-		.Produces<FeatureFlagDto>()
+		.Produces<FeatureFlagResponse>()
 		.ProducesValidationProblem();
 	}
 }
 
 public sealed class ToggleFlagHandler(
-	IFeatureFlagRepository repository,
-	IFeatureFlagCache cache,
-	ILogger<ToggleFlagHandler> logger,
-	CurrentUserService currentUserService)
+		IFeatureFlagRepository repository,
+		ICurrentUserService currentUserService,
+		ILogger<ToggleFlagHandler> logger,
+		IFeatureFlagCache? cache = null)
 {
-	public async Task<IResult> HandleAsync(string key, FeatureFlagStatus status, string reason)
+	public async Task<IResult> HandleAsync(string key, FlagEvaluationMode evaluationMode, string reason)
 	{
 		// Validate key parameter
 		if (string.IsNullOrWhiteSpace(key))
@@ -68,41 +68,35 @@ public sealed class ToggleFlagHandler(
 			}
 
 			// Check if the flag is already in the requested state
-			if (flag.Status == status)
+			if (flag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Enabled, FlagEvaluationMode.Disabled]))
 			{
-				logger.LogInformation("Feature flag {Key} is already {Status} - no change needed", key, status);
-				return Results.Ok(new FeatureFlagDto(flag));
+				logger.LogInformation("Feature flag {Key} is already {Status} - no change needed", key, evaluationMode);
+				return Results.Ok(new FeatureFlagResponse(flag));
 			}
 
 			// Store previous state for logging
-			var previousStatus = flag.Status;
+			var previousModes = flag.EvaluationModeSet.EvaluationModes;
 
 			// Update flag
-			flag.Status = status;
-			flag.UpdatedBy = currentUserService.UserName!;
-			// Reset scheduling, time window, and percentage when manually toggling
-			flag.ScheduledEnableDate = null;
-			flag.ScheduledDisableDate = null;
-			flag.WindowStartTime = null;
-			flag.WindowEndTime = null;
-			flag.WindowDays = null;
-			if (status == FeatureFlagStatus.Enabled)
-			{
-				flag.PercentageEnabled = 100;
-			}
-			else if (status == FeatureFlagStatus.Disabled)
-			{
-				flag.PercentageEnabled = 0;
-			}
+			flag.EvaluationModeSet.AddMode(evaluationMode);
+			// Reset scheduling, time window, and user/tenant access when manually toggling
+			flag.Schedule = FlagActivationSchedule.Unscheduled;
+			flag.OperationalWindow = FlagOperationalWindow.AlwaysOpen;
+			flag.UserAccess = new FlagUserAccessControl(rolloutPercentage: evaluationMode == FlagEvaluationMode.Enabled ? 100 : 0);
+			flag.TenantAccess = new FlagTenantAccessControl(rolloutPercentage: evaluationMode == FlagEvaluationMode.Enabled ? 100 : 0);
+
+			// Update audit record
+			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName!);
 
 			var updatedFlag = await repository.UpdateAsync(flag);
-			await cache.RemoveAsync(key);
 
-			var action = Enum.GetName(status);
+			if (cache != null) await cache.RemoveAsync(key);
+
+			var action = Enum.GetName(evaluationMode);
 			logger.LogInformation("Feature flag {Key} {Action} by {User} (changed from {PreviousStatus}). Reason: {Reason}",
-				key, action, currentUserService.UserName, previousStatus, reason);
+				key, action, currentUserService.UserName, previousModes, reason);
 
-			return Results.Ok(new FeatureFlagDto(updatedFlag));
+			return Results.Ok(new FeatureFlagResponse(updatedFlag));
 		}
 		catch (Exception ex)
 		{

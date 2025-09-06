@@ -6,7 +6,8 @@ using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
 
-public record UpdateTimeWindowRequest(TimeOnly WindowStartTime,
+public record UpdateTimeWindowRequest(
+	TimeOnly WindowStartTime,
 	TimeOnly WindowEndTime, 
 	string TimeZone, 
 	List<DayOfWeek> WindowDays,
@@ -28,16 +29,16 @@ public sealed class UpdateTimeWindowEndpoint : IEndpoint
 		.AddEndpointFilter<ValidationFilter<UpdateTimeWindowRequest>>()
 		.WithName("SetTimeWindow")
 		.WithTags("Feature Flags", "Lifecycle Management", "Operations", "Management Api")
-		.Produces<FeatureFlagDto>()
+		.Produces<FeatureFlagResponse>()
 		.ProducesValidationProblem();
 	}
 }
 
 public sealed class UpdateTimeWindowHandler(
-	IFeatureFlagRepository repository,
-	IFeatureFlagCache cache,
-	ILogger<UpdateTimeWindowHandler> logger,
-	CurrentUserService currentUserService)
+		IFeatureFlagRepository repository,
+		ICurrentUserService currentUserService,
+		ILogger<UpdateTimeWindowHandler> logger,
+		IFeatureFlagCache? cache = null)
 {
 	public async Task<IResult> HandleAsync(string key, UpdateTimeWindowRequest request)
 	{
@@ -54,38 +55,31 @@ public sealed class UpdateTimeWindowHandler(
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
 			}
 
-			// Update flag for scheduling
-			flag.UpdatedBy = currentUserService.UserName!;
+			// Update flag for time window
+			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName);
 
 			if (request.RemoveTimeWindow)
 			{
-				flag.Status = flag.Status.Decrement(FeatureFlagStatus.TimeWindow);
-				flag.WindowStartTime = null;
-				flag.WindowEndTime = null;
-				flag.WindowDays = null;
+				flag.OperationalWindow = FlagOperationalWindow.AlwaysOpen;
+				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.TimeWindow);
 			}
 			else
 			{
-				flag.Status = flag.Status.Increment(FeatureFlagStatus.TimeWindow);
-				flag.WindowStartTime = request.WindowStartTime.ToTimeSpan();
-				flag.WindowEndTime = request.WindowEndTime.ToTimeSpan();
-				flag.TimeZone = request.TimeZone;
-				if (request.WindowDays?.Count == 0)
-				{
-					// If no days are specified, assume all days
-					flag.WindowDays = [.. Enum.GetValues<DayOfWeek>()];
-				}
-				else
-					flag.WindowDays = request.WindowDays;
+				flag.OperationalWindow = FlagOperationalWindow.CreateWindow(
+					request.WindowStartTime.ToTimeSpan(),
+					request.WindowEndTime.ToTimeSpan(),
+					request.TimeZone,
+					request.WindowDays);
 			}
 
 			var updatedFlag = await repository.UpdateAsync(flag);
-			await cache.RemoveAsync(key);
+
+			if (cache != null) await cache.RemoveAsync(key);
 
 			logger.LogInformation("Feature flag {Key} time window updated by {User}",
 				key, currentUserService.UserName);
 
-			return Results.Ok(new FeatureFlagDto(updatedFlag));
+			return Results.Ok(new FeatureFlagResponse(updatedFlag));
 		}
 		catch (Exception ex)
 		{

@@ -23,10 +23,10 @@ public sealed class DeleteFlagEndpoint : IEndpoint
 }
 
 public sealed class DeleteFlagHandler(
-	CurrentUserService userService,
 	IFeatureFlagRepository repository,
-	IFeatureFlagCache cache,
-	ILogger<DeleteFlagHandler> logger)
+	ICurrentUserService userService,
+	ILogger<DeleteFlagHandler> logger,
+	IFeatureFlagCache? cache = null)
 {
 	public async Task<IResult> HandleAsync(string key)
 	{
@@ -60,7 +60,7 @@ public sealed class DeleteFlagHandler(
 					logger: logger);
 			}
 
-			await cache.RemoveAsync(key);
+			if (cache != null) await cache.RemoveAsync(key);
 
 			logger.LogInformation("Feature flag {Key} deleted successfully by {User}", 
 				key, userService.UserName);

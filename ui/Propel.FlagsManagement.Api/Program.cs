@@ -11,7 +11,7 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var featureFlagOptions = builder.Configuration.GetSection("PropelFeatureFlags").Get<FlagOptions>() ?? new();
+var featureFlagOptions = builder.Configuration.GetSection("PropelFeatureFlags").Get<FeatureFlagConfigurationOptions>() ?? new();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -50,7 +50,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 	options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 	options.SerializerOptions.WriteIndented = true;
 	options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-	options.SerializerOptions.Converters.Add(new CustomJsonConverter<FeatureFlagStatus>());
+	options.SerializerOptions.Converters.Add(new CustomJsonConverter<FlagEvaluationMode>());
 	options.SerializerOptions.Converters.Add(new CustomJsonConverter<DayOfWeek>());
 	options.SerializerOptions.Converters.Add(new CustomJsonConverter<TargetingOperator>());
 });

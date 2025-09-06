@@ -1,62 +1,61 @@
 ﻿using FluentValidation;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Propel.FeatureFlags;
 using Propel.FeatureFlags.Core;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
 
-public record FeatureFlagDto
+public record FeatureFlagResponse
 {
 	public string Key { get; set; } = string.Empty;
 	public string Name { get; set; } = string.Empty;
 	public string Description { get; set; } = string.Empty;
-	public string Status { get; set; } = string.Empty;
+	public FlagEvaluationMode[] EvaluationModes { get; set; } = [];
 	public DateTime CreatedAt { get; set; }
-	public DateTime UpdatedAt { get; set; }
+	public DateTime? UpdatedAt { get; set; }
 	public string CreatedBy { get; set; } = string.Empty;
-	public string UpdatedBy { get; set; } = string.Empty;
+	public string? UpdatedBy { get; set; } = string.Empty;
 	public DateTime? ExpirationDate { get; set; }
 	public DateTime? ScheduledEnableDate { get; set; }
 	public DateTime? ScheduledDisableDate { get; set; }
 	public TimeOnly? WindowStartTime { get; set; }
 	public TimeOnly? WindowEndTime { get; set; }
 	public string? TimeZone { get; set; }
-	public List<DayOfWeek>? WindowDays { get; set; }
+	public DayOfWeek[]? WindowDays { get; set; }
 	public int PercentageEnabled { get; set; }
 	public List<TargetingRule> TargetingRules { get; set; } = [];
-	public List<string> EnabledUsers { get; set; } = [];
-	public List<string> DisabledUsers { get; set; } = [];
+	public List<string> AllowedUsers { get; set; } = [];
+	public List<string> BlockedUsers { get; set; } = [];
 	public Dictionary<string, object> Variations { get; set; } = [];
 	public string DefaultVariation { get; set; } = string.Empty;
 	public Dictionary<string, string> Tags { get; set; } = [];
 	public bool IsPermanent { get; set; }
 
-	public FeatureFlagDto() { }
+	public FeatureFlagResponse() { }
 
-	public FeatureFlagDto(FeatureFlag flag)
+	public FeatureFlagResponse(FeatureFlag flag)
 	{
 		Key = flag.Key;
 		Name = flag.Name;
 		Description = flag.Description;
-		Status = flag.Status.ToString();
-		CreatedAt = flag.CreatedAt;
-		UpdatedAt = flag.UpdatedAt;
-		CreatedBy = flag.CreatedBy;
-		UpdatedBy = flag.UpdatedBy;
+		EvaluationModes = flag.EvaluationModeSet.EvaluationModes;
+		CreatedAt = flag.AuditRecord.CreatedAt;
+		UpdatedAt = flag.AuditRecord.ModifiedAt;
+		CreatedBy = flag.AuditRecord.CreatedBy;
+		UpdatedBy = flag.AuditRecord.ModifiedBy;
 		ExpirationDate = flag.ExpirationDate;
-		ScheduledEnableDate = flag.ScheduledEnableDate;
-		ScheduledDisableDate = flag.ScheduledDisableDate;
-		WindowStartTime = flag.WindowStartTime.HasValue ? TimeOnly.FromTimeSpan(flag.WindowStartTime.Value) : null;
-		WindowEndTime = flag.WindowEndTime.HasValue ? TimeOnly.FromTimeSpan(flag.WindowEndTime.Value) : null;
-		TimeZone = flag.TimeZone;
-		WindowDays = flag.WindowDays;
-		PercentageEnabled = flag.PercentageEnabled;
+		ScheduledEnableDate = flag.Schedule.ScheduledEnableUtcDate;
+		ScheduledDisableDate = flag.Schedule.ScheduledDisableUtcDate;
+		WindowStartTime = flag.OperationalWindow.WindowStartTime > TimeSpan.Zero ? TimeOnly.FromTimeSpan(flag.OperationalWindow.WindowStartTime) : null;
+		WindowEndTime = flag.OperationalWindow.WindowEndTime > TimeSpan.Zero ? TimeOnly.FromTimeSpan(flag.OperationalWindow.WindowEndTime) : null;
+		TimeZone = flag.OperationalWindow.TimeZone;
+		WindowDays = flag.OperationalWindow.WindowDays;
+		PercentageEnabled = flag.UserAccess.RolloutPercentage;
+		AllowedUsers = flag.UserAccess.AllowedUsers;
+		BlockedUsers = flag.UserAccess.BlockedUsers;
 		TargetingRules = flag.TargetingRules;
-		EnabledUsers = flag.EnabledUsers;
-		DisabledUsers = flag.DisabledUsers;
-		Variations = flag.Variations;
-		DefaultVariation = flag.DefaultVariation;
+		Variations = flag.Variations.Values;
+		DefaultVariation = flag.Variations.DefaultVariation;
 		Tags = flag.Tags;
 		IsPermanent = flag.IsPermanent;
 	}
@@ -64,7 +63,7 @@ public record FeatureFlagDto
 
 public record PagedFeatureFlagsResponse
 {
-	public List<FeatureFlagDto> Items { get; init; } = [];
+	public List<FeatureFlagResponse> Items { get; init; } = [];
 	public int TotalCount { get; init; }
 	public int Page { get; init; }
 	public int PageSize { get; init; }
@@ -73,11 +72,16 @@ public record PagedFeatureFlagsResponse
 	public bool HasPreviousPage { get; init; }
 }
 
-public record GetFlagsRequest
+public record GetFeatureFlagRequest
 {
 	public int? Page { get; init; }
 	public int? PageSize { get; init; }
-	public string? Status { get; init; }
+
+	// Evaluation mode filtering
+	public FlagEvaluationMode[]? EvaluationModes { get; init; }
+
+	// Expiring flags only
+	public int? ExpiringInDays { get; init; }
 
 	// Tag filtering using tag keys only
 	public string[]? TagKeys { get; init; }
@@ -86,11 +90,14 @@ public record GetFlagsRequest
 	public string[]? Tags { get; init; }
 }
 
-public sealed class FetchFlagsEndpoints : IEndpoint
+public sealed class GetFlagEndpoints : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapGet("/api/feature-flags/{key}", async (string key, IFeatureFlagRepository repository, ILogger<FetchFlagsEndpoints> logger) =>
+		app.MapGet("/api/feature-flags/{key}",
+			async (string key,
+					IFeatureFlagRepository repository, 
+					ILogger<GetFlagEndpoints> logger) =>
 		{
 			// Validate key parameter
 			if (string.IsNullOrWhiteSpace(key))
@@ -106,7 +113,7 @@ public sealed class FetchFlagsEndpoints : IEndpoint
 					return HttpProblemFactory.NotFound("Feature flag", key, logger);
 				}
 
-				return Results.Ok(new FeatureFlagDto(flag));
+				return Results.Ok(new FeatureFlagResponse(flag));
 			}
 			catch (Exception ex)
 			{
@@ -116,14 +123,16 @@ public sealed class FetchFlagsEndpoints : IEndpoint
 		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
 		.WithName("GetFlag")
 		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api")
-		.Produces<FeatureFlagDto>();
+		.Produces<FeatureFlagResponse>();
 
-		app.MapGet("/api/feature-flags/all", async (IFeatureFlagRepository repository, ILogger<FetchFlagsEndpoints> logger) =>
+		app.MapGet("/api/feature-flags/all", 
+			async (IFeatureFlagRepository repository, 
+					ILogger<GetFlagEndpoints> logger) =>
 		{
 			try
 			{
 				var flags = await repository.GetAllAsync();
-				var flagDtos = flags.Select(f => new FeatureFlagDto(f)).ToList();
+				var flagDtos = flags.Select(f => new FeatureFlagResponse(f)).ToList();
 				return Results.Ok(flagDtos);
 			}
 			catch (Exception ex)
@@ -133,20 +142,24 @@ public sealed class FetchFlagsEndpoints : IEndpoint
 		})
 		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
 		.WithName("GetAllFlags")
-		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api")
-		.Produces<List<FeatureFlagDto>>();
+		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api", "All Flags")
+		.Produces<List<FeatureFlagResponse>>();
 
-		app.MapGet("/api/feature-flags", async ([AsParameters] GetFlagsRequest request, IFeatureFlagRepository repository, ILogger<FetchFlagsEndpoints> logger) =>
+		app.MapGet("/api/feature-flags", 
+			async ([AsParameters] GetFeatureFlagRequest request, 
+					IFeatureFlagRepository repository,
+					ILogger<GetFlagEndpoints> logger) =>
 		{
 			try
 			{
 				FeatureFlagFilter? filter = null;
-				if (!string.IsNullOrEmpty(request.Status) || request.Tags?.Length > 0 || request.TagKeys?.Length > 0)
+				if (request.EvaluationModes?.Length > 0 || request.Tags?.Length > 0 || request.TagKeys?.Length > 0)
 				{
 					filter = new FeatureFlagFilter
 					{
-						Status = request.Status,
-						Tags = request.BuildTagDictionary()
+						EvaluationModes = request.EvaluationModes,
+						Tags = request.BuildTagDictionary(),
+						ExpiringInDays = request.ExpiringInDays
 					};
 				}
 
@@ -156,7 +169,7 @@ public sealed class FetchFlagsEndpoints : IEndpoint
 
 				var response = new PagedFeatureFlagsResponse
 				{
-					Items = [.. result.Items.Select(f => new FeatureFlagDto(f))],
+					Items = [.. result.Items.Select(f => new FeatureFlagResponse(f))],
 					TotalCount = result.TotalCount,
 					Page = result.Page,
 					PageSize = result.PageSize,
@@ -172,17 +185,17 @@ public sealed class FetchFlagsEndpoints : IEndpoint
 				return HttpProblemFactory.InternalServerError(ex, logger);
 			}
 		})
-		.AddEndpointFilter<ValidationFilter<GetFlagsRequest>>()
+		.AddEndpointFilter<ValidationFilter<GetFeatureFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
-		.WithName("GetPagedFlags")
-		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api", "Paging")
+		.WithName("GetFlagsWithPageOrFilter")
+		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api", "Paging, Filtering")
 		.Produces<PagedFeatureFlagsResponse>();
 	}
 }
 
 public static class GetFlagsRequestExtensions
 {
-	public static Dictionary<string, string>? BuildTagDictionary(this GetFlagsRequest request)
+	public static Dictionary<string, string>? BuildTagDictionary(this GetFeatureFlagRequest request)
 	{
 		var tags = new Dictionary<string, string>();
 		// Handle Tags array (key:value format)
@@ -226,7 +239,7 @@ public static class GetFlagsRequestExtensions
 	}
 }
 
-public class GetFlagsRequestValidator : AbstractValidator<GetFlagsRequest>
+public class GetFlagsRequestValidator : AbstractValidator<GetFeatureFlagRequest>
 {
 	public GetFlagsRequestValidator()
 	{
@@ -238,21 +251,15 @@ public class GetFlagsRequestValidator : AbstractValidator<GetFlagsRequest>
 			.InclusiveBetween(1, 100)
 			.WithMessage("Page size must be between 1 and 100");
 
-		RuleFor(x => x.Status)
-			.Must(BeValidStatus)
-			.When(x => !string.IsNullOrEmpty(x.Status))
-			.WithMessage("Status must be one of: Disabled, Enabled, Scheduled, TimeWindow, UserTargeted, Percentage");
-
 		RuleFor(x => x.Tags)
 			.Must(BeValidTagFormat)
 			.When(x => x.Tags != null && x.Tags.Length > 0)
 			.WithMessage("Tags must be in format 'key:value' or just 'key' for key-only searches");
-	}
 
-	private static bool BeValidStatus(string? status)
-	{
-		if (string.IsNullOrEmpty(status)) return true;
-		return Enum.TryParse<FeatureFlagStatus>(status, true, out _);
+		RuleFor(x => x.ExpiringInDays)
+			.InclusiveBetween(1, 365)
+			.When(x => x.ExpiringInDays.HasValue)
+			.WithMessage("ExpiringInDays must be between 1 and 365");
 	}
 
 	private static bool BeValidTagFormat(string[]? tags)

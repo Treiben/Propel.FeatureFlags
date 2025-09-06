@@ -2,7 +2,13 @@
 
 namespace Propel.FlagsManagement.Api.Endpoints.Shared;
 
-public sealed class CurrentUserService(IHttpContextAccessor httpContextAccessor)
+public interface ICurrentUserService
+{
+	string? UserId { get; }
+	string? UserName { get; }
+}
+
+public sealed class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICurrentUserService
 {
 	private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 	public string? UserId =>

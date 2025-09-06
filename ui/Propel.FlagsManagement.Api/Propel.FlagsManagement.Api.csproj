@@ -11,18 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="http\Propel.FlagsManagement.Api\**" />
-    <Content Remove="http\Propel.FlagsManagement.Api\**" />
-    <EmbeddedResource Remove="http\Propel.FlagsManagement.Api\**" />
-    <None Remove="http\Propel.FlagsManagement.Api\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="Endpoints\EnableFlag.cs" />
-    <Compile Remove="Endpoints\ResetFlagProperties.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
     <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
     <PackageReference Include="FluentValidation" Version="12.0.0" />
@@ -32,11 +20,9 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
   </ItemGroup>
 
-
   <ItemGroup>
     <Folder Include="Healthchecks\" />
   </ItemGroup>
-
 
   <ItemGroup>
     <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.PostgresSql\Propel.FeatureFlags.PostgresSql.csproj" />

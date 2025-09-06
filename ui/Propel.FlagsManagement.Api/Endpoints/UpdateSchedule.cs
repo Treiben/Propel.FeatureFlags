@@ -25,16 +25,16 @@ public sealed class UpdateScheduleEndpoint : IEndpoint
 		.WithName("SetSchedule" +
 		"")
 		.WithTags("Feature Flags", "Lifecycle Management", "Operations", "Management Api")
-		.Produces<FeatureFlagDto>()
+		.Produces<FeatureFlagResponse>()
 		.ProducesValidationProblem();
 	}
 }
 
 public sealed class UpdateScheduleHandler(
-	IFeatureFlagRepository repository,
-	IFeatureFlagCache cache,
-	ILogger<UpdateScheduleHandler> logger,
-	CurrentUserService currentUserService)
+		IFeatureFlagRepository repository,
+		ICurrentUserService currentUserService,
+		ILogger<UpdateScheduleHandler> logger,
+		IFeatureFlagCache? cache = null)
 {
 	public async Task<IResult> HandleAsync(string key, UpdateScheduleRequest request)
 	{
@@ -52,32 +52,31 @@ public sealed class UpdateScheduleHandler(
 			}
 
 			// Update flag for scheduling
-			flag.UpdatedBy = currentUserService.UserName!;
+			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName);
 
 			if (request.RemoveSchedule)
 			{
-				flag.Status = flag.Status.Decrement(FeatureFlagStatus.Scheduled);
-				flag.ScheduledEnableDate = null;
-				flag.ScheduledDisableDate = null;
+				flag.Schedule = FlagActivationSchedule.Unscheduled;
+				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.Scheduled);
 			}
 			else
 			{
-				flag.Status = flag.Status.Increment(FeatureFlagStatus.Scheduled);
-				flag.ScheduledEnableDate = request.EnableDate.ToUniversalTime();
-				flag.ScheduledDisableDate = request.DisableDate?.ToUniversalTime(); 
+				flag.Schedule = FlagActivationSchedule.CreateSchedule(request.EnableDate, request.DisableDate);
+				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Scheduled);
 			}
 
 			var updatedFlag = await repository.UpdateAsync(flag);
-			await cache.RemoveAsync(key);
+
+			if (cache != null) await cache.RemoveAsync(key);
 
 			var scheduleInfo = request.DisableDate.HasValue
-				? $"enable at {request.EnableDate:yyyy-MM-dd HH:mm} UTC, disable at {request.DisableDate:yyyy-MM-dd HH:mm} UTC"
-				: $"enable at {request.EnableDate:yyyy-MM-dd HH:mm} UTC";
+				? $"enable at {flag.Schedule.ScheduledEnableUtcDate:yyyy-MM-dd HH:mm} UTC, disable at {flag.Schedule.ScheduledDisableUtcDate:yyyy-MM-dd HH:mm} UTC"
+				: $"enable at {flag.Schedule.ScheduledEnableUtcDate:yyyy-MM-dd HH:mm} UTC";
 
 			logger.LogInformation("Feature flag {Key} scheduled by {User} to {ScheduleInfo}",
 				key, currentUserService.UserName, scheduleInfo);
 
-			return Results.Ok(new FeatureFlagDto(updatedFlag));
+			return Results.Ok(new FeatureFlagResponse(updatedFlag));
 		}
 		catch (Exception ex)
 		{
