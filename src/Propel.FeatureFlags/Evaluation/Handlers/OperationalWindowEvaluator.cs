@@ -13,9 +13,10 @@ public sealed class OperationalWindowEvaluator : IOrderedEvaluator
 
 	public async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
 	{
-		if (!flag.OperationalWindow.HasWindow())
+		if (flag.OperationalWindow == FlagOperationalWindow.AlwaysOpen)
 		{
-			throw new InvalidOperationException("The flag's operational time window is not setup.");
+			// Always open window means the flag is always active
+			return new EvaluationResult(isEnabled: true, variation: "on", reason: "Flag operational window is always open.");
 		}
 
 		// Convert to specified timezone

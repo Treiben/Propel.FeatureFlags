@@ -17,11 +17,11 @@ public sealed class TargetingRulesEvaluator : IOrderedEvaluator
 		var enrichedAttributes = new Dictionary<string, object>(context.Attributes);
 		if (!string.IsNullOrWhiteSpace(context.TenantId))
 		{
-			enrichedAttributes["tenantId"] = context.TenantId;
+			enrichedAttributes["tenantId"] = context.TenantId!;
 		}
 		if (!string.IsNullOrWhiteSpace(context.UserId))
 		{
-			enrichedAttributes["userId"] = context.UserId;
+			enrichedAttributes["userId"] = context.UserId!;
 		}
 
 		// Evaluate targeting rules

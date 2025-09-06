@@ -1,29 +1,21 @@
 namespace Propel.FeatureFlags.Core;
 
-public class FlagOperationalWindow
+public class FlagOperationalWindow(
+			TimeSpan windowStartTime,
+			TimeSpan windowEndTime,
+			string timeZone = "UTC",
+			DayOfWeek[]? windowDays = null)
 {
-	public TimeSpan WindowStartTime { get; }
-	public TimeSpan WindowEndTime { get; }
-	public string TimeZone { get; }
-	public DayOfWeek[] WindowDays { get; }
-
-	public FlagOperationalWindow(
-				TimeSpan windowStartTime, 
-				TimeSpan windowEndTime, 
-				string timeZone = "UTC",
-				DayOfWeek[]? windowDays = null)
-	{
-		WindowStartTime = windowStartTime;
-		WindowEndTime = windowEndTime;
-		TimeZone = timeZone ?? "UTC";
-		WindowDays = windowDays ?? [DayOfWeek.Monday, 
-			DayOfWeek.Tuesday, 
+	public TimeSpan WindowStartTime { get; } = windowStartTime;
+	public TimeSpan WindowEndTime { get; } = windowEndTime;
+	public string TimeZone { get; } = timeZone ?? "UTC";
+	public DayOfWeek[] WindowDays { get; } = windowDays ?? [DayOfWeek.Monday,
+			DayOfWeek.Tuesday,
 			DayOfWeek.Wednesday,
-			DayOfWeek.Thursday, 
+			DayOfWeek.Thursday,
 			DayOfWeek.Friday,
-			DayOfWeek.Saturday, 
+			DayOfWeek.Saturday,
 			DayOfWeek.Sunday];
-	}
 
 	public static FlagOperationalWindow AlwaysOpen => new(
 		windowStartTime: TimeSpan.Zero,
@@ -62,7 +54,7 @@ public class FlagOperationalWindow
 
 	public bool HasWindow()
 	{
-		return WindowStartTime >= TimeSpan.Zero && WindowEndTime >= TimeSpan.Zero;
+		return WindowStartTime > TimeSpan.Zero && WindowEndTime > TimeSpan.Zero;
 	}
 
 	public (bool, string) IsActiveAt(DateTime evaluationTime, string? contextTimeZone = null)
@@ -127,7 +119,7 @@ public class FlagOperationalWindow
 		{
 			// Validate that the timezone exists
 			TimeZoneInfo.FindSystemTimeZoneById(timeZone);
-			return timeZone;
+			return timeZone!;
 		}
 		catch (TimeZoneNotFoundException)
 		{

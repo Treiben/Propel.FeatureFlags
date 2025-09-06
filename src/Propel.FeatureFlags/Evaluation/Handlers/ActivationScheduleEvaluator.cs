@@ -13,9 +13,10 @@ public sealed class ActivationScheduleEvaluator: IOrderedEvaluator
 
 	public async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
 	{
-		if (flag.Schedule.HasSchedule() == false)
+		if (flag.Schedule == FlagActivationSchedule.Unscheduled)
 		{
-			throw new InvalidOperationException("The flag's activation schedule is not setup.");
+			return new EvaluationResult(isEnabled: true, 
+				variation: "on", reason: "Flag has no activation schedule and can be available immediately.");
 		}
 
 		var evaluationTime = context.EvaluationTime ?? DateTime.UtcNow;

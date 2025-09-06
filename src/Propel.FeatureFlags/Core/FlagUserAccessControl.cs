@@ -8,38 +8,24 @@ public class FlagUserAccessControl
 
 	public FlagUserAccessControl(List<string>? allowedUsers = null, List<string>? blockedUsers = null, int rolloutPercentage = 0)
 	{
-		AllowedUsers = ValidateAndNormalizeUserList(allowedUsers, nameof(allowedUsers));
-		BlockedUsers = ValidateAndNormalizeUserList(blockedUsers, nameof(blockedUsers));
-		RolloutPercentage = rolloutPercentage;
-	}
-
-	public static FlagUserAccessControl Unrestricted => new(rolloutPercentage: 100);
-
-	// This method is used to create new access controls in valid state
-	public static FlagUserAccessControl CreateAccessControl(
-		List<string>? allowedUsers = null, 
-		List<string>? blockedUsers = null, 
-		int rolloutPercentage = 0)
-	{
-		// Validate rollout percentage
 		if (rolloutPercentage < 0 || rolloutPercentage > 100)
 		{
 			throw new ArgumentException("Rollout percentage must be between 0 and 100.", nameof(rolloutPercentage));
 		}
 
-		// Validate and normalize user lists
-		var validatedAllowedUsers = ValidateAndNormalizeUserList(allowedUsers, nameof(allowedUsers));
-		var validatedBlockedUsers = ValidateAndNormalizeUserList(blockedUsers, nameof(blockedUsers));
+		RolloutPercentage = rolloutPercentage;
 
-		// Check for conflicts between allowed and blocked users
-		var conflicts = validatedAllowedUsers.Intersect(validatedBlockedUsers, StringComparer.OrdinalIgnoreCase).ToList();
+		AllowedUsers = ValidateAndNormalizeUserList(allowedUsers, nameof(allowedUsers));
+		BlockedUsers = ValidateAndNormalizeUserList(blockedUsers, nameof(blockedUsers));
+
+		var conflicts = AllowedUsers.Intersect(BlockedUsers, StringComparer.OrdinalIgnoreCase).ToList();
 		if (conflicts.Count > 0)
 		{
 			throw new ArgumentException($"Users cannot be in both allowed and blocked lists: {string.Join(", ", conflicts)}");
 		}
-
-		return new FlagUserAccessControl(validatedAllowedUsers, validatedBlockedUsers, rolloutPercentage);
 	}
+
+	public static FlagUserAccessControl Unrestricted => new(rolloutPercentage: 100);
 
 	public bool HasAccessRestrictions()
 	{

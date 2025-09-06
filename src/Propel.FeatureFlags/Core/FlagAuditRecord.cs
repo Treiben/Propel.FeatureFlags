@@ -7,24 +7,16 @@ public class FlagAuditRecord
 	public string CreatedBy { get; }
 	public string? ModifiedBy { get; }
 
-	public FlagAuditRecord(DateTime createdAt, string createdBy, DateTime? modifiedAt = null, string? modifiedBy = null)
-	{
-		CreatedAt = createdAt;
-		ModifiedAt = modifiedAt;
-		CreatedBy = createdBy;
-		ModifiedBy = modifiedBy;
-	}
-
 	public static FlagAuditRecord NewFlag(string? createdBy = null)
 	{
 		var timestamp = DateTime.UtcNow;
-		var creator = ValidateAndNormalizeUser(createdBy) ?? "system";
+		var creator = createdBy ?? "system";
 
 		return new FlagAuditRecord(createdAt: timestamp, createdBy: creator);
 	}
 
 	// This method is used to create new audit records in valid state
-	public static FlagAuditRecord CreateRecord(
+	public FlagAuditRecord(
 		DateTime createdAt,
 		string createdBy,
 		DateTime? modifiedAt = null,
@@ -50,15 +42,10 @@ public class FlagAuditRecord
 			}
 		}
 
-		// Validate and normalize users
-		var validatedCreatedBy = ValidateAndNormalizeUser(createdBy) ?? "unknown";
-		var validatedModifiedBy = modifiedAt.HasValue ? ValidateAndNormalizeUser(modifiedBy) : null;
-
-		return new FlagAuditRecord(
-			createdAt: createdAt, 
-			createdBy: createdBy, 
-			modifiedAt: modifiedAt, 
-			modifiedBy: validatedModifiedBy);
+		CreatedAt = createdAt;
+		ModifiedAt = modifiedAt;	
+		CreatedBy = ValidateAndNormalizeUser(createdBy) ?? "unknown";
+		ModifiedBy = modifiedAt.HasValue ? ValidateAndNormalizeUser(modifiedBy) : null;
 	}
 
 	private static string? ValidateAndNormalizeUser(string? user)
@@ -68,8 +55,8 @@ public class FlagAuditRecord
 			return null;
 		}
 
-		var normalizedUser = user.Trim();
-		
+		var normalizedUser = user!.Trim();
+
 		// Validate user identifier format (basic validation)
 		if (normalizedUser.Length > 255)
 		{

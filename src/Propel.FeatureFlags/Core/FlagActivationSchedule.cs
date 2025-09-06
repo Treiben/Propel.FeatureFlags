@@ -2,13 +2,13 @@
 
 public class FlagActivationSchedule
 {
-	public DateTime? ScheduledEnableDate { get; }
-	public DateTime? ScheduledDisableDate { get; }
+	public DateTime? ScheduledEnableUtcDate { get; }
+	public DateTime? ScheduledDisableUtcDate { get; }
 
-	public FlagActivationSchedule(DateTime? scheduledEnableDate, DateTime? scheduledDisableDate)
+	public FlagActivationSchedule(DateTime? scheduledEnableUtcDate, DateTime? scheduledDisableUtcDate)
 	{
-		ScheduledEnableDate = scheduledEnableDate;
-		ScheduledDisableDate = scheduledDisableDate;
+		ScheduledEnableUtcDate = scheduledEnableUtcDate;
+		ScheduledDisableUtcDate = scheduledDisableUtcDate;
 	}
 
 	public static FlagActivationSchedule Unscheduled => new(null, null);
@@ -16,6 +16,9 @@ public class FlagActivationSchedule
 	// This method is used to create new flag schedules in valid state
 	public static FlagActivationSchedule CreateSchedule(DateTime scheduledEnableDate, DateTime? scheduledDisableDate = null)
 	{
+		var utcEnableDate = scheduledEnableDate.ToUniversalTime();
+		var utcDisableDate = scheduledDisableDate?.ToUniversalTime();
+
 		if (scheduledEnableDate <= DateTime.MinValue || scheduledEnableDate >= DateTime.MaxValue)
 		{
 			throw new ArgumentException("Scheduled enable date must be a valid date.");
@@ -31,28 +34,31 @@ public class FlagActivationSchedule
 			throw new ArgumentException("Scheduled disable date must be after the scheduled enable date.");
 		}
 
-		return new FlagActivationSchedule(scheduledEnableDate, scheduledDisableDate);
+		return new FlagActivationSchedule(utcEnableDate, utcDisableDate);
 	}
 
 	public bool HasSchedule()
 	{
-		return ScheduledEnableDate.HasValue && ScheduledEnableDate != DateTime.MinValue;
+		return ScheduledEnableUtcDate.HasValue && ScheduledEnableUtcDate != DateTime.MinValue;
 	}
 
 	public (bool, string) IsActiveAt(DateTime evaluationTime)
 	{
 		// If no enable date is set, the flag is not scheduled to be enabled
-		if (!ScheduledEnableDate.HasValue)
+		if (!ScheduledEnableUtcDate.HasValue)
 		{
 			return (false, "No enable date set");
 		}
+
+		var utcEvaluationTime = evaluationTime.ToUniversalTime();
+
 		// If the current time is before the enable date, the flag is not enabled
-		if (evaluationTime < ScheduledEnableDate.Value)
+		if (utcEvaluationTime < ScheduledEnableUtcDate.Value)
 		{
 			return (false, "Scheduled enable date not reached");
 		}
 		// If a disable date is set and the current time is after it, the flag is not enabled
-		if (ScheduledDisableDate.HasValue && evaluationTime >= ScheduledDisableDate.Value)
+		if (ScheduledDisableUtcDate.HasValue && utcEvaluationTime >= ScheduledDisableUtcDate.Value)
 		{
 			return (false, "Scheduled disable date passed");
 		}

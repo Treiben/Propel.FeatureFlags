@@ -6,43 +6,28 @@ public class FlagTenantAccessControl
 	public List<string> BlockedTenants { get; }
 	public int RolloutPercentage { get; }
 
-	public FlagTenantAccessControl(
-		List<string>? allowedTenants = null, 
-		List<string>? blockedTenants = null, 
-		int rolloutPercentage = 0)
+	public FlagTenantAccessControl(List<string>? allowedTenants = null, List<string>? blockedTenants = null, int rolloutPercentage = 0)
 	{
-		AllowedTenants = ValidateAndNormalizeTenantList(allowedTenants, nameof(allowedTenants));
-		BlockedTenants = ValidateAndNormalizeTenantList(blockedTenants, nameof(blockedTenants));
-		RolloutPercentage = rolloutPercentage;
-	}
-
-	public static FlagTenantAccessControl Unrestricted => new(rolloutPercentage: 100);
-
-	// This method is used to create new access controls in valid state
-	public static FlagTenantAccessControl CreateAccessControl(
-		List<string>? allowedTenants = null, 
-		List<string>? blockedTenants = null, 
-		int rolloutPercentage = 0)
-	{
-		// Validate rollout percentage
 		if (rolloutPercentage < 0 || rolloutPercentage > 100)
 		{
 			throw new ArgumentException("Rollout percentage must be between 0 and 100.", nameof(rolloutPercentage));
 		}
 
-		// Validate and normalize tenant lists
-		var validatedAllowedTenants = ValidateAndNormalizeTenantList(allowedTenants, nameof(allowedTenants));
-		var validatedBlockedTenants = ValidateAndNormalizeTenantList(blockedTenants, nameof(blockedTenants));
+		RolloutPercentage = rolloutPercentage;
+
+		AllowedTenants = ValidateAndNormalizeTenantList(allowedTenants, nameof(allowedTenants));
+		BlockedTenants = ValidateAndNormalizeTenantList(blockedTenants, nameof(blockedTenants));
 
 		// Check for conflicts between allowed and blocked tenants
-		var conflicts = validatedAllowedTenants.Intersect(validatedBlockedTenants, StringComparer.OrdinalIgnoreCase).ToList();
+		var conflicts = AllowedTenants.Intersect(BlockedTenants, StringComparer.OrdinalIgnoreCase).ToList();
 		if (conflicts.Count > 0)
 		{
 			throw new ArgumentException($"Tenants cannot be in both allowed and blocked lists: {string.Join(", ", conflicts)}");
 		}
-
-		return new FlagTenantAccessControl(validatedAllowedTenants, validatedBlockedTenants, rolloutPercentage);
 	}
+
+	public static FlagTenantAccessControl Unrestricted => new(rolloutPercentage: 100);
+
 
 	public bool HasAccessRestrictions()
 	{
