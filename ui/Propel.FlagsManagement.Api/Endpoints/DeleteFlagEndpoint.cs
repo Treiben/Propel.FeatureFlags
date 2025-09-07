@@ -44,7 +44,7 @@ public sealed class DeleteFlagHandler(
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
 			}
 
-			if (existingFlag.IsPermanent)
+			if (existingFlag.Lifecycle.IsPermanent)
 			{
 				return HttpProblemFactory.BadRequest(
 					"Cannot Delete Permanent Flag", 

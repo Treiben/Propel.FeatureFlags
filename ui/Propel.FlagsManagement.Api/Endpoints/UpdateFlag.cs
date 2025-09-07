@@ -2,6 +2,7 @@
 using Propel.FeatureFlags;
 using Propel.FeatureFlags.Cache;
 using Propel.FeatureFlags.Core;
+using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
@@ -84,8 +85,8 @@ public sealed class UpdateFlagHandler(
 			dest.Description = source.Description;
 
 		dest.UserAccess = new FlagUserAccessControl(
-			allowedUsers: [.. source.ExplicitlyAllowedUsers!],
-			blockedUsers: [.. source.ExplicitlyBlockedUsers!],
+			allowedUsers: [.. source.ExplicitlyAllowedUsers ?? []],
+			blockedUsers: [.. source.ExplicitlyBlockedUsers ?? []],
 			rolloutPercentage: dest.UserAccess.RolloutPercentage);
 
 		dest.AuditRecord = new FlagAuditRecord(dest.AuditRecord.CreatedAt, dest.AuditRecord.CreatedBy, DateTime.UtcNow, updatedBy);

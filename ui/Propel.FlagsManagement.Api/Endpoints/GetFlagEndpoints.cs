@@ -1,65 +1,10 @@
 ﻿using FluentValidation;
 using Propel.FeatureFlags;
 using Propel.FeatureFlags.Core;
+using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
-
-public record FeatureFlagResponse
-{
-	public string Key { get; set; } = string.Empty;
-	public string Name { get; set; } = string.Empty;
-	public string Description { get; set; } = string.Empty;
-	public FlagEvaluationMode[] EvaluationModes { get; set; } = [];
-	public DateTime CreatedAt { get; set; }
-	public DateTime? UpdatedAt { get; set; }
-	public string CreatedBy { get; set; } = string.Empty;
-	public string? UpdatedBy { get; set; } = string.Empty;
-	public DateTime? ExpirationDate { get; set; }
-	public DateTime? ScheduledEnableDate { get; set; }
-	public DateTime? ScheduledDisableDate { get; set; }
-	public TimeOnly? WindowStartTime { get; set; }
-	public TimeOnly? WindowEndTime { get; set; }
-	public string? TimeZone { get; set; }
-	public DayOfWeek[]? WindowDays { get; set; }
-	public int PercentageEnabled { get; set; }
-	public List<TargetingRule> TargetingRules { get; set; } = [];
-	public List<string> AllowedUsers { get; set; } = [];
-	public List<string> BlockedUsers { get; set; } = [];
-	public Dictionary<string, object> Variations { get; set; } = [];
-	public string DefaultVariation { get; set; } = string.Empty;
-	public Dictionary<string, string> Tags { get; set; } = [];
-	public bool IsPermanent { get; set; }
-
-	public FeatureFlagResponse() { }
-
-	public FeatureFlagResponse(FeatureFlag flag)
-	{
-		Key = flag.Key;
-		Name = flag.Name;
-		Description = flag.Description;
-		EvaluationModes = flag.EvaluationModeSet.EvaluationModes;
-		CreatedAt = flag.AuditRecord.CreatedAt;
-		UpdatedAt = flag.AuditRecord.ModifiedAt;
-		CreatedBy = flag.AuditRecord.CreatedBy;
-		UpdatedBy = flag.AuditRecord.ModifiedBy;
-		ExpirationDate = flag.ExpirationDate;
-		ScheduledEnableDate = flag.Schedule.ScheduledEnableDate;
-		ScheduledDisableDate = flag.Schedule.ScheduledDisableDate;
-		WindowStartTime = flag.OperationalWindow.WindowStartTime > TimeSpan.Zero ? TimeOnly.FromTimeSpan(flag.OperationalWindow.WindowStartTime) : null;
-		WindowEndTime = flag.OperationalWindow.WindowEndTime > TimeSpan.Zero ? TimeOnly.FromTimeSpan(flag.OperationalWindow.WindowEndTime) : null;
-		TimeZone = flag.OperationalWindow.TimeZone;
-		WindowDays = flag.OperationalWindow.WindowDays;
-		PercentageEnabled = flag.UserAccess.RolloutPercentage;
-		AllowedUsers = flag.UserAccess.AllowedUsers;
-		BlockedUsers = flag.UserAccess.BlockedUsers;
-		TargetingRules = flag.TargetingRules;
-		Variations = flag.Variations.Values;
-		DefaultVariation = flag.Variations.DefaultVariation;
-		Tags = flag.Tags;
-		IsPermanent = flag.IsPermanent;
-	}
-}
 
 public record PagedFeatureFlagsResponse
 {

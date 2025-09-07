@@ -2,6 +2,7 @@
 using Propel.FeatureFlags;
 using Propel.FeatureFlags.Cache;
 using Propel.FeatureFlags.Core;
+using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
@@ -135,7 +136,7 @@ public sealed class UpdateUserRolloutPercentageHandler(
 			}
 
 			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName!);
-			flag.UserAccess.WithRolloutPercentage(request.Percentage);
+			flag.UserAccess = flag.UserAccess.WithRolloutPercentage(request.Percentage);
 			if (request.Percentage == 0) // Special case: 0% effectively disables the flag
 			{
 				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.UserRolloutPercentage);

@@ -2,6 +2,7 @@
 using Propel.FeatureFlags;
 using Propel.FeatureFlags.Cache;
 using Propel.FeatureFlags.Core;
+using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
@@ -68,7 +69,7 @@ public sealed class ToggleFlagHandler(
 			}
 
 			// Check if the flag is already in the requested state
-			if (flag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Enabled, FlagEvaluationMode.Disabled]))
+			if (flag.EvaluationModeSet.ContainsModes([evaluationMode]))
 			{
 				logger.LogInformation("Feature flag {Key} is already {Status} - no change needed", key, evaluationMode);
 				return Results.Ok(new FeatureFlagResponse(flag));

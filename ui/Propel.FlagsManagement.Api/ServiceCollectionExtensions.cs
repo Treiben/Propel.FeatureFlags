@@ -25,12 +25,14 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<CreateFlagHandler>();
 		services.AddScoped<DeleteFlagHandler>();
 		services.AddScoped<FlagEvaluationHandler>();
+		services.AddScoped<ManageTenantAccessHandler>();
+		services.AddScoped<ManageUserAccessHandler>();
 		services.AddScoped<ToggleFlagHandler>();
 		services.AddScoped<UpdateFlagHandler>();
-		services.AddScoped<UpdateUserRolloutPercentageHandler>();
 		services.AddScoped<UpdateScheduleHandler>();
+		services.AddScoped<UpdateTenantRolloutPercentageHandler>();
 		services.AddScoped<UpdateTimeWindowHandler>();
-		services.AddScoped<ManageUserAccessHandler>();
+		services.AddScoped<UpdateUserRolloutPercentageHandler>();
 
 		return services;
 	}
