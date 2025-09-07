@@ -355,24 +355,6 @@ public class FlagUserAccessControl_EvaluateUserAccess
 	}
 
 	[Fact]
-	public void If_UserBlockedTakesPrecedenceOverAllowed_ThenReturnsDenied()
-	{
-		// Arrange - Using internal constructor to bypass validation
-		var accessControlWithConflict = new FlagUserAccessControl(
-			allowedUsers: ["conflict-user"],
-			blockedUsers: ["conflict-user"]);
-
-		var flagKey = "test-flag";
-
-		// Act
-		var (result, reason) = accessControlWithConflict.EvaluateUserAccess("conflict-user", flagKey);
-
-		// Assert
-		result.ShouldBe(UserAccessResult.Denied);
-		reason.ShouldBe("User explicitly blocked");
-	}
-
-	[Fact]
 	public void If_ZeroRolloutPercentageAndNotExplicit_ThenReturnsDenied()
 	{
 		// Arrange
@@ -430,7 +412,7 @@ public class FlagUserAccessControl_EvaluateUserAccess
 		for (int i = 0; i < 100; i++)
 		{
 			var testUser = $"test-user-{i}";
-			var (result, reason) = accessControl.EvaluateUserAccess(testUser, flagKey);
+			var (result, _) = accessControl.EvaluateUserAccess(testUser, flagKey);
 			if (result == UserAccessResult.Allowed)
 			{
 				userInRollout = testUser;
@@ -538,15 +520,13 @@ public class FlagUserAccessControl_IsUserExplicitlyManaged
 	}
 
 	[Fact]
-	public void If_UserInBothLists_ThenReturnsTrue()
+	public void If_UserInBothLists_ShouldTthrow()
 	{
-		// Arrange - Using internal constructor to bypass validation
-		var accessControl = new FlagUserAccessControl(
-			allowedUsers: ["user1"],
-			blockedUsers: ["user1"]);
-
-		// Act & Assert
-		accessControl.IsUserExplicitlyManaged("user1").ShouldBeTrue();
+		// Act and Assert
+		var exception = Should.Throw<ArgumentException>(() =>
+			new FlagUserAccessControl(
+				allowedUsers: ["conflict-user"],
+				blockedUsers: ["conflict-user"]));
 	}
 
 	[Fact]
@@ -853,25 +833,6 @@ public class FlagUserAccessControl_WithoutUser
 		newAccessControl.BlockedUsers.ShouldContain("user1");
 		newAccessControl.BlockedUsers.ShouldContain("user3");
 		newAccessControl.BlockedUsers.ShouldNotContain("user2");
-	}
-
-	[Fact]
-	public void If_UserInBothLists_ThenRemovesFromBoth()
-	{
-		// Arrange - Using internal constructor to bypass validation
-		var accessControl = new FlagUserAccessControl(
-			allowedUsers: ["user1", "user2"],
-			blockedUsers: ["user2", "user3"]);
-
-		// Act
-		var newAccessControl = accessControl.WithoutUser("user2");
-
-		// Assert
-		newAccessControl.ShouldNotBe(accessControl);
-		newAccessControl.AllowedUsers.Count.ShouldBe(1);
-		newAccessControl.AllowedUsers.ShouldContain("user1");
-		newAccessControl.BlockedUsers.Count.ShouldBe(1);
-		newAccessControl.BlockedUsers.ShouldContain("user3");
 	}
 
 	[Fact]

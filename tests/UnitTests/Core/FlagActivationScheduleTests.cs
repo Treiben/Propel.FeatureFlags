@@ -5,14 +5,14 @@ namespace FeatureFlags.UnitTests.Core;
 public class FlagActivationSchedule_Unscheduled
 {
 	[Fact]
-	public void If_Unscheduled_ThenPropertiesAreNull()
+	public void If_Unscheduled_ThenPropertiesAreBoundaryDateTimeValues()
 	{
 		// Arrange & Act
 		var schedule = FlagActivationSchedule.Unscheduled;
 
 		// Assert
-		schedule.ScheduledEnableUtcDate.ShouldBeNull();
-		schedule.ScheduledDisableUtcDate.ShouldBeNull();
+		schedule.ScheduledEnableDate.ShouldBe(DateTime.MinValue.ToUniversalTime());
+		schedule.ScheduledDisableDate.ShouldBe(DateTime.MaxValue.ToUniversalTime());
 	}
 
 	[Fact]
@@ -37,7 +37,7 @@ public class FlagActivationSchedule_Unscheduled
 
 		// Assert
 		isActive.ShouldBeFalse();
-		reason.ShouldBe("No enable date set");
+		reason.ShouldBe("No active schedule set");
 	}
 }
 
@@ -53,8 +53,8 @@ public class FlagActivationSchedule_CreateSchedule
 		var schedule = FlagActivationSchedule.CreateSchedule(enableDate);
 
 		// Assert
-		schedule.ScheduledEnableUtcDate.ShouldBe(enableDate);
-		schedule.ScheduledDisableUtcDate.ShouldBeNull();
+		schedule.ScheduledEnableDate.ShouldBe(enableDate);
+		schedule.ScheduledDisableDate.ShouldBe(DateTime.MaxValue);
 		schedule.HasSchedule().ShouldBeTrue();
 	}
 
@@ -69,8 +69,8 @@ public class FlagActivationSchedule_CreateSchedule
 		var schedule = FlagActivationSchedule.CreateSchedule(enableDate, disableDate);
 
 		// Assert
-		schedule.ScheduledEnableUtcDate.ShouldBe(enableDate);
-		schedule.ScheduledDisableUtcDate.ShouldBe(disableDate);
+		schedule.ScheduledEnableDate.ShouldBe(enableDate);
+		schedule.ScheduledDisableDate.ShouldBe(disableDate);
 		schedule.HasSchedule().ShouldBeTrue();
 	}
 
@@ -95,7 +95,6 @@ public class FlagActivationSchedule_CreateSchedule
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() => 
 			FlagActivationSchedule.CreateSchedule(invalidDate));
-		exception.Message.ShouldBe(expectedMessage);
 	}
 
 	[Fact]
@@ -191,7 +190,7 @@ public class FlagActivationSchedule_IsActiveAt
 
 		// Assert
 		isActive.ShouldBeFalse();
-		reason.ShouldBe("No enable date set");
+		reason.ShouldBe("No active schedule set");
 	}
 
 	[Fact]

@@ -49,7 +49,7 @@ public class FlagOperationalWindow_Constructor
 public class FlagOperationalWindow_AlwaysOpen
 {
 	[Fact]
-	public void If_AlwaysOpen_ThenReturnsCorrectProperties()
+	public void If_AlwaysOpen_ThenReturnsThenHasNoWindow()
 	{
 		// Act
 		var window = FlagOperationalWindow.AlwaysOpen;
@@ -59,7 +59,7 @@ public class FlagOperationalWindow_AlwaysOpen
 		window.WindowEndTime.ShouldBe(new TimeSpan(23, 59, 59));
 		window.TimeZone.ShouldBe("UTC");
 		window.WindowDays.Length.ShouldBe(7);
-		window.HasWindow().ShouldBeTrue();
+		window.HasWindow().ShouldBeFalse();
 	}
 
 	[Fact]
@@ -268,7 +268,7 @@ public class FlagOperationalWindow_HasWindow
 	}
 
 	[Fact]
-	public void If_ZeroTimeSpans_ThenHasWindowReturnsTrue()
+	public void If_ZeroTimeSpans_ThenHasWindowReturnsFalse()
 	{
 		// Arrange
 		var window = FlagOperationalWindow.CreateWindow(
@@ -276,18 +276,10 @@ public class FlagOperationalWindow_HasWindow
 			TimeSpan.Zero);
 
 		// Act & Assert
-		window.HasWindow().ShouldBeTrue();
+		window.HasWindow().ShouldBeFalse();
 	}
 
-	[Fact]
-	public void If_AlwaysOpen_ThenHasWindowReturnsTrue()
-	{
-		// Arrange
-		var window = FlagOperationalWindow.AlwaysOpen;
 
-		// Act & Assert
-		window.HasWindow().ShouldBeTrue();
-	}
 }
 
 public class FlagOperationalWindow_IsActiveAt
@@ -671,7 +663,7 @@ public class FlagOperationalWindow_EdgeCases
 		var window = FlagOperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9),
 			TimeSpan.FromHours(17),
-			allowedDays: new List<DayOfWeek> { DayOfWeek.Wednesday });
+			allowedDays: [DayOfWeek.Wednesday]);
 
 		// Create a Wednesday at 12 PM
 		var wednesday = new DateTime(2024, 1, 3, 12, 0, 0); // January 3, 2024 is a Wednesday

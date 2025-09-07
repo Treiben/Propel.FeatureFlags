@@ -117,23 +117,6 @@ public class OperationalWindowEvaluator_ProcessEvaluation_WindowValidation
 	}
 
 	[Fact]
-	public async Task If_FlagHasNoWindow_ThenThrowsInvalidOperationException()
-	{
-		// Arrange
-		var flag = new FeatureFlag
-		{
-			OperationalWindow = new FlagOperationalWindow(TimeSpan.FromHours(-1), TimeSpan.FromHours(-1), "UTC"),
-			Variations = new FlagVariations { DefaultVariation = "off" }
-		};
-		var context = new EvaluationContext();
-
-		// Act & Assert
-		var exception = await Should.ThrowAsync<InvalidOperationException>(
-			() => _evaluator.ProcessEvaluation(flag, context));
-		exception.Message.ShouldBe("The flag's operational time window is not setup.");
-	}
-
-	[Fact]
 	public async Task If_WindowIsAlwaysOpen_ThenDoesNotThrow()
 	{
 		// Arrange

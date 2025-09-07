@@ -382,35 +382,6 @@ public class UserRolloutEvaluator_ProcessEvaluation_ExplicitlyBlockedUsers
 		result.Variation.ShouldBe("blocked");
 		result.Reason.ShouldBe("User explicitly blocked");
 	}
-
-	[Fact]
-	public async Task If_UserInBothAllowedAndBlockedLists_ThenBlockedTakesPrecedence()
-	{
-		// Arrange - This scenario shouldn't happen with proper validation, but test defensive behavior
-		var allowedUsers = new List<string> { "user123" };
-		var blockedUsers = new List<string> { "user123" };
-		
-		// Use LoadAccessControl to bypass validation that prevents this scenario
-		var flag = new FeatureFlag
-		{
-			Key = "test-flag",
-			UserAccess = new FlagUserAccessControl(
-				allowedUsers: allowedUsers,
-				blockedUsers: blockedUsers,
-				rolloutPercentage: 100),
-			Variations = new FlagVariations { DefaultVariation = "conflict" }
-		};
-		var context = new EvaluationContext(userId: "user123");
-
-		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
-
-		// Assert
-		result.ShouldNotBeNull();
-		result.IsEnabled.ShouldBeFalse();
-		result.Variation.ShouldBe("conflict");
-		result.Reason.ShouldBe("User explicitly blocked");
-	}
 }
 
 public class UserRolloutEvaluator_ProcessEvaluation_PercentageRollout

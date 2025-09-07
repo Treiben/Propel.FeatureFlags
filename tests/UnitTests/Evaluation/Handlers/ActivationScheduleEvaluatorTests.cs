@@ -117,7 +117,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_ScheduleValidation
 	}
 
 	[Fact]
-	public async Task If_FlagHasNoSchedule_ThenThrowsInvalidOperationException()
+	public async Task If_FlagHasNoSchedule_ThenFlagIsEnabled()
 	{
 		// Arrange
 		var flag = new FeatureFlag
@@ -127,27 +127,12 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_ScheduleValidation
 		};
 		var context = new EvaluationContext();
 
-		// Act & Assert
-		var exception = await Should.ThrowAsync<InvalidOperationException>(
-			() => _evaluator.ProcessEvaluation(flag, context));
-		exception.Message.ShouldBe("The flag's activation schedule is not setup.");
-	}
+		// Act
+		var result = await _evaluator.ProcessEvaluation(flag, context);
 
-	[Fact]
-	public async Task If_ScheduleHasNoEnableDate_ThenThrowsInvalidOperationException()
-	{
-		// Arrange
-		var flag = new FeatureFlag
-		{
-			Schedule = new FlagActivationSchedule(null, null),
-			Variations = new FlagVariations { DefaultVariation = "off" }
-		};
-		var context = new EvaluationContext();
-
-		// Act & Assert
-		var exception = await Should.ThrowAsync<InvalidOperationException>(
-			() => _evaluator.ProcessEvaluation(flag, context));
-		exception.Message.ShouldBe("The flag's activation schedule is not setup.");
+		// Assert
+		result.ShouldNotBeNull();
+		result.IsEnabled.ShouldBeTrue();
 	}
 }
 
@@ -169,7 +154,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_EvaluationTime
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = new FlagActivationSchedule(enableDate, null),
+			Schedule = new FlagActivationSchedule(enableDate),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -191,7 +176,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_EvaluationTime
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = new FlagActivationSchedule(enableDate, null),
+			Schedule = new FlagActivationSchedule(enableDate, DateTime.MaxValue),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(evaluationTime: null);
@@ -224,7 +209,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_EnableDateLogic
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = new FlagActivationSchedule(enableDate, null),
+			Schedule = new FlagActivationSchedule(enableDate),
 			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -541,20 +526,23 @@ public class ActivationScheduleEvaluator_ProcessEvaluation_EdgeCases
 	public async Task If_OnlyDisableDateSet_ThenReturnsDisabled()
 	{
 		// Arrange
-		var evaluationTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc);
+		var evaluationTime = new DateTime(2024, 1, 25, 12, 0, 0, DateTimeKind.Utc);
 		var disableDate = new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc);
 		
 		var flag = new FeatureFlag
 		{
-			Schedule = new FlagActivationSchedule(null, disableDate),
+			Schedule = new FlagActivationSchedule(DateTime.MinValue, disableDate),
 			Variations = new FlagVariations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
-		// Act & Assert
-		var exception = await Should.ThrowAsync<InvalidOperationException>(
-			() => _evaluator.ProcessEvaluation(flag, context));
-		exception.Message.ShouldBe("The flag's activation schedule is not setup.");
+		// Act 
+		var result = await _evaluator.ProcessEvaluation(flag, context);
+
+		// Assert
+		result.ShouldNotBeNull();
+		result.IsEnabled.ShouldBeFalse();
+		result.Reason.ShouldBe("Scheduled disable date passed");
 	}
 }
 

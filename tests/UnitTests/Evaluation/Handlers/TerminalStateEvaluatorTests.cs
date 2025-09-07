@@ -568,7 +568,7 @@ public class TerminalStateEvaluator_ProcessEvaluation_EdgeCases
 	}
 
 	[Fact]
-	public async Task If_FlagHasComplexMixOfModesAddedAfterDisabled_ThenDisabledModeIsRemoved()
+	public void If_FlagHasComplexMixOfModesAddedAfterDisabled_ThenDisabledModeIsRemoved()
 	{
 		// Arrange
 		var flag = new FeatureFlag

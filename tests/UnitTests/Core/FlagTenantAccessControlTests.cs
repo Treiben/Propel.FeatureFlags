@@ -373,25 +373,6 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 	}
 
 	[Fact]
-	public void If_TenantBlockedTakesPrecedenceOverAllowed_ThenReturnsDenied()
-	{
-		// This test actually can't run because CreateAccessControl would throw
-		// Let's test the precedence in the evaluation logic by creating via internal constructor
-		var accessControlWithConflict = new FlagTenantAccessControl(
-			allowedTenants: ["conflict-tenant"],
-			blockedTenants: ["conflict-tenant"]);
-
-		var flagKey = "test-flag";
-
-		// Act
-		var (result, reason) = accessControlWithConflict.EvaluateTenantAccess("conflict-tenant", flagKey);
-
-		// Assert
-		result.ShouldBe(TenantAccessResult.Denied);
-		reason.ShouldBe("Tenant explicitly blocked");
-	}
-
-	[Fact]
 	public void If_ZeroRolloutPercentageAndNotExplicit_ThenReturnsDenied()
 	{
 		// Arrange
@@ -449,7 +430,7 @@ public class FlagTenantAccessControl_EvaluateTenantAccess
 		for (int i = 0; i < 100; i++)
 		{
 			var testTenant = $"test-tenant-{i}";
-			var (result, reason) = accessControl.EvaluateTenantAccess(testTenant, flagKey);
+			var (result, _) = accessControl.EvaluateTenantAccess(testTenant, flagKey);
 			if (result == TenantAccessResult.Allowed)
 			{
 				tenantInRollout = testTenant;
@@ -557,15 +538,13 @@ public class FlagTenantAccessControl_IsTenantExplicitlyManaged
 	}
 
 	[Fact]
-	public void If_TenantInBothLists_ThenReturnsTrue()
+	public void If_TenantInBothLists_ThenThrowsException()
 	{
-		// Arrange - Using internal constructor to bypass validation
-		var accessControl = new FlagTenantAccessControl(
-			allowedTenants: ["tenant1"],
-			blockedTenants: ["tenant1"]);
-
 		// Act & Assert
-		accessControl.IsTenantExplicitlyManaged("tenant1").ShouldBeTrue();
+		var exception = Should.Throw<ArgumentException>(() =>
+				new FlagTenantAccessControl(
+			allowedTenants: ["tenant1"],
+			blockedTenants: ["tenant1"]));
 	}
 
 	[Fact]
@@ -872,25 +851,6 @@ public class FlagTenantAccessControl_WithoutTenant
 		newAccessControl.BlockedTenants.ShouldContain("tenant1");
 		newAccessControl.BlockedTenants.ShouldContain("tenant3");
 		newAccessControl.BlockedTenants.ShouldNotContain("tenant2");
-	}
-
-	[Fact]
-	public void If_TenantInBothLists_ThenRemovesFromBoth()
-	{
-		// Arrange - Using internal constructor to bypass validation
-		var accessControl = new FlagTenantAccessControl(
-			allowedTenants: ["tenant1", "tenant2"],
-			blockedTenants: ["tenant2", "tenant3"]);
-
-		// Act
-		var newAccessControl = accessControl.WithoutTenant("tenant2");
-
-		// Assert
-		newAccessControl.ShouldNotBe(accessControl);
-		newAccessControl.AllowedTenants.Count.ShouldBe(1);
-		newAccessControl.AllowedTenants.ShouldContain("tenant1");
-		newAccessControl.BlockedTenants.Count.ShouldBe(1);
-		newAccessControl.BlockedTenants.ShouldContain("tenant3");
 	}
 
 	[Fact]

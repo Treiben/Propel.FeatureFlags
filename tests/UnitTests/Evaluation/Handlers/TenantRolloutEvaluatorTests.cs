@@ -382,35 +382,6 @@ public class TenantRolloutEvaluator_ProcessEvaluation_ExplicitlyBlockedTenants
 		result.Variation.ShouldBe("blocked");
 		result.Reason.ShouldBe("Tenant explicitly blocked");
 	}
-
-	[Fact]
-	public async Task If_TenantInBothAllowedAndBlockedLists_ThenBlockedTakesPrecedence()
-	{
-		// Arrange - This scenario shouldn't happen with proper validation, but test defensive behavior
-		var allowedTenants = new List<string> { "tenant123" };
-		var blockedTenants = new List<string> { "tenant123" };
-		
-		// Use LoadAccessControl to bypass validation that prevents this scenario
-		var flag = new FeatureFlag
-		{
-			Key = "test-flag",
-			TenantAccess = new FlagTenantAccessControl(
-				allowedTenants: allowedTenants,
-				blockedTenants: blockedTenants,
-				rolloutPercentage: 100),
-			Variations = new FlagVariations { DefaultVariation = "conflict" }
-		};
-		var context = new EvaluationContext(tenantId: "tenant123");
-
-		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
-
-		// Assert
-		result.ShouldNotBeNull();
-		result.IsEnabled.ShouldBeFalse();
-		result.Variation.ShouldBe("conflict");
-		result.Reason.ShouldBe("Tenant explicitly blocked");
-	}
 }
 
 public class TenantRolloutEvaluator_ProcessEvaluation_PercentageRollout

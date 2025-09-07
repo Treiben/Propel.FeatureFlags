@@ -100,7 +100,7 @@ public class FlagActivationSchedule_EdgeCases
 
 		// Act & Assert - Should not throw
 		var schedule = Should.NotThrow(() => FlagActivationSchedule.CreateSchedule(enableDate));
-		schedule.ScheduledEnableUtcDate.ShouldBe(enableDate);
+		schedule.ScheduledEnableDate.ShouldBe(enableDate);
 	}
 
 	[Fact]
@@ -116,11 +116,11 @@ public class FlagActivationSchedule_EdgeCases
 		var schedule2 = FlagActivationSchedule.CreateSchedule(enableDate2);
 
 		// Assert - Each instance should be independent
-		schedule1.ScheduledEnableUtcDate.ShouldBe(enableDate1);
-		schedule1.ScheduledDisableUtcDate.ShouldBe(disableDate1);
+		schedule1.ScheduledEnableDate.ShouldBe(enableDate1);
+		schedule1.ScheduledDisableDate.ShouldBe(disableDate1);
 		
-		schedule2.ScheduledEnableUtcDate.ShouldBe(enableDate2);
-		schedule2.ScheduledDisableUtcDate.ShouldBeNull();
+		schedule2.ScheduledEnableDate.ShouldBe(enableDate2);
+		schedule2.ScheduledDisableDate.ShouldBe(DateTime.MaxValue);
 
 		// Modifications to one shouldn't affect the other
 		schedule1.ShouldNotBe(schedule2);
@@ -138,10 +138,8 @@ public class FlagActivationSchedule_PropertyAccess
 		var schedule = FlagActivationSchedule.CreateSchedule(enableDate, disableDate);
 
 		// Act & Assert - Properties should be accessible and return correct values
-		schedule.ScheduledEnableUtcDate.ShouldNotBeNull();
-		schedule.ScheduledEnableUtcDate.Value.ShouldBe(enableDate);
-		schedule.ScheduledDisableUtcDate.ShouldNotBeNull();
-		schedule.ScheduledDisableUtcDate.Value.ShouldBe(disableDate);
+		schedule.ScheduledEnableDate.ShouldBe(enableDate);
+		schedule.ScheduledDisableDate.ShouldBe(disableDate);
 	}
 
 	[Fact]
@@ -151,10 +149,8 @@ public class FlagActivationSchedule_PropertyAccess
 		var schedule = FlagActivationSchedule.Unscheduled;
 
 		// Act & Assert
-		schedule.ScheduledEnableUtcDate.ShouldBeNull();
-		schedule.ScheduledDisableUtcDate.ShouldBeNull();
-		schedule.ScheduledEnableUtcDate.HasValue.ShouldBeFalse();
-		schedule.ScheduledDisableUtcDate.HasValue.ShouldBeFalse();
+		schedule.ScheduledEnableDate.ShouldBe(DateTime.MinValue.ToUniversalTime());
+		schedule.ScheduledDisableDate.ShouldBe(DateTime.MaxValue.ToUniversalTime());
 	}
 
 	[Fact]
@@ -165,10 +161,8 @@ public class FlagActivationSchedule_PropertyAccess
 		var schedule = FlagActivationSchedule.CreateSchedule(enableDate);
 
 		// Act & Assert
-		schedule.ScheduledEnableUtcDate.ShouldNotBeNull();
-		schedule.ScheduledEnableUtcDate.Value.ShouldBe(enableDate);
-		schedule.ScheduledDisableUtcDate.ShouldBeNull();
-		schedule.ScheduledDisableUtcDate.HasValue.ShouldBeFalse();
+		schedule.ScheduledEnableDate.ShouldBe(enableDate);
+		schedule.ScheduledDisableDate.ShouldBe(DateTime.MaxValue);
 	}
 }
 
@@ -182,13 +176,13 @@ public class FlagActivationSchedule_StaticFactoryMethods
 		var schedule2 = FlagActivationSchedule.Unscheduled;
 
 		// Assert - Both calls should return equivalent instances
-		schedule1.ScheduledEnableUtcDate.ShouldBe(schedule2.ScheduledEnableUtcDate);
-		schedule1.ScheduledDisableUtcDate.ShouldBe(schedule2.ScheduledDisableUtcDate);
+		schedule1.ScheduledEnableDate.ShouldBe(schedule2.ScheduledEnableDate);
+		schedule1.ScheduledDisableDate.ShouldBe(schedule2.ScheduledDisableDate);
 		schedule1.HasSchedule().ShouldBe(schedule2.HasSchedule());
 	}
 
 	[Fact]
-	public void If_CreateScheduleWithNullDisableDate_ThenDisableDateIsNull()
+	public void If_CreateScheduleWithNullDisableDate_ThenDisableDateIsMax()
 	{
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddDays(1);
@@ -197,7 +191,7 @@ public class FlagActivationSchedule_StaticFactoryMethods
 		var schedule = FlagActivationSchedule.CreateSchedule(enableDate, null);
 
 		// Assert
-		schedule.ScheduledEnableUtcDate.ShouldBe(enableDate);
-		schedule.ScheduledDisableUtcDate.ShouldBeNull();
+		schedule.ScheduledEnableDate.ShouldBe(enableDate);
+		schedule.ScheduledDisableDate.ShouldBe(DateTime.MaxValue);
 	}
 }

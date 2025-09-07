@@ -19,7 +19,7 @@ public class FeatureFlagClient_AttributesHandling
 	{
 		// Arrange
 		var flagKey = "null-attributes-flag";
-		string tenantId = null;
+		string tenantId = null!;
 		var userId = "user123";
 		var attributes = new Dictionary<string, object>
 		{
@@ -54,7 +54,7 @@ public class FeatureFlagClient_AttributesHandling
  	{
 		// Arrange
 		var flagKey = "complex-attributes-flag";
-		string tenantId = null;
+		string tenantId = null!;
 		var userId = "user123";
 		var complexObject = new { Name = "Test", Count = 42 };
 		var attributes = new Dictionary<string, object>
