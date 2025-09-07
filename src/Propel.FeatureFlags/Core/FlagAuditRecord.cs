@@ -7,14 +7,6 @@ public class FlagAuditRecord
 	public string CreatedBy { get; }
 	public string? ModifiedBy { get; }
 
-	public static FlagAuditRecord NewFlag(string? createdBy = null)
-	{
-		var timestamp = DateTime.UtcNow;
-		var creator = createdBy ?? "system";
-
-		return new FlagAuditRecord(createdAt: timestamp, createdBy: creator);
-	}
-
 	// This method is used to create new audit records in valid state
 	public FlagAuditRecord(
 		DateTime createdAt,
@@ -46,6 +38,14 @@ public class FlagAuditRecord
 		ModifiedAt = modifiedAt;	
 		CreatedBy = ValidateAndNormalizeUser(createdBy) ?? "unknown";
 		ModifiedBy = modifiedAt.HasValue ? ValidateAndNormalizeUser(modifiedBy) : null;
+	}
+
+	public static FlagAuditRecord NewFlag(string? createdBy = null)
+	{
+		var timestamp = DateTime.UtcNow;
+		var creator = createdBy ?? "system";
+
+		return new FlagAuditRecord(createdAt: timestamp, createdBy: creator);
 	}
 
 	private static string? ValidateAndNormalizeUser(string? user)

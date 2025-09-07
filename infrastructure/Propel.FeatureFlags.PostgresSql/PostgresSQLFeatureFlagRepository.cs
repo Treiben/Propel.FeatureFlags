@@ -338,8 +338,8 @@ public static class NpgsqlCommandExtensions
 		command.Parameters.AddWithValue("created_by", flag.AuditRecord.CreatedBy);
 		command.Parameters.AddWithValue("updated_by", (object?)flag.AuditRecord.ModifiedBy ?? DBNull.Value);
 		command.Parameters.AddWithValue("expiration_date", (object?)flag.ExpirationDate ?? DBNull.Value);
-		command.Parameters.AddWithValue("scheduled_enable_date", (object?)flag.Schedule.ScheduledEnableUtcDate ?? DBNull.Value);
-		command.Parameters.AddWithValue("scheduled_disable_date", (object?)flag.Schedule.ScheduledDisableUtcDate ?? DBNull.Value);
+		command.Parameters.AddWithValue("scheduled_enable_date", (object?)flag.Schedule.ScheduledEnableDate ?? DBNull.Value);
+		command.Parameters.AddWithValue("scheduled_disable_date", (object?)flag.Schedule.ScheduledDisableDate ?? DBNull.Value);
 		command.Parameters.AddWithValue("window_start_time", (object?)flag.OperationalWindow.WindowStartTime ?? DBNull.Value);
 		command.Parameters.AddWithValue("window_end_time", (object?)flag.OperationalWindow.WindowEndTime ?? DBNull.Value);
 		command.Parameters.AddWithValue("time_zone", (object?)flag.OperationalWindow.TimeZone ?? DBNull.Value);
@@ -438,8 +438,8 @@ public static class NpgsqlDataReaderExtensions
 				modifiedBy: await reader.GetDataAsync<string>("updated_by")
 			);
 		var schedule = new FlagActivationSchedule(
-				scheduledEnableUtcDate: await reader.GetDataAsync<DateTime?>("scheduled_enable_date"),
-				scheduledDisableUtcDate: await reader.GetDataAsync<DateTime?>("scheduled_disable_date")
+				scheduledEnableDate: await reader.GetDataAsync<DateTime>("scheduled_enable_date"),
+				scheduledDisableDate: await reader.GetDataAsync<DateTime>("scheduled_disable_date")
 			);
 		var window = new FlagOperationalWindow(
 				windowStartTime: await reader.GetTimeOnly("window_start_time") ?? TimeSpan.Zero,

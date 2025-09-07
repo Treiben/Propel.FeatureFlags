@@ -13,7 +13,7 @@ public sealed class ActivationScheduleEvaluator: IOrderedEvaluator
 
 	public async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
 	{
-		if (flag.Schedule == FlagActivationSchedule.Unscheduled)
+		if (flag.Schedule.HasSchedule() == false)
 		{
 			return new EvaluationResult(isEnabled: true, 
 				variation: "on", reason: "Flag has no activation schedule and can be available immediately.");
