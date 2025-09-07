@@ -1,10 +1,5 @@
 ﻿using Npgsql;
 using Propel.FeatureFlags.Core;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FeatureFlags.IntegrationTests.Support;
 
@@ -24,7 +19,7 @@ public static class TestHelpers
             updated_by VARCHAR(255) NULL,
     
             -- Expiration
-            expiration_date TIMESTAMP WITH TIME ZONE NULL,
+            expiration_date TIMESTAMP WITH TIME ZONE NOT NULL,
     
             -- Scheduling
             scheduled_enable_date TIMESTAMP WITH TIME ZONE NULL,
