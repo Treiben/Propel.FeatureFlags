@@ -70,8 +70,8 @@ public sealed class UpdateScheduleHandler(
 			if (cache != null) await cache.RemoveAsync(key);
 
 			var scheduleInfo = request.DisableDate.HasValue
-				? $"enable at {flag.Schedule.ScheduledEnableUtcDate:yyyy-MM-dd HH:mm} UTC, disable at {flag.Schedule.ScheduledDisableUtcDate:yyyy-MM-dd HH:mm} UTC"
-				: $"enable at {flag.Schedule.ScheduledEnableUtcDate:yyyy-MM-dd HH:mm} UTC";
+				? $"enable at {flag.Schedule.ScheduledEnableDate:yyyy-MM-dd HH:mm} UTC, disable at {flag.Schedule.ScheduledDisableDate:yyyy-MM-dd HH:mm} UTC"
+				: $"enable at {flag.Schedule.ScheduledEnableDate:yyyy-MM-dd HH:mm} UTC";
 
 			logger.LogInformation("Feature flag {Key} scheduled by {User} to {ScheduleInfo}",
 				key, currentUserService.UserName, scheduleInfo);

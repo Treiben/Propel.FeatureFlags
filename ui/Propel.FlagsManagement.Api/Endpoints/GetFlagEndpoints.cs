@@ -44,8 +44,8 @@ public record FeatureFlagResponse
 		CreatedBy = flag.AuditRecord.CreatedBy;
 		UpdatedBy = flag.AuditRecord.ModifiedBy;
 		ExpirationDate = flag.ExpirationDate;
-		ScheduledEnableDate = flag.Schedule.ScheduledEnableUtcDate;
-		ScheduledDisableDate = flag.Schedule.ScheduledDisableUtcDate;
+		ScheduledEnableDate = flag.Schedule.ScheduledEnableDate;
+		ScheduledDisableDate = flag.Schedule.ScheduledDisableDate;
 		WindowStartTime = flag.OperationalWindow.WindowStartTime > TimeSpan.Zero ? TimeOnly.FromTimeSpan(flag.OperationalWindow.WindowStartTime) : null;
 		WindowEndTime = flag.OperationalWindow.WindowEndTime > TimeSpan.Zero ? TimeOnly.FromTimeSpan(flag.OperationalWindow.WindowEndTime) : null;
 		TimeZone = flag.OperationalWindow.TimeZone;
