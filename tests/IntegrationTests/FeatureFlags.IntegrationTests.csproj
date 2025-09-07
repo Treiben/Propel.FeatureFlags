@@ -10,13 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="EvaluatorIntegrationTests.Postgres.RedisCache.cs" />
-    <Compile Remove="EvaluatorIntegrationTests.SqlServer.MemCache.cs" />
-    <Compile Remove="PostgresSQLRepositoryIntegrationTests.cs" />
-    <Compile Remove="SqlServerRepositoryIntegrationTests.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
