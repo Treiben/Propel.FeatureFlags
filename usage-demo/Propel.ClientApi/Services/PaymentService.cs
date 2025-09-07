@@ -1,4 +1,4 @@
-﻿using Propel.FeatureFlags.Client;
+﻿using Propel.FeatureFlags;
 
 namespace Propel.ClientApi.Services;
 

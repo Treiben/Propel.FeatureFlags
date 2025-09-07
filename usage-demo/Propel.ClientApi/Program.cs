@@ -12,7 +12,7 @@ builder.Services.AddLogging();
 builder.Services.AddHealthChecks();
 builder.Services.AddHttpContextAccessor();
 
-var featureFlagOptions = builder.Configuration.GetSection("PropelFeatureFlags").Get<FlagOptions>() ?? new();
+var featureFlagOptions = builder.Configuration.GetSection("PropelFeatureFlags").Get<FeatureFlagConfigurationOptions>() ?? new();
 
 // Register the core feature flag services
 builder.Services.AddFeatureFlags(featureFlagOptions);
