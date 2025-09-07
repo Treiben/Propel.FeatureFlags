@@ -13,7 +13,7 @@ public record UpdateFlagRequest
 	public string[]? ExplicitlyAllowedUsers { get; set; }
 	public string[]? ExplicitlyBlockedUsers { get; set; }
 	public Dictionary<string, string>? Tags { get; set; }
-	public bool? IsPermanent { get; set; }
+	public bool IsPermanent { get; set; }
 	public DateTime? ExpirationDate { get; set; }
 }
 
@@ -22,7 +22,7 @@ public sealed class UpdateFlagEndpoint : IEndpoint
 	public void AddEndpoint(IEndpointRouteBuilder app)
 	{
 		app.MapPut("/api/feature-flags/{key}",
-			async (string key, 
+			async (string key,
 					UpdateFlagRequest request,
 					UpdateFlagHandler handler) =>
 		{
@@ -77,14 +77,11 @@ public sealed class UpdateFlagHandler(
 	public static void ModifyFlagFromRequest(UpdateFlagRequest source, FeatureFlag dest, string updatedBy)
 	{
 		// Update only non-null properties from the request
-		if (source.Name != null) 
+		if (source.Name != null)
 			dest.Name = source.Name;
 
-		if (source.Description != null) 
+		if (source.Description != null)
 			dest.Description = source.Description;
-
-		if (source.ExpirationDate.HasValue) 
-			dest.ExpirationDate = source.ExpirationDate;
 
 		dest.UserAccess = new FlagUserAccessControl(
 			allowedUsers: [.. source.ExplicitlyAllowedUsers!],
@@ -93,11 +90,10 @@ public sealed class UpdateFlagHandler(
 
 		dest.AuditRecord = new FlagAuditRecord(dest.AuditRecord.CreatedAt, dest.AuditRecord.CreatedBy, DateTime.UtcNow, updatedBy);
 
-		if (source.Tags != null) 
+		if (source.Tags != null)
 			dest.Tags = source.Tags;
 
-		if (source.IsPermanent.HasValue) 
-			dest.IsPermanent = source.IsPermanent.Value;
+		dest.Lifecycle = new FlagLifecycle(isPermanent: source.IsPermanent, expirationDate: source.ExpirationDate);
 	}
 }
 

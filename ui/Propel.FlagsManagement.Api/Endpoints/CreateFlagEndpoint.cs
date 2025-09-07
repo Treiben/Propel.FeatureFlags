@@ -72,10 +72,9 @@ public sealed class CreateFlagHandler(
 			Key = source.Key,
 			Name = source.Name,
 			Description = source.Description ?? string.Empty,
-			ExpirationDate = source.ExpirationDate,
 			Tags = source.Tags ?? [],
-			IsPermanent = source.IsPermanent,
-			AuditRecord = FlagAuditRecord.NewFlag(createdBy)
+			AuditRecord = FlagAuditRecord.NewFlag(createdBy),
+			Lifecycle = new FlagLifecycle(isPermanent: source.IsPermanent, expirationDate: source.ExpirationDate)
 		};
 	}
 }
