@@ -334,8 +334,8 @@ public static class NpgsqlCommandExtensions
 		command.Parameters.AddWithValue("name", flag.Name);
 		command.Parameters.AddWithValue("description", flag.Description);
 		command.Parameters.AddWithValue("created_at", flag.AuditRecord.CreatedAt);
-		command.Parameters.AddWithValue("updated_at", (object?)flag.AuditRecord.ModifiedAt ?? DBNull.Value);
 		command.Parameters.AddWithValue("created_by", flag.AuditRecord.CreatedBy);
+		command.Parameters.AddWithValue("updated_at", (object?)flag.AuditRecord.ModifiedAt ?? DBNull.Value);
 		command.Parameters.AddWithValue("updated_by", (object?)flag.AuditRecord.ModifiedBy ?? DBNull.Value);
 		command.Parameters.AddWithValue("expiration_date", (object?)flag.Lifecycle.ExpirationDate ?? DBNull.Value);
 		command.Parameters.AddWithValue("is_permanent", flag.Lifecycle.IsPermanent);

@@ -115,7 +115,7 @@ CREATE TABLE feature_flags (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NULL,
     created_by VARCHAR(255) NOT NULL,
-    updated_by VARCHAR(255) NOT NULL,
+    updated_by VARCHAR(255) NULL,
     
     -- Expiration
     expiration_date TIMESTAMP WITH TIME ZONE NOT NULL,

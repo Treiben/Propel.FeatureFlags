@@ -82,4 +82,30 @@ public class FlagActivationSchedule
 		}
 		return dateTime.ToUniversalTime();
 	}
+
+	public static bool operator ==(FlagActivationSchedule? left, FlagActivationSchedule? right)
+	{
+		if (left is null && right is null) 
+			return true;
+		if (left is null || right is null) 
+			return false;
+
+		return left.ScheduledEnableDate == right.ScheduledEnableDate
+			&& left.ScheduledDisableDate == right.ScheduledDisableDate;
+	}
+
+	public static bool operator !=(FlagActivationSchedule? left, FlagActivationSchedule? right)
+	{
+		return !(left == right);
+	}
+
+	public override bool Equals(object obj)
+	{
+		return obj is FlagActivationSchedule other && this == other;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(ScheduledEnableDate, ScheduledDisableDate);
+	}
 }

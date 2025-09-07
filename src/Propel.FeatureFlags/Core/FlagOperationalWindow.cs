@@ -1,3 +1,5 @@
+using System;
+
 namespace Propel.FeatureFlags.Core;
 
 public class FlagOperationalWindow(
@@ -156,6 +158,46 @@ public class FlagOperationalWindow(
 		}
 
 		return distinctDays;
+	}
+
+	public static bool operator ==(FlagOperationalWindow? left, FlagOperationalWindow? right)
+	{
+		if (ReferenceEquals(left, right))
+			return true;
+
+		if (left is null || right is null)
+			return false;
+
+		return left.WindowStartTime == right.WindowStartTime &&
+			   left.WindowEndTime == right.WindowEndTime &&
+			   string.Equals(left.TimeZone, right.TimeZone, StringComparison.OrdinalIgnoreCase) &&
+			   left.WindowDays.OrderBy(d => d).SequenceEqual(right.WindowDays.OrderBy(d => d));
+	}
+
+	public static bool operator !=(FlagOperationalWindow? left, FlagOperationalWindow? right)
+	{
+		return !(left == right);
+	}
+
+	public override bool Equals(object? obj)
+	{
+		return obj is FlagOperationalWindow other && this == other;
+	}
+
+	public override int GetHashCode()
+	{
+		var hash = new HashCode();
+		hash.Add(WindowStartTime);
+		hash.Add(WindowEndTime);
+		hash.Add(TimeZone, StringComparer.OrdinalIgnoreCase);
+
+		// Add sorted days to ensure consistent hash regardless of order
+		foreach (var day in WindowDays.OrderBy(d => d))
+		{
+			hash.Add(day);
+		}
+
+		return hash.ToHashCode();
 	}
 }
 

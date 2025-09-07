@@ -15,11 +15,8 @@ public static class ServiceCollectionExtensions
 		services.AddSingleton<IFeatureFlagEvaluator, FeatureFlagEvaluator>();
 		services.AddSingleton<IFeatureFlagClient, FeatureFlagClient>();
 
-		// Register chain builder with all handlers
-		//services.AddSingleton<IChainableEvaluationHandler>(_ => EvaluatorChainBuilder.BuildChain());
-
 		// Register evaluation manager with all handlers
-		services.AddSingleton(_ => new FlagEvaluationManager(
+		services.AddSingleton<IFlagEvaluationManager>(_ => new FlagEvaluationManager(
 			new HashSet<IOrderedEvaluator>(
 				[	new ActivationScheduleEvaluator(),
 					new OperationalWindowEvaluator(),
