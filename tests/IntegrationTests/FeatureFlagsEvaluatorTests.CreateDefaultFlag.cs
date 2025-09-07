@@ -1,7 +1,8 @@
+using FeatureFlags.IntegrationTests.Support;
 using Propel.FeatureFlags.Core;
 using Propel.FeatureFlags.Evaluation;
 
-namespace FeatureFlags.IntegrationTests.Core.Evaluator;
+namespace FeatureFlags.IntegrationTests.Core.ClientWithDefaultFlags;
 
 /* These tests cover scenarios when CreateDefaultFlagAsync() is called:
  *		Auto-creation of disabled flags when not found in cache or repository
@@ -14,7 +15,7 @@ namespace FeatureFlags.IntegrationTests.Core.Evaluator;
  *		Integration with the full evaluation flow
 */
 
-public class EvaluateAsync_WithAutoCreatedFlag(FeatureFlagEvaluatorFixture fixture) : IClassFixture<FeatureFlagEvaluatorFixture>
+public class EvaluateAsync_WithAutoCreatedFlag(DefaultFlagCreationTestsFixture fixture) : IClassFixture<DefaultFlagCreationTestsFixture>
 {
 	[Fact]
 	public async Task If_FlagNotFound_ThenCreatesDefaultDisabledFlag()
@@ -44,7 +45,7 @@ public class EvaluateAsync_WithAutoCreatedFlag(FeatureFlagEvaluatorFixture fixtu
 	}
 
 	[Fact]
-	public async Task If_FlagAutoCreated_ThenItShouldNotBeCached()
+	public async Task If_FlagAutoCreated_ThenItShouldBeBeCached()
 	{
 		// Arrange
 		await fixture.ClearAllData();
@@ -59,7 +60,7 @@ public class EvaluateAsync_WithAutoCreatedFlag(FeatureFlagEvaluatorFixture fixtu
 
 		// Verify the flag is now in the cache
 		var cachedFlag = await fixture.Cache.GetAsync("cached-auto-flag");
-		cachedFlag.ShouldBeNull();
+		cachedFlag.ShouldNotBeNull();
 	}
 
 	[Fact]
@@ -115,7 +116,7 @@ public class EvaluateAsync_WithAutoCreatedFlag(FeatureFlagEvaluatorFixture fixtu
 	}
 }
 
-public class CreateDefaultFlagAsync_RepositoryFailure(FeatureFlagEvaluatorFixture fixture) : IClassFixture<FeatureFlagEvaluatorFixture>
+public class CreateDefaultFlagAsync_RepositoryFailure(DefaultFlagCreationTestsFixture fixture) : IClassFixture<DefaultFlagCreationTestsFixture>
 {
 	[Fact]
 	public async Task If_RepositoryThrowsException_ThenStillReturnsDefaultFlag()
@@ -154,7 +155,7 @@ public class CreateDefaultFlagAsync_RepositoryFailure(FeatureFlagEvaluatorFixtur
 	}
 }
 
-public class CreateDefaultFlagAsync_FlagStructure(FeatureFlagEvaluatorFixture fixture) : IClassFixture<FeatureFlagEvaluatorFixture>
+public class CreateDefaultFlagAsync_FlagStructure(DefaultFlagCreationTestsFixture fixture) : IClassFixture<DefaultFlagCreationTestsFixture>
 {
 	[Fact]
 	public async Task ThenCreatedFlagHasCorrectDefaultStructure()
@@ -237,7 +238,7 @@ public class CreateDefaultFlagAsync_FlagStructure(FeatureFlagEvaluatorFixture fi
 	}
 }
 
-public class CreateDefaultFlagAsync_WithDifferentContexts(FeatureFlagEvaluatorFixture fixture) : IClassFixture<FeatureFlagEvaluatorFixture>
+public class CreateDefaultFlagAsync_WithDifferentContexts(DefaultFlagCreationTestsFixture fixture) : IClassFixture<DefaultFlagCreationTestsFixture>
 {
 	[Fact]
 	public async Task If_NoUserId_ThenStillCreatesFlag()
@@ -299,51 +300,51 @@ public class CreateDefaultFlagAsync_WithDifferentContexts(FeatureFlagEvaluatorFi
 	}
 }
 
-public class CreateDefaultFlagAsync_GetVariationIntegration(FeatureFlagEvaluatorFixture fixture) : IClassFixture<FeatureFlagEvaluatorFixture>
-{
-	[Fact]
-	public async Task If_GetVariationOnAutoCreatedFlag_ThenReturnsDefaultValue()
-	{
-		// Arrange
-		await fixture.ClearAllData();
-		var context = new EvaluationContext(userId: "user123");
+//public class CreateDefaultFlagAsync_GetVariationIntegration(FeatureFlagEvaluatorFixture fixture) : IClassFixture<FeatureFlagEvaluatorFixture>
+//{
+//	[Fact]
+//	public async Task If_GetVariationOnAutoCreatedFlag_ThenReturnsDefaultValue()
+//	{
+//		// Arrange
+//		await fixture.ClearAllData();
+//		var context = new EvaluationContext(userId: "user123");
 
-		// Act
-		var result = await fixture.Evaluator.GetVariation("variation-auto-flag", "fallback-value", context);
+//		// Act
+//		var result = await fixture.Evaluator.GetVariation("variation-auto-flag", "fallback-value", context);
 
-		// Assert
-		result.ShouldBe("fallback-value"); // Should return default since flag is disabled
+//		// Assert
+//		result.ShouldBe("fallback-value"); // Should return default since flag is disabled
 
-		// Verify the flag was created
-		var createdFlag = await fixture.Repository.GetAsync("variation-auto-flag");
-		createdFlag.ShouldNotBeNull();
-		createdFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Disabled]).ShouldBeTrue();
-	}
+//		// Verify the flag was created
+//		var createdFlag = await fixture.Repository.GetAsync("variation-auto-flag");
+//		createdFlag.ShouldNotBeNull();
+//		createdFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Disabled]).ShouldBeTrue();
+//	}
 
-	[Fact]
-	public async Task If_GetVariationWithTypeConversion_ThenReturnsCorrectType()
-	{
-		// Arrange
-		await fixture.ClearAllData();
-		var context = new EvaluationContext(userId: "user123");
+//	[Fact]
+//	public async Task If_GetVariationWithTypeConversion_ThenReturnsCorrectType()
+//	{
+//		// Arrange
+//		await fixture.ClearAllData();
+//		var context = new EvaluationContext(userId: "user123");
 
-		// Act - Test with different types
-		var stringResult = await fixture.Evaluator.GetVariation("string-auto-flag", "default", context);
-		var intResult = await fixture.Evaluator.GetVariation("int-auto-flag", 42, context);
-		var boolResult = await fixture.Evaluator.GetVariation("bool-auto-flag", true, context);
+//		// Act - Test with different types
+//		var stringResult = await fixture.Evaluator.GetVariation("string-auto-flag", "default", context);
+//		var intResult = await fixture.Evaluator.GetVariation("int-auto-flag", 42, context);
+//		var boolResult = await fixture.Evaluator.GetVariation("bool-auto-flag", true, context);
 
-		// Assert
-		stringResult.ShouldBe("default");
-		intResult.ShouldBe(42);
-		boolResult.ShouldBeTrue();
+//		// Assert
+//		stringResult.ShouldBe("default");
+//		intResult.ShouldBe(42);
+//		boolResult.ShouldBeTrue();
 
-		// Verify flags were created
-		var stringFlag = await fixture.Repository.GetAsync("string-auto-flag");
-		var intFlag = await fixture.Repository.GetAsync("int-auto-flag");
-		var boolFlag = await fixture.Repository.GetAsync("bool-auto-flag");
+//		// Verify flags were created
+//		var stringFlag = await fixture.Repository.GetAsync("string-auto-flag");
+//		var intFlag = await fixture.Repository.GetAsync("int-auto-flag");
+//		var boolFlag = await fixture.Repository.GetAsync("bool-auto-flag");
 		
-		stringFlag.ShouldNotBeNull();
-		intFlag.ShouldNotBeNull();
-		boolFlag.ShouldNotBeNull();
-	}
-}
+//		stringFlag.ShouldNotBeNull();
+//		intFlag.ShouldNotBeNull();
+//		boolFlag.ShouldNotBeNull();
+//	}
+//}

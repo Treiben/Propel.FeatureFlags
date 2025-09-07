@@ -1,8 +1,6 @@
-using Microsoft.Extensions.Logging;
+using FeatureFlags.IntegrationTests.Support;
 using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Redis;
 using StackExchange.Redis;
-using Testcontainers.Redis;
 
 namespace FeatureFlags.IntegrationTests;
 
@@ -15,14 +13,14 @@ namespace FeatureFlags.IntegrationTests;
  *		Cancellation token support
  *		Redis-specific error scenarios
 */
-public class SetAsync_WithValidFlag(RedisFeatureFlagCacheFixture fixture) : IClassFixture<RedisFeatureFlagCacheFixture>
+public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<RedisTestsFixture>
 {
 	[Fact]
 	public async Task ThenStoresFlag()
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = RedisFeatureFlagCacheFixture.CreateTestFlag("cache-test", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("cache-test", FlagEvaluationMode.Enabled);
 
 		// Act
 		await fixture.Cache.SetAsync("cache-test", flag);
@@ -39,7 +37,7 @@ public class SetAsync_WithValidFlag(RedisFeatureFlagCacheFixture fixture) : ICla
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = RedisFeatureFlagCacheFixture.CreateTestFlag("complex-flag", FlagEvaluationMode.UserTargeted);
+		var flag = TestHelpers.CreateTestFlag("complex-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules =
 		[
 			new TargetingRule
@@ -82,7 +80,7 @@ public class SetAsync_WithValidFlag(RedisFeatureFlagCacheFixture fixture) : ICla
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = RedisFeatureFlagCacheFixture.CreateTestFlag("expiring-flag", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("expiring-flag", FlagEvaluationMode.Enabled);
 		var expiration = TimeSpan.FromSeconds(2);
 
 		// Act
@@ -105,10 +103,10 @@ public class SetAsync_WithValidFlag(RedisFeatureFlagCacheFixture fixture) : ICla
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var originalFlag = RedisFeatureFlagCacheFixture.CreateTestFlag("update-flag", FlagEvaluationMode.Disabled);
+		var originalFlag = TestHelpers.CreateTestFlag("update-flag", FlagEvaluationMode.Disabled);
 		await fixture.Cache.SetAsync("update-flag", originalFlag);
 
-		var updatedFlag = RedisFeatureFlagCacheFixture.CreateTestFlag("update-flag", FlagEvaluationMode.Enabled);
+		var updatedFlag = TestHelpers.CreateTestFlag("update-flag", FlagEvaluationMode.Enabled);
 		updatedFlag.Name = "Updated Name";
 		updatedFlag.Description = "Updated Description";
 
@@ -124,14 +122,14 @@ public class SetAsync_WithValidFlag(RedisFeatureFlagCacheFixture fixture) : ICla
 	}
 }
 
-public class GetAsync_WhenFlagExists(RedisFeatureFlagCacheFixture fixture) : IClassFixture<RedisFeatureFlagCacheFixture>
+public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<RedisTestsFixture>
 {
 	[Fact]
 	public async Task ThenReturnsFlag()
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = RedisFeatureFlagCacheFixture.CreateTestFlag("get-test", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("get-test", FlagEvaluationMode.Enabled);
 		await fixture.Cache.SetAsync("get-test", flag);
 
 		// Act
@@ -149,7 +147,7 @@ public class GetAsync_WhenFlagExists(RedisFeatureFlagCacheFixture fixture) : ICl
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = RedisFeatureFlagCacheFixture.CreateTestFlag("time-flag", FlagEvaluationMode.TimeWindow);
+		var flag = TestHelpers.CreateTestFlag("time-flag", FlagEvaluationMode.TimeWindow);
 
 		var schedule = FlagActivationSchedule.CreateSchedule(
 			DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddDays(7));
@@ -181,7 +179,7 @@ public class GetAsync_WhenFlagExists(RedisFeatureFlagCacheFixture fixture) : ICl
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = RedisFeatureFlagCacheFixture.CreateTestFlag("percentage-flag", FlagEvaluationMode.UserRolloutPercentage);
+		var flag = TestHelpers.CreateTestFlag("percentage-flag", FlagEvaluationMode.UserRolloutPercentage);
 		flag.UserAccess = new FlagUserAccessControl(rolloutPercentage: 75);
 
 		await fixture.Cache.SetAsync("percentage-flag", flag);
@@ -195,7 +193,7 @@ public class GetAsync_WhenFlagExists(RedisFeatureFlagCacheFixture fixture) : ICl
 	}
 }
 
-public class GetAsync_WhenFlagDoesNotExist(RedisFeatureFlagCacheFixture fixture) : IClassFixture<RedisFeatureFlagCacheFixture>
+public class GetAsync_WhenFlagDoesNotExist(RedisTestsFixture fixture) : IClassFixture<RedisTestsFixture>
 {
 	[Fact]
 	public async Task ThenReturnsNull()
@@ -211,14 +209,14 @@ public class GetAsync_WhenFlagDoesNotExist(RedisFeatureFlagCacheFixture fixture)
 	}
 }
 
-public class RemoveAsync_WhenFlagExists(RedisFeatureFlagCacheFixture fixture) : IClassFixture<RedisFeatureFlagCacheFixture>
+public class RemoveAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<RedisTestsFixture>
 {
 	[Fact]
 	public async Task ThenRemovesFlag()
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = RedisFeatureFlagCacheFixture.CreateTestFlag("remove-test", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("remove-test", FlagEvaluationMode.Enabled);
 		await fixture.Cache.SetAsync("remove-test", flag);
 
 		// Verify it exists first
@@ -244,16 +242,16 @@ public class RemoveAsync_WhenFlagExists(RedisFeatureFlagCacheFixture fixture) : 
 	}
 }
 
-public class ClearAsync_WithMultipleFlags(RedisFeatureFlagCacheFixture fixture) : IClassFixture<RedisFeatureFlagCacheFixture>
+public class ClearAsync_WithMultipleFlags(RedisTestsFixture fixture) : IClassFixture<RedisTestsFixture>
 {
 	[Fact]
 	public async Task ThenRemovesAllFlags()
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag1 = RedisFeatureFlagCacheFixture.CreateTestFlag("flag-1", FlagEvaluationMode.Enabled);
-		var flag2 = RedisFeatureFlagCacheFixture.CreateTestFlag("flag-2", FlagEvaluationMode.Disabled);
-		var flag3 = RedisFeatureFlagCacheFixture.CreateTestFlag("flag-3", FlagEvaluationMode.UserRolloutPercentage);
+		var flag1 = TestHelpers.CreateTestFlag("flag-1", FlagEvaluationMode.Enabled);
+		var flag2 = TestHelpers.CreateTestFlag("flag-2", FlagEvaluationMode.Disabled);
+		var flag3 = TestHelpers.CreateTestFlag("flag-3", FlagEvaluationMode.UserRolloutPercentage);
 
 		await fixture.Cache.SetAsync("flag-1", flag1);
 		await fixture.Cache.SetAsync("flag-2", flag2);
@@ -290,7 +288,7 @@ public class ClearAsync_WithMultipleFlags(RedisFeatureFlagCacheFixture fixture) 
 		await fixture.ClearAllFlags();
 		
 		// Set a feature flag
-		var flag = RedisFeatureFlagCacheFixture.CreateTestFlag("test-flag", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("test-flag", FlagEvaluationMode.Enabled);
 		await fixture.Cache.SetAsync("test-flag", flag);
 
 		// Set a non-feature flag key directly in Redis
@@ -306,14 +304,14 @@ public class ClearAsync_WithMultipleFlags(RedisFeatureFlagCacheFixture fixture) 
 	}
 }
 
-public class RedisFeatureFlagCache_KeyPrefix(RedisFeatureFlagCacheFixture fixture) : IClassFixture<RedisFeatureFlagCacheFixture>
+public class RedisFeatureFlagCache_KeyPrefix(RedisTestsFixture fixture) : IClassFixture<RedisTestsFixture>
 {
 	[Fact]
 	public async Task If_SetAndGet_ThenUsesCorrectKeyPrefix()
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = RedisFeatureFlagCacheFixture.CreateTestFlag("prefix-test", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("prefix-test", FlagEvaluationMode.Enabled);
 
 		// Act
 		await fixture.Cache.SetAsync("prefix-test", flag);
@@ -329,14 +327,14 @@ public class RedisFeatureFlagCache_KeyPrefix(RedisFeatureFlagCacheFixture fixtur
 	}
 }
 
-public class RedisFeatureFlagCache_CancellationToken(RedisFeatureFlagCacheFixture fixture) : IClassFixture<RedisFeatureFlagCacheFixture>
+public class RedisFeatureFlagCache_CancellationToken(RedisTestsFixture fixture) : IClassFixture<RedisTestsFixture>
 {
 	[Fact]
 	public async Task If_CancellationRequested_ThenOperationsCancelled()
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = RedisFeatureFlagCacheFixture.CreateTestFlag("cancellation-test", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("cancellation-test", FlagEvaluationMode.Enabled);
 		await fixture.Cache.SetAsync("cancellation-test", flag);
 
 		using var cts = new CancellationTokenSource();
@@ -357,7 +355,7 @@ public class RedisFeatureFlagCache_CancellationToken(RedisFeatureFlagCacheFixtur
 	}
 }
 
-public class RedisFeatureFlagCache_ErrorHandling(RedisFeatureFlagCacheFixture fixture) : IClassFixture<RedisFeatureFlagCacheFixture>
+public class RedisFeatureFlagCache_ErrorHandling(RedisTestsFixture fixture) : IClassFixture<RedisTestsFixture>
 {
 	[Fact]
 	public void If_InvalidConnectionMultiplexer_ThenThrowsRedisException()
@@ -382,64 +380,5 @@ public class RedisFeatureFlagCache_ErrorHandling(RedisFeatureFlagCacheFixture fi
 
 		// Assert
 		result.ShouldBeNull(); // Should return null instead of throwing
-	}
-}
-
-public class RedisFeatureFlagCacheFixture : IAsyncLifetime
-{
-	private readonly RedisContainer _container;
-	public RedisFeatureFlagCache Cache { get; private set; } = null!;
-	private ConnectionMultiplexer? _connectionMultiplexer = null!;
-	private readonly ILogger<RedisFeatureFlagCache> _logger;
-
-	public RedisFeatureFlagCacheFixture()
-	{
-		_container = new RedisBuilder()
-			.WithImage("redis:7-alpine")
-			.WithPortBinding(6379, true)
-			.Build();
-
-		_logger = new Mock<ILogger<RedisFeatureFlagCache>>().Object;
-	}
-
-	public async Task InitializeAsync()
-	{
-		await _container.StartAsync();
-		var connectionString = _container.GetConnectionString();
-		
-		// Create connection multiplexer
-		_connectionMultiplexer = await ConnectionMultiplexer.ConnectAsync(connectionString);
-		
-		// Initialize cache
-		Cache = new RedisFeatureFlagCache(_connectionMultiplexer, _logger);
-	}
-
-	public async Task DisposeAsync()
-	{
-		_connectionMultiplexer?.Dispose();
-		await _container.DisposeAsync();
-	}
-
-	public IDatabase GetDatabase()
-	{
-		return _connectionMultiplexer.GetDatabase();
-	}
-
-	// Helper method to clear all feature flags between tests
-	public async Task ClearAllFlags()
-	{
-		await Cache.ClearAsync();
-	}
-
-	public static FeatureFlag CreateTestFlag(string key, FlagEvaluationMode evaluationMode)
-	{
-		var flag = new FeatureFlag
-		{
-			Key = key,
-			Name = $"Test Flag {key}",
-			Description = "Test flag for integration tests",
-		};
-		flag.EvaluationModeSet.AddMode(evaluationMode);
-		return flag;
 	}
 }
