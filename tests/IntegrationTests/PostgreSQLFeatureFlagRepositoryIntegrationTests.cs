@@ -296,9 +296,9 @@ public class CreateAsync_WithValidFlag(PostgreSQLRepositoryFixture fixture) : IC
 	{
 		// Arrange
 		var flag = PostgreSQLRepositoryFixture.CreateTestFlag("scheduled-flag", FlagEvaluationMode.Scheduled);
-		flag.Schedule = FlagActivationSchedule.CreateSchedule(
-			DateTime.UtcNow.AddDays(1), 
-			DateTime.UtcNow.AddDays(7));
+		var startDt = DateTime.UtcNow.AddDays(1);
+		var endDt = DateTime.UtcNow.AddDays(7);
+		flag.Schedule = FlagActivationSchedule.CreateSchedule(startDt, endDt);
 
 		// Act
 		await fixture.Repository.CreateAsync(flag);
@@ -306,8 +306,8 @@ public class CreateAsync_WithValidFlag(PostgreSQLRepositoryFixture fixture) : IC
 		// Assert
 		var retrieved = await fixture.Repository.GetAsync("scheduled-flag");
 		retrieved.ShouldNotBeNull();
-		retrieved.Schedule.ScheduledEnableUtcDate.ShouldNotBeNull();
-		retrieved.Schedule.ScheduledDisableUtcDate.ShouldNotBeNull();
+		retrieved.Schedule.ScheduledEnableDate.ShouldBe(startDt);
+		retrieved.Schedule.ScheduledDisableDate.ShouldBe(endDt);
 	}
 
 	[Fact]
