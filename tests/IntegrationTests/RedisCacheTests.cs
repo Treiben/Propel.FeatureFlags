@@ -157,7 +157,7 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 			"America/New_York", 
 			[DayOfWeek.Monday, DayOfWeek.Friday]);
 
-		flag.ExpirationDate = DateTime.UtcNow.AddDays(30);
+		flag.Lifecycle = new FlagLifecycle(expirationDate: DateTime.UtcNow.AddDays(30), isPermanent: false);
 		flag.Schedule = schedule;
 		flag.OperationalWindow = operationalWindow;
 
@@ -168,8 +168,8 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 
 		// Assert
 		result.ShouldNotBeNull();
-		result.ExpirationDate.ShouldNotBeNull();
-		result.ExpirationDate.Value.ShouldBeInRange(flag.ExpirationDate.Value.AddSeconds(-1), flag.ExpirationDate.Value.AddSeconds(1));
+		result.Lifecycle.ExpirationDate.ShouldNotBeNull();
+		result.Lifecycle.ExpirationDate.Value.ShouldBeInRange(flag.Lifecycle.ExpirationDate!.Value.AddSeconds(-1), flag.Lifecycle.ExpirationDate.Value.AddSeconds(1));
 		result.Schedule.ShouldBeEquivalentTo(schedule);
 		result.OperationalWindow.ShouldBeEquivalentTo(operationalWindow);
 	}
