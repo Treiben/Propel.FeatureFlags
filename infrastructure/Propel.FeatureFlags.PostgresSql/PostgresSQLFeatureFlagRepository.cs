@@ -438,8 +438,8 @@ public static class NpgsqlDataReaderExtensions
 				modifiedBy: await reader.GetDataAsync<string>("updated_by")
 			);
 		var schedule = new FlagActivationSchedule(
-				scheduledEnableDate: await reader.GetDataAsync<DateTime>("scheduled_enable_date"),
-				scheduledDisableDate: await reader.GetDataAsync<DateTime>("scheduled_disable_date")
+				scheduledEnableDate: (await reader.GetDataAsync<DateTimeOffset>("scheduled_enable_date")).UtcDateTime,
+				scheduledDisableDate: (await reader.GetDataAsync<DateTimeOffset>("scheduled_disable_date")).UtcDateTime
 			);
 		var window = new FlagOperationalWindow(
 				windowStartTime: await reader.GetTimeOnly("window_start_time") ?? TimeSpan.Zero,

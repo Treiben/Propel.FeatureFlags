@@ -3,12 +3,12 @@
 public class FlagActivationSchedule
 {
 	public DateTime ScheduledEnableDate { get; }
-	public DateTime ScheduledDisableDate { get; }
+	public DateTime? ScheduledDisableDate { get; }
 
 	public FlagActivationSchedule(DateTime scheduledEnableDate, DateTime? scheduledDisableDate = null)
 	{
-		var scheduledEnableUtcDate = scheduledEnableDate.ToUniversalTime();
-		var scheduledDisableUtcDate = (scheduledDisableDate ?? DateTime.MaxValue).ToUniversalTime();
+		var scheduledEnableUtcDate = NormalizeToUtc(scheduledEnableDate);
+		var scheduledDisableUtcDate = NormalizeToUtc(scheduledDisableDate ?? DateTime.MaxValue);
 
 		if (scheduledDisableUtcDate <= scheduledEnableUtcDate)
 		{
@@ -30,7 +30,7 @@ public class FlagActivationSchedule
 			throw new ArgumentException("Scheduled enable date must be a valid date.");
 		}
 
-		if (scheduledEnableDate.ToUniversalTime() <= DateTime.UtcNow)
+		if (NormalizeToUtc(scheduledEnableDate) <= DateTime.UtcNow)
 		{
 			throw new ArgumentException("Scheduled enable date must be in the future.");
 		}
@@ -72,5 +72,14 @@ public class FlagActivationSchedule
 		}
 		// Otherwise, the flag is enabled
 		return (true, "Scheduled enable date reached");
+	}
+
+	private static DateTime NormalizeToUtc(DateTime dateTime)
+	{
+		if (dateTime.Kind == DateTimeKind.Utc)
+		{
+			return dateTime;
+		}
+		return dateTime.ToUniversalTime();
 	}
 }

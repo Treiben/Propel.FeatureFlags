@@ -21,21 +21,22 @@ public class FlagAuditRecord
 		}
 
 		// Validate modification timestamp
-		if (modifiedAt.HasValue)
+		var normalizedModifiedAt = NormalizeModifiedDate(modifiedAt);
+		if (normalizedModifiedAt.HasValue)
 		{
-			if (modifiedAt.Value < createdAt)
+			if (normalizedModifiedAt.Value < createdAt)
 			{
 				throw new ArgumentException("Modified timestamp cannot be before creation timestamp.", nameof(modifiedAt));
 			}
 
-			if (modifiedAt.Value > DateTime.UtcNow.AddMinutes(1))
+			if (normalizedModifiedAt.Value > DateTime.UtcNow.AddMinutes(1))
 			{
 				throw new ArgumentException("Modified timestamp cannot be in the future.", nameof(modifiedAt));
 			}
 		}
 
 		CreatedAt = createdAt;
-		ModifiedAt = modifiedAt;	
+		ModifiedAt = normalizedModifiedAt;	
 		CreatedBy = ValidateAndNormalizeUser(createdBy) ?? "unknown";
 		ModifiedBy = modifiedAt.HasValue ? ValidateAndNormalizeUser(modifiedBy) : null;
 	}
@@ -64,5 +65,12 @@ public class FlagAuditRecord
 		}
 
 		return normalizedUser;
+	}
+
+	private static DateTime? NormalizeModifiedDate(DateTime? date)
+	{
+		if (date.HasValue && (date.Value == DateTime.MinValue || date.Value == DateTime.MaxValue))
+			return null;
+		return date;
 	}
 }
