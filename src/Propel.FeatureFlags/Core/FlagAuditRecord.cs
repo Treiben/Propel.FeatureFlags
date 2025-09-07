@@ -14,31 +14,33 @@ public class FlagAuditRecord
 		DateTime? modifiedAt = null,
 		string? modifiedBy = null)
 	{
+		var utcCreatedAt = NormalizeToUtc(createdAt);
+
 		// Validate creation timestamp
-		if (createdAt == DateTime.MinValue || createdAt > DateTime.UtcNow.AddMinutes(1))
+		if (utcCreatedAt.HasValue == false || utcCreatedAt > DateTime.UtcNow.AddMinutes(1))
 		{
 			throw new ArgumentException("Created timestamp must be a valid past or current time.", nameof(createdAt));
 		}
 
 		// Validate modification timestamp
-		var normalizedModifiedAt = NormalizeModifiedDate(modifiedAt);
-		if (normalizedModifiedAt.HasValue)
+		var utcModifiedAt = NormalizeToUtc(modifiedAt);
+		if (utcModifiedAt.HasValue)
 		{
-			if (normalizedModifiedAt.Value < createdAt)
+			if (utcModifiedAt.Value < utcCreatedAt)
 			{
 				throw new ArgumentException("Modified timestamp cannot be before creation timestamp.", nameof(modifiedAt));
 			}
 
-			if (normalizedModifiedAt.Value > DateTime.UtcNow.AddMinutes(1))
+			if (utcModifiedAt.Value > DateTime.UtcNow.AddMinutes(1))
 			{
 				throw new ArgumentException("Modified timestamp cannot be in the future.", nameof(modifiedAt));
 			}
 		}
 
-		CreatedAt = createdAt;
-		ModifiedAt = normalizedModifiedAt;	
+		CreatedAt = utcCreatedAt!.Value;
+		ModifiedAt = utcModifiedAt;	
 		CreatedBy = ValidateAndNormalizeUser(createdBy) ?? "unknown";
-		ModifiedBy = modifiedAt.HasValue ? ValidateAndNormalizeUser(modifiedBy) : null;
+		ModifiedBy = utcModifiedAt.HasValue ? ValidateAndNormalizeUser(modifiedBy) : null;
 	}
 
 	public static FlagAuditRecord NewFlag(string? createdBy = null)
@@ -67,10 +69,15 @@ public class FlagAuditRecord
 		return normalizedUser;
 	}
 
-	private static DateTime? NormalizeModifiedDate(DateTime? date)
+	private static DateTime? NormalizeToUtc(DateTime? dateTime)
 	{
-		if (date.HasValue && (date.Value == DateTime.MinValue || date.Value == DateTime.MaxValue))
+		if (!dateTime.HasValue || dateTime.Value == DateTime.MinValue || dateTime.Value == DateTime.MaxValue)
 			return null;
-		return date;
+
+		if (dateTime!.Value.Kind == DateTimeKind.Utc)
+		{
+			return dateTime;
+		}
+		return dateTime.Value.ToUniversalTime();
 	}
 }

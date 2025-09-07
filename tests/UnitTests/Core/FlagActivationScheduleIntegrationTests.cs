@@ -2,6 +2,8 @@ using Propel.FeatureFlags.Core;
 
 namespace FeatureFlags.UnitTests.Core;
 
+
+// Note: these tests focus on consistent behavior regardles of date's time zones or edge cases.
 public class FlagActivationSchedule_EdgeCases
 {
 	[Fact]
@@ -9,7 +11,7 @@ public class FlagActivationSchedule_EdgeCases
 	{
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-1);
-		var disableDate = DateTime.UtcNow.AddHours(1);
+		var disableDate = DateTime.Now.AddHours(1);
 		var schedule = new FlagActivationSchedule(enableDate, disableDate);
 		var evaluationTime = DateTime.UtcNow;
 
@@ -96,11 +98,11 @@ public class FlagActivationSchedule_EdgeCases
 	public void If_MinimalFutureDates_ThenCreatesSuccessfully(int secondsInFuture)
 	{
 		// Arrange
-		var enableDate = DateTime.UtcNow.AddSeconds(secondsInFuture);
+		var enableDate = DateTime.Now.AddSeconds(secondsInFuture);
 
 		// Act & Assert - Should not throw
 		var schedule = Should.NotThrow(() => FlagActivationSchedule.CreateSchedule(enableDate));
-		schedule.ScheduledEnableDate.ShouldBe(enableDate);
+		schedule.ScheduledEnableDate.ShouldBe(enableDate.ToUniversalTime());
 	}
 
 	[Fact]
@@ -108,8 +110,8 @@ public class FlagActivationSchedule_EdgeCases
 	{
 		// Arrange
 		var enableDate1 = DateTime.UtcNow.AddHours(1);
-		var enableDate2 = DateTime.UtcNow.AddHours(2);
-		var disableDate1 = DateTime.UtcNow.AddHours(3);
+		var enableDate2 = DateTime.Now.AddHours(2);
+		var disableDate1 = DateTime.Now.AddHours(3);
 
 		// Act
 		var schedule1 = FlagActivationSchedule.CreateSchedule(enableDate1, disableDate1);
@@ -117,10 +119,10 @@ public class FlagActivationSchedule_EdgeCases
 
 		// Assert - Each instance should be independent
 		schedule1.ScheduledEnableDate.ShouldBe(enableDate1);
-		schedule1.ScheduledDisableDate.ShouldBe(disableDate1);
+		schedule1.ScheduledDisableDate.ShouldBe(disableDate1.ToUniversalTime());
 		
-		schedule2.ScheduledEnableDate.ShouldBe(enableDate2);
-		schedule2.ScheduledDisableDate.ShouldBe(DateTime.MaxValue);
+		schedule2.ScheduledEnableDate.ShouldBe(enableDate2.ToUniversalTime());
+		schedule2.ScheduledDisableDate.ShouldBe(DateTime.MaxValue.ToUniversalTime());
 
 		// Modifications to one shouldn't affect the other
 		schedule1.ShouldNotBe(schedule2);
@@ -134,12 +136,12 @@ public class FlagActivationSchedule_PropertyAccess
 	{
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddDays(1);
-		var disableDate = DateTime.UtcNow.AddDays(7);
+		var disableDate = DateTime.Now.AddDays(7);
 		var schedule = FlagActivationSchedule.CreateSchedule(enableDate, disableDate);
 
 		// Act & Assert - Properties should be accessible and return correct values
-		schedule.ScheduledEnableDate.ShouldBe(enableDate);
-		schedule.ScheduledDisableDate.ShouldBe(disableDate);
+		schedule.ScheduledEnableDate.ShouldBe(enableDate.ToUniversalTime());
+		schedule.ScheduledDisableDate.ShouldBe(disableDate.ToUniversalTime());
 	}
 
 	[Fact]
@@ -157,12 +159,12 @@ public class FlagActivationSchedule_PropertyAccess
 	public void If_OnlyEnableDateSet_ThenDisableDateIsNull()
 	{
 		// Arrange
-		var enableDate = DateTime.UtcNow.AddDays(1);
+		var enableDate = DateTime.Now.AddDays(1);
 		var schedule = FlagActivationSchedule.CreateSchedule(enableDate);
 
 		// Act & Assert
-		schedule.ScheduledEnableDate.ShouldBe(enableDate);
-		schedule.ScheduledDisableDate.ShouldBe(DateTime.MaxValue);
+		schedule.ScheduledEnableDate.ShouldBe(enableDate.ToUniversalTime());
+		schedule.ScheduledDisableDate.ShouldBe(DateTime.MaxValue.ToUniversalTime());
 	}
 }
 

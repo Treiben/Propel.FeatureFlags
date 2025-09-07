@@ -47,8 +47,8 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			}
 
 			var flag = await reader.LoadFlagFromReader();
-			_logger.LogDebug("Retrieved feature flag: {Key} with evaluation modes {Modes}", 
-				flag.Key, 
+			_logger.LogDebug("Retrieved feature flag: {Key} with evaluation modes {Modes}",
+				flag.Key,
 				flag.EvaluationModeSet.EvaluationModes);
 			return flag;
 		}
@@ -337,7 +337,8 @@ public static class NpgsqlCommandExtensions
 		command.Parameters.AddWithValue("updated_at", (object?)flag.AuditRecord.ModifiedAt ?? DBNull.Value);
 		command.Parameters.AddWithValue("created_by", flag.AuditRecord.CreatedBy);
 		command.Parameters.AddWithValue("updated_by", (object?)flag.AuditRecord.ModifiedBy ?? DBNull.Value);
-		command.Parameters.AddWithValue("expiration_date", (object?)flag.ExpirationDate ?? DBNull.Value);
+		command.Parameters.AddWithValue("expiration_date", (object?)flag.Lifecycle.ExpirationDate ?? DBNull.Value);
+		command.Parameters.AddWithValue("is_permanent", flag.Lifecycle.IsPermanent);
 		command.Parameters.AddWithValue("scheduled_enable_date", (object?)flag.Schedule.ScheduledEnableDate ?? DBNull.Value);
 		command.Parameters.AddWithValue("scheduled_disable_date", (object?)flag.Schedule.ScheduledDisableDate ?? DBNull.Value);
 		command.Parameters.AddWithValue("window_start_time", (object?)flag.OperationalWindow.WindowStartTime ?? DBNull.Value);
@@ -377,8 +378,6 @@ public static class NpgsqlCommandExtensions
 
 		var tagsParam = command.Parameters.Add("tags", NpgsqlDbType.Jsonb);
 		tagsParam.Value = JsonSerializer.Serialize(flag.Tags, JsonDefaults.JsonOptions);
-
-		command.Parameters.AddWithValue("is_permanent", flag.IsPermanent);
 	}
 
 	public static void AddFilterParameters(this NpgsqlCommand command, Dictionary<string, object> parameters)
@@ -431,9 +430,14 @@ public static class NpgsqlDataReaderExtensions
 	public static async Task<FeatureFlag> LoadFlagFromReader(this NpgsqlDataReader reader)
 	{
 		var evaluationModeSet = new FlagEvaluationModeSet(await reader.Deserialize<FlagEvaluationMode[]>("evaluation_modes"));
+
+		var lifecycle = new FlagLifecycle(
+				expirationDate: (await reader.GetDataAsync<DateTimeOffset?>("expiration_date"))?.UtcDateTime,
+				isPermanent: await reader.GetDataAsync<bool>("is_permanent")
+			);
 		var auditRecord = new FlagAuditRecord(
-				createdAt: await reader.GetDataAsync<DateTime>("created_at"),
-				modifiedAt: await reader.GetDataAsync<DateTime>("updated_at"),
+				createdAt: (await reader.GetDataAsync<DateTimeOffset>("created_at")).UtcDateTime,
+				modifiedAt: (await reader.GetDataAsync<DateTimeOffset>("updated_at")).UtcDateTime,
 				createdBy: await reader.GetDataAsync<string>("created_by"),
 				modifiedBy: await reader.GetDataAsync<string>("updated_by")
 			);
@@ -458,7 +462,7 @@ public static class NpgsqlDataReaderExtensions
 				rolloutPercentage: await reader.GetDataAsync<int>("tenant_percentage_enabled")
 			);
 		var variations = new FlagVariations
-		{			
+		{
 			Values = await reader.Deserialize<Dictionary<string, object>>("variations"),
 			DefaultVariation = await reader.GetDataAsync<string>("default_variation"),
 		};
@@ -470,15 +474,15 @@ public static class NpgsqlDataReaderExtensions
 			Description = await reader.GetDataAsync<string>("description"),
 			EvaluationModeSet = evaluationModeSet,
 			AuditRecord = auditRecord,
+			Lifecycle = lifecycle,
 			Schedule = schedule,
 			OperationalWindow = window,
 			UserAccess = userAccess,
 			TenantAccess = tenantAccess,
 			Variations = variations,
-			ExpirationDate = await reader.GetDataAsync<DateTime>("expiration_date"),
 			TargetingRules = await reader.Deserialize<List<TargetingRule>>("targeting_rules"),
 			Tags = await reader.Deserialize<Dictionary<string, string>>("tags"),
-			IsPermanent = await reader.GetDataAsync<bool>("is_permanent")
+
 		};
 	}
 }

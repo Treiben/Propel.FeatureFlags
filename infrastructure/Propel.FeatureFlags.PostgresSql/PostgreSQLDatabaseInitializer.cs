@@ -113,12 +113,12 @@ CREATE TABLE feature_flags (
     description TEXT NOT NULL DEFAULT '',
     evaluation_modes JSONB NOT NULL DEFAULT '[]',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NULL,
     created_by VARCHAR(255) NOT NULL,
     updated_by VARCHAR(255) NOT NULL,
     
     -- Expiration
-    expiration_date TIMESTAMP WITH TIME ZONE NULL,
+    expiration_date TIMESTAMP WITH TIME ZONE NOT NULL,
     
     -- Scheduling
     scheduled_enable_date TIMESTAMP WITH TIME ZONE NULL,
