@@ -286,7 +286,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		{
 			for (int i = 0; i < filter.EvaluationModes.Length; i++)
 			{
-				FlagEvaluationMode[] mode = [filter.EvaluationModes[i]];
+				int[] mode = [(int)filter.EvaluationModes[i]];
 				conditions.Add($"evaluation_modes @> @mode{i}");
 				parameters[$"mode{i}"] = JsonSerializer.Serialize(mode, JsonDefaults.JsonOptions);
 			}
@@ -339,8 +339,17 @@ public static class NpgsqlCommandExtensions
 		command.Parameters.AddWithValue("updated_by", (object?)flag.AuditRecord.ModifiedBy ?? DBNull.Value);
 		command.Parameters.AddWithValue("expiration_date", (object?)flag.Lifecycle.ExpirationDate ?? DBNull.Value);
 		command.Parameters.AddWithValue("is_permanent", flag.Lifecycle.IsPermanent);
-		command.Parameters.AddWithValue("scheduled_enable_date", (object?)flag.Schedule.ScheduledEnableDate ?? DBNull.Value);
-		command.Parameters.AddWithValue("scheduled_disable_date", (object?)flag.Schedule.ScheduledDisableDate ?? DBNull.Value);
+
+		if (flag.Schedule.ScheduledEnableDate == DateTime.MinValue)			
+			command.Parameters.AddWithValue("scheduled_enable_date", DBNull.Value);
+		else
+			command.Parameters.AddWithValue("scheduled_enable_date", flag.Schedule.ScheduledEnableDate);
+
+		if (flag.Schedule.ScheduledDisableDate == DateTime.MaxValue)
+			command.Parameters.AddWithValue("scheduled_disable_date", DBNull.Value);
+		else
+			command.Parameters.AddWithValue("scheduled_disable_date", (object?)flag.Schedule.ScheduledDisableDate ?? DBNull.Value);
+
 		command.Parameters.AddWithValue("window_start_time", (object?)flag.OperationalWindow.WindowStartTime ?? DBNull.Value);
 		command.Parameters.AddWithValue("window_end_time", (object?)flag.OperationalWindow.WindowEndTime ?? DBNull.Value);
 		command.Parameters.AddWithValue("time_zone", (object?)flag.OperationalWindow.TimeZone ?? DBNull.Value);
@@ -348,10 +357,10 @@ public static class NpgsqlCommandExtensions
 		// JSONB parameters require explicit type specification
 
 		var evaluationModesParam = command.Parameters.Add("evaluation_modes", NpgsqlDbType.Jsonb);
-		evaluationModesParam.Value = JsonSerializer.Serialize(flag.EvaluationModeSet.EvaluationModes, JsonDefaults.JsonOptions);
+		evaluationModesParam.Value = JsonSerializer.Serialize(flag.EvaluationModeSet.EvaluationModes.Select(m => (int)m), JsonDefaults.JsonOptions);
 
 		var windowDaysParam = command.Parameters.Add("window_days", NpgsqlDbType.Jsonb);
-		windowDaysParam.Value = JsonSerializer.Serialize(flag.OperationalWindow.WindowDays ?? [], JsonDefaults.JsonOptions);
+		windowDaysParam.Value = JsonSerializer.Serialize(flag.OperationalWindow.WindowDays?.Select(d => (int)d) ?? [], JsonDefaults.JsonOptions);
 
 		command.Parameters.AddWithValue("user_percentage_enabled", flag.UserAccess.RolloutPercentage);
 		command.Parameters.AddWithValue("tenant_percentage_enabled", flag.TenantAccess.RolloutPercentage);
