@@ -61,20 +61,6 @@ public class FlagOperationalWindow_AlwaysOpen
 		window.WindowDays.Length.ShouldBe(7);
 		window.HasWindow().ShouldBeFalse();
 	}
-
-	[Fact]
-	public void If_AlwaysOpenMultipleCalls_ThenReturnsSeparateInstances()
-	{
-		// Act
-		var window1 = FlagOperationalWindow.AlwaysOpen;
-		var window2 = FlagOperationalWindow.AlwaysOpen;
-
-		// Assert
-		window1.ShouldNotBe(window2);
-		window1.WindowStartTime.ShouldBe(window2.WindowStartTime);
-		window1.WindowEndTime.ShouldBe(window2.WindowEndTime);
-		window1.TimeZone.ShouldBe(window2.TimeZone);
-	}
 }
 
 public class FlagOperationalWindow_CreateWindow

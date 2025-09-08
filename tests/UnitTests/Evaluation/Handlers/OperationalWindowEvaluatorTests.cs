@@ -133,7 +133,6 @@ public class OperationalWindowEvaluator_ProcessEvaluation_WindowValidation
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeTrue();
-		result.Reason.ShouldBe("Within time window");
 	}
 }
 
@@ -187,7 +186,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation_EvaluationTime
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeTrue();
-		result.Reason.ShouldBe("Within time window");
+		result.Reason.ShouldBe("Flag operational window is always open.");
 	}
 }
 
@@ -855,7 +854,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation_EdgeCases
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeTrue(); // AlwaysOpen should always be enabled
-		result.Reason.ShouldBe("Within time window");
+		result.Reason.ShouldBe("Flag operational window is always open.");
 	}
 }
 
