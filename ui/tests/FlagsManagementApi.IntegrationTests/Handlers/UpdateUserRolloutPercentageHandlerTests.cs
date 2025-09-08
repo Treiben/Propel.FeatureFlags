@@ -28,7 +28,7 @@ public class UpdateUserRolloutPercentageHandler_Success(FlagsManagementApiFixtur
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
 		okResult.Value.ShouldNotBeNull();
 		okResult.Value.EvaluationModes.ShouldContain(FlagEvaluationMode.UserRolloutPercentage);
-		okResult.Value.PercentageEnabled.ShouldBe(75);
+		okResult.Value.UserRolloutPercentage.ShouldBe(75);
 		okResult.Value.UpdatedBy.ShouldBe("test-user");
 
 		// Verify in repository
@@ -55,7 +55,7 @@ public class UpdateUserRolloutPercentageHandler_Success(FlagsManagementApiFixtur
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
 		okResult.Value.EvaluationModes.ShouldContain(FlagEvaluationMode.UserRolloutPercentage);
-		okResult.Value.PercentageEnabled.ShouldBe(100);
+		okResult.Value.UserRolloutPercentage.ShouldBe(100);
 
 		var updatedFlag = await fixture.Repository.GetAsync("full-user-rollout");
 		updatedFlag.UserAccess.RolloutPercentage.ShouldBe(100);
@@ -83,7 +83,7 @@ public class UpdateUserRolloutPercentageHandler_ZeroPercent(FlagsManagementApiFi
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
 		okResult.Value.EvaluationModes.ShouldNotContain(FlagEvaluationMode.UserRolloutPercentage);
-		okResult.Value.PercentageEnabled.ShouldBe(0);
+		okResult.Value.UserRolloutPercentage.ShouldBe(0);
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("zero-user-rollout");

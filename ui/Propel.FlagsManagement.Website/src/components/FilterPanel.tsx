@@ -1,9 +1,11 @@
 import { X } from 'lucide-react';
+import { getEvaluationModes } from '../services/apiService';
 
 interface FilterState {
-    status: string;
+    modes: number[];
     tagKeys: string[];
     tagValues: string[];
+    expiringInDays?: number;
 }
 
 interface FilterPanelProps {
@@ -21,6 +23,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
     onClearFilters,
     onClose
 }) => {
+    const evaluationModes = getEvaluationModes();
+
     const addTagFilter = () => {
         onFiltersChange({
             ...filters,
@@ -51,6 +55,17 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         });
     };
 
+    const toggleMode = (mode: number) => {
+        const newModes = filters.modes.includes(mode)
+            ? filters.modes.filter(m => m !== mode)
+            : [...filters.modes, mode];
+        
+        onFiltersChange({
+            ...filters,
+            modes: newModes,
+        });
+    };
+
     return (
         <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
             <div className="flex justify-between items-center mb-4">
@@ -64,22 +79,42 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             </div>
 
             <div className="space-y-4">
-                {/* Status Filter */}
+                {/* Evaluation Modes Filter */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                    <select
-                        value={filters.status}
-                        onChange={(e) => onFiltersChange({ ...filters, status: e.target.value })}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Evaluation Modes</label>
+                    <div className="grid grid-cols-2 gap-2">
+                        {evaluationModes.map((mode) => (
+                            <label key={mode.value} className="flex items-center gap-2 text-sm">
+                                <input
+                                    type="checkbox"
+                                    checked={filters.modes.includes(mode.value)}
+                                    onChange={() => toggleMode(mode.value)}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="text-gray-700">{mode.label}</span>
+                            </label>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Expiring In Days Filter */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Expiring In Days</label>
+                    <input
+                        type="number"
+                        min="1"
+                        max="365"
+                        placeholder="Days (1-365)"
+                        value={filters.expiringInDays || ''}
+                        onChange={(e) => onFiltersChange({ 
+                            ...filters, 
+                            expiringInDays: e.target.value ? parseInt(e.target.value) : undefined 
+                        })}
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">All Statuses</option>
-                        <option value="Enabled">Enabled</option>
-                        <option value="Disabled">Disabled</option>
-                        <option value="Scheduled">Scheduled</option>
-                        <option value="Percentage">Percentage</option>
-                        <option value="UserTargeted">User Targeted</option>
-                        <option value="TimeWindow">Time Window</option>
-                    </select>
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                        Filter flags expiring within specified days
+                    </p>
                 </div>
 
                 {/* Tag Filters */}

@@ -1,5 +1,6 @@
-import { Calendar, Clock, Percent, Users, Eye, EyeOff, Info } from 'lucide-react';
-import type { FeatureFlagDto } from '../../services/apiService';
+import { useState } from 'react';
+import { Calendar, Clock, Percent, Users, Info, Play, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import type { FeatureFlagDto, EvaluationResult } from '../../services/apiService';
 import { 
     parseStatusComponents, 
     getStatusDescription,
@@ -7,15 +8,27 @@ import {
     getTimeWindowStatus,
     formatDate,
     formatTime,
-    formatRelativeTime
+    formatRelativeTime,
+    getDayName
 } from '../../utils/flagHelpers';
 
 interface CompoundStatusOverviewProps {
     flag: FeatureFlagDto;
+    onEvaluateFlag?: (key: string, userId?: string, attributes?: Record<string, any>) => Promise<EvaluationResult>;
+    evaluationResult?: EvaluationResult;
+    evaluationLoading?: boolean;
 }
 
-export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({ flag }) => {
-    const components = parseStatusComponents(flag.status);
+export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({ 
+    flag, 
+    onEvaluateFlag,
+    evaluationResult,
+    evaluationLoading = false
+}) => {
+    const [testUserId, setTestUserId] = useState('');
+    const [testAttributes, setTestAttributes] = useState('{}');
+    const [showEvaluation, setShowEvaluation] = useState(false);
+    const components = parseStatusComponents(flag);
     const scheduleStatus = getScheduleStatus(flag);
     const timeWindowStatus = getTimeWindowStatus(flag);
 
@@ -25,28 +38,40 @@ export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({ 
         return null;
     }
 
+    const handleEvaluate = async () => {
+        if (!onEvaluateFlag) return;
+
+        try {
+            let attributes: Record<string, any> | undefined;
+            if (testAttributes.trim()) {
+                attributes = JSON.parse(testAttributes);
+            }
+            
+            await onEvaluateFlag(flag.key, testUserId || undefined, attributes);
+        } catch (error) {
+            console.error('Failed to evaluate flag:', error);
+            // You might want to show a toast notification here
+        }
+    };
+
     return (
         <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <div className="flex items-center gap-2 mb-3">
-                <Info className="w-4 h-4 text-gray-600" />
-                <h4 className="font-medium text-gray-900">Status Overview</h4>
-                <span className="text-sm text-gray-600">({getStatusDescription(flag.status)})</span>
+            <div className="flex items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                    <Info className="w-4 h-4 text-gray-600" />
+                    <h4 className="font-medium text-gray-900">Status Overview</h4>
+                    <span className="text-sm text-gray-600">({getStatusDescription(flag)})</span>
+                </div>
+                <button
+                    onClick={() => setShowEvaluation(!showEvaluation)}
+                    className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                >
+                    <Play className="w-3 h-3" />
+                    Test Evaluation
+                </button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                {/* Base Status */}
-                <div className="flex items-center gap-2">
-                    {components.baseStatus === 'Enabled' ? (
-                        <Eye className="w-4 h-4 text-green-600" />
-                    ) : (
-                        <EyeOff className="w-4 h-4 text-red-600" />
-                    )}
-                    <span className="font-medium">Base Status:</span>
-                    <span className={components.baseStatus === 'Enabled' ? 'text-green-700' : 'text-red-700'}>
-                        {components.baseStatus}
-                    </span>
-                </div>
-
                 {/* Scheduling */}
                 {components.isScheduled && (
                     <div className="flex items-center gap-2">
@@ -87,7 +112,7 @@ export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({ 
                     <div className="flex items-center gap-2">
                         <Percent className="w-4 h-4 text-yellow-600" />
                         <span className="font-medium">Percentage:</span>
-                        <span className="text-yellow-700">{flag.percentageEnabled || 0}% of users</span>
+                        <span className="text-yellow-700">{flag.userRolloutPercentage || 0}% of users</span>
                     </div>
                 )}
 
@@ -97,11 +122,73 @@ export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({ 
                         <Users className="w-4 h-4 text-purple-600" />
                         <span className="font-medium">User Targeting:</span>
                         <span className="text-purple-700">
-                            {(flag.enabledUsers?.length || 0)} enabled, {(flag.disabledUsers?.length || 0)} disabled
+                            {(flag.allowedUsers?.length || 0)} enabled, {(flag.blockedUsers?.length || 0)} disabled
                         </span>
                     </div>
                 )}
             </div>
+
+            {/* Evaluation Section */}
+            {showEvaluation && onEvaluateFlag && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Test User ID (optional)</label>
+                            <input
+                                type="text"
+                                value={testUserId}
+                                onChange={(e) => setTestUserId(e.target.value)}
+                                placeholder="user123"
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Attributes (JSON)</label>
+                            <input
+                                type="text"
+                                value={testAttributes}
+                                onChange={(e) => setTestAttributes(e.target.value)}
+                                placeholder='{"country": "US", "plan": "premium"}'
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleEvaluate}
+                            disabled={evaluationLoading}
+                            className="flex items-center gap-1 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {evaluationLoading ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                                <Play className="w-3 h-3" />
+                            )}
+                            Evaluate
+                        </button>
+                        
+                        {evaluationResult && (
+                            <div className="flex items-center gap-1 text-xs">
+                                {evaluationResult.isEnabled ? (
+                                    <CheckCircle className="w-3 h-3 text-green-600" />
+                                ) : (
+                                    <XCircle className="w-3 h-3 text-red-600" />
+                                )}
+                                <span className={evaluationResult.isEnabled ? 'text-green-700' : 'text-red-700'}>
+                                    {evaluationResult.isEnabled ? 'Enabled' : 'Disabled'}
+                                </span>
+                                {evaluationResult.reason && (
+                                    <span className="text-gray-600">({evaluationResult.reason})</span>
+                                )}
+                                {evaluationResult.variation && evaluationResult.variation !== 'default' && (
+                                    <span className="text-gray-600">- Variation: {evaluationResult.variation}</span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Additional Details */}
             {(components.isScheduled || components.hasTimeWindow) && (
@@ -113,7 +200,7 @@ export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({ 
                         <div>
                             Window: {formatTime(flag.windowStartTime)} - {formatTime(flag.windowEndTime)} 
                             {flag.timeZone && ` (${flag.timeZone})`}
-                            {flag.windowDays && flag.windowDays.length > 0 && `, ${flag.windowDays.join(', ')}`}
+                            {flag.windowDays && flag.windowDays.length > 0 && `, ${flag.windowDays.map(day => getDayName(day)).join(', ')}`}
                         </div>
                     )}
                 </div>

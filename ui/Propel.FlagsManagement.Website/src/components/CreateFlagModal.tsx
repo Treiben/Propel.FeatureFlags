@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Lock } from 'lucide-react';
+import { X, Lock, Calendar } from 'lucide-react';
 import type { CreateFeatureFlagRequest } from '../services/apiService';
 
 interface CreateFlagModalProps {
@@ -17,10 +17,7 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
         key: '',
         name: '',
         description: '',
-        status: 'Disabled',
-        percentageEnabled: 0,
-        variations: { on: true, off: false },
-        defaultVariation: 'off',
+        expirationDate: undefined,
         tags: {},
         isPermanent: false,
     });
@@ -29,16 +26,26 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
     const handleSubmit = async () => {
         try {
             setSubmitting(true);
-            await onSubmit(formData);
+            
+            // Clean up the request - remove undefined values and empty strings
+            const cleanedData: CreateFeatureFlagRequest = {
+                key: formData.key,
+                name: formData.name,
+                ...(formData.description && { description: formData.description }),
+                ...(formData.expirationDate && { expirationDate: formData.expirationDate }),
+                ...(formData.tags && Object.keys(formData.tags).length > 0 && { tags: formData.tags }),
+                ...(formData.isPermanent && { isPermanent: formData.isPermanent }),
+            };
+
+            await onSubmit(cleanedData);
             onClose();
+            
+            // Reset form
             setFormData({
                 key: '',
                 name: '',
                 description: '',
-                status: 'Disabled',
-                percentageEnabled: 0,
-                variations: { on: true, off: false },
-                defaultVariation: 'off',
+                expirationDate: undefined,
                 tags: {},
                 isPermanent: false,
             });
@@ -47,6 +54,31 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleTagsChange = (tagsString: string) => {
+        try {
+            const tags: Record<string, string> = {};
+            if (tagsString.trim()) {
+                const tagPairs = tagsString.split(',').map(tag => tag.trim()).filter(tag => tag);
+                tagPairs.forEach(tagPair => {
+                    const [key, value] = tagPair.split(':').map(part => part.trim());
+                    if (key) {
+                        tags[key] = value || '';
+                    }
+                });
+            }
+            setFormData({ ...formData, tags });
+        } catch (error) {
+            console.error('Error parsing tags:', error);
+        }
+    };
+
+    const getTagsString = (): string => {
+        if (!formData.tags || Object.keys(formData.tags).length === 0) return '';
+        return Object.entries(formData.tags)
+            .map(([key, value]) => value ? `${key}:${value}` : key)
+            .join(', ');
     };
 
     if (!isOpen) return null;
@@ -105,11 +137,40 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
                         />
                     </div>
 
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            Expiration Date
+                        </label>
+                        <input
+                            type="datetime-local"
+                            value={formData.expirationDate || ''}
+                            onChange={(e) => setFormData({ ...formData, expirationDate: e.target.value || undefined })}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={submitting}
+                            min={new Date().toISOString().slice(0, 16)}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Optional: When this flag should expire</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                        <input
+                            type="text"
+                            value={getTagsString()}
+                            onChange={(e) => handleTagsChange(e.target.value)}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="environment:prod, team:backend, priority:high"
+                            disabled={submitting}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Optional: Comma-separated key:value pairs or just keys</p>
+                    </div>
+
                     <div className="flex items-center gap-2">
                         <input
                             type="checkbox"
                             id="isPermanent"
-                            checked={formData.isPermanent}
+                            checked={formData.isPermanent || false}
                             onChange={(e) => setFormData({ ...formData, isPermanent: e.target.checked })}
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                             disabled={submitting}

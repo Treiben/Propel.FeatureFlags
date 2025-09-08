@@ -59,8 +59,8 @@ interface UserListsProps {
 }
 
 export const UserLists: React.FC<UserListsProps> = ({ flag }) => {
-    const hasEnabledUsers = flag.enabledUsers && flag.enabledUsers.length > 0;
-    const hasDisabledUsers = flag.disabledUsers && flag.disabledUsers.length > 0;
+    const hasEnabledUsers = flag.allowedUsers && flag.allowedUsers.length > 0;
+    const hasDisabledUsers = flag.blockedUsers && flag.blockedUsers.length > 0;
 
     if (!hasEnabledUsers && !hasDisabledUsers) return null;
 
@@ -69,13 +69,13 @@ export const UserLists: React.FC<UserListsProps> = ({ flag }) => {
             {hasEnabledUsers && (
                 <div className="text-sm">
                     <span className="font-medium text-green-700">Enabled for: </span>
-                    <span className="text-gray-600">{flag.enabledUsers!.join(', ')}</span>
+                    <span className="text-gray-600">{flag.allowedUsers!.join(', ')}</span>
                 </div>
             )}
             {hasDisabledUsers && (
                 <div className="text-sm">
                     <span className="font-medium text-red-700">Disabled for: </span>
-                    <span className="text-gray-600">{flag.disabledUsers!.join(', ')}</span>
+                    <span className="text-gray-600">{flag.blockedUsers!.join(', ')}</span>
                 </div>
             )}
         </div>
@@ -90,7 +90,9 @@ export const FlagMetadata: React.FC<FlagMetadataProps> = ({ flag }) => {
     return (
         <div className="mt-6 pt-4 border-t border-gray-200 text-xs text-gray-500 space-y-1">
             <div>Created by {flag.createdBy} on {formatDate(flag.createdAt)}</div>
-            <div>Last updated by {flag.updatedBy} on {formatDate(flag.updatedAt)}</div>
+            {flag.updatedBy && flag.updatedAt && (
+                <div>Last updated by {flag.updatedBy} on {formatDate(flag.updatedAt)}</div>
+            )}
             {hasValidTags(flag.tags) && (
                 <div className="flex flex-wrap gap-1 mt-2">
                     {getTagEntries(flag.tags).map(([key, value]) => (
@@ -109,9 +111,9 @@ interface FlagEditSectionProps {
     onUpdateFlag: (updates: {
         name?: string;
         description?: string;
-        expirationDate?: string;
-        isPermanent?: boolean;
         tags?: Record<string, string>;
+        isPermanent?: boolean;
+        expirationDate?: string;
     }) => Promise<void>;
     operationLoading: boolean;
 }
@@ -126,7 +128,8 @@ export const FlagEditSection: React.FC<FlagEditSectionProps> = ({
         name: flag.name,
         description: flag.description || '',
         expirationDate: flag.expirationDate ? flag.expirationDate.slice(0, 16) : '',
-        isPermanent: flag.isPermanent
+        isPermanent: flag.isPermanent,
+        tags: Object.entries(flag.tags || {}).map(([key, value]) => `${key}:${value}`).join(', ')
     });
 
     // Update local state when flag changes (when a different flag is selected)
@@ -135,9 +138,24 @@ export const FlagEditSection: React.FC<FlagEditSectionProps> = ({
             name: flag.name,
             description: flag.description || '',
             expirationDate: flag.expirationDate ? flag.expirationDate.slice(0, 16) : '',
-            isPermanent: flag.isPermanent
+            isPermanent: flag.isPermanent,
+            tags: Object.entries(flag.tags || {}).map(([key, value]) => `${key}:${value}`).join(', ')
         });
-    }, [flag.key, flag.name, flag.description, flag.expirationDate, flag.isPermanent]);
+    }, [flag.key, flag.name, flag.description, flag.expirationDate, flag.isPermanent, flag.tags]);
+
+    const parseTags = (tagsString: string): Record<string, string> => {
+        const tags: Record<string, string> = {};
+        if (tagsString.trim()) {
+            const tagPairs = tagsString.split(',').map(tag => tag.trim()).filter(tag => tag);
+            tagPairs.forEach(tagPair => {
+                const [key, value] = tagPair.split(':').map(part => part.trim());
+                if (key) {
+                    tags[key] = value || '';
+                }
+            });
+        }
+        return tags;
+    };
 
     const handleSubmit = async () => {
         try {
@@ -152,11 +170,17 @@ export const FlagEditSection: React.FC<FlagEditSectionProps> = ({
             }
             
             if (formData.expirationDate !== (flag.expirationDate ? flag.expirationDate.slice(0, 16) : '')) {
-                updates.expirationDate = formData.expirationDate ? new Date(formData.expirationDate).toISOString() : null;
+                updates.expirationDate = formData.expirationDate ? new Date(formData.expirationDate).toISOString() : undefined;
             }
             
             if (formData.isPermanent !== flag.isPermanent) {
                 updates.isPermanent = formData.isPermanent;
+            }
+
+            const newTags = parseTags(formData.tags);
+            const currentTags = flag.tags || {};
+            if (JSON.stringify(newTags) !== JSON.stringify(currentTags)) {
+                updates.tags = newTags;
             }
 
             await onUpdateFlag(updates);
@@ -171,7 +195,8 @@ export const FlagEditSection: React.FC<FlagEditSectionProps> = ({
             name: flag.name,
             description: flag.description || '',
             expirationDate: flag.expirationDate ? flag.expirationDate.slice(0, 16) : '',
-            isPermanent: flag.isPermanent
+            isPermanent: flag.isPermanent,
+            tags: Object.entries(flag.tags || {}).map(([key, value]) => `${key}:${value}`).join(', ')
         });
         setEditing(false);
     };
@@ -222,6 +247,19 @@ export const FlagEditSection: React.FC<FlagEditSectionProps> = ({
                                 maxLength={1000}
                                 placeholder="Enter flag description..."
                             />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                            <input
+                                type="text"
+                                value={formData.tags}
+                                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                                className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                                disabled={operationLoading}
+                                placeholder="environment:prod, team:backend, priority:high"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Comma-separated key:value pairs</p>
                         </div>
                         
                         <div>
@@ -276,6 +314,8 @@ export const FlagEditSection: React.FC<FlagEditSectionProps> = ({
                 <div className="text-sm text-gray-600 space-y-1">
                     <div><strong>Name:</strong> {flag.name}</div>
                     <div><strong>Description:</strong> {flag.description || 'No description'}</div>
+                    <div><strong>Allowed Users:</strong> {flag.allowedUsers?.length ? flag.allowedUsers.join(', ') : 'None'}</div>
+                    <div><strong>Blocked Users:</strong> {flag.blockedUsers?.length ? flag.blockedUsers.join(', ') : 'None'}</div>
                     <div><strong>Expiration:</strong> {formatDate(flag.expirationDate)}</div>
                     <div><strong>Permanent:</strong> {flag.isPermanent ? 'Yes' : 'No'}</div>
                 </div>

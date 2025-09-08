@@ -13,7 +13,7 @@ interface SchedulingStatusIndicatorProps {
 }
 
 export const SchedulingStatusIndicator: React.FC<SchedulingStatusIndicatorProps> = ({ flag }) => {
-    const components = parseStatusComponents(flag.status);
+    const components = parseStatusComponents(flag);
     const scheduleStatus = getScheduleStatus(flag);
 
     if (!components.isScheduled) return null;
@@ -25,7 +25,7 @@ export const SchedulingStatusIndicator: React.FC<SchedulingStatusIndicatorProps>
                 : scheduleStatus.phase === 'upcoming'
                 ? 'bg-blue-50 border-blue-200'
                 : 'bg-gray-50 border-gray-200'
-        }`}>
+        }`} data-testid="scheduling-status-indicator">
             <div className="flex items-center gap-2 mb-1">
                 {scheduleStatus.isActive ? (
                     <>
@@ -49,7 +49,7 @@ export const SchedulingStatusIndicator: React.FC<SchedulingStatusIndicatorProps>
                 <p className={`text-sm ${
                     scheduleStatus.isActive ? 'text-green-700' : 
                     scheduleStatus.phase === 'upcoming' ? 'text-blue-700' : 'text-gray-700'
-                }`}>
+                }`} data-testid="next-action-info">
                     {scheduleStatus.nextAction} {formatRelativeTime(scheduleStatus.nextActionTime)}
                 </p>
             )}
@@ -88,7 +88,7 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
         disableDate: flag.scheduledDisableDate ? flag.scheduledDisableDate.slice(0, 16) : ''
     });
 
-    const components = parseStatusComponents(flag.status);
+    const components = parseStatusComponents(flag);
 
     // Update local state when flag changes (when a different flag is selected)
     useEffect(() => {
@@ -128,6 +128,7 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
                         onClick={() => setEditingSchedule(true)}
                         disabled={operationLoading}
                         className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1 disabled:opacity-50"
+                        data-testid="edit-schedule-button"
                     >
                         <Calendar className="w-4 h-4" />
                         Schedule
@@ -138,6 +139,7 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
                             disabled={operationLoading}
                             className="text-red-600 hover:text-red-800 text-sm flex items-center gap-1 disabled:opacity-50"
                             title="Clear Schedule"
+                            data-testid="clear-schedule-button"
                         >
                             <X className="w-4 h-4" />
                             Clear
@@ -157,6 +159,8 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
                                 onChange={(e) => setScheduleData({ ...scheduleData, enableDate: e.target.value })}
                                 className="w-full border border-blue-300 rounded px-3 py-2 text-sm"
                                 disabled={operationLoading}
+                                min={new Date().toISOString().slice(0, 16)}
+                                data-testid="enable-date-input"
                             />
                         </div>
                         <div>
@@ -167,6 +171,8 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
                                 onChange={(e) => setScheduleData({ ...scheduleData, disableDate: e.target.value })}
                                 className="w-full border border-blue-300 rounded px-3 py-2 text-sm"
                                 disabled={operationLoading}
+                                min={scheduleData.enableDate || new Date().toISOString().slice(0, 16)}
+                                data-testid="disable-date-input"
                             />
                         </div>
                     </div>
@@ -175,6 +181,7 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
                             onClick={handleScheduleSubmit}
                             disabled={operationLoading || !scheduleData.enableDate}
                             className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+                            data-testid="submit-schedule-button"
                         >
                             {operationLoading ? 'Scheduling...' : 'Schedule'}
                         </button>
@@ -182,6 +189,7 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
                             onClick={() => setEditingSchedule(false)}
                             disabled={operationLoading}
                             className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400 disabled:opacity-50"
+                            data-testid="cancel-schedule-button"
                         >
                             Cancel
                         </button>

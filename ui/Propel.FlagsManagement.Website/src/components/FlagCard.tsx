@@ -1,7 +1,7 @@
 import { Lock, PlayCircle, Trash2 } from 'lucide-react';
 import type { FeatureFlagDto } from '../services/apiService';
 import { StatusBadge } from './StatusBadge';
-import { getScheduleStatus, formatRelativeTime, hasValidTags, getTagEntries } from '../utils/flagHelpers';
+import { getScheduleStatus, formatRelativeTime, hasValidTags, getTagEntries, parseStatusComponents } from '../utils/flagHelpers';
 
 interface FlagCardProps {
     flag: FeatureFlagDto;
@@ -17,6 +17,7 @@ export const FlagCard: React.FC<FlagCardProps> = ({
     onDelete
 }) => {
     const scheduleStatus = getScheduleStatus(flag);
+    const components = parseStatusComponents(flag);
 
     return (
         <div
@@ -50,7 +51,7 @@ export const FlagCard: React.FC<FlagCardProps> = ({
 
                 <div className="flex flex-col items-end gap-2">
                     <div className="flex items-center gap-2">
-                        <StatusBadge status={flag.status} />
+                        <StatusBadge flag={flag} />
                         {!flag.isPermanent && (
                             <button
                                 onClick={(e) => {
@@ -65,11 +66,11 @@ export const FlagCard: React.FC<FlagCardProps> = ({
                         )}
                     </div>
 
-                    {flag.status === 'Percentage' && (
-                        <span className="text-xs text-gray-500">{flag.percentageEnabled || 0}%</span>
+                    {components.hasPercentage && (
+                        <span className="text-xs text-gray-500">{flag.userRolloutPercentage || 0}%</span>
                     )}
 
-                    {flag.status === 'Scheduled' && scheduleStatus.nextAction && scheduleStatus.nextActionTime && (
+                    {components.isScheduled && scheduleStatus.nextAction && scheduleStatus.nextActionTime && (
                         <span className="text-xs text-gray-500">
                             {scheduleStatus.nextAction} {formatRelativeTime(scheduleStatus.nextActionTime)}
                         </span>

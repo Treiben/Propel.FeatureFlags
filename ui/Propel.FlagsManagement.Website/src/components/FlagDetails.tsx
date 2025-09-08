@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Trash2, Eye, EyeOff } from 'lucide-react';
-import type { FeatureFlagDto } from '../services/apiService';
+import type { FeatureFlagDto, EvaluationResult } from '../services/apiService';
 import { StatusBadge } from './StatusBadge';
+import { parseStatusComponents } from '../utils/flagHelpers';
 
 // Import business logic components
 import { FlagStatusIndicators } from './flag-details/FlagStatusIndicators';
@@ -15,9 +16,9 @@ import {
     TimeWindowSection 
 } from './flag-details/TimeWindowComponents';
 import { 
-    PercentageStatusIndicator, 
-    PercentageEditor 
-} from './flag-details/PercentageComponents';
+    UserAccessControlStatusIndicator, 
+    UserAccessControlEditor 
+} from './flag-details/UserAccessControlComponents';
 import { 
     ExpirationWarning, 
     PermanentFlagWarning, 
@@ -29,7 +30,7 @@ import {
 interface FlagDetailsProps {
     flag: FeatureFlagDto;
     onToggle: (flag: FeatureFlagDto) => Promise<void>;
-    onSetPercentage: (flag: FeatureFlagDto, percentage: number) => Promise<void>;
+    onUpdateUserAccess: (allowedUsers?: string[], blockedUsers?: string[], percentage?: number) => Promise<void>;
     onSchedule: (flag: FeatureFlagDto, enableDate: string, disableDate?: string) => Promise<void>;
     onClearSchedule: (flag: FeatureFlagDto) => Promise<void>;
     onUpdateTimeWindow: (flag: FeatureFlagDto, timeWindowData: {
@@ -42,30 +43,36 @@ interface FlagDetailsProps {
     onUpdateFlag: (flag: FeatureFlagDto, updates: {
         name?: string;
         description?: string;
-        expirationDate?: string;
-        isPermanent?: boolean;
         tags?: Record<string, string>;
+        isPermanent?: boolean;
+        expirationDate?: string;
     }) => Promise<void>;
     onDelete: (key: string) => void;
+    onEvaluateFlag?: (key: string, userId?: string, attributes?: Record<string, any>) => Promise<EvaluationResult>;
+    evaluationResult?: EvaluationResult;
+    evaluationLoading?: boolean;
 }
 
 export const FlagDetails: React.FC<FlagDetailsProps> = ({
     flag,
     onToggle,
-    onSetPercentage,
+    onUpdateUserAccess,
     onSchedule,
     onClearSchedule,
     onUpdateTimeWindow,
     onClearTimeWindow,
     onUpdateFlag,
-    onDelete
+    onDelete,
+    onEvaluateFlag,
+    evaluationResult,
+    evaluationLoading = false
 }) => {
-    const [editingPercentage, setEditingPercentage] = useState(false);
+    const [editingUserAccess, setEditingUserAccess] = useState(false);
     const [operationLoading, setOperationLoading] = useState(false);
 
     // Reset editing states when flag changes (when a different flag is selected)
     useEffect(() => {
-        setEditingPercentage(false);
+        setEditingUserAccess(false);
     }, [flag.key]);
 
     const handleToggle = async () => {
@@ -79,11 +86,10 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
         }
     };
 
-    const handleSetPercentageWrapper = async (flag: FeatureFlagDto, percentage: number) => {
+    const handleUpdateUserAccessWrapper = async (allowedUsers?: string[], blockedUsers?: string[], percentage?: number) => {
         setOperationLoading(true);
         try {
-            await onSetPercentage(flag, percentage);
-            setEditingPercentage(false);
+            await onUpdateUserAccess(allowedUsers, blockedUsers, percentage);
         } finally {
             setOperationLoading(false);
         }
@@ -128,9 +134,9 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     const handleUpdateFlagWrapper = async (updates: {
         name?: string;
         description?: string;
-        expirationDate?: string;
-        isPermanent?: boolean;
         tags?: Record<string, string>;
+        isPermanent?: boolean;
+        expirationDate?: string;
     }) => {
         setOperationLoading(true);
         try {
@@ -139,6 +145,9 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             setOperationLoading(false);
         }
     };
+
+    const components = parseStatusComponents(flag);
+    const isEnabled = components.baseStatus === 'Enabled';
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -152,7 +161,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                     <p className="text-sm text-gray-500 font-mono">{flag.key}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <StatusBadge status={flag.status} showDescription={true} />
+                    <StatusBadge flag={flag} showDescription={true} />
                     {!flag.isPermanent && (
                         <button
                             onClick={() => onDelete(flag.key)}
@@ -168,7 +177,12 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             <p className="text-gray-600 mb-6">{flag.description || 'No description provided'}</p>
 
             {/* Compound Status Overview */}
-            <CompoundStatusOverview flag={flag} />
+            <CompoundStatusOverview 
+                flag={flag} 
+                onEvaluateFlag={onEvaluateFlag}
+                evaluationResult={evaluationResult}
+                evaluationLoading={evaluationLoading}
+            />
 
             {/* Status Indicators */}
             <ExpirationWarning flag={flag} />
@@ -181,21 +195,21 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                     onClick={handleToggle}
                     disabled={operationLoading}
                     className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium disabled:opacity-50 ${
-                        flag.status === 'Enabled'
+                        isEnabled
                             ? 'bg-red-100 text-red-700 hover:bg-red-200'
                             : 'bg-green-100 text-green-700 hover:bg-green-200'
                     }`}
                 >
-                    {flag.status === 'Enabled' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    {flag.status === 'Enabled' ? 'Disable' : 'Enable'}
+                    {isEnabled ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {isEnabled ? 'Disable' : 'Enable'}
                 </button>
 
-                <PercentageEditor
+                <UserAccessControlEditor
                     flag={flag}
-                    isEditing={editingPercentage}
-                    onStartEditing={() => setEditingPercentage(true)}
-                    onCancelEditing={() => setEditingPercentage(false)}
-                    onSetPercentage={handleSetPercentageWrapper}
+                    isEditing={editingUserAccess}
+                    onStartEditing={() => setEditingUserAccess(true)}
+                    onCancelEditing={() => setEditingUserAccess(false)}
+                    onUpdateUserAccess={handleUpdateUserAccessWrapper}
                     operationLoading={operationLoading}
                 />
             </div>
@@ -226,7 +240,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             />
 
             {/* Additional Information */}
-            <PercentageStatusIndicator flag={flag} />
+            <UserAccessControlStatusIndicator flag={flag} />
             <UserLists flag={flag} />
             <FlagMetadata flag={flag} />
         </div>

@@ -106,7 +106,7 @@ public class UpdateFlagHandler_UserAccessControl(FlagsManagementApiFixture fixtu
 		okResult.Value.AllowedUsers.ShouldContain("user1");
 		okResult.Value.AllowedUsers.ShouldContain("user2");
 		okResult.Value.BlockedUsers.ShouldContain("blocked-user");
-		okResult.Value.PercentageEnabled.ShouldBe(50); // Should preserve existing rollout percentage
+		okResult.Value.UserRolloutPercentage.ShouldBe(50); // Should preserve existing rollout percentage
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("user-access-flag");
@@ -137,7 +137,7 @@ public class UpdateFlagHandler_UserAccessControl(FlagsManagementApiFixture fixtu
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
 		okResult.Value.AllowedUsers.ShouldBeEmpty();
 		okResult.Value.BlockedUsers.ShouldBeEmpty();
-		okResult.Value.PercentageEnabled.ShouldBe(75); // Should preserve rollout percentage
+		okResult.Value.UserRolloutPercentage.ShouldBe(75); // Should preserve rollout percentage
 
 		var updatedFlag = await fixture.Repository.GetAsync("clear-users-flag");
 		updatedFlag.UserAccess.AllowedUsers.ShouldBeEmpty();

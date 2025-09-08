@@ -11,8 +11,6 @@ public record UpdateFlagRequest
 {
 	public string? Name { get; set; }
 	public string? Description { get; set; }
-	public string[]? AllowedUsers { get; set; }
-	public string[]? BlockedUsers { get; set; }
 	public Dictionary<string, string>? Tags { get; set; }
 	public bool IsPermanent { get; set; }
 	public DateTime? ExpirationDate { get; set; }
@@ -92,11 +90,6 @@ public sealed class UpdateFlagHandler(
 
 		if (source.Description != null)
 			dest.Description = source.Description;
-
-		dest.UserAccess = new FlagUserAccessControl(
-			allowedUsers: [.. source.AllowedUsers ?? []],
-			blockedUsers: [.. source.BlockedUsers ?? []],
-			rolloutPercentage: dest.UserAccess.RolloutPercentage);
 
 		dest.AuditRecord = new FlagAuditRecord(dest.AuditRecord.CreatedAt, dest.AuditRecord.CreatedBy, DateTime.UtcNow, updatedBy);
 

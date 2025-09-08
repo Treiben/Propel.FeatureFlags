@@ -26,7 +26,7 @@ public class ToggleFlagHandler_EnableFlag(FlagsManagementApiFixture fixture) : I
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
 		okResult.Value.ShouldNotBeNull();
 		okResult.Value.EvaluationModes.ShouldContain(FlagEvaluationMode.Enabled);
-		okResult.Value.PercentageEnabled.ShouldBe(100);
+		okResult.Value.UserRolloutPercentage.ShouldBe(100);
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("enable-test-flag");
@@ -71,7 +71,7 @@ public class ToggleFlagHandler_DisableFlag(FlagsManagementApiFixture fixture) : 
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
 		okResult.Value.ShouldNotBeNull();
 		okResult.Value.EvaluationModes.ShouldContain(FlagEvaluationMode.Disabled);
-		okResult.Value.PercentageEnabled.ShouldBe(0);
+		okResult.Value.UserRolloutPercentage.ShouldBe(0);
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("disable-test-flag");

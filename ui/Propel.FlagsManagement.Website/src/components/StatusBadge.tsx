@@ -1,16 +1,17 @@
 import { Eye, EyeOff, Calendar, Percent, Users, Clock, Settings, Plus } from 'lucide-react';
 import { getStatusColor, parseStatusComponents, getStatusDescription } from '../utils/flagHelpers';
+import type { FeatureFlagDto } from '../services/apiService';
 import type { JSX } from 'react';
 
 interface StatusBadgeProps {
-    status: string;
+    flag: FeatureFlagDto;
     className?: string;
     showIcons?: boolean;
     showDescription?: boolean;
 }
 
-const getStatusIcons = (status: string): JSX.Element[] => {
-    const components = parseStatusComponents(status);
+const getStatusIcons = (flag: FeatureFlagDto): JSX.Element[] => {
+    const components = parseStatusComponents(flag);
     const icons: JSX.Element[] = [];
 
     // Base status
@@ -60,16 +61,16 @@ const renderIconsWithSeparator = (icons: JSX.Element[]): JSX.Element => {
 };
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ 
-    status, 
+    flag, 
     className = '', 
     showIcons = true, 
     showDescription = false 
 }) => {
-    const icons = getStatusIcons(status);
-    const description = showDescription ? getStatusDescription(status) : status;
+    const icons = getStatusIcons(flag);
+    const description = showDescription ? getStatusDescription(flag) : getStatusDescription(flag);
 
     return (
-        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(status)} ${className}`}>
+        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(flag)} ${className}`}>
             {showIcons && renderIconsWithSeparator(icons)}
             <span className="whitespace-nowrap">{description}</span>
         </span>
@@ -77,22 +78,22 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 };
 
 // Compact version for space-constrained areas
-export const StatusBadgeCompact: React.FC<StatusBadgeProps> = ({ status, className = '' }) => {
-    const icons = getStatusIcons(status);
+export const StatusBadgeCompact: React.FC<StatusBadgeProps> = ({ flag, className = '' }) => {
+    const icons = getStatusIcons(flag);
     
     return (
-        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium ${getStatusColor(status)} ${className}`} title={getStatusDescription(status)}>
+        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium ${getStatusColor(flag)} ${className}`} title={getStatusDescription(flag)}>
             {renderIconsWithSeparator(icons)}
         </span>
     );
 };
 
 // Icon-only version for very compact displays
-export const StatusIconOnly: React.FC<StatusBadgeProps> = ({ status, className = '' }) => {
-    const icons = getStatusIcons(status);
+export const StatusIconOnly: React.FC<StatusBadgeProps> = ({ flag, className = '' }) => {
+    const icons = getStatusIcons(flag);
     
     return (
-        <span className={`inline-flex items-center gap-0.5 ${className}`} title={getStatusDescription(status)}>
+        <span className={`inline-flex items-center gap-0.5 ${className}`} title={getStatusDescription(flag)}>
             {renderIconsWithSeparator(icons)}
         </span>
     );

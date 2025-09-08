@@ -5,7 +5,8 @@ import { getTimeZones, getDaysOfWeek } from '../../services/apiService';
 import { 
     getTimeWindowStatus, 
     formatTime,
-    parseStatusComponents
+    parseStatusComponents,
+    getDayName
 } from '../../utils/flagHelpers';
 
 interface TimeWindowStatusIndicatorProps {
@@ -13,7 +14,7 @@ interface TimeWindowStatusIndicatorProps {
 }
 
 export const TimeWindowStatusIndicator: React.FC<TimeWindowStatusIndicatorProps> = ({ flag }) => {
-    const components = parseStatusComponents(flag.status);
+    const components = parseStatusComponents(flag);
     const timeWindowStatus = getTimeWindowStatus(flag);
 
     if (!components.hasTimeWindow) return null;
@@ -34,7 +35,7 @@ export const TimeWindowStatusIndicator: React.FC<TimeWindowStatusIndicatorProps>
                 <div>Active Time: {formatTime(flag.windowStartTime)} - {formatTime(flag.windowEndTime)}</div>
                 <div>Time Zone: {flag.timeZone || 'UTC'}</div>
                 {flag.windowDays && flag.windowDays.length > 0 && (
-                    <div>Active Days: {flag.windowDays.join(', ')}</div>
+                    <div>Active Days: {flag.windowDays.map(day => getDayName(day)).join(', ')}</div>
                 )}
                 {timeWindowStatus.reason && (
                     <div className="italic">{timeWindowStatus.reason}</div>
@@ -64,21 +65,21 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
 }) => {
     const [editingTimeWindow, setEditingTimeWindow] = useState(false);
     const [timeWindowData, setTimeWindowData] = useState({
-        windowStartTime: flag.windowStartTime || '09:00',
-        windowEndTime: flag.windowEndTime || '17:00',
+        windowStartTime: flag.windowStartTime || '09:00:00',
+        windowEndTime: flag.windowEndTime || '17:00:00',
         timeZone: flag.timeZone || 'UTC',
-        windowDays: flag.windowDays || []
+        windowDays: flag.windowDays ? flag.windowDays.map(day => getDayName(day)) : []
     });
 
-    const components = parseStatusComponents(flag.status);
+    const components = parseStatusComponents(flag);
 
     // Update local state when flag changes (when a different flag is selected)
     useEffect(() => {
         setTimeWindowData({
-            windowStartTime: flag.windowStartTime || '09:00',
-            windowEndTime: flag.windowEndTime || '17:00',
+            windowStartTime: flag.windowStartTime || '09:00:00',
+            windowEndTime: flag.windowEndTime || '17:00:00',
             timeZone: flag.timeZone || 'UTC',
-            windowDays: flag.windowDays || []
+            windowDays: flag.windowDays ? flag.windowDays.map(day => getDayName(day)) : []
         });
     }, [flag.key, flag.windowStartTime, flag.windowEndTime, flag.timeZone, flag.windowDays]);
 
@@ -99,12 +100,12 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
         }
     };
 
-    const toggleWindowDay = (day: string) => {
+    const toggleWindowDay = (dayLabel: string) => {
         setTimeWindowData(prev => ({
             ...prev,
-            windowDays: prev.windowDays.includes(day)
-                ? prev.windowDays.filter(d => d !== day)
-                : [...prev.windowDays, day]
+            windowDays: prev.windowDays.includes(dayLabel)
+                ? prev.windowDays.filter(d => d !== dayLabel)
+                : [...prev.windowDays, dayLabel]
         }));
     };
 
@@ -143,6 +144,7 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
                                 <label className="block text-sm font-medium text-indigo-800 mb-1">Start Time</label>
                                 <input
                                     type="time"
+                                    step="1"
                                     value={timeWindowData.windowStartTime}
                                     onChange={(e) => setTimeWindowData({ ...timeWindowData, windowStartTime: e.target.value })}
                                     className="w-full border border-indigo-300 rounded px-3 py-2 text-sm"
@@ -153,6 +155,7 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
                                 <label className="block text-sm font-medium text-indigo-800 mb-1">End Time</label>
                                 <input
                                     type="time"
+                                    step="1"
                                     value={timeWindowData.windowEndTime}
                                     onChange={(e) => setTimeWindowData({ ...timeWindowData, windowEndTime: e.target.value })}
                                     className="w-full border border-indigo-300 rounded px-3 py-2 text-sm"
@@ -181,13 +184,13 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
                                     <label key={day.value} className="flex items-center justify-center">
                                         <input
                                             type="checkbox"
-                                            checked={timeWindowData.windowDays.includes(day.value)}
-                                            onChange={() => toggleWindowDay(day.value)}
+                                            checked={timeWindowData.windowDays.includes(day.label)}
+                                            onChange={() => toggleWindowDay(day.label)}
                                             className="sr-only"
                                             disabled={operationLoading}
                                         />
                                         <div className={`px-2 py-1 text-xs rounded cursor-pointer transition-colors ${
-                                            timeWindowData.windowDays.includes(day.value)
+                                            timeWindowData.windowDays.includes(day.label)
                                                 ? 'bg-indigo-600 text-white'
                                                 : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200'
                                         }`}>
@@ -211,10 +214,10 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
                             onClick={() => {
                                 setEditingTimeWindow(false);
                                 setTimeWindowData({
-                                    windowStartTime: flag.windowStartTime || '09:00',
-                                    windowEndTime: flag.windowEndTime || '17:00',
+                                    windowStartTime: flag.windowStartTime || '09:00:00',
+                                    windowEndTime: flag.windowEndTime || '17:00:00',
                                     timeZone: flag.timeZone || 'UTC',
-                                    windowDays: flag.windowDays || []
+                                    windowDays: flag.windowDays ? flag.windowDays.map(day => getDayName(day)) : []
                                 });
                             }}
                             disabled={operationLoading}
@@ -228,7 +231,7 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
                 <div className="text-sm text-gray-600 space-y-1">
                     <div>Active Time: {formatTime(flag.windowStartTime)} - {formatTime(flag.windowEndTime)}</div>
                     <div>Time Zone: {flag.timeZone || 'UTC'}</div>
-                    <div>Active Days: {flag.windowDays && flag.windowDays.length > 0 ? flag.windowDays.join(', ') : 'All days'}</div>
+                    <div>Active Days: {flag.windowDays && flag.windowDays.length > 0 ? flag.windowDays.map(day => getDayName(day)).join(', ') : 'All days'}</div>
                 </div>
             )}
         </div>

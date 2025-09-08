@@ -12,7 +12,7 @@ interface FlagStatusIndicatorsProps {
 }
 
 export const FlagStatusIndicators: React.FC<FlagStatusIndicatorsProps> = ({ flag }) => {
-    const components = parseStatusComponents(flag.status);
+    const components = parseStatusComponents(flag);
     const scheduleStatus = getScheduleStatus(flag);
     const timeWindowStatus = getTimeWindowStatus(flag);
     const flagExpired = isExpired(flag);
@@ -37,16 +37,16 @@ export const FlagStatusIndicators: React.FC<FlagStatusIndicatorsProps> = ({ flag
                     Active Window
                 </div>
             )}
-            {components.hasPercentage && flag.percentageEnabled > 0 && (
+            {components.hasPercentage && flag.userRolloutPercentage > 0 && (
                 <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
                     <Percent className="w-3 h-3" />
-                    {flag.percentageEnabled}%
+                    {flag.userRolloutPercentage}%
                 </div>
             )}
-            {components.hasUserTargeting && (flag.enabledUsers?.length > 0 || flag.disabledUsers?.length > 0) && (
+            {components.hasUserTargeting && (flag.allowedUsers?.length > 0 || flag.blockedUsers?.length > 0) && (
                 <div className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
                     <Users className="w-3 h-3" />
-                    {(flag.enabledUsers?.length || 0) + (flag.disabledUsers?.length || 0)} Users
+                    {(flag.allowedUsers?.length || 0) + (flag.blockedUsers?.length || 0)} Users
                 </div>
             )}
             {flagExpired && (

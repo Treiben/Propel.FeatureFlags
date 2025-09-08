@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Propel.FeatureFlags;
 using Propel.FeatureFlags.Cache;
 using Propel.FeatureFlags.Core;
@@ -7,59 +8,25 @@ using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
 
-public record ManageUsersRequest(List<string> UserIds);
-
-public record UpdateUserRolloutPercentageRequest(int Percentage);
+public record ManageUserAccessRequest(string[]? AllowedUsers, string[]? BlockedUsers, int? Percentage);
 
 public sealed class UpdateUserAccessControlEndpoints : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder epRoutBuilder)
 	{
-		epRoutBuilder.MapPost("/api/feature-flags/{key}/users/enable",
+		epRoutBuilder.MapPost("/api/feature-flags/{key}/users",
 			async (
 				string key,
-				ManageUsersRequest request,
-				ManageUserAccessHandler userAccessHandler, 
-				CancellationToken cancellationToken) =>
-		{
-			return await userAccessHandler.HandleAsync(key, request.UserIds, true, cancellationToken);
-		})
-		.AddEndpointFilter<ValidationFilter<ManageUsersRequest>>()
-		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
-		.WithName("EnableForUser")
-		.WithTags("Feature Flags", "Operations", "User Targeting", "Toggle Control", "Management Api")
-		.Produces<FeatureFlagResponse>()
-		.ProducesValidationProblem();
-
-		epRoutBuilder.MapPost("/api/feature-flags/{key}/users/disable",
-			async (
-				string key,
-				ManageUsersRequest request,
-				ManageUserAccessHandler userAccessHandler, 
-				CancellationToken cancellationToken) =>
-				{
-					return await userAccessHandler.HandleAsync(key, request.UserIds, false, cancellationToken);
-				})
-		.AddEndpointFilter<ValidationFilter<ManageUsersRequest>>()
-		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
-		.WithName("DisableForUser")
-		.WithTags("Feature Flags", "Operations", "User Targeting", "Toggle Control", "Management Api")
-		.Produces<FeatureFlagResponse>()
-		.ProducesValidationProblem();
-
-		epRoutBuilder.MapPost("/api/feature-flags/{key}/users/rollout",
-			async (
-				string key,
-				UpdateUserRolloutPercentageRequest request,
-				UpdateUserRolloutPercentageHandler setPercentageHandler,
+				ManageUserAccessRequest request,
+				ManageUserAccessHandler accessHandler,
 				CancellationToken cancellationToken) =>
 			{
-				return await setPercentageHandler.HandleAsync(key, request, cancellationToken);
+				return await accessHandler.HandleAsync(key, request, cancellationToken);
 			})
 			.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
-			.AddEndpointFilter<ValidationFilter<UpdateUserRolloutPercentageRequest>>()
+			.AddEndpointFilter<ValidationFilter<ManageUserAccessRequest>>()
 			.WithName("UpdateUserRolloutPercentage")
-			.WithTags("Feature Flags", "Operations", "User Targeting", "Rollout Control", "Management Api")
+			.WithTags("Feature Flags", "Operations", "User Targeting", "Rollout Percentage", "Access Control Management", "Management Api")
 			.Produces<FeatureFlagResponse>()
 			.ProducesValidationProblem();
 	}
@@ -71,67 +38,7 @@ public sealed class ManageUserAccessHandler(
 		ILogger<ManageUserAccessHandler> logger,
 		IFeatureFlagCache? cache = null)
 {
-	public async Task<IResult> HandleAsync(string key, List<string> userIds, bool enable,
-		CancellationToken cancellationToken)
-	{
-		if (string.IsNullOrWhiteSpace(key))
-		{
-			return HttpProblemFactory.BadRequest("Feature flag key cannot be empty or null", logger);
-		}
-
-		if (userIds == null || userIds.Count == 0)
-		{
-			return HttpProblemFactory.BadRequest("At least one user ID must be provided", logger);
-		}
-
-		try
-		{
-			var flag = await repository.GetAsync(key, cancellationToken);
-			if (flag == null)
-			{
-				return HttpProblemFactory.NotFound("Feature flag", key, logger);
-			}
-
-			foreach (var userId in userIds)
-			{
-				flag.UserAccess = enable ? flag.UserAccess.WithAllowedUser(userId) : flag.UserAccess.WithBlockedUser(userId);
-			}
-
-			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName!);
-			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
-
-			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
-
-			// Log detailed changes
-			var action = enable ? "enabled" : "disabled";
-
-			logger.LogInformation("Feature flag {Key} user access updated by {User}: {Action} for [{Users}] users.",
-				key, currentUserService.UserName, action, string.Join(", ", userIds));
-
-			return Results.Ok(new FeatureFlagResponse(updatedFlag));
-		}
-		catch (ArgumentException ex)
-		{
-			return HttpProblemFactory.BadRequest(ex.Message, logger);
-		}
-		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
-		{
-			return HttpProblemFactory.ClientClosedRequest(logger);
-		}
-		catch (Exception ex)
-		{
-			return HttpProblemFactory.InternalServerError(ex, logger);
-		}
-	}
-}
-
-public sealed class UpdateUserRolloutPercentageHandler(
-		IFeatureFlagRepository repository,
-		ICurrentUserService currentUserService,
-		ILogger<UpdateUserRolloutPercentageHandler> logger,
-		IFeatureFlagCache? cache = null)
-{
-	public async Task<IResult> HandleAsync(string key, UpdateUserRolloutPercentageRequest request,
+	public async Task<IResult> HandleAsync(string key, ManageUserAccessRequest request,
 		CancellationToken cancellationToken)
 	{
 		// Validate key parameter
@@ -148,8 +55,11 @@ public sealed class UpdateUserRolloutPercentageHandler(
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
 			}
 
-			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName!);
-			flag.UserAccess = flag.UserAccess.WithRolloutPercentage(request.Percentage);
+			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, 
+													flag.AuditRecord.CreatedBy,
+													DateTime.UtcNow,
+													currentUserService.UserName!);
+
 			if (request.Percentage == 0) // Special case: 0% effectively disables the flag
 			{
 				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.UserRolloutPercentage);
@@ -158,6 +68,16 @@ public sealed class UpdateUserRolloutPercentageHandler(
 			{
 				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.UserRolloutPercentage);
 			}
+
+			if (request.AllowedUsers?.Length > 0 || request.BlockedUsers?.Length > 0)
+			{
+				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.UserTargeted);
+			}
+
+			flag.UserAccess = new FlagUserAccessControl(
+							allowedUsers: [.. request.AllowedUsers ?? []],
+							blockedUsers: [.. request.BlockedUsers ?? []],
+							rolloutPercentage: request.Percentage ?? flag.UserAccess.RolloutPercentage);
 
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
@@ -176,37 +96,26 @@ public sealed class UpdateUserRolloutPercentageHandler(
 	}
 }
 
-public sealed class ManageUsersRequestValidator : AbstractValidator<ManageUsersRequest>
+public sealed class ManageUserAccessRequestValidator : AbstractValidator<ManageUserAccessRequest>
 {
-	public ManageUsersRequestValidator()
-	{
-		RuleFor(x => x.UserIds)
-			.NotEmpty()
-			.WithMessage("At least one user ID must be provided");
-
-		RuleFor(x => x.UserIds)
-			.Must(userIds => userIds.Count <= 100)
-			.WithMessage("Cannot manage more than 100 users at once");
-
-		RuleForEach(x => x.UserIds)
-			.NotEmpty()
-			.WithMessage("User ID cannot be empty")
-			.MaximumLength(100)
-			.WithMessage("User ID cannot exceed 100 characters");
-
-		RuleFor(x => x.UserIds)
-			.Must(userIds => userIds.Distinct().Count() == userIds.Count)
-			.WithMessage("Duplicate user IDs are not allowed");
-	}
-}
-
-public sealed class UpdateUserPercentageRequestValidator : AbstractValidator<UpdateUserRolloutPercentageRequest>
-{
-	public UpdateUserPercentageRequestValidator()
+	public ManageUserAccessRequestValidator()
 	{
 		RuleFor(c => c.Percentage)
 			.InclusiveBetween(0, 100)
 			.WithMessage("Feature flag rollout percentage must be between 0 and 100");
+
+		RuleFor(c => c.AllowedUsers)
+			.Must(list => list == null || list.Distinct().Count() == list.Length)
+			.WithMessage("Duplicate user IDs are not allowed in AllowedUsers");
+
+		RuleFor(c => c.BlockedUsers)
+			.Must(list => list == null || list.Distinct().Count() == list.Length)
+			.WithMessage("Duplicate user IDs are not allowed in BlockedUsers");
+
+		RuleFor(c => c)
+			.Must(c => c.BlockedUsers!.Any(b => c.AllowedUsers!.Contains(b)))
+			.When(c => c.BlockedUsers != null && c.AllowedUsers != null)
+			.WithMessage("Users cannot be in both allowed and blocked lists");
 	}
 }
 

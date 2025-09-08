@@ -22,127 +22,53 @@ export interface StatusComponents {
     baseStatus: 'Enabled' | 'Disabled';
 }
 
-// Helper function to parse compound status into components
-export const parseStatusComponents = (status: string): StatusComponents => {
-    const components: StatusComponents = {
-        isScheduled: false,
-        hasTimeWindow: false,
-        hasPercentage: false,
-        hasUserTargeting: false,
-        baseStatus: 'Disabled'
-    };
+// Helper function to determine status from evaluationModes array
+export const getStatusFromEvaluationModes = (modes: number[]): string => {
+    if (!modes || modes.length === 0) return 'Disabled';
+    
+    // Check for specific combinations
+    const hasDisabled = modes.includes(0);
+    const hasEnabled = modes.includes(1);
+    const hasScheduled = modes.includes(2);
+    const hasTimeWindow = modes.includes(3);
+    const hasUserTargeted = modes.includes(4);
+    const hasUserRollout = modes.includes(5);
+    const hasTenantRollout = modes.includes(6);
+    
+    // If only enabled
+    if (hasEnabled && modes.length === 1) return 'Enabled';
+    
+    // If only disabled
+    if (hasDisabled && modes.length === 1) return 'Disabled';
+    
+    // Build compound status
+    const features: string[] = [];
+    if (hasScheduled) features.push('Scheduled');
+    if (hasTimeWindow) features.push('TimeWindow');
+    if (hasUserRollout || hasTenantRollout) features.push('Percentage');
+    if (hasUserTargeted) features.push('UserTargeted');
+    
+    return features.length > 0 ? features.join('With') : 'Disabled';
+};
 
-    switch (status) {
-        case 'Enabled':
-		case 'enabled':
-        case '1':
-            components.baseStatus = 'Enabled';
-            break;
-        case 'Disabled':
-        case 'disabled':
-		case '0':
-            components.baseStatus = 'Disabled';
-            break;
-        case 'Scheduled':
-        case 'scheduled':
-		case '2':
-            components.isScheduled = true;
-            break;
-        case 'TimeWindow':
-        case 'timeWindow':
-		case '3':
-            components.hasTimeWindow = true;
-            break;
-        case 'ScheduledWithTimeWindow':
-        case 'scheduledWithTimeWindow':
-		case '5':
-            components.isScheduled = true;
-            components.hasTimeWindow = true;
-            break;
-        case 'Percentage':
-        case 'percentage':
-		case '6':
-            components.hasPercentage = true;
-            break;
-        case 'ScheduledWithPercentage':
-        case 'scheduledWithPercentage':
-		case '8':
-            components.isScheduled = true;
-            components.hasPercentage = true;
-            break;
-        case 'TimeWindowWithPercentage':
-        case 'timeWindowWithPercentage':
-		case '9':
-            components.hasTimeWindow = true;
-            components.hasPercentage = true;
-            break;
-        case 'ScheduledWithTimeWindowAndPercentage':
-        case 'scheduledWithTimeWindowAndPercentage':
-		case '11':
-            components.isScheduled = true;
-            components.hasTimeWindow = true;
-            components.hasPercentage = true;
-            break;
-        case 'UserTargeted':
-        case 'userTargeted':
-		case '12':
-            components.hasUserTargeting = true;
-            break;
-        case 'ScheduledWithUserTargeting':
-        case 'scheduledWithUserTargeting':
-		case '14':
-            components.isScheduled = true;
-            components.hasUserTargeting = true;
-            break;
-        case 'TimeWindowWithUserTargeting':
-        case 'timeWindowWithUserTargeting':
-		case '15':
-            components.hasTimeWindow = true;
-            components.hasUserTargeting = true;
-            break;
-        case 'ScheduledWithTimeWindowAndUserTargeting':
-        case 'scheduledWithTimeWindowAndUserTargeting':
-		case '17':
-            components.isScheduled = true;
-            components.hasTimeWindow = true;
-            components.hasUserTargeting = true;
-            break;
-        case 'PercentageWithUserTargeting':
-        case 'percentageWithUserTargeting':
-		case '18':
-            components.hasPercentage = true;
-            components.hasUserTargeting = true;
-            break;
-        case 'ScheduledWithPercentageAndUserTargeting':
-        case 'scheduledWithPercentageAndUserTargeting':
-        case '20':
-            components.isScheduled = true;
-            components.hasPercentage = true;
-            components.hasUserTargeting = true;
-            break;
-        case 'TimeWindowWithPercentageAndUserTargeting':
-        case 'timeWindowWithPercentageAndUserTargeting':
-		case '21':
-            components.hasTimeWindow = true;
-            components.hasPercentage = true;
-            components.hasUserTargeting = true;
-            break;
-        case 'ScheduledWithTimeWindowAndPercentageAndUserTargeting':
-        case 'scheduledWithTimeWindowAndPercentageAndUserTargeting':
-		case '23':
-            components.isScheduled = true;
-            components.hasTimeWindow = true;
-            components.hasPercentage = true;
-            components.hasUserTargeting = true;
-            break;
-    }
+// Helper function to parse compound status into components - Updated to work with evaluationModes
+export const parseStatusComponents = (flag: FeatureFlagDto): StatusComponents => {
+    const modes = flag.evaluationModes || [];
+    
+    const components: StatusComponents = {
+        isScheduled: modes.includes(2), // FlagEvaluationMode.Scheduled
+        hasTimeWindow: modes.includes(3), // FlagEvaluationMode.TimeWindow
+        hasPercentage: modes.includes(5) || modes.includes(6), // UserRolloutPercentage or TenantRolloutPercentage
+        hasUserTargeting: modes.includes(4), // FlagEvaluationMode.UserTargeted
+        baseStatus: modes.includes(1) ? 'Enabled' : 'Disabled' // FlagEvaluationMode.Enabled
+    };
 
     return components;
 };
 
 // Helper function to get a human-readable status description
-export const getStatusDescription = (status: string): string => {
-    const components = parseStatusComponents(status);
+export const getStatusDescription = (flag: FeatureFlagDto): string => {
+    const components = parseStatusComponents(flag);
     const features: string[] = [];
 
     if (components.baseStatus === 'Enabled') return 'Enabled';
@@ -160,7 +86,7 @@ export const getStatusDescription = (status: string): string => {
 
 // Helper function to check if a flag is currently enabled due to scheduling
 export const isScheduledActive = (flag: FeatureFlagDto): boolean => {
-    const components = parseStatusComponents(flag.status);
+    const components = parseStatusComponents(flag);
     if (!components.isScheduled) return false;
     
     const now = new Date();
@@ -180,7 +106,7 @@ export const isScheduledActive = (flag: FeatureFlagDto): boolean => {
 
 // Helper function to check if a TimeWindow flag is currently active
 export const isTimeWindowActive = (flag: FeatureFlagDto): boolean => {
-    const components = parseStatusComponents(flag.status);
+    const components = parseStatusComponents(flag);
     if (!components.hasTimeWindow) return false;
     
     const now = new Date();
@@ -189,11 +115,11 @@ export const isTimeWindowActive = (flag: FeatureFlagDto): boolean => {
     try {
         // Convert current time to the flag's timezone
         const nowInTimeZone = new Date(now.toLocaleString("en-US", { timeZone }));
-        const currentDay = nowInTimeZone.toLocaleDateString('en-US', { weekday: 'long', timeZone });
+        const currentDayOfWeek = nowInTimeZone.getDay(); // 0 = Sunday, 1 = Monday, etc.
         const currentTime = nowInTimeZone.toTimeString().slice(0, 8); // HH:MM:SS format
         
-        // Check if current day is in the allowed window days
-        if (flag.windowDays && flag.windowDays.length > 0 && !flag.windowDays.includes(currentDay)) {
+        // Check if current day is in the allowed window days (now using numbers)
+        if (flag.windowDays && flag.windowDays.length > 0 && !flag.windowDays.includes(currentDayOfWeek)) {
             return false;
         }
         
@@ -220,7 +146,7 @@ export const isTimeWindowActive = (flag: FeatureFlagDto): boolean => {
 
 // Helper function to get time window status information
 export const getTimeWindowStatus = (flag: FeatureFlagDto): TimeWindowStatus => {
-    const components = parseStatusComponents(flag.status);
+    const components = parseStatusComponents(flag);
     if (!components.hasTimeWindow) {
         return { isActive: false, phase: 'none' };
     }
@@ -238,13 +164,14 @@ export const getTimeWindowStatus = (flag: FeatureFlagDto): TimeWindowStatus => {
     if (flag.windowDays && flag.windowDays.length > 0) {
         const now = new Date();
         const timeZone = flag.timeZone || 'UTC';
-        const currentDay = now.toLocaleDateString('en-US', { weekday: 'long', timeZone });
+        const currentDayOfWeek = new Date(now.toLocaleString("en-US", { timeZone })).getDay();
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         
-        if (!flag.windowDays.includes(currentDay)) {
+        if (!flag.windowDays.includes(currentDayOfWeek)) {
             return { 
                 isActive: false, 
                 phase: 'inactive', 
-                reason: `Not active on ${currentDay}` 
+                reason: `Not active on ${dayNames[currentDayOfWeek]}` 
             };
         }
     }
@@ -259,12 +186,42 @@ export const getTimeWindowStatus = (flag: FeatureFlagDto): TimeWindowStatus => {
 // Helper function to check if a flag has expired
 export const isExpired = (flag: FeatureFlagDto): boolean => {
     if (!flag.expirationDate) return false;
-    return new Date(flag.expirationDate) <= new Date();
+    
+    try {
+        const expirationDate = new Date(flag.expirationDate);
+        const now = new Date();
+        
+        // Ensure both dates are valid
+        if (isNaN(expirationDate.getTime()) || isNaN(now.getTime())) {
+            console.warn('Invalid date in expiration check:', {
+                expirationDate: flag.expirationDate,
+                parsedDate: expirationDate.toISOString(),
+                now: now.toISOString()
+            });
+            return false;
+        }
+        
+        const isExpiredFlag = expirationDate <= now;
+        
+        // Add debug logging to help troubleshoot
+        console.debug('Expiration check:', {
+            flagKey: flag.key,
+            expirationDate: expirationDate.toISOString(),
+            now: now.toISOString(),
+            isExpired: isExpiredFlag,
+            timeDifference: expirationDate.getTime() - now.getTime()
+        });
+        
+        return isExpiredFlag;
+    } catch (error) {
+        console.error('Error checking expiration:', error, { expirationDate: flag.expirationDate });
+        return false;
+    }
 };
 
 // Helper function to get schedule status information
 export const getScheduleStatus = (flag: FeatureFlagDto): ScheduleStatus => {
-    const components = parseStatusComponents(flag.status);
+    const components = parseStatusComponents(flag);
     if (!components.isScheduled) {
         return { isActive: false, phase: 'none' };
     }
@@ -311,8 +268,8 @@ export const getScheduleStatus = (flag: FeatureFlagDto): ScheduleStatus => {
 };
 
 // Updated function to get status color based on primary feature
-export const getStatusColor = (status: string): string => {
-    const components = parseStatusComponents(status);
+export const getStatusColor = (flag: FeatureFlagDto): string => {
+    const components = parseStatusComponents(flag);
 
     // Base statuses
     if (components.baseStatus === 'Enabled') {
@@ -378,4 +335,19 @@ export const hasValidTags = (tags: Record<string, string> | undefined | null): b
 export const getTagEntries = (tags: Record<string, string> | undefined | null): [string, string][] => {
     if (!hasValidTags(tags)) return [];
     return Object.entries(tags!);
+};
+
+// Helper function to convert DayOfWeek numbers to day names
+export const getDayName = (dayOfWeek: number): string => {
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return dayNames[dayOfWeek] || 'Unknown';
+};
+
+// Helper function to convert day names to DayOfWeek numbers
+export const getDayOfWeekNumber = (dayName: string): number => {
+    const dayMap: Record<string, number> = {
+        'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+        'Thursday': 4, 'Friday': 5, 'Saturday': 6
+    };
+    return dayMap[dayName] ?? -1;
 };

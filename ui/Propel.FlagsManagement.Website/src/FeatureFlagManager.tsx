@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { AlertCircle, Filter, Plus, Settings, X } from 'lucide-react';
 import { useFeatureFlags } from './hooks/useFeatureFlags';
-import type { CreateFeatureFlagRequest, GetFlagsParams, ModifyFlagRequest } from './services/apiService';
+import type { CreateFeatureFlagRequest, GetFlagsParams, ModifyFlagRequest, UserAccessRequest } from './services/apiService';
+import { getDayOfWeekNumber } from './utils/flagHelpers';
 
 // Import components
 import { FlagCard } from './components/FlagCard';
@@ -23,6 +24,8 @@ const FeatureFlagManager = () => {
         totalPages,
         hasNextPage,
         hasPreviousPage,
+        evaluationResults,
+        evaluationLoading,
         selectFlag,
         createFlag,
         updateFlag,
@@ -30,11 +33,12 @@ const FeatureFlagManager = () => {
         disableFlag,
         scheduleFlag,
         setTimeWindow,
-        setPercentage,
+        updateUserAccess,
         loadFlagsPage,
         filterFlags,
         deleteFlag,
         clearError,
+        evaluateFlag,
     } = useFeatureFlags();
 
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -42,20 +46,25 @@ const FeatureFlagManager = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
     const [deletingFlag, setDeletingFlag] = useState(false);
     const [filters, setFilters] = useState<{
-        status: string;
+        modes: number[];
         tagKeys: string[];
         tagValues: string[];
+        expiringInDays?: number;
     }>({
-        status: '',
+        modes: [],
         tagKeys: [''],
         tagValues: [''],
+        expiringInDays: undefined,
     });
 
     // Handler functions
     const quickToggle = async (flag: any) => {
         try {
             const reason = `Quick toggle via UI by user`;
-            if (flag.status === 'Enabled') {
+            // Check if flag is currently enabled by looking at evaluationModes
+            const isCurrentlyEnabled = flag.evaluationModes?.includes(1); // FlagEvaluationMode.Enabled = 1
+            
+            if (isCurrentlyEnabled) {
                 await disableFlag(flag.key, reason);
             } else {
                 await enableFlag(flag.key, reason);
@@ -67,9 +76,29 @@ const FeatureFlagManager = () => {
 
     const handleSetPercentage = async (flag: any, percentage: number) => {
         try {
-            await setPercentage(flag.key, percentage);
+            await updateUserAccess(flag.key, { percentage });
         } catch (error) {
             console.error('Failed to set percentage:', error);
+        }
+    };
+
+    const handleEnableUsers = async (flag: any, userIds: string[]) => {
+        try {
+            const currentAllowedUsers = flag.allowedUsers || [];
+            const updatedAllowedUsers = [...new Set([...currentAllowedUsers, ...userIds])];
+            await updateUserAccess(flag.key, { allowedUsers: updatedAllowedUsers });
+        } catch (error) {
+            console.error('Failed to enable users:', error);
+        }
+    };
+
+    const handleDisableUsers = async (flag: any, userIds: string[]) => {
+        try {
+            const currentBlockedUsers = flag.blockedUsers || [];
+            const updatedBlockedUsers = [...new Set([...currentBlockedUsers, ...userIds])];
+            await updateUserAccess(flag.key, { blockedUsers: updatedBlockedUsers });
+        } catch (error) {
+            console.error('Failed to disable users:', error);
         }
     };
 
@@ -103,15 +132,10 @@ const FeatureFlagManager = () => {
         windowDays: string[];
     }) => {
         try {
-            // Convert string days to DayOfWeek numbers
-            const dayMap: Record<string, number> = {
-                'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
-                'Thursday': 4, 'Friday': 5, 'Saturday': 6
-            };
-            
+            // Convert string days to DayOfWeek numbers using helper function
             const windowDaysNumbers = timeWindowData.windowDays
-                .map(day => dayMap[day])
-                .filter(day => day !== undefined);
+                .map(day => getDayOfWeekNumber(day))
+                .filter(day => day !== -1);
 
             await setTimeWindow(flag.key, {
                 windowStartTime: timeWindowData.windowStartTime,
@@ -168,6 +192,15 @@ const FeatureFlagManager = () => {
         }
     };
 
+    const handleEvaluateFlag = async (key: string, userId?: string, attributes?: Record<string, any>) => {
+        try {
+            return await evaluateFlag(key, userId, attributes);
+        } catch (error) {
+            console.error('Failed to evaluate flag:', error);
+            throw error;
+        }
+    };
+
     // Wrapper function to match CreateFlagModal's expected signature
     const handleCreateFlag = async (request: CreateFeatureFlagRequest): Promise<void> => {
         await createFlag(request);
@@ -179,10 +212,17 @@ const FeatureFlagManager = () => {
             pageSize: pageSize,
         };
 
-        if (filters.status && filters.status !== '') {
-            params.status = filters.status;
+        // Handle evaluation modes filter
+        if (filters.modes && filters.modes.length > 0) {
+            params.modes = filters.modes;
         }
 
+        // Handle expiring in days filter
+        if (filters.expiringInDays !== undefined && filters.expiringInDays > 0) {
+            params.expiringInDays = filters.expiringInDays;
+        }
+
+        // Handle tag filters
         const tags: string[] = [];
         for (let i = 0; i < filters.tagKeys.length; i++) {
             const key = filters.tagKeys[i]?.trim();
@@ -207,9 +247,10 @@ const FeatureFlagManager = () => {
 
     const clearFilters = async () => {
         setFilters({
-            status: '',
+            modes: [],
             tagKeys: [''],
             tagValues: [''],
+            expiringInDays: undefined,
         });
         await filterFlags({ page: 1, pageSize: pageSize });
         setShowFilters(false);
@@ -338,12 +379,17 @@ const FeatureFlagManager = () => {
                                 flag={selectedFlag}
                                 onToggle={quickToggle}
                                 onSetPercentage={handleSetPercentage}
+                                onEnableUsers={handleEnableUsers}
+                                onDisableUsers={handleDisableUsers}
                                 onSchedule={handleScheduleFlag}
                                 onClearSchedule={handleClearSchedule}
                                 onUpdateTimeWindow={handleUpdateTimeWindow}
                                 onClearTimeWindow={handleClearTimeWindow}
                                 onUpdateFlag={handleUpdateFlag}
                                 onDelete={(key) => setShowDeleteConfirm(key)}
+                                onEvaluateFlag={handleEvaluateFlag}
+                                evaluationResult={selectedFlag ? evaluationResults[selectedFlag.key] : undefined}
+                                evaluationLoading={selectedFlag ? evaluationLoading[selectedFlag.key] || false : false}
                             />
                         </>
                     ) : (
@@ -368,7 +414,7 @@ const FeatureFlagManager = () => {
                 flagKey={showDeleteConfirm || ''}
                 flagName={flags.find(f => f.key === showDeleteConfirm)?.name || ''}
                 isDeleting={deletingFlag}
-                onConfirm={() => showDeleteConfirm && handleDeleteFlag(showDeleteConfirm)}
+				onConfirm={() => showDeleteConfirm && handleDeleteFlag(showDeleteConfirm)}
                 onCancel={() => setShowDeleteConfirm(null)}
             />
         </div>
