@@ -141,7 +141,7 @@ CREATE TABLE feature_flags (
 	-- User-level controls
     enabled_users JSONB NOT NULL DEFAULT '[]',
     disabled_users JSONB NOT NULL DEFAULT '[]',
-    user_percentage_enabled INTEGER NOT NULL DEFAULT 0 CHECK (percentage_enabled >= 0 AND percentage_enabled <= 100),
+    user_percentage_enabled INTEGER NOT NULL DEFAULT 0 CHECK (user_percentage_enabled >= 0 AND user_percentage_enabled <= 100),
 
     -- Tenant-level controls
     enabled_tenants JSONB NOT NULL DEFAULT '[]',
