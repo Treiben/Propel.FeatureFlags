@@ -1,4 +1,7 @@
 ﻿using Propel.FeatureFlags.Core;
+using Propel.FlagsManagement.Api.Endpoints.Shared;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Propel.FlagsManagement.Api.Endpoints.Dto;
 
@@ -12,20 +15,20 @@ public record FeatureFlagResponse
 	public DateTime? UpdatedAt { get; set; }
 	public string CreatedBy { get; set; } = string.Empty;
 	public string? UpdatedBy { get; set; } = string.Empty;
-	public DateTime? ExpirationDate { get; set; }
 	public DateTime? ScheduledEnableDate { get; set; }
 	public DateTime? ScheduledDisableDate { get; set; }
 	public TimeOnly? WindowStartTime { get; set; }
 	public TimeOnly? WindowEndTime { get; set; }
 	public string? TimeZone { get; set; }
 	public DayOfWeek[]? WindowDays { get; set; }
-	public int PercentageEnabled { get; set; }
-	public List<TargetingRule> TargetingRules { get; set; } = [];
+	public int UserRolloutPercentage { get; set; }
 	public List<string> AllowedUsers { get; set; } = [];
 	public List<string> BlockedUsers { get; set; } = [];
+	public List<TargetingRule> TargetingRules { get; set; } = [];
 	public Dictionary<string, object> Variations { get; set; } = [];
 	public string DefaultVariation { get; set; } = string.Empty;
 	public Dictionary<string, string> Tags { get; set; } = [];
+	public DateTime? ExpirationDate { get; set; }
 	public bool IsPermanent { get; set; }
 
 	public FeatureFlagResponse() { }
@@ -52,7 +55,7 @@ public record FeatureFlagResponse
 				? TimeOnly.FromTimeSpan(flag.OperationalWindow.WindowEndTime) : null;
 		TimeZone = flag.OperationalWindow.TimeZone;
 		WindowDays = flag.OperationalWindow.WindowDays;
-		PercentageEnabled = flag.UserAccess.RolloutPercentage;
+		UserRolloutPercentage = flag.UserAccess.RolloutPercentage;
 		AllowedUsers = flag.UserAccess.AllowedUsers;
 		BlockedUsers = flag.UserAccess.BlockedUsers;
 		TargetingRules = flag.TargetingRules;

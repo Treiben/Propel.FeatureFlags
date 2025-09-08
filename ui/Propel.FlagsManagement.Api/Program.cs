@@ -48,9 +48,9 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 	options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 	options.SerializerOptions.WriteIndented = true;
 	options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-	options.SerializerOptions.Converters.Add(new CustomJsonConverter<FlagEvaluationMode>());
-	options.SerializerOptions.Converters.Add(new CustomJsonConverter<DayOfWeek>());
-	options.SerializerOptions.Converters.Add(new CustomJsonConverter<TargetingOperator>());
+	options.SerializerOptions.Converters.Add(new EnumJsonConverter<FlagEvaluationMode>());
+	options.SerializerOptions.Converters.Add(new EnumJsonConverter<DayOfWeek>());
+	options.SerializerOptions.Converters.Add(new EnumJsonConverter<TargetingOperator>());
 });
 
 builder.Services.AddAuthentication("Bearer").AddJwtBearer();
@@ -65,8 +65,8 @@ builder.Services.AddAuthorizationBuilder()
 // Configure feature flags
 var featureFlagOptions = builder.Configuration.GetSection("PropelFeatureFlags").Get<FeatureFlagConfigurationOptions>() ?? new();
 builder.Services.AddFeatureFlags(featureFlagOptions);
-builder.Services.AddPostgresSqlFeatureFlags(featureFlagOptions.SqlConnectionString);
-builder.Services.AddRedisCache(featureFlagOptions.RedisConnectionString);
+builder.Services.AddPostgresSqlFeatureFlags(featureFlagOptions.SqlConnectionString!);
+builder.Services.AddRedisCache(featureFlagOptions.RedisConnectionString!);
 
 // Configure flags management api services
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
