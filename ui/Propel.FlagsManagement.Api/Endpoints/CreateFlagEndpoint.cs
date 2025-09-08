@@ -11,9 +11,9 @@ public record CreateFeatureFlagRequest
 	public string Key { get; set; } = string.Empty;
 	public string Name { get; set; } = string.Empty;
 	public string? Description { get; set; }
-	public DateTime? ExpirationDate { get; set; }
 	public Dictionary<string, string>? Tags { get; set; }
 	public bool IsPermanent { get; set; } = false;
+	public DateTime? ExpirationDate { get; set; }
 }
 
 public sealed class CreateFlagEndpoint : IEndpoint
