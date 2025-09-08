@@ -23,9 +23,10 @@ public sealed class CreateFlagEndpoint : IEndpoint
 
 		app.MapPost("/api/feature-flags",
 			async (CreateFeatureFlagRequest request,
-					CreateFlagHandler createFlagHandler) =>
+					CreateFlagHandler createFlagHandler,
+					CancellationToken cancellationToken) =>
 		{
-			return await createFlagHandler.HandleAsync(request);
+			return await createFlagHandler.HandleAsync(request, cancellationToken);
 		})
 		.AddEndpointFilter<ValidationFilter<CreateFeatureFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
@@ -40,11 +41,11 @@ public sealed class CreateFlagHandler(
 		ICurrentUserService currentUserService,
 		ILogger<CreateFlagHandler> logger)
 {
-	public async Task<IResult> HandleAsync(CreateFeatureFlagRequest request)
+	public async Task<IResult> HandleAsync(CreateFeatureFlagRequest request, CancellationToken cancellationToken)
 	{
 		try
 		{
-			var existingFlag = await repository.GetAsync(request.Key);
+			var existingFlag = await repository.GetAsync(request.Key, cancellationToken);
 			if (existingFlag != null)
 			{
 				return HttpProblemFactory.Conflict($"A feature flag with the key '{request.Key}' already exists. Please use a different key or update the existing flag.",
@@ -53,12 +54,20 @@ public sealed class CreateFlagHandler(
 
 			var flag = CreateFlag(request, currentUserService.UserName!);
 
-			var createdFlag = await repository.CreateAsync(flag);
+			var createdFlag = await repository.CreateAsync(flag, cancellationToken);
 
 			logger.LogInformation("Feature flag {Key} created successfully by {User}",
 				flag.Key, currentUserService.UserName);
 
 			return Results.Created($"/api/flags/{flag.Key}", new FeatureFlagResponse(createdFlag));
+		}
+		catch (ArgumentException ex)
+		{
+			return HttpProblemFactory.BadRequest(ex.Message, logger);
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+		{
+			return HttpProblemFactory.ClientClosedRequest(logger);
 		}
 		catch (Exception ex)
 		{

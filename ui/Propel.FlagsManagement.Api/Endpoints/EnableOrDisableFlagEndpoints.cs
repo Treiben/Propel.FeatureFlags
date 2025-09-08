@@ -18,9 +18,10 @@ public sealed class ToggleFlagEndpoint : IEndpoint
 			async (
 				string key,
 				EnableFlagRequest request,
-				ToggleFlagHandler toggleFlagHandler) =>
+				ToggleFlagHandler toggleFlagHandler, 
+				CancellationToken cancellationToken) =>
 				{
-					return await toggleFlagHandler.HandleAsync(key, FlagEvaluationMode.Enabled, request.Reason);
+					return await toggleFlagHandler.HandleAsync(key, FlagEvaluationMode.Enabled, request.Reason, cancellationToken);
 				})
 		.AddEndpointFilter<ValidationFilter<EnableFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
@@ -33,9 +34,10 @@ public sealed class ToggleFlagEndpoint : IEndpoint
 			async (
 				string key,
 				DisableFlagRequest request,
-				ToggleFlagHandler toggleFlagHandler) =>
+				ToggleFlagHandler toggleFlagHandler, 
+				CancellationToken cancellationToken) =>
 			{
-				return await toggleFlagHandler.HandleAsync(key, FlagEvaluationMode.Disabled, request.Reason);
+				return await toggleFlagHandler.HandleAsync(key, FlagEvaluationMode.Disabled, request.Reason, cancellationToken);
 			})
 		.AddEndpointFilter<ValidationFilter<DisableFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
@@ -52,7 +54,8 @@ public sealed class ToggleFlagHandler(
 		ILogger<ToggleFlagHandler> logger,
 		IFeatureFlagCache? cache = null)
 {
-	public async Task<IResult> HandleAsync(string key, FlagEvaluationMode evaluationMode, string reason)
+	public async Task<IResult> HandleAsync(string key, FlagEvaluationMode evaluationMode, string reason,
+		CancellationToken cancellationToken)
 	{
 		// Validate key parameter
 		if (string.IsNullOrWhiteSpace(key))
@@ -62,7 +65,7 @@ public sealed class ToggleFlagHandler(
 
 		try
 		{
-			var flag = await repository.GetAsync(key);
+			var flag = await repository.GetAsync(key, cancellationToken);
 			if (flag == null)
 			{
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
@@ -89,15 +92,23 @@ public sealed class ToggleFlagHandler(
 			// Update audit record
 			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName!);
 
-			var updatedFlag = await repository.UpdateAsync(flag);
+			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
 
-			if (cache != null) await cache.RemoveAsync(key);
+			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
 
 			var action = Enum.GetName(evaluationMode);
 			logger.LogInformation("Feature flag {Key} {Action} by {User} (changed from {PreviousStatus}). Reason: {Reason}",
 				key, action, currentUserService.UserName, previousModes, reason);
 
 			return Results.Ok(new FeatureFlagResponse(updatedFlag));
+		}
+		catch (ArgumentException ex)
+		{
+			return HttpProblemFactory.BadRequest(ex.Message, logger);
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+		{
+			return HttpProblemFactory.ClientClosedRequest(logger);
 		}
 		catch (Exception ex)
 		{

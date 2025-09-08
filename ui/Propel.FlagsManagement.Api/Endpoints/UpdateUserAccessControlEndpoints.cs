@@ -19,9 +19,10 @@ public sealed class UpdateUserAccessControlEndpoints : IEndpoint
 			async (
 				string key,
 				ManageUsersRequest request,
-				ManageUserAccessHandler userAccessHandler) =>
+				ManageUserAccessHandler userAccessHandler, 
+				CancellationToken cancellationToken) =>
 		{
-			return await userAccessHandler.HandleAsync(key, request.UserIds, true);
+			return await userAccessHandler.HandleAsync(key, request.UserIds, true, cancellationToken);
 		})
 		.AddEndpointFilter<ValidationFilter<ManageUsersRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
@@ -34,9 +35,10 @@ public sealed class UpdateUserAccessControlEndpoints : IEndpoint
 			async (
 				string key,
 				ManageUsersRequest request,
-				ManageUserAccessHandler userAccessHandler) =>
+				ManageUserAccessHandler userAccessHandler, 
+				CancellationToken cancellationToken) =>
 				{
-					return await userAccessHandler.HandleAsync(key, request.UserIds, false);
+					return await userAccessHandler.HandleAsync(key, request.UserIds, false, cancellationToken);
 				})
 		.AddEndpointFilter<ValidationFilter<ManageUsersRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
@@ -49,9 +51,10 @@ public sealed class UpdateUserAccessControlEndpoints : IEndpoint
 			async (
 				string key,
 				UpdateUserRolloutPercentageRequest request,
-				UpdateUserRolloutPercentageHandler setPercentageHandler) =>
+				UpdateUserRolloutPercentageHandler setPercentageHandler,
+				CancellationToken cancellationToken) =>
 			{
-				return await setPercentageHandler.HandleAsync(key, request);
+				return await setPercentageHandler.HandleAsync(key, request, cancellationToken);
 			})
 			.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 			.AddEndpointFilter<ValidationFilter<UpdateUserRolloutPercentageRequest>>()
@@ -68,7 +71,8 @@ public sealed class ManageUserAccessHandler(
 		ILogger<ManageUserAccessHandler> logger,
 		IFeatureFlagCache? cache = null)
 {
-	public async Task<IResult> HandleAsync(string key, List<string> userIds, bool enable)
+	public async Task<IResult> HandleAsync(string key, List<string> userIds, bool enable,
+		CancellationToken cancellationToken)
 	{
 		if (string.IsNullOrWhiteSpace(key))
 		{
@@ -82,7 +86,7 @@ public sealed class ManageUserAccessHandler(
 
 		try
 		{
-			var flag = await repository.GetAsync(key);
+			var flag = await repository.GetAsync(key, cancellationToken);
 			if (flag == null)
 			{
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
@@ -94,9 +98,9 @@ public sealed class ManageUserAccessHandler(
 			}
 
 			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName!);
-			var updatedFlag = await repository.UpdateAsync(flag);
+			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
 
-			if (cache != null) await cache.RemoveAsync(key);
+			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
 
 			// Log detailed changes
 			var action = enable ? "enabled" : "disabled";
@@ -105,6 +109,14 @@ public sealed class ManageUserAccessHandler(
 				key, currentUserService.UserName, action, string.Join(", ", userIds));
 
 			return Results.Ok(new FeatureFlagResponse(updatedFlag));
+		}
+		catch (ArgumentException ex)
+		{
+			return HttpProblemFactory.BadRequest(ex.Message, logger);
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+		{
+			return HttpProblemFactory.ClientClosedRequest(logger);
 		}
 		catch (Exception ex)
 		{
@@ -119,7 +131,8 @@ public sealed class UpdateUserRolloutPercentageHandler(
 		ILogger<UpdateUserRolloutPercentageHandler> logger,
 		IFeatureFlagCache? cache = null)
 {
-	public async Task<IResult> HandleAsync(string key, UpdateUserRolloutPercentageRequest request)
+	public async Task<IResult> HandleAsync(string key, UpdateUserRolloutPercentageRequest request,
+		CancellationToken cancellationToken)
 	{
 		// Validate key parameter
 		if (string.IsNullOrWhiteSpace(key))
@@ -129,7 +142,7 @@ public sealed class UpdateUserRolloutPercentageHandler(
 
 		try
 		{
-			var flag = await repository.GetAsync(key);
+			var flag = await repository.GetAsync(key, cancellationToken);
 			if (flag == null)
 			{
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
@@ -147,9 +160,9 @@ public sealed class UpdateUserRolloutPercentageHandler(
 			}
 
 
-			var updatedFlag = await repository.UpdateAsync(flag);
+			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
 
-			if (cache != null) await cache.RemoveAsync(key);
+			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
 
 			logger.LogInformation("Feature flag {Key} user rollout percentage set to {Percentage}% by {User})",
 				key, request.Percentage, currentUserService.UserName);

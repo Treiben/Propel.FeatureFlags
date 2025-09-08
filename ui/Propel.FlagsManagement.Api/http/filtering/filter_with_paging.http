@@ -112,14 +112,14 @@ Authorization: Bearer {{active_token}}
 ### Combined 1. Status + Tag Filtering
 # Test: Combine status and tag filtering
 # Expected: 200 OK with flags that are Enabled AND have environment=production
-GET {{baseUrl}}/feature-flags?status=Enabled&tags=environment:production
+GET {{baseUrl}}/feature-flags?modes=Enabled&tags=environment:production
 Authorization: Bearer {{active_token}}
 
 ###
 ### Combined 2. Status + Multiple Tags + Pagination
 # Test: Combine all filtering options with pagination
 # Expected: 200 OK with paginated results for complex filter
-GET {{baseUrl}}/feature-flags?status=Enabled&tags=environment:production&tags=team:backend&page=1&pageSize=2
+GET {{baseUrl}}/feature-flags?modes=Enabled&tags=environment:production&tags=team:backend&page=1&pageSize=2
 Authorization: Bearer {{active_token}}
 
 ###
@@ -142,7 +142,7 @@ Authorization: Bearer {{active_token}}
 ### Edge 1. No Results Found
 # Test: Filter that should return no results
 # Expected: 200 OK with empty items array, totalCount=0
-GET {{baseUrl}}/feature-flags?status=Enabled&tags=environment:nonexistent
+GET {{baseUrl}}/feature-flags?modes=Enabled&tags=environment:nonexistent
 Authorization: Bearer {{active_token}}
 
 ###
@@ -156,7 +156,7 @@ Authorization: Bearer {{active_token}}
 ### Edge 3. Case Sensitivity - Status
 # Test: Verify status filtering is case-insensitive or properly handled
 # Expected: 200 OK (if case-insensitive) OR 400 Bad Request (if case-sensitive)
-GET {{baseUrl}}/feature-flags?status=enabled
+GET {{baseUrl}}/feature-flags?modes=enabled
 Authorization: Bearer {{active_token}}
 
 ###

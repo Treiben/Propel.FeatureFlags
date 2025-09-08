@@ -19,9 +19,10 @@ public sealed class UpdateTenantAccessControlEndpoints : IEndpoint
 			async (
 				string key,
 				ManageTenantsAccessRequest request,
-				ManageTenantAccessHandler tenantAccessHandler) =>
+				ManageTenantAccessHandler tenantAccessHandler,
+				CancellationToken cancellationToken) =>
 		{
-			return await tenantAccessHandler.HandleAsync(key, request.TenantIds, true);
+			return await tenantAccessHandler.HandleAsync(key, request.TenantIds, true, cancellationToken);
 		})
 		.AddEndpointFilter<ValidationFilter<ManageTenantsAccessRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
@@ -34,9 +35,10 @@ public sealed class UpdateTenantAccessControlEndpoints : IEndpoint
 			async (
 				string key,
 				ManageTenantsAccessRequest request,
-				ManageTenantAccessHandler tenantAccessHandler) =>
+				ManageTenantAccessHandler tenantAccessHandler, 
+				CancellationToken cancellationToken) =>
 				{
-					return await tenantAccessHandler.HandleAsync(key, request.TenantIds, false);
+					return await tenantAccessHandler.HandleAsync(key, request.TenantIds, false, cancellationToken);
 				})
 		.AddEndpointFilter<ValidationFilter<ManageTenantsAccessRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
@@ -49,9 +51,10 @@ public sealed class UpdateTenantAccessControlEndpoints : IEndpoint
 			async (
 				string key,
 				UpdateTenantRolloutPercentageRequest request,
-				UpdateTenantRolloutPercentageHandler setPercentageHandler) =>
+				UpdateTenantRolloutPercentageHandler setPercentageHandler,
+				CancellationToken cancellationToken) =>
 			{
-				return await setPercentageHandler.HandleAsync(key, request);
+				return await setPercentageHandler.HandleAsync(key, request, cancellationToken);
 			})
 			.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 			.AddEndpointFilter<ValidationFilter<UpdateTenantRolloutPercentageRequest>>()
@@ -68,7 +71,8 @@ public sealed class ManageTenantAccessHandler(
 		ILogger<ManageTenantAccessHandler> logger,
 		IFeatureFlagCache? cache = null)
 {
-	public async Task<IResult> HandleAsync(string key, List<string> tenantsIds, bool enable)
+	public async Task<IResult> HandleAsync(string key, List<string> tenantsIds, bool enable,
+		CancellationToken cancellationToken)
 	{
 		if (string.IsNullOrWhiteSpace(key))
 		{
@@ -82,7 +86,7 @@ public sealed class ManageTenantAccessHandler(
 
 		try
 		{
-			var flag = await repository.GetAsync(key);
+			var flag = await repository.GetAsync(key, cancellationToken);
 			if (flag == null)
 			{
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
@@ -94,9 +98,9 @@ public sealed class ManageTenantAccessHandler(
 			}
 
 			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName!);
-			var updatedFlag = await repository.UpdateAsync(flag);
+			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
 
-			if (cache != null) await cache.RemoveAsync(key);
+			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
 
 			// Log detailed changes
 			var action = enable ? "enabled" : "disabled";
@@ -105,6 +109,14 @@ public sealed class ManageTenantAccessHandler(
 				key, currentUserService.UserName, action, string.Join(", ", tenantsIds));
 
 			return Results.Ok(new FeatureFlagResponse(updatedFlag));
+		}
+		catch (ArgumentException ex)
+		{
+			return HttpProblemFactory.BadRequest(ex.Message, logger);
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+		{
+			return HttpProblemFactory.ClientClosedRequest(logger);
 		}
 		catch (Exception ex)
 		{
@@ -119,7 +131,8 @@ public sealed class UpdateTenantRolloutPercentageHandler(
 		ILogger<UpdateTenantRolloutPercentageHandler> logger,
 		IFeatureFlagCache? cache = null)
 {
-	public async Task<IResult> HandleAsync(string key, UpdateTenantRolloutPercentageRequest request)
+	public async Task<IResult> HandleAsync(string key, UpdateTenantRolloutPercentageRequest request,
+		CancellationToken cancellationToken)
 	{
 		// Validate key parameter
 		if (string.IsNullOrWhiteSpace(key))
@@ -129,7 +142,7 @@ public sealed class UpdateTenantRolloutPercentageHandler(
 
 		try
 		{
-			var flag = await repository.GetAsync(key);
+			var flag = await repository.GetAsync(key, cancellationToken);
 			if (flag == null)
 			{
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
@@ -147,14 +160,22 @@ public sealed class UpdateTenantRolloutPercentageHandler(
 			}
 
 
-			var updatedFlag = await repository.UpdateAsync(flag);
+			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
 
-			if (cache != null) await cache.RemoveAsync(key);
+			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
 
 			logger.LogInformation("Feature flag {Key} tenant rollout percentage set to {Percentage}% by {User})",
 				key, request.Percentage, currentUserService.UserName);
 
 			return Results.Ok(new FeatureFlagResponse(updatedFlag));
+		}
+		catch (ArgumentException ex)
+		{
+			return HttpProblemFactory.BadRequest(ex.Message, logger);
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+		{
+			return HttpProblemFactory.ClientClosedRequest(logger);
 		}
 		catch (Exception ex)
 		{

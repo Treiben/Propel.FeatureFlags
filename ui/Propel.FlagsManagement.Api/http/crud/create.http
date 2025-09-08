@@ -99,7 +99,9 @@ Authorization: Bearer {{active_token}}
   "key": "complex-flag-{{$randomInt}}",
   "name": "Complex Feature Flag",
   "description": "A feature flag with all possible configurations",
-  "status": "TimeWindow",
+  "evaluationModes": [
+    "TimeWindow"
+  ],
   "expirationDate": "{{$datetime iso8601 30 d}}",
   "windowStartTime": "08:00:00",
   "windowEndTime": "20:00:00",

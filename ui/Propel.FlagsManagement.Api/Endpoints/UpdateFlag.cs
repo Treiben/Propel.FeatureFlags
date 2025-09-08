@@ -11,8 +11,8 @@ public record UpdateFlagRequest
 {
 	public string? Name { get; set; }
 	public string? Description { get; set; }
-	public string[]? ExplicitlyAllowedUsers { get; set; }
-	public string[]? ExplicitlyBlockedUsers { get; set; }
+	public string[]? AllowedUsers { get; set; }
+	public string[]? BlockedUsers { get; set; }
 	public Dictionary<string, string>? Tags { get; set; }
 	public bool IsPermanent { get; set; }
 	public DateTime? ExpirationDate { get; set; }
@@ -25,9 +25,10 @@ public sealed class UpdateFlagEndpoint : IEndpoint
 		app.MapPut("/api/feature-flags/{key}",
 			async (string key,
 					UpdateFlagRequest request,
-					UpdateFlagHandler handler) =>
+					UpdateFlagHandler handler,
+					CancellationToken cancellationToken) =>
 		{
-			return await handler.HandleAsync(key, request);
+			return await handler.HandleAsync(key, request, cancellationToken);
 		})
 		.AddEndpointFilter<ValidationFilter<UpdateFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
@@ -44,7 +45,7 @@ public sealed class UpdateFlagHandler(
 		ILogger<UpdateFlagHandler> logger,
 		IFeatureFlagCache? cache = null)
 {
-	public async Task<IResult> HandleAsync(string key, UpdateFlagRequest request)
+	public async Task<IResult> HandleAsync(string key, UpdateFlagRequest request, CancellationToken cancellationToken)
 	{
 		// Validate key parameter
 		if (string.IsNullOrWhiteSpace(key))
@@ -62,12 +63,20 @@ public sealed class UpdateFlagHandler(
 
 			ModifyFlagFromRequest(request, existingFlag, userService.UserName!);
 
-			var updatedFlag = await repository.UpdateAsync(existingFlag);
+			var updatedFlag = await repository.UpdateAsync(existingFlag, cancellationToken);
 
-			if (cache != null) await cache.RemoveAsync(key);
+			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
 
 			logger.LogInformation("Feature flag {Key} updated by {User}", key, userService.UserName);
 			return Results.Ok(new FeatureFlagResponse(updatedFlag));
+		}
+		catch (ArgumentException ex)
+		{
+			return HttpProblemFactory.BadRequest(ex.Message, logger);
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+		{
+			return HttpProblemFactory.ClientClosedRequest(logger);
 		}
 		catch (Exception ex)
 		{
@@ -85,8 +94,8 @@ public sealed class UpdateFlagHandler(
 			dest.Description = source.Description;
 
 		dest.UserAccess = new FlagUserAccessControl(
-			allowedUsers: [.. source.ExplicitlyAllowedUsers ?? []],
-			blockedUsers: [.. source.ExplicitlyBlockedUsers ?? []],
+			allowedUsers: [.. source.AllowedUsers ?? []],
+			blockedUsers: [.. source.BlockedUsers ?? []],
 			rolloutPercentage: dest.UserAccess.RolloutPercentage);
 
 		dest.AuditRecord = new FlagAuditRecord(dest.AuditRecord.CreatedAt, dest.AuditRecord.CreatedBy, DateTime.UtcNow, updatedBy);

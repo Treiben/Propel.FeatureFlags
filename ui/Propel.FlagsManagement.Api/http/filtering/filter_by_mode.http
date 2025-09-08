@@ -25,40 +25,40 @@
 ### Filter 1. Filter by Status - Enabled
 # Test: Filter flags by Enabled status
 # Expected: 200 OK with PagedFeatureFlagsResponse containing only Enabled flags
-GET {{baseUrl}}/feature-flags?status=Enabled
+GET {{baseUrl}}/feature-flags?modes=2&modes=3
 Authorization: Bearer {{active_token}}
 
 ###
 ### Filter 2. Filter by Status - Disabled
 # Test: Filter flags by Disabled status
 # Expected: 200 OK with PagedFeatureFlagsResponse containing only Disabled flags
-GET {{baseUrl}}/feature-flags?status=Disabled
+GET {{baseUrl}}/feature-flags?modes=Disabled
 Authorization: Bearer {{active_token}}
 
 ###
 ### Filter 3. Filter by Status - Percentage
 # Test: Filter flags by Percentage status
 # Expected: 200 OK with PagedFeatureFlagsResponse containing only Percentage flags
-GET {{baseUrl}}/feature-flags?status=Percentage
+GET {{baseUrl}}/feature-flags?modes=UserRolloutPercentage
 Authorization: Bearer {{active_token}}
 
 ###
 ### Filter 4. Filter by Status - Scheduled
 # Test: Filter flags by Scheduled status
 # Expected: 200 OK with PagedFeatureFlagsResponse containing only Scheduled flags
-GET {{baseUrl}}/feature-flags?status=Scheduled
+GET {{baseUrl}}/feature-flags?modes=Scheduled
 Authorization: Bearer {{active_token}}
 
 ###
 ### Filter 5. Filter by Invalid Status
 # Test: Verify validation fails for invalid status values
 # Expected: 400 Bad Request with validation error about valid status values
-GET {{baseUrl}}/feature-flags?status=InvalidStatus
+GET {{baseUrl}}/feature-flags?modes=InvalidStatus
 Authorization: Bearer {{active_token}}
 
 ###
 ### Filter 6. Filter by Status with Pagination
 # Test: Combine status filtering with pagination
 # Expected: 200 OK with paginated results for specific status
-GET {{baseUrl}}/feature-flags?status=Enabled&page=1&pageSize=3
+GET {{baseUrl}}/feature-flags?modes=Enabled&page=1&pageSize=3
 Authorization: Bearer {{active_token}}

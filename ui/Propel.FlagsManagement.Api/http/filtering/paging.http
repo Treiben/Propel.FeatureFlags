@@ -137,7 +137,7 @@ Authorization: Bearer {{active_token}}
 ###
 ### Paging 4. Test Page Size Limit
 # Test: Verify page size is limited to maximum allowed
-# Expected: 200 OK with PagedFeatureFlagsResponse, pageSize should be capped at 100
+# Expected: 400 Bad: pageSize should be capped at 100
 GET {{baseUrl}}/feature-flags?page=1&pageSize=150
 Authorization: Bearer {{active_token}}
 

@@ -38,8 +38,8 @@ Authorization: Bearer {{active_token}}
       "variation": "on"
     }
   ],
-  "enabledUsers": ["{{testUserId}}", "test-user-123"],
-  "disabledUsers": ["disabled-user-1"],
+  "allowedUsers": ["{{testUserId}}", "test-user-123"],
+  "blockedUsers": ["disabled-user-1"],
   "variations": {
     "on": true,
     "off": false,
@@ -142,8 +142,8 @@ Content-Type: application/json
 Authorization: Bearer {{active_token}}
 
 {
-  "enabledUsers": ["user-1", "user-2", "overlap-user"],
-  "disabledUsers": ["user-3", "overlap-user", "user-4"]
+  "explicitlyAllowedUsers": ["user-1", "user-2", "overlap-user"],
+  "explicitlyBlockedUsers": ["user-3", "overlap-user", "user-4"]
 }
 
 ###
@@ -156,16 +156,4 @@ Authorization: Bearer {{active_token}}
 
 {
   "name": "This flag doesn't exist"
-}
-
-###
-### 10. Update Feature Flag - Empty Key
-# Test: Attempt to update with empty key
-# Expected: 400 Bad Request
-PUT {{baseUrl}}/feature-flags/
-Content-Type: application/json
-Authorization: Bearer {{active_token}}
-
-{
-  "name": "Empty key test"
 }

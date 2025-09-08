@@ -22,9 +22,10 @@ public sealed class UpdateTimeWindowEndpoint : IEndpoint
 			async (
 				string key,
 				UpdateTimeWindowRequest request,
-				UpdateTimeWindowHandler timeWindowFlagHandler) =>
+				UpdateTimeWindowHandler timeWindowFlagHandler,
+				CancellationToken cancellationToken) =>
 		{
-			return await timeWindowFlagHandler.HandleAsync(key, request);
+			return await timeWindowFlagHandler.HandleAsync(key, request, cancellationToken);
 		})
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.AddEndpointFilter<ValidationFilter<UpdateTimeWindowRequest>>()
@@ -41,7 +42,8 @@ public sealed class UpdateTimeWindowHandler(
 		ILogger<UpdateTimeWindowHandler> logger,
 		IFeatureFlagCache? cache = null)
 {
-	public async Task<IResult> HandleAsync(string key, UpdateTimeWindowRequest request)
+	public async Task<IResult> HandleAsync(string key, UpdateTimeWindowRequest request,
+		CancellationToken cancellationToken)
 	{
 		if (string.IsNullOrWhiteSpace(key))
 		{
@@ -50,7 +52,7 @@ public sealed class UpdateTimeWindowHandler(
 
 		try
 		{
-			var flag = await repository.GetAsync(key);
+			var flag = await repository.GetAsync(key, cancellationToken);
 			if (flag == null)
 			{
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
@@ -73,14 +75,22 @@ public sealed class UpdateTimeWindowHandler(
 					request.WindowDays);
 			}
 
-			var updatedFlag = await repository.UpdateAsync(flag);
+			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
 
-			if (cache != null) await cache.RemoveAsync(key);
+			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
 
 			logger.LogInformation("Feature flag {Key} time window updated by {User}",
 				key, currentUserService.UserName);
 
 			return Results.Ok(new FeatureFlagResponse(updatedFlag));
+		}
+		catch (ArgumentException ex)
+		{
+			return HttpProblemFactory.BadRequest(ex.Message, logger);
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+		{
+			return HttpProblemFactory.ClientClosedRequest(logger);
 		}
 		catch (Exception ex)
 		{

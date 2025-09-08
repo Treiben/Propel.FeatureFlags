@@ -23,7 +23,7 @@ public record GetFeatureFlagRequest
 	public int? PageSize { get; init; }
 
 	// Evaluation mode filtering
-	public FlagEvaluationMode[]? EvaluationModes { get; init; }
+	public FlagEvaluationMode[]? Modes { get; init; }
 
 	// Expiring flags only
 	public int? ExpiringInDays { get; init; }
@@ -42,7 +42,8 @@ public sealed class GetFlagEndpoints : IEndpoint
 		app.MapGet("/api/feature-flags/{key}",
 			async (string key,
 					IFeatureFlagRepository repository, 
-					ILogger<GetFlagEndpoints> logger) =>
+					ILogger<GetFlagEndpoints> logger, 
+					CancellationToken cancellationToken) =>
 		{
 			// Validate key parameter
 			if (string.IsNullOrWhiteSpace(key))
@@ -52,13 +53,17 @@ public sealed class GetFlagEndpoints : IEndpoint
 
 			try
 			{
-				var flag = await repository.GetAsync(key);
+				var flag = await repository.GetAsync(key, cancellationToken);
 				if (flag == null)
 				{
 					return HttpProblemFactory.NotFound("Feature flag", key, logger);
 				}
 
 				return Results.Ok(new FeatureFlagResponse(flag));
+			}
+			catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+			{
+				return HttpProblemFactory.ClientClosedRequest(logger);
 			}
 			catch (Exception ex)
 			{
@@ -72,13 +77,18 @@ public sealed class GetFlagEndpoints : IEndpoint
 
 		app.MapGet("/api/feature-flags/all", 
 			async (IFeatureFlagRepository repository, 
-					ILogger<GetFlagEndpoints> logger) =>
+					ILogger<GetFlagEndpoints> logger,
+					CancellationToken cancellationToken) =>
 		{
 			try
 			{
-				var flags = await repository.GetAllAsync();
+				var flags = await repository.GetAllAsync(cancellationToken);
 				var flagDtos = flags.Select(f => new FeatureFlagResponse(f)).ToList();
 				return Results.Ok(flagDtos);
+			}
+			catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+			{
+				return HttpProblemFactory.ClientClosedRequest(logger);
 			}
 			catch (Exception ex)
 			{
@@ -93,16 +103,17 @@ public sealed class GetFlagEndpoints : IEndpoint
 		app.MapGet("/api/feature-flags", 
 			async ([AsParameters] GetFeatureFlagRequest request, 
 					IFeatureFlagRepository repository,
-					ILogger<GetFlagEndpoints> logger) =>
+					ILogger<GetFlagEndpoints> logger,
+					CancellationToken cancellationToken) =>
 		{
 			try
 			{
 				FeatureFlagFilter? filter = null;
-				if (request.EvaluationModes?.Length > 0 || request.Tags?.Length > 0 || request.TagKeys?.Length > 0)
+				if (request.Modes?.Length > 0 || request.Tags?.Length > 0 || request.TagKeys?.Length > 0)
 				{
 					filter = new FeatureFlagFilter
 					{
-						EvaluationModes = request.EvaluationModes,
+						EvaluationModes = request.Modes,
 						Tags = request.BuildTagDictionary(),
 						ExpiringInDays = request.ExpiringInDays
 					};
@@ -110,7 +121,7 @@ public sealed class GetFlagEndpoints : IEndpoint
 
 				var result = await repository.GetPagedAsync(request.Page ?? 1,
 						request.PageSize ?? 10
-						, filter);
+						, filter, cancellationToken);
 
 				var response = new PagedFeatureFlagsResponse
 				{
@@ -124,6 +135,14 @@ public sealed class GetFlagEndpoints : IEndpoint
 				};
 
 				return Results.Ok(response);
+			}
+			catch (ArgumentException ex)
+			{
+				return HttpProblemFactory.BadRequest(ex.Message, logger);
+			}
+			catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+			{
+				return HttpProblemFactory.ClientClosedRequest(logger);
 			}
 			catch (Exception ex)
 			{

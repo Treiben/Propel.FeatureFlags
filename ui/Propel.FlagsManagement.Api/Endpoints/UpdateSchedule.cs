@@ -17,9 +17,10 @@ public sealed class UpdateScheduleEndpoint : IEndpoint
 			async (
 				string key,
 				UpdateScheduleRequest request,
-				UpdateScheduleHandler scheduleFlagHandler) =>
+				UpdateScheduleHandler scheduleFlagHandler, 
+				CancellationToken cancellationToken) =>
 		{
-			return await scheduleFlagHandler.HandleAsync(key, request);
+			return await scheduleFlagHandler.HandleAsync(key, request, cancellationToken);
 		})
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.AddEndpointFilter<ValidationFilter<UpdateScheduleRequest>>()
@@ -37,7 +38,7 @@ public sealed class UpdateScheduleHandler(
 		ILogger<UpdateScheduleHandler> logger,
 		IFeatureFlagCache? cache = null)
 {
-	public async Task<IResult> HandleAsync(string key, UpdateScheduleRequest request)
+	public async Task<IResult> HandleAsync(string key, UpdateScheduleRequest request, CancellationToken cancellationToken)
 	{
 		if (string.IsNullOrWhiteSpace(key))
 		{
@@ -46,7 +47,7 @@ public sealed class UpdateScheduleHandler(
 
 		try
 		{
-			var flag = await repository.GetAsync(key);
+			var flag = await repository.GetAsync(key, cancellationToken);
 			if (flag == null)
 			{
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
@@ -66,9 +67,9 @@ public sealed class UpdateScheduleHandler(
 				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Scheduled);
 			}
 
-			var updatedFlag = await repository.UpdateAsync(flag);
+			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
 
-			if (cache != null) await cache.RemoveAsync(key);
+			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
 
 			var scheduleInfo = request.DisableDate.HasValue
 				? $"enable at {flag.Schedule.ScheduledEnableDate:yyyy-MM-dd HH:mm} UTC, disable at {flag.Schedule.ScheduledDisableDate:yyyy-MM-dd HH:mm} UTC"
@@ -78,6 +79,14 @@ public sealed class UpdateScheduleHandler(
 				key, currentUserService.UserName, scheduleInfo);
 
 			return Results.Ok(new FeatureFlagResponse(updatedFlag));
+		}
+		catch (ArgumentException ex)
+		{
+			return HttpProblemFactory.BadRequest(ex.Message, logger);
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+		{
+			return HttpProblemFactory.ClientClosedRequest(logger);
 		}
 		catch (Exception ex)
 		{

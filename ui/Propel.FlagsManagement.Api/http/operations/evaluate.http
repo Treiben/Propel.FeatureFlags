@@ -29,7 +29,7 @@ Authorization: Bearer {{active_token}}
 ### 2. Get Expiring Flags - Custom Days
 # Test: Get flags expiring within custom timeframe
 # Expected: 200 OK with List<FeatureFlagDto> of flags expiring within 30 days
-GET {{baseUrl}}/feature-flags/expiring?days=30
+GET {{baseUrl}}/feature-flags?expiringInDays=30
 Authorization: Bearer {{active_token}}
 
 ###

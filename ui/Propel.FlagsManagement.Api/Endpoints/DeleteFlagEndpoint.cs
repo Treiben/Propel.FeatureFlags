@@ -11,9 +11,10 @@ public sealed class DeleteFlagEndpoint : IEndpoint
 	{
 		app.MapDelete("/api/feature-flags/{key}",
 			async (string key,
-					DeleteFlagHandler deleteFlagHandler) =>
+					DeleteFlagHandler deleteFlagHandler,
+					CancellationToken cancellationToken) =>
 		{
-			return await deleteFlagHandler.HandleAsync(key);
+			return await deleteFlagHandler.HandleAsync(key, cancellationToken);
 		})
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("DeleteFeatureFlag")
@@ -28,7 +29,7 @@ public sealed class DeleteFlagHandler(
 	ILogger<DeleteFlagHandler> logger,
 	IFeatureFlagCache? cache = null)
 {
-	public async Task<IResult> HandleAsync(string key)
+	public async Task<IResult> HandleAsync(string key, CancellationToken cancellationToken)
 	{
 		// Validate key parameter
 		if (string.IsNullOrWhiteSpace(key))
@@ -38,7 +39,7 @@ public sealed class DeleteFlagHandler(
 
 		try
 		{
-			var existingFlag = await repository.GetAsync(key);
+			var existingFlag = await repository.GetAsync(key, cancellationToken);
 			if (existingFlag == null)
 			{
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
@@ -52,7 +53,7 @@ public sealed class DeleteFlagHandler(
 					logger);
 			}
 
-			var deleteResult = await repository.DeleteAsync(key);
+			var deleteResult = await repository.DeleteAsync(key, cancellationToken);
 			if (!deleteResult)
 			{
 				return HttpProblemFactory.InternalServerError(
@@ -60,12 +61,16 @@ public sealed class DeleteFlagHandler(
 					logger: logger);
 			}
 
-			if (cache != null) await cache.RemoveAsync(key);
+			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
 
 			logger.LogInformation("Feature flag {Key} deleted successfully by {User}", 
 				key, userService.UserName);
 			
 			return Results.NoContent();
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+		{
+			return HttpProblemFactory.ClientClosedRequest(logger);
 		}
 		catch (Exception ex)
 		{
