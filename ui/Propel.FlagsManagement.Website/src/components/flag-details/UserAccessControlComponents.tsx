@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Percent, X, UserCheck, UserX } from 'lucide-react';
+import { Users, Percent, UserCheck, UserX } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
 import { parseStatusComponents } from '../../utils/flagHelpers';
 
@@ -12,19 +12,45 @@ export const UserAccessControlStatusIndicator: React.FC<UserAccessControlStatusI
     
     if (!components.hasPercentage && !components.hasUserTargeting) return null;
 
+    const allowedCount = flag.allowedUsers?.length || 0;
+    const blockedCount = flag.blockedUsers?.length || 0;
+    const percentage = flag.userRolloutPercentage || 0;
+
     return (
-        <div className="mt-4 p-3 bg-purple-50 rounded-lg space-y-2">
-            {components.hasPercentage && (
-                <div className="text-sm text-purple-800">
-                    <strong>{flag.userRolloutPercentage || 0}%</strong> rollout percentage enabled
-                </div>
-            )}
-            {components.hasUserTargeting && (
-                <div className="text-sm text-purple-800">
-                    <strong>{flag.allowedUsers?.length || 0}</strong> explicitly allowed users, 
-                    <strong> {flag.blockedUsers?.length || 0}</strong> explicitly blocked users
-                </div>
-            )}
+        <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+                <Users className="w-4 h-4 text-purple-600" />
+                <h4 className="font-medium text-purple-900">User Access Control</h4>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                {/* Percentage Rollout */}
+                {components.hasPercentage && (
+                    <div className="flex items-center gap-2">
+                        <Percent className="w-4 h-4 text-yellow-600" />
+                        <span className="font-medium">Percentage:</span>
+                        <span className="text-yellow-700">{percentage}% rollout</span>
+                    </div>
+                )}
+
+                {/* Allowed Users */}
+                {components.hasUserTargeting && (
+                    <div className="flex items-center gap-2">
+                        <UserCheck className="w-4 h-4 text-green-600" />
+                        <span className="font-medium">Allowed:</span>
+                        <span className="text-green-700 font-semibold">{allowedCount} user{allowedCount !== 1 ? 's' : ''}</span>
+                    </div>
+                )}
+
+                {/* Blocked Users */}
+                {components.hasUserTargeting && (
+                    <div className="flex items-center gap-2">
+                        <UserX className="w-4 h-4 text-red-600" />
+                        <span className="font-medium">Blocked:</span>
+                        <span className="text-red-700 font-semibold">{blockedCount} user{blockedCount !== 1 ? 's' : ''}</span>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
@@ -183,9 +209,19 @@ export const UserAccessControlEditor: React.FC<UserAccessControlEditorProps> = (
                         </button>
                     </div>
                     {flag.allowedUsers && flag.allowedUsers.length > 0 && (
-                        <div className="mt-2">
-                            <span className="text-xs text-gray-600">Currently allowed: </span>
-                            <span className="text-xs text-green-700">{flag.allowedUsers.join(', ')}</span>
+                        <div className="mt-3">
+                            <span className="text-xs font-medium text-green-700 block mb-2">Currently allowed:</span>
+                            <div className="flex flex-wrap gap-1">
+                                {flag.allowedUsers.map((user) => (
+                                    <span
+                                        key={user}
+                                        className="inline-flex items-center px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full border border-green-200"
+                                    >
+                                        <UserCheck className="w-3 h-3 mr-1" />
+                                        {user}
+                                    </span>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -214,9 +250,19 @@ export const UserAccessControlEditor: React.FC<UserAccessControlEditorProps> = (
                         </button>
                     </div>
                     {flag.blockedUsers && flag.blockedUsers.length > 0 && (
-                        <div className="mt-2">
-                            <span className="text-xs text-gray-600">Currently blocked: </span>
-                            <span className="text-xs text-red-700">{flag.blockedUsers.join(', ')}</span>
+                        <div className="mt-3">
+                            <span className="text-xs font-medium text-red-700 block mb-2">Currently blocked:</span>
+                            <div className="flex flex-wrap gap-1">
+                                {flag.blockedUsers.map((user) => (
+                                    <span
+                                        key={user}
+                                        className="inline-flex items-center px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full border border-red-200"
+                                    >
+                                        <UserX className="w-3 h-3 mr-1" />
+                                        {user}
+                                    </span>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>

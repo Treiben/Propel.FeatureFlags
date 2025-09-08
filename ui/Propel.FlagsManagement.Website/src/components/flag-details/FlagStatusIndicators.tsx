@@ -1,60 +1,41 @@
-import { Shield, PlayCircle, Timer, AlertCircle, Percent, Users } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
-import { 
-    getScheduleStatus, 
-    getTimeWindowStatus, 
-    isExpired,
-    parseStatusComponents
-} from '../../utils/flagHelpers';
 
 interface FlagStatusIndicatorsProps {
     flag: FeatureFlagDto;
 }
 
 export const FlagStatusIndicators: React.FC<FlagStatusIndicatorsProps> = ({ flag }) => {
-    const components = parseStatusComponents(flag);
-    const scheduleStatus = getScheduleStatus(flag);
-    const timeWindowStatus = getTimeWindowStatus(flag);
-    const flagExpired = isExpired(flag);
-
+    const modes = flag.evaluationModes || [];
+    
+    // Map evaluation modes to readable names
+    const getModeNames = (modes: number[]): string[] => {
+        const modeMap: Record<number, string> = {
+            0: 'Disabled',
+            1: 'Enabled',
+            2: 'Scheduled',
+            3: 'TimeWindow',
+            4: 'UserTargeted',
+            5: 'UserRollout',
+            6: 'TenantRollout'
+        };
+        
+        return modes.map(mode => modeMap[mode]).filter(Boolean);
+    };
+    
+    const modeNames = getModeNames(modes);
+    
+    if (modeNames.length === 0) return null;
+    
     return (
         <>
-            {flag.isPermanent && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">
-                    <Shield className="w-3 h-3" />
-                    Permanent
-                </div>
-            )}
-            {components.isScheduled && scheduleStatus.isActive && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                    <PlayCircle className="w-3 h-3" />
-                    Live
-                </div>
-            )}
-            {components.hasTimeWindow && timeWindowStatus.isActive && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
-                    <Timer className="w-3 h-3" />
-                    Active Window
-                </div>
-            )}
-            {components.hasPercentage && flag.userRolloutPercentage > 0 && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
-                    <Percent className="w-3 h-3" />
-                    {flag.userRolloutPercentage}%
-                </div>
-            )}
-            {components.hasUserTargeting && (flag.allowedUsers?.length > 0 || flag.blockedUsers?.length > 0) && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
-                    <Users className="w-3 h-3" />
-                    {(flag.allowedUsers?.length || 0) + (flag.blockedUsers?.length || 0)} Users
-                </div>
-            )}
-            {flagExpired && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
-                    <AlertCircle className="w-3 h-3" />
-                    Expired
-                </div>
-            )}
+            {modeNames.map((mode, index) => (
+                <span
+                    key={index}
+                    className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium"
+                >
+                    {mode}
+                </span>
+            ))}
         </>
     );
 };

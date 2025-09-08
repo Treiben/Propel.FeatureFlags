@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Trash2, Eye, EyeOff } from 'lucide-react';
+import { Trash2, Eye, EyeOff, Play, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import type { FeatureFlagDto, EvaluationResult } from '../services/apiService';
 import { StatusBadge } from './StatusBadge';
 import { parseStatusComponents } from '../utils/flagHelpers';
 
 // Import business logic components
 import { FlagStatusIndicators } from './flag-details/FlagStatusIndicators';
-import { CompoundStatusOverview } from './flag-details/CompoundStatusOverview';
 import { 
     SchedulingStatusIndicator, 
     SchedulingSection 
@@ -69,10 +68,16 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 }) => {
     const [editingUserAccess, setEditingUserAccess] = useState(false);
     const [operationLoading, setOperationLoading] = useState(false);
+    const [showEvaluation, setShowEvaluation] = useState(false);
+    const [testUserId, setTestUserId] = useState('');
+    const [testAttributes, setTestAttributes] = useState('{}');
 
     // Reset editing states when flag changes (when a different flag is selected)
     useEffect(() => {
         setEditingUserAccess(false);
+        setShowEvaluation(false);
+        setTestUserId('');
+        setTestAttributes('{}');
     }, [flag.key]);
 
     const handleToggle = async () => {
@@ -146,48 +151,133 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
         }
     };
 
+    const handleEvaluate = async () => {
+        if (!onEvaluateFlag) return;
+
+        try {
+            let attributes: Record<string, any> | undefined;
+            if (testAttributes.trim()) {
+                attributes = JSON.parse(testAttributes);
+            }
+            
+            await onEvaluateFlag(flag.key, testUserId || undefined, attributes);
+        } catch (error) {
+            console.error('Failed to evaluate flag:', error);
+        }
+    };
+
     const components = parseStatusComponents(flag);
     const isEnabled = components.baseStatus === 'Enabled';
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            {/* Flag Header */}
+            {/* Flag Header - ONLY evaluation modes next to flag name and delete icon */}
             <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-lg font-semibold text-gray-900">{flag.name}</h3>
                         <FlagStatusIndicators flag={flag} />
+                        {!flag.isPermanent && (
+                            <button
+                                onClick={() => onDelete(flag.key)}
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                title="Delete Flag"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                     <p className="text-sm text-gray-500 font-mono">{flag.key}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <StatusBadge flag={flag} showDescription={true} />
-                    {!flag.isPermanent && (
-                        <button
-                            onClick={() => onDelete(flag.key)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                            title="Delete Flag"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                    )}
                 </div>
             </div>
 
             <p className="text-gray-600 mb-6">{flag.description || 'No description provided'}</p>
 
-            {/* Compound Status Overview */}
-            <CompoundStatusOverview 
-                flag={flag} 
-                onEvaluateFlag={onEvaluateFlag}
-                evaluationResult={evaluationResult}
-                evaluationLoading={evaluationLoading}
-            />
+            {/* Flag Evaluation Section */}
+            {onEvaluateFlag && (
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-medium text-blue-900">Test Flag Evaluation</h4>
+                        <button
+                            onClick={() => setShowEvaluation(!showEvaluation)}
+                            className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                        >
+                            <Play className="w-3 h-3" />
+                            {showEvaluation ? 'Hide' : 'Show'} Test
+                        </button>
+                    </div>
 
-            {/* Status Indicators */}
+                    {showEvaluation && (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-blue-700 mb-1">Test User ID (optional)</label>
+                                    <input
+                                        type="text"
+                                        value={testUserId}
+                                        onChange={(e) => setTestUserId(e.target.value)}
+                                        placeholder="user123"
+                                        className="w-full px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-blue-700 mb-1">Attributes (JSON)</label>
+                                    <input
+                                        type="text"
+                                        value={testAttributes}
+                                        onChange={(e) => setTestAttributes(e.target.value)}
+                                        placeholder='{"country": "US", "plan": "premium"}'
+                                        className="w-full px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={handleEvaluate}
+                                    disabled={evaluationLoading}
+                                    className="flex items-center gap-1 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {evaluationLoading ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                        <Play className="w-3 h-3" />
+                                    )}
+                                    Evaluate
+                                </button>
+                                
+                                {evaluationResult && (
+                                    <div className="flex items-center gap-1 text-xs">
+                                        {evaluationResult.isEnabled ? (
+                                            <CheckCircle className="w-3 h-3 text-green-600" />
+                                        ) : (
+                                            <XCircle className="w-3 h-3 text-red-600" />
+                                        )}
+                                        <span className={evaluationResult.isEnabled ? 'text-green-700' : 'text-red-700'}>
+                                            {evaluationResult.isEnabled ? 'Enabled' : 'Disabled'}
+                                        </span>
+                                        {evaluationResult.reason && (
+                                            <span className="text-blue-600">({evaluationResult.reason})</span>
+                                        )}
+                                        {evaluationResult.variation && evaluationResult.variation !== 'default' && (
+                                            <span className="text-blue-600">- Variation: {evaluationResult.variation}</span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
+
+            {/* Status Indicators - RESTORED to original positions */}
             <ExpirationWarning flag={flag} />
             <SchedulingStatusIndicator flag={flag} />
             <TimeWindowStatusIndicator flag={flag} />
+            <UserAccessControlStatusIndicator flag={flag} />
 
             {/* Quick Actions */}
             <div className="grid grid-cols-2 gap-3 mb-6">
@@ -224,7 +314,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 operationLoading={operationLoading}
             />
 
-            {/* Business Logic Sections */}
+            {/* Business Logic Sections - RESTORED to original positions */}
             <SchedulingSection
                 flag={flag}
                 onSchedule={handleScheduleWrapper}
@@ -240,7 +330,6 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             />
 
             {/* Additional Information */}
-            <UserAccessControlStatusIndicator flag={flag} />
             <UserLists flag={flag} />
             <FlagMetadata flag={flag} />
         </div>
