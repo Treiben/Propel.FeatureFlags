@@ -11,8 +11,6 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var featureFlagOptions = builder.Configuration.GetSection("PropelFeatureFlags").Get<FeatureFlagConfigurationOptions>() ?? new();
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddProblemDetails();
@@ -64,11 +62,14 @@ builder.Services.AddAuthorizationBuilder()
 	})
 	.AddFallbackPolicy("RequiresReadRights", AuthorizationPolicies.HasReadActionPolicy);
 
+// Configure feature flags
+var featureFlagOptions = builder.Configuration.GetSection("PropelFeatureFlags").Get<FeatureFlagConfigurationOptions>() ?? new();
 builder.Services.AddFeatureFlags(featureFlagOptions);
 builder.Services.AddPostgresSqlFeatureFlags(featureFlagOptions.SqlConnectionString);
 builder.Services.AddRedisCache(featureFlagOptions.RedisConnectionString);
 
-builder.Services.AddScoped<CurrentUserService>();
+// Configure flags management api services
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddValidators();
 builder.Services.AddHandlers();
 builder.Services.RegisterApplicationEndpoints();

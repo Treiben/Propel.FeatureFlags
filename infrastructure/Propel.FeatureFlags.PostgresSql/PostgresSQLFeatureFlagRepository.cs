@@ -25,7 +25,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
                 SELECT key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
                        expiration_date, scheduled_enable_date, scheduled_disable_date,
                        window_start_time, window_end_time, time_zone, window_days,
-                       percentage_enabled, targeting_rules, enabled_users, disabled_users,
+                       user_percentage_enabled, targeting_rules, enabled_users, disabled_users,
 					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
                        variations, default_variation, tags, is_permanent
                 FROM feature_flags 
@@ -66,7 +66,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
                 SELECT key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
                        expiration_date, scheduled_enable_date, scheduled_disable_date,
                        window_start_time, window_end_time, time_zone, window_days,
-                       percentage_enabled, targeting_rules, enabled_users, disabled_users,
+                       user_percentage_enabled, targeting_rules, enabled_users, disabled_users,
 					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
                        variations, default_variation, tags, is_permanent
                 FROM feature_flags 
@@ -115,7 +115,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
                 SELECT key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
                        expiration_date, scheduled_enable_date, scheduled_disable_date,
                        window_start_time, window_end_time, time_zone, window_days,
-                       percentage_enabled, targeting_rules, enabled_users, disabled_users,
+                       user_percentage_enabled, targeting_rules, enabled_users, disabled_users,
 					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
                        variations, default_variation, tags, is_permanent
                 FROM feature_flags
@@ -175,14 +175,14 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
                     key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
                     expiration_date, scheduled_enable_date, scheduled_disable_date,
                     window_start_time, window_end_time, time_zone, window_days,
-                    percentage_enabled, targeting_rules, enabled_users, disabled_users,
+                    user_percentage_enabled, targeting_rules, enabled_users, disabled_users,
 					enabled_tenants, disabled_tenants, tenant_percentage_enabled,
                     variations, default_variation, tags, is_permanent
                 ) VALUES (
                     @key, @name, @description, @evaluation_modes, @created_at, @updated_at, @created_by, @updated_by,
                     @expiration_date, @scheduled_enable_date, @scheduled_disable_date,
                     @window_start_time, @window_end_time, @time_zone, @window_days,
-                    @percentage_enabled, @targeting_rules, @enabled_users, @disabled_users,
+                    @user_percentage_enabled, @targeting_rules, @enabled_users, @disabled_users,
 					@enabled_tenants, @disabled_tenants, @tenant_percentage_enabled,
                     @variations, @default_variation, @tags, @is_permanent
                 )";
@@ -215,7 +215,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
                     name = @name, description = @description, evaluation_modes = @evaluation_modes, updated_at = @updated_at, updated_by = @updated_by,
                     expiration_date = @expiration_date, scheduled_enable_date = @scheduled_enable_date, scheduled_disable_date = @scheduled_disable_date,
                     window_start_time = @window_start_time, window_end_time = @window_end_time, time_zone = @time_zone, window_days = @window_days,
-                    percentage_enabled = @percentage_enabled, targeting_rules = @targeting_rules, enabled_users = @enabled_users, disabled_users = @disabled_users,
+                    user_percentage_enabled = @user_percentage_enabled, targeting_rules = @targeting_rules, enabled_users = @enabled_users, disabled_users = @disabled_users,
 					enabled_tenants = @enabled_tenants, disabled_tenants = @disabled_tenants, tenant_percentage_enabled = @tenant_percentage_enabled,
                     variations = @variations, default_variation = @default_variation, tags = @tags, is_permanent = @is_permanent
                 WHERE key = @key";
@@ -353,7 +353,7 @@ public static class NpgsqlCommandExtensions
 		var windowDaysParam = command.Parameters.Add("window_days", NpgsqlDbType.Jsonb);
 		windowDaysParam.Value = JsonSerializer.Serialize(flag.OperationalWindow.WindowDays ?? [], JsonDefaults.JsonOptions);
 
-		command.Parameters.AddWithValue("percentage_enabled", flag.UserAccess.RolloutPercentage);
+		command.Parameters.AddWithValue("user_percentage_enabled", flag.UserAccess.RolloutPercentage);
 		command.Parameters.AddWithValue("tenant_percentage_enabled", flag.TenantAccess.RolloutPercentage);
 
 		var targetingRulesParam = command.Parameters.Add("targeting_rules", NpgsqlDbType.Jsonb);
@@ -454,7 +454,7 @@ public static class NpgsqlDataReaderExtensions
 		var userAccess = new FlagUserAccessControl(
 				allowedUsers: await reader.Deserialize<List<string>>("enabled_users"),
 				blockedUsers: await reader.Deserialize<List<string>>("disabled_users"),
-				rolloutPercentage: await reader.GetDataAsync<int>("percentage_enabled")
+				rolloutPercentage: await reader.GetDataAsync<int>("user_percentage_enabled")
 			);
 		var tenantAccess = new FlagTenantAccessControl(
 				allowedTenants: await reader.Deserialize<List<string>>("enabled_tenants"),

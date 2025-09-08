@@ -8,7 +8,8 @@ public class FlagActivationSchedule
 	public FlagActivationSchedule(DateTime scheduledEnableDate, DateTime? scheduledDisableDate = null)
 	{
 		var scheduledEnableUtcDate = NormalizeToUtc(scheduledEnableDate);
-		var scheduledDisableUtcDate = NormalizeToUtc(scheduledDisableDate ?? DateTime.MaxValue);
+		var scheduledDisableUtcDate = NormalizeToUtc(scheduledDisableDate.HasValue == false || scheduledDisableDate == DateTime.MinValue 
+											? DateTime.MaxValue : scheduledDisableDate.Value);
 
 		if (scheduledDisableUtcDate <= scheduledEnableUtcDate)
 		{

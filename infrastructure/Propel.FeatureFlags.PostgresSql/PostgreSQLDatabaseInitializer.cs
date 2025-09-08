@@ -111,13 +111,18 @@ CREATE TABLE feature_flags (
     key VARCHAR(255) PRIMARY KEY,
     name VARCHAR(500) NOT NULL,
     description TEXT NOT NULL DEFAULT '',
+
+	-- Evaluation modes
     evaluation_modes JSONB NOT NULL DEFAULT '[]',
+
+	-- Audit fields
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NULL,
     created_by VARCHAR(255) NOT NULL,
     updated_by VARCHAR(255) NULL,
     
-    -- Expiration
+    -- Lifecycle
+    is_permanent BOOLEAN NOT NULL DEFAULT FALSE,
     expiration_date TIMESTAMP WITH TIME ZONE NOT NULL,
     
     -- Scheduling
@@ -130,14 +135,14 @@ CREATE TABLE feature_flags (
     time_zone VARCHAR(100) NULL,
     window_days JSONB NOT NULL DEFAULT '[]',
     
-    -- Percentage rollout
-    percentage_enabled INTEGER NOT NULL DEFAULT 0 CHECK (percentage_enabled >= 0 AND percentage_enabled <= 100),
-    
     -- Targeting
     targeting_rules JSONB NOT NULL DEFAULT '[]',
+
+	-- User-level controls
     enabled_users JSONB NOT NULL DEFAULT '[]',
     disabled_users JSONB NOT NULL DEFAULT '[]',
-    
+    user_percentage_enabled INTEGER NOT NULL DEFAULT 0 CHECK (percentage_enabled >= 0 AND percentage_enabled <= 100),
+
     -- Tenant-level controls
     enabled_tenants JSONB NOT NULL DEFAULT '[]',
     disabled_tenants JSONB NOT NULL DEFAULT '[]',
@@ -147,9 +152,8 @@ CREATE TABLE feature_flags (
     variations JSONB NOT NULL DEFAULT '{}',
     default_variation VARCHAR(255) NOT NULL DEFAULT 'off',
     
-    -- Metadata
-    tags JSONB NOT NULL DEFAULT '{}',
-    is_permanent BOOLEAN NOT NULL DEFAULT FALSE
+	-- Tags for categorization
+    tags JSONB NOT NULL DEFAULT '{}'
 );
 
 -- Create the feature_flag_audit table
