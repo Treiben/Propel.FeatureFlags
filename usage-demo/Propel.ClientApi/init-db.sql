@@ -205,7 +205,8 @@ INSERT INTO usage_demo.feature_flags (
 
 INSERT INTO usage_demo.feature_flags (
     key, name, description, evaluation_modes, created_by, updated_by,
-    variations, default_variation, tags, targeting_rules, expiration_date
+    variations, default_variation, tags, targeting_rules, 
+    enabled_users, disabled_users, expiration_date
 ) VALUES (
     'recommendation-algorithm',
     'Recommendation Algorithm Selection',
@@ -230,8 +231,13 @@ INSERT INTO usage_demo.feature_flags (
             "variation": "content-based"
         }
     ]',
+    '["user123", "alice.johnson", "premium-user-456", "ml-tester-789", "data-scientist-001"]',
+    '["blocked-user-999", "test-account-disabled", "spam-user-123", "violator-456"]',
     NOW() + INTERVAL '1 year'
-) ON CONFLICT (key) DO UPDATE SET targeting_rules = EXCLUDED.targeting_rules;
+) ON CONFLICT (key) DO UPDATE SET 
+    targeting_rules = EXCLUDED.targeting_rules,
+    enabled_users = EXCLUDED.enabled_users,
+    disabled_users = EXCLUDED.disabled_users;
 
 -- ====================================================================
 -- 6. USER ROLLOUT PERCENTAGE FLAGS (evaluation_modes: [5])
@@ -310,7 +316,8 @@ INSERT INTO usage_demo.feature_flags (
 INSERT INTO usage_demo.feature_flags (
     key, name, description, evaluation_modes, created_by, updated_by,
     variations, default_variation, tags,
-    scheduled_enable_date, scheduled_disable_date, targeting_rules, expiration_date
+    scheduled_enable_date, scheduled_disable_date, targeting_rules, 
+    enabled_users, disabled_users, expiration_date
 ) VALUES (
     'beta-features-preview',
     'Scheduled Beta Features Preview',
@@ -337,8 +344,13 @@ INSERT INTO usage_demo.feature_flags (
             "variation": "beta"
         }
     ]',
+    '["beta-tester-001", "power-user-alice", "early-adopter-bob", "qa-engineer-charlie", "product-manager-diana"]',
+    '["conservative-user-001", "stability-focused-eve", "production-only-frank", "risk-averse-grace"]',
     NOW() + INTERVAL '1 year'
-) ON CONFLICT (key) DO UPDATE SET targeting_rules = EXCLUDED.targeting_rules;
+) ON CONFLICT (key) DO UPDATE SET 
+    targeting_rules = EXCLUDED.targeting_rules,
+    enabled_users = EXCLUDED.enabled_users,
+    disabled_users = EXCLUDED.disabled_users;
 
 -- ====================================================================
 -- 10. SCHEDULED WITH USER ROLLOUT PERCENTAGE (evaluation_modes: [2, 5])
@@ -371,7 +383,8 @@ INSERT INTO usage_demo.feature_flags (
 INSERT INTO usage_demo.feature_flags (
     key, name, description, evaluation_modes, created_by, updated_by,
     variations, default_variation, tags,
-    window_start_time, window_end_time, time_zone, window_days, targeting_rules, expiration_date
+    window_start_time, window_end_time, time_zone, window_days, targeting_rules, 
+    enabled_users, disabled_users, expiration_date
 ) VALUES (
     'priority-support-hours',
     'Priority Support During Business Hours',
@@ -400,8 +413,13 @@ INSERT INTO usage_demo.feature_flags (
             "variation": "priority"
         }
     ]',
+    '["premium-customer-001", "enterprise-admin-alice", "gold-support-bob", "platinum-user-charlie", "vip-customer-diana"]',
+    '["basic-user-001", "free-tier-eve", "trial-account-frank", "suspended-user-grace"]',
     NOW() + INTERVAL '1 year'
-) ON CONFLICT (key) DO UPDATE SET targeting_rules = EXCLUDED.targeting_rules;
+) ON CONFLICT (key) DO UPDATE SET 
+    targeting_rules = EXCLUDED.targeting_rules,
+    enabled_users = EXCLUDED.enabled_users,
+    disabled_users = EXCLUDED.disabled_users;
 
 -- ====================================================================
 -- 12. TIME WINDOW WITH USER ROLLOUT PERCENTAGE (evaluation_modes: [3, 5])
@@ -436,7 +454,8 @@ INSERT INTO usage_demo.feature_flags (
 
 INSERT INTO usage_demo.feature_flags (
     key, name, description, evaluation_modes, created_by, updated_by,
-    variations, default_variation, tags, targeting_rules, user_percentage_enabled, expiration_date
+    variations, default_variation, tags, targeting_rules, user_percentage_enabled, 
+    enabled_users, disabled_users, expiration_date
 ) VALUES (
     'new-payment-processor',
     'New Payment Processor Integration',
@@ -462,8 +481,13 @@ INSERT INTO usage_demo.feature_flags (
         }
     ]',
     25, -- Conservative 25% rollout for critical payment infrastructure
+    '["trusted-merchant-001", "verified-user-alice", "low-risk-bob", "payment-tester-charlie", "finance-team-diana"]',
+    '["high-risk-user-001", "suspicious-account-eve", "fraud-flagged-frank", "blocked-merchant-grace"]',
     NOW() + INTERVAL '1 year'
-) ON CONFLICT (key) DO UPDATE SET targeting_rules = EXCLUDED.targeting_rules;
+) ON CONFLICT (key) DO UPDATE SET 
+    targeting_rules = EXCLUDED.targeting_rules,
+    enabled_users = EXCLUDED.enabled_users,
+    disabled_users = EXCLUDED.disabled_users;
 
 -- ====================================================================
 -- 14. COMPLEX COMBINATION: SCHEDULED + TIME WINDOW + USER TARGETING (evaluation_modes: [2, 3, 4])
@@ -473,7 +497,8 @@ INSERT INTO usage_demo.feature_flags (
     key, name, description, evaluation_modes, created_by, updated_by,
     variations, default_variation, tags,
     scheduled_enable_date, scheduled_disable_date,
-    window_start_time, window_end_time, time_zone, window_days, targeting_rules, expiration_date
+    window_start_time, window_end_time, time_zone, window_days, targeting_rules, 
+    enabled_users, disabled_users, expiration_date
 ) VALUES (
     'vip-event-access',
     'VIP Event Access with Limited Hours',
@@ -504,8 +529,13 @@ INSERT INTO usage_demo.feature_flags (
             "variation": "vip"
         }
     ]',
+    '["vip-member-001", "gold-tier-alice", "platinum-user-bob", "diamond-member-charlie", "event-organizer-diana", "special-guest-eve"]',
+    '["banned-user-001", "policy-violator-frank", "restricted-account-grace", "underage-user-henry"]',
     NOW() + INTERVAL '1 year'
-) ON CONFLICT (key) DO UPDATE SET targeting_rules = EXCLUDED.targeting_rules;
+) ON CONFLICT (key) DO UPDATE SET 
+    targeting_rules = EXCLUDED.targeting_rules,
+    enabled_users = EXCLUDED.enabled_users,
+    disabled_users = EXCLUDED.disabled_users;
 
 -- ====================================================================
 -- 15. MAXIMUM COMPLEXITY: SCHEDULED + TIME WINDOW + USER TARGETING + USER PERCENTAGE (evaluation_modes: [2, 3, 4, 5])
@@ -516,7 +546,8 @@ INSERT INTO usage_demo.feature_flags (
     variations, default_variation, tags,
     scheduled_enable_date, scheduled_disable_date,
     window_start_time, window_end_time, time_zone, window_days,
-    user_percentage_enabled, targeting_rules, expiration_date
+    user_percentage_enabled, targeting_rules, 
+    enabled_users, disabled_users, expiration_date
 ) VALUES (
     'ultimate-premium-experience',
     'Ultimate Premium Experience - Complete Feature Showcase',
@@ -554,8 +585,13 @@ INSERT INTO usage_demo.feature_flags (
             "variation": "enhanced"
         }
     ]',
+    '["enterprise-admin-001", "platinum-member-alice", "high-value-bob", "beta-champion-charlie", "product-evangelist-diana"]',
+    '["budget-user-001", "basic-tier-eve", "trial-expired-frank", "inactive-account-grace"]',
     NOW() + INTERVAL '1 year'
-) ON CONFLICT (key) DO UPDATE SET targeting_rules = EXCLUDED.targeting_rules;
+) ON CONFLICT (key) DO UPDATE SET 
+    targeting_rules = EXCLUDED.targeting_rules,
+    enabled_users = EXCLUDED.enabled_users,
+    disabled_users = EXCLUDED.disabled_users;
 
 -- ====================================================================
 -- 16. TENANT-SPECIFIC FEATURE FLAGS
@@ -604,7 +640,8 @@ INSERT INTO usage_demo.feature_flags (
 -- ====================================================================
 INSERT INTO usage_demo.feature_flags (
     key, name, description, evaluation_modes, created_by, updated_by,
-    variations, default_variation, tags, targeting_rules, expiration_date
+    variations, default_variation, tags, targeting_rules, 
+    enabled_users, disabled_users, expiration_date
 ) VALUES (
     'admin-panel-enabled',
     'Admin Panel Access Control',
@@ -629,11 +666,15 @@ INSERT INTO usage_demo.feature_flags (
             "variation": "on"
         }
     ]',
+    '["admin-alice", "super-admin-bob", "ops-manager-charlie", "security-lead-diana", "system-admin-eve"]',
+    '["intern-frank", "guest-user-grace", "external-contractor-henry", "readonly-user-ivy"]',
     NOW() + INTERVAL '1 year'
 ) ON CONFLICT (key) DO UPDATE SET 
     targeting_rules = EXCLUDED.targeting_rules,
     evaluation_modes = EXCLUDED.evaluation_modes,
-    description = EXCLUDED.description;
+    description = EXCLUDED.description,
+    enabled_users = EXCLUDED.enabled_users,
+    disabled_users = EXCLUDED.disabled_users;
 
 -- Function to automatically update the updated_at timestamp
 CREATE OR REPLACE FUNCTION usage_demo.update_updated_at_column()
@@ -650,6 +691,116 @@ CREATE TRIGGER update_feature_flags_updated_at
     BEFORE UPDATE ON usage_demo.feature_flags 
     FOR EACH ROW 
     EXECUTE FUNCTION usage_demo.update_updated_at_column();
+
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, evaluation_modes, created_by, updated_by,
+    variations, default_variation, tags, expiration_date
+) VALUES (
+    'legacy-checkout-v1',
+    'Legacy Checkout System V1',
+    'Old checkout system that was deprecated and expired yesterday',
+    '[0]', -- Disabled
+    'system',
+    'system',
+    '{"on": true, "off": false}',
+    'off',
+    '{"service": "checkout", "type": "legacy", "status": "expired", "deprecated": "true"}',
+    NOW() - INTERVAL '1 day' -- Expired yesterday
+) ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, evaluation_modes, created_by, updated_by,
+    variations, default_variation, tags, user_percentage_enabled, expiration_date
+) VALUES (
+    'old-search-algorithm',
+    'Deprecated Search Algorithm',
+    'Previous search implementation that expired yesterday - was at 15% rollout',
+    '[5]', -- UserRolloutPercentage
+    'system',
+    'system',
+    '{"enhanced": "enhanced-search", "legacy": "old-search"}',
+    'legacy',
+    '{"service": "search", "type": "algorithm", "status": "expired", "rollout": "partial"}',
+    15, -- Was at 15% rollout when expired
+    NOW() - INTERVAL '1 day' -- Expired yesterday
+) ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, evaluation_modes, created_by, updated_by,
+    variations, default_variation, tags, enabled_tenants, expiration_date
+) VALUES (
+    'experimental-analytics',
+    'Experimental Analytics Dashboard',
+    'Experimental analytics feature that was being tested with select tenants - expired yesterday',
+    '[1]', -- Enabled
+    'system',
+    'system',
+    '{"on": true, "off": false}',
+    'off',
+    '{"service": "analytics", "type": "experimental", "status": "expired", "phase": "pilot"}',
+    '["pilot-tenant-1", "beta-analytics-corp", "test-organization"]',
+    NOW() - INTERVAL '1 day' -- Expired yesterday
+) ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, evaluation_modes, created_by, updated_by,
+    variations, default_variation, tags, targeting_rules, 
+    enabled_users, disabled_users, expiration_date
+) VALUES (
+    'mobile-app-redesign-pilot',
+    'Mobile App Redesign Pilot Program',
+    'Mobile redesign that was targeted to specific user groups - expired yesterday',
+    '[4]', -- UserTargeted
+    'system',
+    'system',
+    '{"new": "redesigned-mobile", "old": "classic-mobile"}',
+    'old',
+    '{"service": "mobile", "type": "redesign", "status": "expired", "platform": "ios-android"}',
+    '[
+        {
+            "attribute": "mobileVersion",
+            "operator": 6,
+            "values": ["2.0.0"],
+            "variation": "new"
+        },
+        {
+            "attribute": "betaTester",
+            "operator": 0,
+            "values": ["true"],
+            "variation": "new"
+        }
+    ]',
+    '["mobile-tester-001", "ui-designer-alice", "beta-user-bob", "app-developer-charlie"]',
+    '["old-device-user-001", "stability-user-diana", "conservative-mobile-eve"]',
+    NOW() - INTERVAL '1 day' -- Expired yesterday
+) ON CONFLICT (key) DO UPDATE SET 
+    targeting_rules = EXCLUDED.targeting_rules,
+    enabled_users = EXCLUDED.enabled_users,
+    disabled_users = EXCLUDED.disabled_users;
+
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, evaluation_modes, created_by, updated_by,
+    variations, default_variation, tags, 
+    scheduled_enable_date, scheduled_disable_date,
+    window_start_time, window_end_time, time_zone, window_days, expiration_date
+) VALUES (
+    'weekend-flash-sale-q3',
+    'Q3 Weekend Flash Sale Campaign',
+    'Limited time weekend flash sale that ran during Q3 and expired yesterday',
+    '[2, 3]', -- Scheduled + TimeWindow
+    'system',
+    'system',
+    '{"sale": "flash-sale-prices", "regular": "standard-prices"}',
+    'regular',
+    '{"campaign": "q3-flash-sale", "type": "promotional", "status": "expired", "period": "weekend"}',
+    NOW() - INTERVAL '30 days',  -- Was scheduled to start 30 days ago
+    NOW() - INTERVAL '2 days',   -- Was scheduled to end 2 days ago
+    '00:00:00', -- Midnight
+    '23:59:59', -- End of day
+    'UTC',
+    '[6, 7]', -- Weekends only
+    NOW() - INTERVAL '1 day' -- Expired yesterday
+) ON CONFLICT (key) DO NOTHING;
 
 -- Grant permissions (if needed for specific user)
 -- GRANT ALL PRIVILEGES ON SCHEMA usage_demo TO propel_user;
@@ -681,3 +832,8 @@ CREATE TRIGGER update_feature_flags_updated_at
 -- be combined with other modes or each other.
 --
 -- Additional examples demonstrate tenant-level controls and multi-tenancy scenarios
+
+-- ====================================================================
+-- EXPIRED FEATURE FLAGS (Expiration date set to yesterday UTC)
+-- ====================================================================
+-- These flags demonstrate expired feature flags for testing cleanup and archival processes
