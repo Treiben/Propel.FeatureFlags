@@ -24,7 +24,7 @@ public class UpdateScheduleHandler_Success(FlagsManagementApiFixture fixture) : 
 		var request = new UpdateScheduleRequest(enableDate, disableDate, false);
 
 		// Act
-		var result = await fixture.UpdateScheduleHandler.HandleAsync("schedule-test-flag", request);
+		var result = await fixture.UpdateScheduleHandler.HandleAsync("schedule-test-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -57,7 +57,7 @@ public class UpdateScheduleHandler_Success(FlagsManagementApiFixture fixture) : 
 		var request = new UpdateScheduleRequest(enableDate, null, false);
 
 		// Act
-		var result = await fixture.UpdateScheduleHandler.HandleAsync("enable-only-flag", request);
+		var result = await fixture.UpdateScheduleHandler.HandleAsync("enable-only-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -89,7 +89,7 @@ public class UpdateScheduleHandler_RemoveSchedule(FlagsManagementApiFixture fixt
 		var request = new UpdateScheduleRequest(DateTime.UtcNow.AddHours(1), null, true);
 
 		// Act
-		var result = await fixture.UpdateScheduleHandler.HandleAsync("scheduled-flag", request);
+		var result = await fixture.UpdateScheduleHandler.HandleAsync("scheduled-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -114,7 +114,7 @@ public class UpdateScheduleHandler_RemoveSchedule(FlagsManagementApiFixture fixt
 		var request = new UpdateScheduleRequest(DateTime.UtcNow.AddHours(1), null, true);
 
 		// Act
-		var result = await fixture.UpdateScheduleHandler.HandleAsync("unscheduled-flag", request);
+		var result = await fixture.UpdateScheduleHandler.HandleAsync("unscheduled-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -137,7 +137,7 @@ public class UpdateScheduleHandler_NotFound(FlagsManagementApiFixture fixture) :
 		var request = new UpdateScheduleRequest(enableDate, null, false);
 
 		// Act
-		var result = await fixture.UpdateScheduleHandler.HandleAsync("non-existent-flag", request);
+		var result = await fixture.UpdateScheduleHandler.HandleAsync("non-existent-flag", request, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -157,7 +157,7 @@ public class UpdateScheduleHandler_ValidationErrors(FlagsManagementApiFixture fi
 		var request = new UpdateScheduleRequest(enableDate, null, false);
 
 		// Act
-		var result = await fixture.UpdateScheduleHandler.HandleAsync("", request);
+		var result = await fixture.UpdateScheduleHandler.HandleAsync("", request, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -188,7 +188,7 @@ public class UpdateScheduleHandler_CacheIntegration(FlagsManagementApiFixture fi
 		var request = new UpdateScheduleRequest(enableDate, null, false);
 
 		// Act
-		var result = await fixture.UpdateScheduleHandler.HandleAsync("cached-schedule-flag", request);
+		var result = await fixture.UpdateScheduleHandler.HandleAsync("cached-schedule-flag", request, CancellationToken.None);
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();

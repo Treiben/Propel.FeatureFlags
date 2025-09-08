@@ -21,7 +21,7 @@ public class ManageTenantAccessHandler_EnableTenants(FlagsManagementApiFixture f
 		var tenantIds = new List<string> { "tenant-123" };
 
 		// Act
-		var result = await fixture.ManageTenantAccessHandler.HandleAsync("tenant-enable-flag", tenantIds, true);
+		var result = await fixture.ManageTenantAccessHandler.HandleAsync("tenant-enable-flag", tenantIds, true, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -46,7 +46,7 @@ public class ManageTenantAccessHandler_EnableTenants(FlagsManagementApiFixture f
 		var tenantIds = new List<string> { "tenant-1", "tenant-2", "tenant-3" };
 
 		// Act
-		var result = await fixture.ManageTenantAccessHandler.HandleAsync("multi-tenant-enable", tenantIds, true);
+		var result = await fixture.ManageTenantAccessHandler.HandleAsync("multi-tenant-enable", tenantIds, true, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -72,7 +72,7 @@ public class ManageTenantAccessHandler_DisableTenants(FlagsManagementApiFixture 
 		var tenantIds = new List<string> { "blocked-tenant" };
 
 		// Act
-		var result = await fixture.ManageTenantAccessHandler.HandleAsync("tenant-disable-flag", tenantIds, false);
+		var result = await fixture.ManageTenantAccessHandler.HandleAsync("tenant-disable-flag", tenantIds, false, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -93,7 +93,7 @@ public class ManageTenantAccessHandler_DisableTenants(FlagsManagementApiFixture 
 		var tenantIds = new List<string> { "blocked-1", "blocked-2" };
 
 		// Act
-		var result = await fixture.ManageTenantAccessHandler.HandleAsync("multi-tenant-disable", tenantIds, false);
+		var result = await fixture.ManageTenantAccessHandler.HandleAsync("multi-tenant-disable", tenantIds, false, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -115,7 +115,7 @@ public class ManageTenantAccessHandler_NotFound(FlagsManagementApiFixture fixtur
 		var tenantIds = new List<string> { "tenant-123" };
 
 		// Act
-		var result = await fixture.ManageTenantAccessHandler.HandleAsync("non-existent-flag", tenantIds, true);
+		var result = await fixture.ManageTenantAccessHandler.HandleAsync("non-existent-flag", tenantIds, true, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -134,7 +134,7 @@ public class ManageTenantAccessHandler_ValidationErrors(FlagsManagementApiFixtur
 		var tenantIds = new List<string> { "tenant-123" };
 
 		// Act
-		var result = await fixture.ManageTenantAccessHandler.HandleAsync("", tenantIds, true);
+		var result = await fixture.ManageTenantAccessHandler.HandleAsync("", tenantIds, true, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -153,7 +153,7 @@ public class ManageTenantAccessHandler_ValidationErrors(FlagsManagementApiFixtur
 		var emptyTenantIds = new List<string>();
 
 		// Act
-		var result = await fixture.ManageTenantAccessHandler.HandleAsync("empty-tenants-flag", emptyTenantIds, true);
+		var result = await fixture.ManageTenantAccessHandler.HandleAsync("empty-tenants-flag", emptyTenantIds, true, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -170,7 +170,7 @@ public class ManageTenantAccessHandler_ValidationErrors(FlagsManagementApiFixtur
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await fixture.ManageTenantAccessHandler.HandleAsync("null-tenants-flag", null!, true);
+		var result = await fixture.ManageTenantAccessHandler.HandleAsync("null-tenants-flag", null!, true, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -200,7 +200,7 @@ public class ManageTenantAccessHandler_CacheIntegration(FlagsManagementApiFixtur
 		var tenantIds = new List<string> { "cache-tenant" };
 
 		// Act
-		var result = await fixture.ManageTenantAccessHandler.HandleAsync("cached-tenant-access", tenantIds, true);
+		var result = await fixture.ManageTenantAccessHandler.HandleAsync("cached-tenant-access", tenantIds, true, CancellationToken.None);
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();

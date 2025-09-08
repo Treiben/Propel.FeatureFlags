@@ -27,7 +27,7 @@ public class UpdateTimeWindowHandler_Success(FlagsManagementApiFixture fixture) 
 		var request = new UpdateTimeWindowRequest(startTime, endTime, timeZone, windowDays, false);
 
 		// Act
-		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("time-window-flag", request);
+		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("time-window-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -64,7 +64,7 @@ public class UpdateTimeWindowHandler_Success(FlagsManagementApiFixture fixture) 
 		var request = new UpdateTimeWindowRequest(startTime, endTime, timeZone, windowDays, false);
 
 		// Act
-		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("timezone-window-flag", request);
+		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("timezone-window-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -96,7 +96,7 @@ public class UpdateTimeWindowHandler_WeekendWindow(FlagsManagementApiFixture fix
 		var request = new UpdateTimeWindowRequest(startTime, endTime, timeZone, weekendDays, false);
 
 		// Act
-		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("weekend-flag", request);
+		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("weekend-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -121,7 +121,7 @@ public class UpdateTimeWindowHandler_WeekendWindow(FlagsManagementApiFixture fix
 		var request = new UpdateTimeWindowRequest(new TimeOnly(0, 0), new TimeOnly(23, 59), "UTC", allDays, false);
 
 		// Act
-		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("all-week-flag", request);
+		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("all-week-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -151,7 +151,7 @@ public class UpdateTimeWindowHandler_RemoveWindow(FlagsManagementApiFixture fixt
 		var request = new UpdateTimeWindowRequest(new TimeOnly(0, 0), new TimeOnly(0, 0), "", [], RemoveTimeWindow: true);
 
 		// Act
-		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("windowed-flag", request);
+		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("windowed-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -176,7 +176,7 @@ public class UpdateTimeWindowHandler_RemoveWindow(FlagsManagementApiFixture fixt
 		var request = new UpdateTimeWindowRequest(new TimeOnly(0, 0), new TimeOnly(0, 0), "", [], RemoveTimeWindow: true);
 
 		// Act
-		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("always-open-flag", request);
+		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("always-open-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -197,7 +197,7 @@ public class UpdateTimeWindowHandler_NotFound(FlagsManagementApiFixture fixture)
 		var request = new UpdateTimeWindowRequest(new TimeOnly(9, 0), new TimeOnly(17, 0), "UTC", [DayOfWeek.Monday], false);
 
 		// Act
-		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("non-existent-flag", request);
+		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("non-existent-flag", request, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -216,7 +216,7 @@ public class UpdateTimeWindowHandler_ValidationErrors(FlagsManagementApiFixture 
 		var request = new UpdateTimeWindowRequest(new TimeOnly(9, 0), new TimeOnly(17, 0), "UTC", [DayOfWeek.Monday], false);
 
 		// Act
-		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("", request);
+		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("", request, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -246,7 +246,7 @@ public class UpdateTimeWindowHandler_CacheIntegration(FlagsManagementApiFixture 
 		var request = new UpdateTimeWindowRequest(new TimeOnly(10, 0), new TimeOnly(16, 0), "UTC", [DayOfWeek.Wednesday], false);
 
 		// Act
-		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("cached-window-flag", request);
+		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("cached-window-flag", request, CancellationToken.None);
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();

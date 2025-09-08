@@ -18,7 +18,7 @@ public class DeleteFlagHandler_Success(FlagsManagementApiFixture fixture) : ICla
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await fixture.DeleteFlagHandler.HandleAsync("deletable-flag");
+		var result = await fixture.DeleteFlagHandler.HandleAsync("deletable-flag", CancellationToken.None);
 
 		// Assert
 		var noContentResult = result.ShouldBeOfType<NoContent>();
@@ -46,7 +46,7 @@ public class DeleteFlagHandler_Success(FlagsManagementApiFixture fixture) : ICla
 		}
 
 		// Act
-		var result = await fixture.DeleteFlagHandler.HandleAsync("cached-flag");
+		var result = await fixture.DeleteFlagHandler.HandleAsync("cached-flag", CancellationToken.None);
 
 		// Assert
 		result.ShouldBeOfType<NoContent>();
@@ -72,7 +72,7 @@ public class DeleteFlagHandler_NotFound(FlagsManagementApiFixture fixture) : ICl
 		await fixture.ClearAllData();
 
 		// Act
-		var result = await fixture.DeleteFlagHandler.HandleAsync("non-existent-flag");
+		var result = await fixture.DeleteFlagHandler.HandleAsync("non-existent-flag", CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -94,7 +94,7 @@ public class DeleteFlagHandler_PermanentFlag(FlagsManagementApiFixture fixture) 
 		await fixture.Repository.CreateAsync(permanentFlag);
 
 		// Act
-		var result = await fixture.DeleteFlagHandler.HandleAsync("permanent-flag");
+		var result = await fixture.DeleteFlagHandler.HandleAsync("permanent-flag", CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -115,7 +115,7 @@ public class DeleteFlagHandler_ValidationErrors(FlagsManagementApiFixture fixtur
 	public async Task If_KeyIsEmpty_ThenReturnsBadRequest()
 	{
 		// Act
-		var result = await fixture.DeleteFlagHandler.HandleAsync("");
+		var result = await fixture.DeleteFlagHandler.HandleAsync("", CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -127,7 +127,7 @@ public class DeleteFlagHandler_ValidationErrors(FlagsManagementApiFixture fixtur
 	public async Task If_KeyIsNull_ThenReturnsBadRequest()
 	{
 		// Act
-		var result = await fixture.DeleteFlagHandler.HandleAsync(null!);
+		var result = await fixture.DeleteFlagHandler.HandleAsync(null!, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();

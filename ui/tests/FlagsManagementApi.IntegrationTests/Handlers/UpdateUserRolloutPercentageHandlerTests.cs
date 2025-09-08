@@ -22,7 +22,7 @@ public class UpdateUserRolloutPercentageHandler_Success(FlagsManagementApiFixtur
 		var request = new UpdateUserRolloutPercentageRequest(75);
 
 		// Act
-		var result = await fixture.UpdateUserRolloutPercentageHandler.HandleAsync("user-rollout-flag", request);
+		var result = await fixture.UpdateUserRolloutPercentageHandler.HandleAsync("user-rollout-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -50,7 +50,7 @@ public class UpdateUserRolloutPercentageHandler_Success(FlagsManagementApiFixtur
 		var request = new UpdateUserRolloutPercentageRequest(100);
 
 		// Act
-		var result = await fixture.UpdateUserRolloutPercentageHandler.HandleAsync("full-user-rollout", request);
+		var result = await fixture.UpdateUserRolloutPercentageHandler.HandleAsync("full-user-rollout", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -78,7 +78,7 @@ public class UpdateUserRolloutPercentageHandler_ZeroPercent(FlagsManagementApiFi
 		var request = new UpdateUserRolloutPercentageRequest(0);
 
 		// Act
-		var result = await fixture.UpdateUserRolloutPercentageHandler.HandleAsync("zero-user-rollout", request);
+		var result = await fixture.UpdateUserRolloutPercentageHandler.HandleAsync("zero-user-rollout", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -102,7 +102,7 @@ public class UpdateUserRolloutPercentageHandler_NotFound(FlagsManagementApiFixtu
 		var request = new UpdateUserRolloutPercentageRequest(50);
 
 		// Act
-		var result = await fixture.UpdateUserRolloutPercentageHandler.HandleAsync("non-existent-flag", request);
+		var result = await fixture.UpdateUserRolloutPercentageHandler.HandleAsync("non-existent-flag", request, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -121,7 +121,7 @@ public class UpdateUserRolloutPercentageHandler_ValidationErrors(FlagsManagement
 		var request = new UpdateUserRolloutPercentageRequest(50);
 
 		// Act
-		var result = await fixture.UpdateUserRolloutPercentageHandler.HandleAsync("", request);
+		var result = await fixture.UpdateUserRolloutPercentageHandler.HandleAsync("", request, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -151,7 +151,7 @@ public class UpdateUserRolloutPercentageHandler_CacheIntegration(FlagsManagement
 		var request = new UpdateUserRolloutPercentageRequest(60);
 
 		// Act
-		var result = await fixture.UpdateUserRolloutPercentageHandler.HandleAsync("cached-user-rollout", request);
+		var result = await fixture.UpdateUserRolloutPercentageHandler.HandleAsync("cached-user-rollout", request, CancellationToken.None);
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();

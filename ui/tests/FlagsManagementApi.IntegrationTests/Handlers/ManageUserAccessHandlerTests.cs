@@ -21,7 +21,7 @@ public class ManageUserAccessHandler_EnableUsers(FlagsManagementApiFixture fixtu
 		var userIds = new List<string> { "user-123" };
 
 		// Act
-		var result = await fixture.ManageUserAccessHandler.HandleAsync("user-enable-flag", userIds, true);
+		var result = await fixture.ManageUserAccessHandler.HandleAsync("user-enable-flag", userIds, true, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -47,7 +47,7 @@ public class ManageUserAccessHandler_EnableUsers(FlagsManagementApiFixture fixtu
 		var userIds = new List<string> { "user-1", "user-2", "user-3" };
 
 		// Act
-		var result = await fixture.ManageUserAccessHandler.HandleAsync("multi-user-enable", userIds, true);
+		var result = await fixture.ManageUserAccessHandler.HandleAsync("multi-user-enable", userIds, true, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -76,7 +76,7 @@ public class ManageUserAccessHandler_DisableUsers(FlagsManagementApiFixture fixt
 		var userIds = new List<string> { "blocked-user" };
 
 		// Act
-		var result = await fixture.ManageUserAccessHandler.HandleAsync("user-disable-flag", userIds, false);
+		var result = await fixture.ManageUserAccessHandler.HandleAsync("user-disable-flag", userIds, false, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -98,7 +98,7 @@ public class ManageUserAccessHandler_DisableUsers(FlagsManagementApiFixture fixt
 		var userIds = new List<string> { "blocked-1", "blocked-2" };
 
 		// Act
-		var result = await fixture.ManageUserAccessHandler.HandleAsync("multi-user-disable", userIds, false);
+		var result = await fixture.ManageUserAccessHandler.HandleAsync("multi-user-disable", userIds, false, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -122,7 +122,7 @@ public class ManageUserAccessHandler_NotFound(FlagsManagementApiFixture fixture)
 		var userIds = new List<string> { "user-123" };
 
 		// Act
-		var result = await fixture.ManageUserAccessHandler.HandleAsync("non-existent-flag", userIds, true);
+		var result = await fixture.ManageUserAccessHandler.HandleAsync("non-existent-flag", userIds, true, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -141,7 +141,7 @@ public class ManageUserAccessHandler_ValidationErrors(FlagsManagementApiFixture 
 		var userIds = new List<string> { "user-123" };
 
 		// Act
-		var result = await fixture.ManageUserAccessHandler.HandleAsync("", userIds, true);
+		var result = await fixture.ManageUserAccessHandler.HandleAsync("", userIds, true, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -160,7 +160,7 @@ public class ManageUserAccessHandler_ValidationErrors(FlagsManagementApiFixture 
 		var emptyUserIds = new List<string>();
 
 		// Act
-		var result = await fixture.ManageUserAccessHandler.HandleAsync("empty-users-flag", emptyUserIds, true);
+		var result = await fixture.ManageUserAccessHandler.HandleAsync("empty-users-flag", emptyUserIds, true, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -177,7 +177,7 @@ public class ManageUserAccessHandler_ValidationErrors(FlagsManagementApiFixture 
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await fixture.ManageUserAccessHandler.HandleAsync("null-users-flag", null!, true);
+		var result = await fixture.ManageUserAccessHandler.HandleAsync("null-users-flag", null!, true, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -207,7 +207,7 @@ public class ManageUserAccessHandler_CacheIntegration(FlagsManagementApiFixture 
 		var userIds = new List<string> { "cache-user" };
 
 		// Act
-		var result = await fixture.ManageUserAccessHandler.HandleAsync("cached-user-access", userIds, true);
+		var result = await fixture.ManageUserAccessHandler.HandleAsync("cached-user-access", userIds, true, CancellationToken.None);
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();

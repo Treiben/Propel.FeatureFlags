@@ -28,7 +28,7 @@ public class UpdateFlagHandler_Success(FlagsManagementApiFixture fixture) : ICla
 		};
 
 		// Act
-		var result = await fixture.UpdateFlagHandler.HandleAsync("update-test-flag", request);
+		var result = await fixture.UpdateFlagHandler.HandleAsync("update-test-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -66,7 +66,7 @@ public class UpdateFlagHandler_Success(FlagsManagementApiFixture fixture) : ICla
 		};
 
 		// Act
-		var result = await fixture.UpdateFlagHandler.HandleAsync("partial-update-flag", request);
+		var result = await fixture.UpdateFlagHandler.HandleAsync("partial-update-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -94,12 +94,12 @@ public class UpdateFlagHandler_UserAccessControl(FlagsManagementApiFixture fixtu
 
 		var request = new UpdateFlagRequest
 		{
-			ExplicitlyAllowedUsers = ["user1", "user2"],
-			ExplicitlyBlockedUsers = ["blocked-user"]
+			AllowedUsers = ["user1", "user2"],
+			BlockedUsers = ["blocked-user"]
 		};
 
 		// Act
-		var result = await fixture.UpdateFlagHandler.HandleAsync("user-access-flag", request);
+		var result = await fixture.UpdateFlagHandler.HandleAsync("user-access-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -126,12 +126,12 @@ public class UpdateFlagHandler_UserAccessControl(FlagsManagementApiFixture fixtu
 
 		var request = new UpdateFlagRequest
 		{
-			ExplicitlyAllowedUsers = [],
-			ExplicitlyBlockedUsers = []
+			AllowedUsers = [],
+			BlockedUsers = []
 		};
 
 		// Act
-		var result = await fixture.UpdateFlagHandler.HandleAsync("clear-users-flag", request);
+		var result = await fixture.UpdateFlagHandler.HandleAsync("clear-users-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -155,7 +155,7 @@ public class UpdateFlagHandler_NotFound(FlagsManagementApiFixture fixture) : ICl
 		var request = new UpdateFlagRequest { Name = "Updated Name" };
 
 		// Act
-		var result = await fixture.UpdateFlagHandler.HandleAsync("non-existent-flag", request);
+		var result = await fixture.UpdateFlagHandler.HandleAsync("non-existent-flag", request, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -174,7 +174,7 @@ public class UpdateFlagHandler_ValidationErrors(FlagsManagementApiFixture fixtur
 		var request = new UpdateFlagRequest { Name = "Test" };
 
 		// Act
-		var result = await fixture.UpdateFlagHandler.HandleAsync("", request);
+		var result = await fixture.UpdateFlagHandler.HandleAsync("", request, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -204,7 +204,7 @@ public class UpdateFlagHandler_CacheIntegration(FlagsManagementApiFixture fixtur
 		var request = new UpdateFlagRequest { Name = "Updated Cached Flag" };
 
 		// Act
-		var result = await fixture.UpdateFlagHandler.HandleAsync("cached-update-flag", request);
+		var result = await fixture.UpdateFlagHandler.HandleAsync("cached-update-flag", request, CancellationToken.None);
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();

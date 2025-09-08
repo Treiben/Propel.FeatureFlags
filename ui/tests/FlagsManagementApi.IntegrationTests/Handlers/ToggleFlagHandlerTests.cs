@@ -20,7 +20,7 @@ public class ToggleFlagHandler_EnableFlag(FlagsManagementApiFixture fixture) : I
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await fixture.ToggleFlagHandler.HandleAsync("enable-test-flag", FlagEvaluationMode.Enabled, "Integration test enable");
+		var result = await fixture.ToggleFlagHandler.HandleAsync("enable-test-flag", FlagEvaluationMode.Enabled, "Integration test enable", CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -45,7 +45,7 @@ public class ToggleFlagHandler_EnableFlag(FlagsManagementApiFixture fixture) : I
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await fixture.ToggleFlagHandler.HandleAsync("already-enabled-flag", FlagEvaluationMode.Enabled, "Already enabled test");
+		var result = await fixture.ToggleFlagHandler.HandleAsync("already-enabled-flag", FlagEvaluationMode.Enabled, "Already enabled test", CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -65,7 +65,7 @@ public class ToggleFlagHandler_DisableFlag(FlagsManagementApiFixture fixture) : 
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await fixture.ToggleFlagHandler.HandleAsync("disable-test-flag", FlagEvaluationMode.Disabled, "Integration test disable");
+		var result = await fixture.ToggleFlagHandler.HandleAsync("disable-test-flag", FlagEvaluationMode.Disabled, "Integration test disable", CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -91,7 +91,7 @@ public class ToggleFlagHandler_DisableFlag(FlagsManagementApiFixture fixture) : 
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await fixture.ToggleFlagHandler.HandleAsync("already-disabled-flag", FlagEvaluationMode.Disabled, "Already disabled test");
+		var result = await fixture.ToggleFlagHandler.HandleAsync("already-disabled-flag", FlagEvaluationMode.Disabled, "Already disabled test", CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -108,7 +108,7 @@ public class ToggleFlagHandler_NotFound(FlagsManagementApiFixture fixture) : ICl
 		await fixture.ClearAllData();
 
 		// Act
-		var result = await fixture.ToggleFlagHandler.HandleAsync("non-existent-flag", FlagEvaluationMode.Enabled, "Test enable");
+		var result = await fixture.ToggleFlagHandler.HandleAsync("non-existent-flag", FlagEvaluationMode.Enabled, "Test enable", CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -137,7 +137,7 @@ public class ToggleFlagHandler_CacheIntegration(FlagsManagementApiFixture fixtur
 		}
 
 		// Act
-		var result = await fixture.ToggleFlagHandler.HandleAsync("cached-toggle-flag", FlagEvaluationMode.Enabled, "Cache integration test");
+		var result = await fixture.ToggleFlagHandler.HandleAsync("cached-toggle-flag", FlagEvaluationMode.Enabled, "Cache integration test", CancellationToken.None);
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -157,7 +157,7 @@ public class ToggleFlagHandler_ValidationErrors(FlagsManagementApiFixture fixtur
 	public async Task If_KeyIsEmpty_ThenReturnsBadRequest()
 	{
 		// Act
-		var result = await fixture.ToggleFlagHandler.HandleAsync("", FlagEvaluationMode.Enabled, "Test reason");
+		var result = await fixture.ToggleFlagHandler.HandleAsync("", FlagEvaluationMode.Enabled, "Test reason", CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();

@@ -22,7 +22,7 @@ public class UpdateTenantRolloutPercentageHandler_Success(FlagsManagementApiFixt
 		var request = new UpdateTenantRolloutPercentageRequest(75);
 
 		// Act
-		var result = await fixture.UpdateTenantRolloutPercentageHandler.HandleAsync("tenant-rollout-flag", request);
+		var result = await fixture.UpdateTenantRolloutPercentageHandler.HandleAsync("tenant-rollout-flag", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -49,7 +49,7 @@ public class UpdateTenantRolloutPercentageHandler_Success(FlagsManagementApiFixt
 		var request = new UpdateTenantRolloutPercentageRequest(100);
 
 		// Act
-		var result = await fixture.UpdateTenantRolloutPercentageHandler.HandleAsync("full-tenant-rollout", request);
+		var result = await fixture.UpdateTenantRolloutPercentageHandler.HandleAsync("full-tenant-rollout", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -76,7 +76,7 @@ public class UpdateTenantRolloutPercentageHandler_ZeroPercent(FlagsManagementApi
 		var request = new UpdateTenantRolloutPercentageRequest(0);
 
 		// Act
-		var result = await fixture.UpdateTenantRolloutPercentageHandler.HandleAsync("zero-tenant-rollout", request);
+		var result = await fixture.UpdateTenantRolloutPercentageHandler.HandleAsync("zero-tenant-rollout", request, CancellationToken.None);
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
@@ -99,7 +99,7 @@ public class UpdateTenantRolloutPercentageHandler_NotFound(FlagsManagementApiFix
 		var request = new UpdateTenantRolloutPercentageRequest(50);
 
 		// Act
-		var result = await fixture.UpdateTenantRolloutPercentageHandler.HandleAsync("non-existent-flag", request);
+		var result = await fixture.UpdateTenantRolloutPercentageHandler.HandleAsync("non-existent-flag", request, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -118,7 +118,7 @@ public class UpdateTenantRolloutPercentageHandler_ValidationErrors(FlagsManageme
 		var request = new UpdateTenantRolloutPercentageRequest(50);
 
 		// Act
-		var result = await fixture.UpdateTenantRolloutPercentageHandler.HandleAsync("", request);
+		var result = await fixture.UpdateTenantRolloutPercentageHandler.HandleAsync("", request, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -148,7 +148,7 @@ public class UpdateTenantRolloutPercentageHandler_CacheIntegration(FlagsManageme
 		var request = new UpdateTenantRolloutPercentageRequest(60);
 
 		// Act
-		var result = await fixture.UpdateTenantRolloutPercentageHandler.HandleAsync("cached-tenant-rollout", request);
+		var result = await fixture.UpdateTenantRolloutPercentageHandler.HandleAsync("cached-tenant-rollout", request, CancellationToken.None);
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();

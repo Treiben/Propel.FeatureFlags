@@ -24,7 +24,7 @@ public class CreateFlagHandler_Success(FlagsManagementApiFixture fixture) : ICla
 		};
 
 		// Act
-		var result = await fixture.CreateFlagHandler.HandleAsync(request);
+		var result = await fixture.CreateFlagHandler.HandleAsync(request, CancellationToken.None);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -57,7 +57,7 @@ public class CreateFlagHandler_Success(FlagsManagementApiFixture fixture) : ICla
 		};
 
 		// Act
-		var result = await fixture.CreateFlagHandler.HandleAsync(request);
+		var result = await fixture.CreateFlagHandler.HandleAsync(request, CancellationToken.None);
 
 		// Assert
 		var createdResponse = result.ShouldBeOfType<Created<FeatureFlagResponse>>();
@@ -86,7 +86,7 @@ public class CreateFlagHandler_Conflict(FlagsManagementApiFixture fixture) : ICl
 		};
 
 		// Act
-		var result = await fixture.CreateFlagHandler.HandleAsync(request);
+		var result = await fixture.CreateFlagHandler.HandleAsync(request, CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -111,7 +111,7 @@ public class CreateFlagHandler_WithLifecycle(FlagsManagementApiFixture fixture) 
 		};
 
 		// Act
-		var result = await fixture.CreateFlagHandler.HandleAsync(request);
+		var result = await fixture.CreateFlagHandler.HandleAsync(request, CancellationToken.None);
 
 		// Assert
 		var createdResponse = result.ShouldBeOfType<Created<FeatureFlagResponse>>();
@@ -135,7 +135,7 @@ public class CreateFlagHandler_WithLifecycle(FlagsManagementApiFixture fixture) 
 		};
 
 		// Act
-		var result = await fixture.CreateFlagHandler.HandleAsync(request);
+		var result = await fixture.CreateFlagHandler.HandleAsync(request, CancellationToken.None);
 
 		// Assert
 		var createdResponse = result.ShouldBeOfType<Created<FeatureFlagResponse>>();
@@ -162,7 +162,7 @@ public class CreateFlagHandler_DefaultValues(FlagsManagementApiFixture fixture) 
 		};
 
 		// Act
-		var result = await fixture.CreateFlagHandler.HandleAsync(request);
+		var result = await fixture.CreateFlagHandler.HandleAsync(request, CancellationToken.None);
 
 		// Assert
 		var createdResponse = result.ShouldBeOfType<Created<FeatureFlagResponse>>();
