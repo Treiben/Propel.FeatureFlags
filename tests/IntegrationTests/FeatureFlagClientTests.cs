@@ -120,7 +120,7 @@ public class EvaluateAsync_WithTimeWindowFlag(ClientTestsFixture fixture) : ICla
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeTrue();
 		result.Variation.ShouldBe("on");
-		result.Reason.ShouldBe("Within time window");
+		result.Reason.ShouldBe("Flag operational window is always open.");
 	}
 }
 
