@@ -24,6 +24,9 @@ public record FeatureFlagResponse
 	public int UserRolloutPercentage { get; set; }
 	public List<string> AllowedUsers { get; set; } = [];
 	public List<string> BlockedUsers { get; set; } = [];
+	public int TenantRolloutPercentage { get; set; }
+	public List<string> AllowedTenants { get; set; } = [];
+	public List<string> BlockedTenants { get; set; } = [];
 	public List<TargetingRule> TargetingRules { get; set; } = [];
 	public Dictionary<string, object> Variations { get; set; } = [];
 	public string DefaultVariation { get; set; } = string.Empty;
@@ -58,6 +61,9 @@ public record FeatureFlagResponse
 		UserRolloutPercentage = flag.UserAccess.RolloutPercentage;
 		AllowedUsers = flag.UserAccess.AllowedUsers;
 		BlockedUsers = flag.UserAccess.BlockedUsers;
+		TenantRolloutPercentage = flag.TenantAccess.RolloutPercentage;
+		AllowedTenants = flag.TenantAccess.AllowedTenants;
+		BlockedTenants = flag.TenantAccess.BlockedTenants;
 		TargetingRules = flag.TargetingRules;
 		Variations = flag.Variations.Values;
 		DefaultVariation = flag.Variations.DefaultVariation;
