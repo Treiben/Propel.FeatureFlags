@@ -5,7 +5,6 @@ import { StatusBadge } from './StatusBadge';
 import { parseStatusComponents } from '../utils/flagHelpers';
 
 // Import business logic components
-import { FlagStatusIndicators } from './flag-details/FlagStatusIndicators';
 import { 
     SchedulingStatusIndicator, 
     SchedulingSection 
@@ -16,13 +15,11 @@ import {
 } from './flag-details/TimeWindowComponents';
 import { 
     UserAccessControlStatusIndicator, 
-    UserAccessSection,
-    UserAccessControlEditor
+    UserAccessSection
 } from './flag-details/UserAccessControlComponents';
 import { 
     ExpirationWarning, 
     PermanentFlagWarning, 
-    UserLists, 
     FlagMetadata,
     FlagEditSection
 } from './flag-details/UtilityComponents';
@@ -67,7 +64,6 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     evaluationResult,
     evaluationLoading = false
 }) => {
-    const [editingUserAccess, setEditingUserAccess] = useState(false);
     const [operationLoading, setOperationLoading] = useState(false);
     const [showEvaluation, setShowEvaluation] = useState(false);
     const [testUserId, setTestUserId] = useState('');
@@ -75,7 +71,6 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     // Reset editing states when flag changes (when a different flag is selected)
     useEffect(() => {
-        setEditingUserAccess(false);
         setShowEvaluation(false);
         setTestUserId('');
         setTestAttributes('{}');
@@ -96,6 +91,16 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
         setOperationLoading(true);
         try {
             await onUpdateUserAccess(allowedUsers, blockedUsers, percentage);
+        } finally {
+            setOperationLoading(false);
+        }
+    };
+
+    const handleClearUserAccessWrapper = async () => {
+        setOperationLoading(true);
+        try {
+            // Clear user access by setting empty arrays and 0 percentage
+            await onUpdateUserAccess([], [], 0);
         } finally {
             setOperationLoading(false);
         }
@@ -172,20 +177,41 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            {/* Flag Header - ONLY evaluation modes next to flag name and delete icon */}
+            {/* Flag Header - Enable/Disable and Delete buttons */}
             <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-lg font-semibold text-gray-900">{flag.name}</h3>
-                        {!flag.isPermanent && (
+                        <div className="flex items-center gap-1">
                             <button
-                                onClick={() => onDelete(flag.key)}
-                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                title="Delete Flag"
+                                onClick={handleToggle}
+                                disabled={operationLoading}
+                                className={`p-2 rounded-md transition-colors font-medium shadow-sm ${
+                                    isEnabled
+                                        ? 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-300'
+                                        : 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
+                                }`}
+                                title={isEnabled ? 'Disable Flag' : 'Enable Flag'}
                             >
-                                <Trash2 className="w-4 h-4" />
+                                {operationLoading ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : isEnabled ? (
+                                    <EyeOff className="w-4 h-4" />
+                                ) : (
+                                    <Eye className="w-4 h-4" />
+                                )}
                             </button>
-                        )}
+                            {/* Delete button now also follows the same condition - only shown if flag is not permanent */}
+                            {!flag.isPermanent && (
+                                <button
+                                    onClick={() => onDelete(flag.key)}
+                                    className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors border border-transparent hover:border-red-200"
+                                    title="Delete Flag"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                     <p className="text-sm text-gray-500 font-mono">{flag.key}</p>
                 </div>
@@ -279,30 +305,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             <TimeWindowStatusIndicator flag={flag} />
             <UserAccessControlStatusIndicator flag={flag} />
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
-                <button
-                    onClick={handleToggle}
-                    disabled={operationLoading}
-                    className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium disabled:opacity-50 ${
-                        isEnabled
-                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                            : 'bg-green-100 text-green-700 hover:bg-green-200'
-                    }`}
-                >
-                    {isEnabled ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    {isEnabled ? 'Disable' : 'Enable'}
-                </button>
-
-                <UserAccessControlEditor
-                    flag={flag}
-                    isEditing={editingUserAccess}
-                    onStartEditing={() => setEditingUserAccess(true)}
-                    onCancelEditing={() => setEditingUserAccess(false)}
-                    onUpdateUserAccess={handleUpdateUserAccessWrapper}
-                    operationLoading={operationLoading}
-                />
-            </div>
+            {/* Quick Actions section removed - Enable/Disable button moved to header */}
 
             {/* Warnings */}
             <PermanentFlagWarning flag={flag} />
@@ -337,7 +340,6 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             />
 
             {/* Additional Information */}
-            <UserLists flag={flag} />
             <FlagMetadata flag={flag} />
         </div>
     );
