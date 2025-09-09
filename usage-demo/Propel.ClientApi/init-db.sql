@@ -802,6 +802,139 @@ INSERT INTO usage_demo.feature_flags (
     NOW() - INTERVAL '1 day' -- Expired yesterday
 ) ON CONFLICT (key) DO NOTHING;
 
+-- ====================================================================
+-- TENANT TARGETED FLAGS (evaluation_modes: [7])
+-- ====================================================================
+
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, evaluation_modes, created_by, updated_by,
+    variations, default_variation, tags, 
+    enabled_tenants, disabled_tenants, expiration_date
+) VALUES (
+    'enterprise-analytics-suite',
+    'Enterprise Analytics Suite',
+    'Advanced analytics features targeted to specific enterprise tenants',
+    '[7]', -- TenantTargeted
+    'system',
+    'system',
+    '{"on": true, "off": false}',
+    'off',
+    '{"service": "analytics", "type": "enterprise", "tier": "advanced", "status": "tenant-targeted"}',
+    '["acme-corp", "global-industries", "tech-giants-inc", "innovation-labs", "enterprise-solutions-ltd"]',
+    '["startup-company", "small-business-co", "trial-tenant", "free-tier-org"]',
+    NOW() + INTERVAL '1 year'
+) ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, evaluation_modes, created_by, updated_by,
+    variations, default_variation, tags, 
+    enabled_tenants, disabled_tenants, expiration_date
+) VALUES (
+    'white-label-branding',
+    'White Label Branding Features',
+    'Custom branding and white-label features for select partners and enterprise clients',
+    '[7]', -- TenantTargeted
+    'system',
+    'system',
+    '{"custom": "white-label-enabled", "standard": "default-branding"}',
+    'standard',
+    '{"service": "branding", "type": "white-label", "partner": "enterprise", "status": "tenant-targeted"}',
+    '["partner-alpha", "partner-beta", "white-label-corp", "custom-brand-inc", "enterprise-partner-solutions", "mega-client-xyz"]',
+    '["competitor-company", "unauthorized-reseller", "blocked-partner"]',
+    NOW() + INTERVAL '1 year'
+) ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, evaluation_modes, created_by, updated_by,
+    variations, default_variation, tags, 
+    enabled_tenants, disabled_tenants, expiration_date
+) VALUES (
+    'compliance-reporting-module',
+    'Advanced Compliance Reporting',
+    'SOX, GDPR, and HIPAA compliance reporting features for regulated industry tenants',
+    '[7]', -- TenantTargeted
+    'system',
+    'system',
+    '{"compliance": "full-compliance-suite", "basic": "standard-reporting"}',
+    'basic',
+    '{"service": "compliance", "type": "reporting", "regulation": "multi", "status": "tenant-targeted"}',
+    '["healthcare-corp", "financial-services-inc", "pharma-company", "bank-holdings", "insurance-giant", "government-agency"]',
+    '["non-regulated-startup", "consumer-app-company", "entertainment-corp"]',
+    NOW() + INTERVAL '1 year'
+) ON CONFLICT (key) DO NOTHING;
+
+-- ====================================================================
+-- ADDITIONAL TENANT ROLLOUT PERCENTAGE FLAGS (evaluation_modes: [6])
+-- ====================================================================
+
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, evaluation_modes, created_by, updated_by,
+    variations, default_variation, tags, tenant_percentage_enabled, expiration_date
+) VALUES (
+    'advanced-search-engine',
+    'Advanced Search Engine Rollout',
+    'Progressive rollout of enhanced search capabilities to 75% of tenants',
+    '[6]', -- TenantRolloutPercentage
+    'system',
+    'system',
+    '{"enhanced": "advanced-search", "legacy": "basic-search"}',
+    'legacy',
+    '{"service": "search", "type": "engine-upgrade", "performance": "enhanced", "status": "tenant-percentage"}',
+    75, -- 75% of tenants
+    NOW() + INTERVAL '1 year'
+) ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, evaluation_modes, created_by, updated_by,
+    variations, default_variation, tags, tenant_percentage_enabled, expiration_date
+) VALUES (
+    'real-time-notifications',
+    'Real-time Notification System',
+    'WebSocket-based real-time notifications rolled out to 45% of tenants',
+    '[6]', -- TenantRolloutPercentage
+    'system',
+    'system',
+    '{"realtime": "websocket-notifications", "polling": "traditional-polling"}',
+    'polling',
+    '{"service": "notifications", "type": "realtime", "transport": "websocket", "status": "tenant-percentage"}',
+    45, -- 45% of tenants
+    NOW() + INTERVAL '1 year'
+) ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, evaluation_modes, created_by, updated_by,
+    variations, default_variation, tags, tenant_percentage_enabled, expiration_date
+) VALUES (
+    'multi-region-backup',
+    'Multi-Region Data Backup',
+    'Automated multi-region backup system gradually rolled out to 30% of tenants',
+    '[6]', -- TenantRolloutPercentage
+    'system',
+    'system',
+    '{"multi-region": "geo-distributed-backup", "single-region": "local-backup-only"}',
+    'single-region',
+    '{"service": "backup", "type": "multi-region", "reliability": "high", "status": "tenant-percentage"}',
+    30, -- 30% of tenants for careful rollout of critical backup feature
+    NOW() + INTERVAL '1 year'
+) ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, evaluation_modes, created_by, updated_by,
+    variations, default_variation, tags, tenant_percentage_enabled, expiration_date
+) VALUES (
+    'performance-monitoring-v2',
+    'Enhanced Performance Monitoring',
+    'Next-generation performance monitoring and APM features for 85% of tenants',
+    '[6]', -- TenantRolloutPercentage
+    'system',
+    'system',
+    '{"v2": "enhanced-monitoring", "v1": "basic-monitoring"}',
+    'v1',
+    '{"service": "monitoring", "type": "performance", "version": "v2", "status": "tenant-percentage"}',
+    85, -- 85% rollout for monitoring improvements
+    NOW() + INTERVAL '1 year'
+) ON CONFLICT (key) DO NOTHING;
+
 -- Grant permissions (if needed for specific user)
 -- GRANT ALL PRIVILEGES ON SCHEMA usage_demo TO propel_user;
 -- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA usage_demo TO propel_user;
