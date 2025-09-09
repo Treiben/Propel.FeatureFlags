@@ -16,7 +16,8 @@ export const FlagStatusIndicators: React.FC<FlagStatusIndicatorsProps> = ({ flag
             3: 'TimeWindow',
             4: 'UserTargeted',
             5: 'UserRollout',
-            6: 'TenantRollout'
+            6: 'TenantRollout',
+			7: 'TenantTargeted',
         };
         
         return modes.map(mode => modeMap[mode]).filter(Boolean);

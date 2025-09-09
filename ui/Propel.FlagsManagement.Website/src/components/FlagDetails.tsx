@@ -201,6 +201,12 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     const components = parseStatusComponents(flag);
     const isEnabled = components.baseStatus === 'Enabled';
 
+    // Check if UserAccessControlStatusIndicator should be shown
+    const shouldShowUserAccessIndicator = flag.evaluationModes?.includes(5) || flag.evaluationModes?.includes(4); // UserRolloutPercentage or UserTargeted
+
+    // Check if TenantAccessControlStatusIndicator should be shown
+    const shouldShowTenantAccessIndicator = flag.evaluationModes?.includes(6) || flag.evaluationModes?.includes(7); // TenantRolloutPercentage or TenantTargeted
+
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             {/* Flag Header - Enable/Disable, Test Evaluation, and Delete buttons */}
@@ -323,12 +329,12 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 </div>
             )}
 
-            {/* Status Indicators */}
+            {/* Status Indicators - Conditionally rendered */}
             <ExpirationWarning flag={flag} />
             <SchedulingStatusIndicator flag={flag} />
             <TimeWindowStatusIndicator flag={flag} />
-            <UserAccessControlStatusIndicator flag={flag} />
-            <TenantAccessControlStatusIndicator flag={flag} />
+            {shouldShowUserAccessIndicator && <UserAccessControlStatusIndicator flag={flag} />}
+            {shouldShowTenantAccessIndicator && <TenantAccessControlStatusIndicator flag={flag} />}
 
             {/* Warnings */}
             <PermanentFlagWarning flag={flag} />
