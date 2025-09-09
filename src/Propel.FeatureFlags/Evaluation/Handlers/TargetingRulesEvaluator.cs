@@ -8,7 +8,7 @@ public sealed class TargetingRulesEvaluator : IOrderedEvaluator
 
 	public bool CanProcess(FeatureFlag flag, EvaluationContext context)
 	{
-		return flag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.UserTargeted]);
+		return flag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.UserTargeted, FlagEvaluationMode.TenantTargeted]);
 	}
 
 	public async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)

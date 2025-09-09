@@ -12,6 +12,7 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<IValidator<EnableFlagRequest>, EnableFlagRequestValidator>();
 		services.AddScoped<IValidator<EvaluateFeatureFlagsRequest>, EvaluateMultipleRequestValidator>();
 		services.AddScoped<IValidator<GetFeatureFlagRequest>, GetFlagsRequestValidator>();
+		services.AddScoped<IValidator<ManageTenantAccessRequest>, ManageTenantAccessRequestValidator>();
 		services.AddScoped<IValidator<ManageUserAccessRequest>, ManageUserAccessRequestValidator>();
 		services.AddScoped<IValidator<UpdateFlagRequest>, UpdateFlagRequestValidator>();
 		services.AddScoped<IValidator<UpdateScheduleRequest>, UpdateScheduleRequestValidator>();
@@ -30,7 +31,6 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<ToggleFlagHandler>();
 		services.AddScoped<UpdateFlagHandler>();
 		services.AddScoped<UpdateScheduleHandler>();
-		services.AddScoped<UpdateTenantRolloutPercentageHandler>();
 		services.AddScoped<UpdateTimeWindowHandler>();
 
 		return services;

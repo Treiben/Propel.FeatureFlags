@@ -25,7 +25,7 @@ public sealed class UpdateUserAccessControlEndpoints : IEndpoint
 			})
 			.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 			.AddEndpointFilter<ValidationFilter<ManageUserAccessRequest>>()
-			.WithName("UpdateUserRolloutPercentage")
+			.WithName("UpdateUserAccessControl")
 			.WithTags("Feature Flags", "Operations", "User Targeting", "Rollout Percentage", "Access Control Management", "Management Api")
 			.Produces<FeatureFlagResponse>()
 			.ProducesValidationProblem();

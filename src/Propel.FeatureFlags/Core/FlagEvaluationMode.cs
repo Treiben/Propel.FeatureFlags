@@ -9,6 +9,7 @@ public enum FlagEvaluationMode
 	UserTargeted = 4,
 	UserRolloutPercentage = 5,
 	TenantRolloutPercentage = 6,
+	TenantTargeted = 7
 }
 
 public class FlagEvaluationModeSet

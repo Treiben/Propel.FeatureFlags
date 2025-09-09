@@ -7,59 +7,25 @@ using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
 
-public record ManageTenantsAccessRequest(List<string> TenantIds);
-
-public record UpdateTenantRolloutPercentageRequest(int Percentage);
+public record ManageTenantAccessRequest(string[]? AllowedTenants, string[]? BlockedTenants, int? Percentage);
 
 public sealed class UpdateTenantAccessControlEndpoints : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder epRoutBuilder)
 	{
-		epRoutBuilder.MapPost("/api/feature-flags/{key}/tenants/enable",
+		epRoutBuilder.MapPost("/api/feature-flags/{key}/tenants",
 			async (
 				string key,
-				ManageTenantsAccessRequest request,
-				ManageTenantAccessHandler tenantAccessHandler,
-				CancellationToken cancellationToken) =>
-		{
-			return await tenantAccessHandler.HandleAsync(key, request.TenantIds, true, cancellationToken);
-		})
-		.AddEndpointFilter<ValidationFilter<ManageTenantsAccessRequest>>()
-		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
-		.WithName("EnableForTenant")
-		.WithTags("Feature Flags", "Operations", "Tenant Targeting", "Toggle Control", "Management Api")
-		.Produces<FeatureFlagResponse>()
-		.ProducesValidationProblem();
-
-		epRoutBuilder.MapPost("/api/feature-flags/{key}/tenants/disable",
-			async (
-				string key,
-				ManageTenantsAccessRequest request,
-				ManageTenantAccessHandler tenantAccessHandler, 
-				CancellationToken cancellationToken) =>
-				{
-					return await tenantAccessHandler.HandleAsync(key, request.TenantIds, false, cancellationToken);
-				})
-		.AddEndpointFilter<ValidationFilter<ManageTenantsAccessRequest>>()
-		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
-		.WithName("DisableForTenant")
-		.WithTags("Feature Flags", "Operations", "Tenant Targeting", "Toggle Control", "Management Api")
-		.Produces<FeatureFlagResponse>()
-		.ProducesValidationProblem();
-
-		epRoutBuilder.MapPost("/api/feature-flags/{key}/tenants/rollout",
-			async (
-				string key,
-				UpdateTenantRolloutPercentageRequest request,
-				UpdateTenantRolloutPercentageHandler setPercentageHandler,
+				ManageTenantAccessRequest request,
+				ManageTenantAccessHandler accessHandler,
 				CancellationToken cancellationToken) =>
 			{
-				return await setPercentageHandler.HandleAsync(key, request, cancellationToken);
+				return await accessHandler.HandleAsync(key, request, cancellationToken);
 			})
 			.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
-			.AddEndpointFilter<ValidationFilter<UpdateTenantRolloutPercentageRequest>>()
-			.WithName("UpdateTenantRolloutPercentage")
-			.WithTags("Feature Flags", "Operations", "Tenant Targeting", "Rollout Control", "Management Api")
+			.AddEndpointFilter<ValidationFilter<ManageTenantAccessRequest>>()
+			.WithName("UpdateTenantAccessControl")
+			.WithTags("Feature Flags", "Operations", "Tenant Targeting", "Rollout Percentage", "Access Control Management", "Management Api")
 			.Produces<FeatureFlagResponse>()
 			.ProducesValidationProblem();
 	}
@@ -71,67 +37,7 @@ public sealed class ManageTenantAccessHandler(
 		ILogger<ManageTenantAccessHandler> logger,
 		IFeatureFlagCache? cache = null)
 {
-	public async Task<IResult> HandleAsync(string key, List<string> tenantsIds, bool enable,
-		CancellationToken cancellationToken)
-	{
-		if (string.IsNullOrWhiteSpace(key))
-		{
-			return HttpProblemFactory.BadRequest("Feature flag key cannot be empty or null", logger);
-		}
-
-		if (tenantsIds == null || tenantsIds.Count == 0)
-		{
-			return HttpProblemFactory.BadRequest("At least one tenant ID must be provided", logger);
-		}
-
-		try
-		{
-			var flag = await repository.GetAsync(key, cancellationToken);
-			if (flag == null)
-			{
-				return HttpProblemFactory.NotFound("Feature flag", key, logger);
-			}
-
-			foreach (var tenantId in tenantsIds)
-			{
-				flag.TenantAccess = enable ? flag.TenantAccess.WithAllowedTenant(tenantId) : flag.TenantAccess.WithBlockedTenant(tenantId);
-			}
-
-			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName!);
-			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
-
-			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
-
-			// Log detailed changes
-			var action = enable ? "enabled" : "disabled";
-
-			logger.LogInformation("Feature flag {Key} tenant access updated by {User}: {Action} for [{Tenants}] tenants.",
-				key, currentUserService.UserName, action, string.Join(", ", tenantsIds));
-
-			return Results.Ok(new FeatureFlagResponse(updatedFlag));
-		}
-		catch (ArgumentException ex)
-		{
-			return HttpProblemFactory.BadRequest(ex.Message, logger);
-		}
-		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
-		{
-			return HttpProblemFactory.ClientClosedRequest(logger);
-		}
-		catch (Exception ex)
-		{
-			return HttpProblemFactory.InternalServerError(ex, logger);
-		}
-	}
-}
-
-public sealed class UpdateTenantRolloutPercentageHandler(
-		IFeatureFlagRepository repository,
-		ICurrentUserService currentUserService,
-		ILogger<UpdateTenantRolloutPercentageHandler> logger,
-		IFeatureFlagCache? cache = null)
-{
-	public async Task<IResult> HandleAsync(string key, UpdateTenantRolloutPercentageRequest request,
+	public async Task<IResult> HandleAsync(string key, ManageTenantAccessRequest request,
 		CancellationToken cancellationToken)
 	{
 		// Validate key parameter
@@ -148,8 +54,11 @@ public sealed class UpdateTenantRolloutPercentageHandler(
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
 			}
 
-			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName!);
-			flag.TenantAccess = flag.TenantAccess.WithRolloutPercentage(request.Percentage);
+			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt,
+													flag.AuditRecord.CreatedBy,
+													DateTime.UtcNow,
+													currentUserService.UserName!);
+
 			if (request.Percentage == 0) // Special case: 0% effectively disables the flag
 			{
 				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.TenantRolloutPercentage);
@@ -158,6 +67,16 @@ public sealed class UpdateTenantRolloutPercentageHandler(
 			{
 				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TenantRolloutPercentage);
 			}
+
+			if (request.AllowedTenants?.Length > 0 || request.BlockedTenants?.Length > 0)
+			{
+				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TenantTargeted);
+			}
+
+			flag.TenantAccess = new FlagTenantAccessControl(
+							allowedTenants: [.. request.AllowedTenants ?? []],
+							blockedTenants: [.. request.BlockedTenants ?? []],
+							rolloutPercentage: request.Percentage ?? flag.TenantAccess.RolloutPercentage);
 
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
@@ -169,14 +88,6 @@ public sealed class UpdateTenantRolloutPercentageHandler(
 
 			return Results.Ok(new FeatureFlagResponse(updatedFlag));
 		}
-		catch (ArgumentException ex)
-		{
-			return HttpProblemFactory.BadRequest(ex.Message, logger);
-		}
-		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
-		{
-			return HttpProblemFactory.ClientClosedRequest(logger);
-		}
 		catch (Exception ex)
 		{
 			return HttpProblemFactory.InternalServerError(ex, logger);
@@ -184,37 +95,26 @@ public sealed class UpdateTenantRolloutPercentageHandler(
 	}
 }
 
-public sealed class ManageTenantsAccessRequestValidator : AbstractValidator<ManageTenantsAccessRequest>
+public sealed class ManageTenantAccessRequestValidator : AbstractValidator<ManageTenantAccessRequest>
 {
-	public ManageTenantsAccessRequestValidator()
-	{
-		RuleFor(x => x.TenantIds)
-			.NotEmpty()
-			.WithMessage("At least one tenant ID must be provided");
-
-		RuleFor(x => x.TenantIds)
-			.Must(tenantIds => tenantIds.Count <= 100)
-			.WithMessage("Cannot manage more than 100 tenants at once");
-
-		RuleForEach(x => x.TenantIds)
-			.NotEmpty()
-			.WithMessage("Tenant ID cannot be empty")
-			.MaximumLength(100)
-			.WithMessage("Tenant ID cannot exceed 100 characters");
-
-		RuleFor(x => x.TenantIds)
-			.Must(tenantIds => tenantIds.Distinct().Count() == tenantIds.Count)
-			.WithMessage("Duplicate tenant IDs are not allowed");
-	}
-}
-
-public sealed class UpdateTenantPercentageRequestValidator : AbstractValidator<UpdateTenantRolloutPercentageRequest>
-{
-	public UpdateTenantPercentageRequestValidator()
+	public ManageTenantAccessRequestValidator()
 	{
 		RuleFor(c => c.Percentage)
 			.InclusiveBetween(0, 100)
 			.WithMessage("Feature flag rollout percentage must be between 0 and 100");
+
+		RuleFor(c => c.AllowedTenants)
+		.Must(list => list == null || list.Distinct().Count() == list.Length)
+		.WithMessage("Duplicate tenant IDs are not allowed in AllowedTenants");
+
+		RuleFor(c => c.BlockedTenants)
+			.Must(list => list == null || list.Distinct().Count() == list.Length)
+			.WithMessage("Duplicate tenant IDs are not allowed in BlockedTenants");
+
+		RuleFor(c => c)
+			.Must(c => c.BlockedTenants!.Any(b => c.AllowedTenants!.Contains(b)))
+			.When(c => c.BlockedTenants != null && c.AllowedTenants != null)
+			.WithMessage("Tenants cannot be in both allowed and blocked lists");
 	}
 }
 
