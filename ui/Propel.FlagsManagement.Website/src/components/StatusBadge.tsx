@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Calendar, Percent, Users, Clock, Settings, Plus } from 'lucide-react';
+import { Eye, EyeOff, Calendar, Percent, Users, Building, Clock, Settings, Plus } from 'lucide-react';
 import { getStatusColor, parseStatusComponents, getStatusDescription } from '../utils/flagHelpers';
 import type { FeatureFlagDto } from '../services/apiService';
 import type { JSX } from 'react';
@@ -17,7 +17,12 @@ const getStatusIcons = (flag: FeatureFlagDto): JSX.Element[] => {
     // Base status
     if (components.baseStatus === 'Enabled') {
         icons.push(<Eye key="enabled" className="w-3 h-3" />);
-    } else if (components.baseStatus === 'Disabled' && !components.isScheduled && !components.hasTimeWindow && !components.hasPercentage && !components.hasUserTargeting) {
+    } else if (components.baseStatus === 'Disabled'
+        && !components.isScheduled
+        && !components.hasTimeWindow
+        && !components.hasPercentage
+        && !components.hasUserTargeting
+        && !components.hasTenantTargeting) {
         icons.push(<EyeOff key="disabled" className="w-3 h-3" />);
     }
 
@@ -33,6 +38,10 @@ const getStatusIcons = (flag: FeatureFlagDto): JSX.Element[] => {
     }
     if (components.hasUserTargeting) {
         icons.push(<Users key="users" className="w-3 h-3" />);
+    }
+
+    if (components.hasTenantTargeting) {
+        icons.push(<Building key="tenants" className="w-3 h-3" />);
     }
 
     // If no specific icons, show settings

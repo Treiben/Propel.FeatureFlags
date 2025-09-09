@@ -406,7 +406,8 @@ export const getEvaluationModes = (): { value: number; label: string }[] => {
 		{ value: 3, label: 'Time Window' },
 		{ value: 4, label: 'User Targeted' },
 		{ value: 5, label: 'User Rollout Percentage' },
-		{ value: 6, label: 'Tenant Rollout Percentage' }
+		{ value: 6, label: 'Tenant Rollout Percentage' },
+		{ value: 7, label: 'Tenant Targeted' }
 	]
 };
 

@@ -298,7 +298,9 @@ export const getStatusColor = (flag: FeatureFlagDto): string => {
     if (components.hasUserTargeting) {
         return 'bg-purple-100 text-purple-800';
     }
-
+    if (components.hasTenantTargeting) {
+        return 'bg-teal-100 text-teal-800';
+    }
     return 'bg-gray-100 text-gray-800';
 };
 
