@@ -10,7 +10,8 @@ import {
     type SetTimeWindowRequest,
     type ScheduleFlagRequest,
     type EvaluationResult,
-    type UserAccessRequest
+    type UserAccessRequest,
+    type TenantAccessRequest
 } from '../services/apiService';
 import { config } from '../config/environment';
 
@@ -47,6 +48,7 @@ export interface UseFeatureFlagsActions {
     scheduleFlag: (key: string, request: ScheduleFlagRequest) => Promise<FeatureFlagDto>;
 	setTimeWindow: (key: string, request: SetTimeWindowRequest) => Promise<FeatureFlagDto>;
     updateUserAccess: (key: string, request: UserAccessRequest) => Promise<FeatureFlagDto>;
+    updateTenantAccess: (key: string, request: TenantAccessRequest) => Promise<FeatureFlagDto>;
     searchFlags: (params?: { tag?: string; status?: string }) => Promise<void>;
     filterFlags: (params: GetFlagsParams) => Promise<void>;
     clearError: () => void;
@@ -298,6 +300,20 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         }
     }, []);
 
+
+    const updateTenantAccess = useCallback(async (key: string, request: TenantAccessRequest): Promise<FeatureFlagDto> => {
+        try {
+            updateState({ error: null });
+            // Returns converted DTO with local times
+            const updatedFlag = await apiService.operations.updateTenantAccess(key, request);
+            updateFlagInState(updatedFlag);
+            return updatedFlag;
+        } catch (error) {
+            handleError(error, 'update tenant access');
+            throw error;
+        }
+    }, []);
+
     const searchFlags = useCallback(async (params?: { tag?: string; status?: string }): Promise<void> => {
         try {
             updateState({ loading: true, error: null });
@@ -461,6 +477,7 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         scheduleFlag,
         setTimeWindow,
         updateUserAccess,
+		updateTenantAccess,
         searchFlags,
         filterFlags,
         clearError,

@@ -23,6 +23,9 @@ export interface FeatureFlagDto {
 	userRolloutPercentage: number; // Renamed from userPercentageRollout to match C#
 	allowedUsers: string[];
 	blockedUsers: string[];
+	tenantRolloutPercentage: number; // Renamed from tenantPercentageRollout to match C#
+	allowedTenants: string[];
+	blockedTenants: string[];
 	targetingRules: TargetingRule[];
 	variations: Record<string, any>;
 	defaultVariation: string;
@@ -104,6 +107,12 @@ export interface SetTimeWindowRequest {
 export interface UserAccessRequest {
 	allowedUsers?: string[];
 	blockedUsers?: string[];
+	percentage?: number;
+}
+
+export interface TenantAccessRequest {
+	allowedTenants?: string[];
+	blockedTenants?: string[];
 	percentage?: number;
 }
 
@@ -548,6 +557,15 @@ export const apiService = {
 		// Updated consolidated user access management endpoint
 		updateUserAccess: async (key: string, request: UserAccessRequest) => {
 			const flag = await apiRequest<FeatureFlagDto>(`/feature-flags/${key}/users`, {
+				method: 'POST',
+				body: JSON.stringify(request),
+			});
+			return DateTimeConverter.convertFeatureFlagDtoToLocal(flag);
+		},
+
+		// Updated consolidated tenant access management endpoint
+		updateTenantAccess: async (key: string, request: TenantAccessRequest) => {
+			const flag = await apiRequest<FeatureFlagDto>(`/feature-flags/${key}/tenants`, {
 				method: 'POST',
 				body: JSON.stringify(request),
 			});

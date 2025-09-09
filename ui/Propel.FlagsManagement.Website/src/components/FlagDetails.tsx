@@ -17,6 +17,10 @@ import {
     UserAccessControlStatusIndicator, 
     UserAccessSection
 } from './flag-details/UserAccessControlComponents';
+import {
+    TenantAccessControlStatusIndicator,
+    TenantAccessSection
+} from './flag-details/TenantAccessControlComponents';
 import { 
     ExpirationWarning, 
     PermanentFlagWarning, 
@@ -28,6 +32,7 @@ interface FlagDetailsProps {
     flag: FeatureFlagDto;
     onToggle: (flag: FeatureFlagDto) => Promise<void>;
     onUpdateUserAccess: (allowedUsers?: string[], blockedUsers?: string[], percentage?: number) => Promise<void>;
+    onUpdateTenantAccess: (allowedTenants?: string[], blockedTenants?: string[], percentage?: number) => Promise<void>;
     onSchedule: (flag: FeatureFlagDto, enableDate: string, disableDate?: string) => Promise<void>;
     onClearSchedule: (flag: FeatureFlagDto) => Promise<void>;
     onUpdateTimeWindow: (flag: FeatureFlagDto, timeWindowData: {
@@ -54,6 +59,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     flag,
     onToggle,
     onUpdateUserAccess,
+	onUpdateTenantAccess,
     onSchedule,
     onClearSchedule,
     onUpdateTimeWindow,
@@ -67,12 +73,14 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     const [operationLoading, setOperationLoading] = useState(false);
     const [showEvaluation, setShowEvaluation] = useState(false);
     const [testUserId, setTestUserId] = useState('');
+    const [testTenantId, setTestTenantId] = useState('');
     const [testAttributes, setTestAttributes] = useState('{}');
 
     // Reset editing states when flag changes (when a different flag is selected)
     useEffect(() => {
         setShowEvaluation(false);
         setTestUserId('');
+		setTestTenantId('');
         setTestAttributes('{}');
     }, [flag.key]);
 
@@ -101,6 +109,24 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
         try {
             // Clear user access by setting empty arrays and 0 percentage
             await onUpdateUserAccess([], [], 0);
+        } finally {
+            setOperationLoading(false);
+        }
+    };
+    const handleUpdateTenantAccessWrapper = async (allowedTenants?: string[], blockedTenants?: string[], percentage?: number) => {
+        setOperationLoading(true);
+        try {
+            await onUpdateTenantAccess(allowedTenants, blockedTenants, percentage);
+        } finally {
+            setOperationLoading(false);
+        }
+    };
+
+    const handleClearTenantAccessWrapper = async () => {
+        setOperationLoading(true);
+        try {
+            // Clear tenant access by setting empty arrays and 0 percentage
+            await onUpdateTenantAccess([], [], 0);
         } finally {
             setOperationLoading(false);
         }
@@ -302,6 +328,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             <SchedulingStatusIndicator flag={flag} />
             <TimeWindowStatusIndicator flag={flag} />
             <UserAccessControlStatusIndicator flag={flag} />
+            <TenantAccessControlStatusIndicator flag={flag} />
 
             {/* Warnings */}
             <PermanentFlagWarning flag={flag} />
@@ -332,6 +359,13 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 flag={flag}
                 onUpdateUserAccess={handleUpdateUserAccessWrapper}
                 onClearUserAccess={handleClearUserAccessWrapper}
+                operationLoading={operationLoading}
+            />
+
+            <TenantAccessSection
+                flag={flag}
+                onUpdateTenantAccess={handleUpdateTenantAccessWrapper}
+                onClearTenantAccess={handleClearTenantAccessWrapper}
                 operationLoading={operationLoading}
             />
 

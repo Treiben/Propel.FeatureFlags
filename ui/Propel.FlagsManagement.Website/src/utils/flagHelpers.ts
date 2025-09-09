@@ -19,6 +19,7 @@ export interface StatusComponents {
     hasTimeWindow: boolean;
     hasPercentage: boolean;
     hasUserTargeting: boolean;
+	hasTenantTargeting: boolean;
     baseStatus: 'Enabled' | 'Disabled';
 }
 
@@ -34,6 +35,7 @@ export const getStatusFromEvaluationModes = (modes: number[]): string => {
     const hasUserTargeted = modes.includes(4);
     const hasUserRollout = modes.includes(5);
     const hasTenantRollout = modes.includes(6);
+	const hasTenantTargeted = modes.includes(7);
     
     // If only enabled
     if (hasEnabled && modes.length === 1) return 'Enabled';
@@ -47,6 +49,7 @@ export const getStatusFromEvaluationModes = (modes: number[]): string => {
     if (hasTimeWindow) features.push('TimeWindow');
     if (hasUserRollout || hasTenantRollout) features.push('Percentage');
     if (hasUserTargeted) features.push('UserTargeted');
+    if (hasTenantTargeted) features.push('TenantTargeted');
     
     return features.length > 0 ? features.join('With') : 'Disabled';
 };
@@ -60,6 +63,7 @@ export const parseStatusComponents = (flag: FeatureFlagDto): StatusComponents =>
         hasTimeWindow: modes.includes(3), // FlagEvaluationMode.TimeWindow
         hasPercentage: modes.includes(5) || modes.includes(6), // UserRolloutPercentage or TenantRolloutPercentage
         hasUserTargeting: modes.includes(4), // FlagEvaluationMode.UserTargeted
+        hasTenantTargeting: modes.includes(7), // FlagEvaluationMode.TenantTargeted
         baseStatus: modes.includes(1) ? 'Enabled' : 'Disabled' // FlagEvaluationMode.Enabled
     };
 
@@ -72,7 +76,8 @@ export const getStatusDescription = (flag: FeatureFlagDto): string => {
     const features: string[] = [];
 
     if (components.baseStatus === 'Enabled') return 'Enabled';
-    if (components.baseStatus === 'Disabled' && !components.isScheduled && !components.hasTimeWindow && !components.hasPercentage && !components.hasUserTargeting) {
+    if (components.baseStatus === 'Disabled' && !components.isScheduled
+        && !components.hasTimeWindow && !components.hasPercentage && !components.hasUserTargeting && !components.hasTenantTargeting) {
         return 'Disabled';
     }
 
@@ -80,6 +85,7 @@ export const getStatusDescription = (flag: FeatureFlagDto): string => {
     if (components.hasTimeWindow) features.push('Time Window');
     if (components.hasPercentage) features.push('Percentage');
     if (components.hasUserTargeting) features.push('User Targeted');
+    if (components.hasTenantTargeting) features.push('Tenant Targeted');
 
     return features.join(' + ');
 };
