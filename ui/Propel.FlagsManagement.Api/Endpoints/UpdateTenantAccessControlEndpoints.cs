@@ -59,6 +59,8 @@ public sealed class ManageTenantAccessHandler(
 													DateTime.UtcNow,
 													currentUserService.UserName!);
 
+			flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.Enabled);
+
 			if (request.Percentage == 0) // Special case: 0% effectively disables the flag
 			{
 				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.TenantRolloutPercentage);
@@ -71,6 +73,11 @@ public sealed class ManageTenantAccessHandler(
 			if (request.AllowedTenants?.Length > 0 || request.BlockedTenants?.Length > 0)
 			{
 				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TenantTargeted);
+			}
+			else
+			{
+				// If no tenants are specified, remove the TenantTargeted mode
+				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.TenantTargeted);
 			}
 
 			flag.TenantAccess = new FlagTenantAccessControl(
@@ -112,7 +119,7 @@ public sealed class ManageTenantAccessRequestValidator : AbstractValidator<Manag
 			.WithMessage("Duplicate tenant IDs are not allowed in BlockedTenants");
 
 		RuleFor(c => c)
-			.Must(c => c.BlockedTenants!.Any(b => c.AllowedTenants!.Contains(b)))
+			.Must(c => c.BlockedTenants!.Any(b => c.AllowedTenants!.Contains(b)) == false)
 			.When(c => c.BlockedTenants != null && c.AllowedTenants != null)
 			.WithMessage("Tenants cannot be in both allowed and blocked lists");
 	}

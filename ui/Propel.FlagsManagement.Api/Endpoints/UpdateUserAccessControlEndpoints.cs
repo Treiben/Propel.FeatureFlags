@@ -60,6 +60,8 @@ public sealed class ManageUserAccessHandler(
 													DateTime.UtcNow,
 													currentUserService.UserName!);
 
+			flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.Enabled);
+
 			if (request.Percentage == 0) // Special case: 0% effectively disables the flag
 			{
 				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.UserRolloutPercentage);
@@ -73,11 +75,16 @@ public sealed class ManageUserAccessHandler(
 			{
 				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.UserTargeted);
 			}
+			else
+			{
+				// If no users are specified, remove the UserTargeted mode
+				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.UserTargeted);
+			}
 
 			flag.UserAccess = new FlagUserAccessControl(
-							allowedUsers: [.. request.AllowedUsers ?? []],
-							blockedUsers: [.. request.BlockedUsers ?? []],
-							rolloutPercentage: request.Percentage ?? flag.UserAccess.RolloutPercentage);
+								allowedUsers: [.. request.AllowedUsers ?? []],
+								blockedUsers: [.. request.BlockedUsers ?? []],
+								rolloutPercentage: request.Percentage ?? flag.UserAccess.RolloutPercentage);
 
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
@@ -113,7 +120,7 @@ public sealed class ManageUserAccessRequestValidator : AbstractValidator<ManageU
 			.WithMessage("Duplicate user IDs are not allowed in BlockedUsers");
 
 		RuleFor(c => c)
-			.Must(c => c.BlockedUsers!.Any(b => c.AllowedUsers!.Contains(b)))
+			.Must(c => c.BlockedUsers!.Any(b => c.AllowedUsers!.Contains(b)) == false)
 			.When(c => c.BlockedUsers != null && c.AllowedUsers != null)
 			.WithMessage("Users cannot be in both allowed and blocked lists");
 	}

@@ -55,8 +55,10 @@ public sealed class FlagEvaluationHandler(
 	IFeatureFlagClient client,
 	ILogger<FlagEvaluationHandler> logger)
 {
-	public async Task<IResult> HandleAsync(string[] keys, string? userId, 
-		string? kvAttributes = null, Dictionary<string, object>? attributes = null)
+	public async Task<IResult> HandleAsync(string[] keys, 
+		string? userId, 
+		string? kvAttributes = null, 
+		Dictionary<string, object>? attributes = null)
 	{
 		// Validate and parse attributes
 		var attributeDict = attributes;

@@ -300,7 +300,6 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         }
     }, []);
 
-
     const updateTenantAccess = useCallback(async (key: string, request: TenantAccessRequest): Promise<FeatureFlagDto> => {
         try {
             updateState({ error: null });

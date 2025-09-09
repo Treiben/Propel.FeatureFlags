@@ -22,7 +22,7 @@ public sealed class OperationalWindowEvaluator : IOrderedEvaluator
 		// Convert to specified timezone
 		var evaluationTime = context.EvaluationTime ?? DateTime.UtcNow;
 
-		var (isActive, because) = flag.OperationalWindow.IsActiveAt(evaluationTime, context.TimeZone);
+		var (isActive, because) = flag.OperationalWindow.IsActiveAt(evaluationTime, flag.OperationalWindow.TimeZone);
 
 		return new EvaluationResult(isEnabled: isActive, variation: isActive ? "on" : flag.Variations.DefaultVariation, reason: because);
 	}

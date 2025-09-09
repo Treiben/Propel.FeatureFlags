@@ -577,13 +577,16 @@ export const apiService = {
 	// Flag evaluation
 	evaluation: {
 		// Evaluate single flag
-		evaluate: (key: string, userId?: string, attributes?: Record<string, any>) => {
+		evaluate: async (key: string, userId?: string, attributes?: Record<string, any>) => {
 			const params = new URLSearchParams();
 			if (userId) params.append('userId', userId);
 			if (attributes) params.append('attributes', JSON.stringify(attributes));
 
 			const query = params.toString();
-			return apiRequest<EvaluationResult>(`/feature-flags/evaluate/${key}${query ? `?${query}` : ''}`);
+			const response = await apiRequest<Record<string, EvaluationResult>>(`/feature-flags/evaluate/${key}${query ? `?${query}` : ''}`);
+			
+			// Extract the single result from the dictionary
+			return response[key];
 		},
 
 		// Evaluate multiple flags

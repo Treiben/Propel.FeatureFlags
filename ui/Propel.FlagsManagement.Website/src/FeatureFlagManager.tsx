@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AlertCircle, Filter, Plus, Settings, X } from 'lucide-react';
 import { useFeatureFlags } from './hooks/useFeatureFlags';
-import type { CreateFeatureFlagRequest, GetFlagsParams, ModifyFlagRequest, UserAccessRequest } from './services/apiService';
+import type { CreateFeatureFlagRequest, GetFlagsParams, ModifyFlagRequest, UserAccessRequest, TenantAccessRequest } from './services/apiService';
 import { getDayOfWeekNumber } from './utils/flagHelpers';
 
 // Import components
@@ -34,6 +34,7 @@ const FeatureFlagManager = () => {
         scheduleFlag,
         setTimeWindow,
         updateUserAccess,
+        updateTenantAccess,
         loadFlagsPage,
         filterFlags,
         deleteFlag,
@@ -384,6 +385,13 @@ const FeatureFlagManager = () => {
                                     if (blockedUsers !== undefined) request.blockedUsers = blockedUsers;
                                     if (percentage !== undefined) request.percentage = percentage;
                                     return updateUserAccess(selectedFlag.key, request);
+                                }}
+                                onUpdateTenantAccess={(allowedTenants, blockedTenants, percentage) => {
+                                    const request: TenantAccessRequest = {};
+                                    if (allowedTenants !== undefined) request.allowedTenants = allowedTenants;
+                                    if (blockedTenants !== undefined) request.blockedTenants = blockedTenants;
+                                    if (percentage !== undefined) request.percentage = percentage;
+                                    return updateTenantAccess(selectedFlag.key, request);
                                 }}
                                 onSchedule={handleScheduleFlag}
                                 onClearSchedule={handleClearSchedule}

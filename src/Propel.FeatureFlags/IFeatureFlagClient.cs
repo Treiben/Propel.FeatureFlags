@@ -6,7 +6,7 @@ public interface IFeatureFlagClient
 {
 	Task<bool> IsEnabledAsync(string flagKey, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null);
 	Task<T> GetVariationAsync<T>(string flagKey, T defaultValue, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null);
-	Task<EvaluationResult?> EvaluateAsync(string flagKey, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null);
+	Task<EvaluationResult?> EvaluateAsync(string flagKey, string? tenantId = null, string? userId = null, string? timeZone = null, Dictionary<string, object>? attributes = null);
 }
 
 public sealed class FeatureFlagClient(IFeatureFlagEvaluator evaluator, string? defaultTimeZone = null) : IFeatureFlagClient
@@ -39,13 +39,13 @@ public sealed class FeatureFlagClient(IFeatureFlagEvaluator evaluator, string? d
 	}
 
 	public async Task<EvaluationResult?> EvaluateAsync(string flagKey, string? tenantId = null, 
-		string? userId = null, Dictionary<string, object>? attributes = null)
+		string? userId = null, string? timeZone = null, Dictionary<string, object>? attributes = null)
 	{
 		var context = new EvaluationContext(
 			tenantId: tenantId,
 			userId: userId,
 			attributes: attributes,
-			timeZone: _defaultTimeZone);
+			timeZone: timeZone ?? _defaultTimeZone);
 
 		return await evaluator.Evaluate(flagKey, context);
 	}

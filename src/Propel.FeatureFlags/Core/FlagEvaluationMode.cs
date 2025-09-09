@@ -60,6 +60,12 @@ public class FlagEvaluationModeSet
 		{
 			EvaluationModes = [.. EvaluationModes.Where(s => s != mode)];
 		}
+
+		if (EvaluationModes.Length == 0)
+		{
+			// If no modes left, default to Disabled
+			EvaluationModes = [FlagEvaluationMode.Disabled];
+		}
 	}
 
 	public bool ContainsModes(FlagEvaluationMode[] evaluationModes, bool any = true)

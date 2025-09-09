@@ -175,26 +175,30 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 
 	const handleTenantAccessSubmit = async () => {
 		try {
-			// Apply percentage if changed
+			// Prepare all updates in a single call
+			let finalAllowedTenants = flag.allowedTenants || [];
+			let finalBlockedTenants = flag.blockedTenants || [];
+			let finalPercentage = flag.tenantRolloutPercentage || 0;
+
+			// Update percentage if changed
 			if (tenantAccessData.percentage !== (flag.tenantRolloutPercentage || 0)) {
-				await onUpdateTenantAccess(undefined, undefined, tenantAccessData.percentage);
+				finalPercentage = tenantAccessData.percentage;
 			}
 
-			// Add allowed tenants if any
+			// Add new allowed tenants if any
 			if (tenantAccessData.allowedTenantsInput.trim()) {
-				const tenantIds = tenantAccessData.allowedTenantsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
-				const currentAllowedTenants = flag.allowedTenants || [];
-				const updatedAllowedTenants = [...new Set([...currentAllowedTenants, ...tenantIds])];
-				await onUpdateTenantAccess(updatedAllowedTenants, flag.blockedTenants);
+				const tenantIds = tenantAccessData.allowedTenantsInput.split(',').map(u => u.trim()).filter(u => u.length > 0);
+				finalAllowedTenants = [...new Set([...finalAllowedTenants, ...tenantIds])];
 			}
 
-			// Add blocked tenants if any
+			// Add new blocked tenants if any
 			if (tenantAccessData.blockedTenantsInput.trim()) {
-				const tenantIds = tenantAccessData.blockedTenantsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
-				const currentBlockedTenants = flag.blockedTenants || [];
-				const updatedBlockedTenants = [...new Set([...currentBlockedTenants, ...tenantIds])];
-				await onUpdateTenantAccess(flag.allowedTenants, updatedBlockedTenants);
+				const tenantIds = tenantAccessData.blockedTenantsInput.split(',').map(u => u.trim()).filter(u => u.length > 0);
+				finalBlockedTenants = [...new Set([...finalBlockedTenants, ...tenantIds])];
 			}
+
+			// Make a single API call with all updates
+			await onUpdateTenantAccess(finalAllowedTenants, finalBlockedTenants, finalPercentage);
 
 			setEditingTenantAccess(false);
 		} catch (error) {

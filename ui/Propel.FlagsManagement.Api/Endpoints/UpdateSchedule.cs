@@ -56,6 +56,8 @@ public sealed class UpdateScheduleHandler(
 			// Update flag for scheduling
 			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName);
 
+			flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.Enabled);
+
 			if (request.RemoveSchedule)
 			{
 				flag.Schedule = FlagActivationSchedule.Unscheduled;
@@ -63,8 +65,8 @@ public sealed class UpdateScheduleHandler(
 			}
 			else
 			{
-				flag.Schedule = FlagActivationSchedule.CreateSchedule(request.EnableDate, request.DisableDate);
 				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Scheduled);
+				flag.Schedule = FlagActivationSchedule.CreateSchedule(request.EnableDate, request.DisableDate);
 			}
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);

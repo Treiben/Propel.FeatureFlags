@@ -175,26 +175,30 @@ export const UserAccessSection: React.FC<UserAccessSectionProps> = ({
 
 	const handleUserAccessSubmit = async () => {
 		try {
-			// Apply percentage if changed
+			// Prepare all updates in a single call
+			let finalAllowedUsers = flag.allowedUsers || [];
+			let finalBlockedUsers = flag.blockedUsers || [];
+			let finalPercentage = flag.userRolloutPercentage || 0;
+
+			// Update percentage if changed
 			if (userAccessData.percentage !== (flag.userRolloutPercentage || 0)) {
-				await onUpdateUserAccess(undefined, undefined, userAccessData.percentage);
+				finalPercentage = userAccessData.percentage;
 			}
 
-			// Add allowed users if any
+			// Add new allowed users if any
 			if (userAccessData.allowedUsersInput.trim()) {
 				const userIds = userAccessData.allowedUsersInput.split(',').map(u => u.trim()).filter(u => u.length > 0);
-				const currentAllowedUsers = flag.allowedUsers || [];
-				const updatedAllowedUsers = [...new Set([...currentAllowedUsers, ...userIds])];
-				await onUpdateUserAccess(updatedAllowedUsers, flag.blockedUsers);
+				finalAllowedUsers = [...new Set([...finalAllowedUsers, ...userIds])];
 			}
 
-			// Add blocked users if any
+			// Add new blocked users if any
 			if (userAccessData.blockedUsersInput.trim()) {
 				const userIds = userAccessData.blockedUsersInput.split(',').map(u => u.trim()).filter(u => u.length > 0);
-				const currentBlockedUsers = flag.blockedUsers || [];
-				const updatedBlockedUsers = [...new Set([...currentBlockedUsers, ...userIds])];
-				await onUpdateUserAccess(flag.allowedUsers, updatedBlockedUsers);
+				finalBlockedUsers = [...new Set([...finalBlockedUsers, ...userIds])];
 			}
+
+			// Make a single API call with all updates
+			await onUpdateUserAccess(finalAllowedUsers, finalBlockedUsers, finalPercentage);
 
 			setEditingUserAccess(false);
 		} catch (error) {

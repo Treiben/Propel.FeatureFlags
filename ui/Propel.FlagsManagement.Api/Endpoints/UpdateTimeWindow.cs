@@ -61,13 +61,17 @@ public sealed class UpdateTimeWindowHandler(
 			// Update flag for time window
 			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName);
 
+			flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.Enabled);
+
 			if (request.RemoveTimeWindow)
 			{
-				flag.OperationalWindow = FlagOperationalWindow.AlwaysOpen;
 				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.TimeWindow);
+				flag.OperationalWindow = FlagOperationalWindow.AlwaysOpen;
 			}
 			else
 			{
+				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TimeWindow);
+
 				flag.OperationalWindow = FlagOperationalWindow.CreateWindow(
 					request.WindowStartTime.ToTimeSpan(),
 					request.WindowEndTime.ToTimeSpan(),

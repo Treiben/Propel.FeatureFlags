@@ -234,7 +234,7 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
 						};
 
 						// Show time window details if set
-						if (flag.windowStartTime || flag.windowEndTime || (flag.windowDays && flag.windowDays.length)) {
+						if (flag.windowStartTime || flag.windowEndTime) {
 							return (
 								<>
 									<div>Active Time: {formatTime(flag.windowStartTime)} - {formatTime(flag.windowEndTime)}</div>
