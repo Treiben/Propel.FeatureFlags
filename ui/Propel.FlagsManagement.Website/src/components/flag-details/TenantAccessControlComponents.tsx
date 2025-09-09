@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Percent, UserCheck, UserX, X } from 'lucide-react';
+import { Building, Percent, Shield, ShieldX, X } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
 import { parseStatusComponents } from '../../utils/flagHelpers';
 
@@ -17,10 +17,10 @@ export const TenantAccessControlStatusIndicator: React.FC<TenantAccessControlSta
     const percentage = flag.tenantRolloutPercentage || 0;
 
     return (
-        <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+        <div className="mb-4 p-4 bg-teal-50 border border-teal-200 rounded-lg" data-testid="tenant-access-status-indicator">
             <div className="flex items-center gap-2 mb-3">
-                <UserCheck className="w-4 h-4 text-purple-600" />
-                <h4 className="font-medium text-purple-900">Tenant Access Control</h4>
+                <Building className="w-4 h-4 text-teal-600" />
+                <h4 className="font-medium text-teal-900">Tenant Access Control</h4>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
@@ -36,7 +36,7 @@ export const TenantAccessControlStatusIndicator: React.FC<TenantAccessControlSta
                 {/* Allowed Tenants */}
                 {components.hasTenantTargeting && (
                     <div className="flex items-center gap-2">
-                        <UserCheck className="w-4 h-4 text-green-600" />
+                        <Shield className="w-4 h-4 text-green-600" />
                         <span className="font-medium">Allowed:</span>
                         <span className="text-green-700 font-semibold">{allowedCount} tenant{allowedCount !== 1 ? 's' : ''}</span>
                     </div>
@@ -45,7 +45,7 @@ export const TenantAccessControlStatusIndicator: React.FC<TenantAccessControlSta
                 {/* Blocked Tenants */}
                 {components.hasTenantTargeting && (
                     <div className="flex items-center gap-2">
-                        <UserX className="w-4 h-4 text-red-600" />
+                        <ShieldX className="w-4 h-4 text-red-600" />
                         <span className="font-medium">Blocked:</span>
                         <span className="text-red-700 font-semibold">{blockedCount} tenant{blockedCount !== 1 ? 's' : ''}</span>
                     </div>
@@ -61,6 +61,52 @@ interface TenantAccessSectionProps {
     onClearTenantAccess: () => Promise<void>;
     operationLoading: boolean;
 }
+
+// Helper function to display allowed tenants
+const renderAllowedTenants = (tenants: string[]) => {
+    return (
+        <div className="mt-2">
+            <span className="text-xs font-medium text-green-700">Allowed: </span>
+            <div className="flex flex-wrap gap-1 mt-1">
+                {tenants.slice(0, 5).map((tenant) => (
+                    <span
+                        key={tenant}
+                        className="inline-flex items-center px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full border border-green-200"
+                    >
+                        <Shield className="w-3 h-3 mr-1" />
+                        {tenant}
+                    </span>
+                ))}
+                {tenants.length > 5 && (
+                    <span className="text-xs text-gray-500">+{tenants.length - 5} more</span>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// Helper function to display blocked tenants
+const renderBlockedTenants = (tenants: string[]) => {
+    return (
+        <div className="mt-2">
+            <span className="text-xs font-medium text-red-700">Blocked: </span>
+            <div className="flex flex-wrap gap-1 mt-1">
+                {tenants.slice(0, 5).map((tenant) => (
+                    <span
+                        key={tenant}
+                        className="inline-flex items-center px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full border border-red-200"
+                    >
+                        <ShieldX className="w-3 h-3 mr-1" />
+                        {tenant}
+                    </span>
+                ))}
+                {tenants.length > 5 && (
+                    <span className="text-xs text-gray-500">+{tenants.length - 5} more</span>
+                )}
+            </div>
+        </div>
+    );
+};
 
 export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
     flag,
@@ -95,7 +141,7 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 
             // Add allowed tenants if any
             if (tenantAccessData.allowedTenantsInput.trim()) {
-                const tenantIds = tenantAccessData.allowedTenantsInput.split(',').map(u => u.trim()).filter(u => u.length > 0);
+                const tenantIds = tenantAccessData.allowedTenantsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
                 const currentAllowedTenants = flag.allowedTenants || [];
                 const updatedAllowedTenants = [...new Set([...currentAllowedTenants, ...tenantIds])];
                 await onUpdateTenantAccess(updatedAllowedTenants, flag.blockedTenants);
@@ -103,7 +149,7 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 
             // Add blocked tenants if any
             if (tenantAccessData.blockedTenantsInput.trim()) {
-                const tenantIds = tenantAccessData.blockedTenantsInput.split(',').map(u => u.trim()).filter(u => u.length > 0);
+                const tenantIds = tenantAccessData.blockedTenantsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
                 const currentBlockedTenants = flag.blockedTenants || [];
                 const updatedBlockedTenants = [...new Set([...currentBlockedTenants, ...tenantIds])];
                 await onUpdateTenantAccess(flag.allowedTenants, updatedBlockedTenants);
@@ -135,10 +181,10 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
                     <button
                         onClick={() => setEditingTenantAccess(true)}
                         disabled={operationLoading}
-                        className="text-purple-600 hover:text-purple-800 text-sm flex items-center gap-1 disabled:opacity-50"
+                        className="text-teal-600 hover:text-teal-800 text-sm flex items-center gap-1 disabled:opacity-50"
                         data-testid="manage-tenants-button"
                     >
-                        <Users className="w-4 h-4" />
+                        <Building className="w-4 h-4" />
                         Manage Tenants
                     </button>
                     {hasTenantAccessControl && (
@@ -157,11 +203,11 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
             </div>
 
             {editingTenantAccess ? (
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
                     <div className="space-y-4">
                         {/* Percentage Rollout */}
                         <div>
-                            <label className="block text-sm font-medium text-purple-800 mb-2">Percentage Rollout</label>
+                            <label className="block text-sm font-medium text-teal-800 mb-2">Percentage Rollout</label>
                             <div className="flex items-center gap-3">
                                 <input
                                     type="range"
@@ -176,7 +222,7 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
                                     disabled={operationLoading}
                                     data-testid="percentage-slider"
                                 />
-                                <span className="text-sm font-medium text-purple-800 min-w-[3rem]">
+                                <span className="text-sm font-medium text-teal-800 min-w-[3rem]">
                                     {tenantAccessData.percentage}%
                                 </span>
                             </div>
@@ -184,7 +230,7 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 
                         {/* Allowed Tenants */}
                         <div>
-                            <label className="block text-sm font-medium text-purple-800 mb-1">Add Allowed Tenants</label>
+                            <label className="block text-sm font-medium text-teal-800 mb-1">Add Allowed Tenants</label>
                             <input
                                 type="text"
                                 value={tenantAccessData.allowedTenantsInput}
@@ -193,7 +239,7 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
                                     allowedTenantsInput: e.target.value 
                                 })}
                                 placeholder="company1, company2, company3..."
-                                className="w-full border border-purple-300 rounded px-3 py-2 text-sm"
+                                className="w-full border border-teal-300 rounded px-3 py-2 text-sm"
                                 disabled={operationLoading}
                                 data-testid="allowed-tenants-input"
                             />
@@ -201,7 +247,7 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 
                         {/* Blocked Tenants */}
                         <div>
-                            <label className="block text-sm font-medium text-purple-800 mb-1">Add Blocked Tenants</label>
+                            <label className="block text-sm font-medium text-teal-800 mb-1">Add Blocked Tenants</label>
                             <input
                                 type="text"
                                 value={tenantAccessData.blockedTenantsInput}
@@ -210,7 +256,7 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
                                     blockedTenantsInput: e.target.value 
                                 })}
                                 placeholder="company4, company5, company6..."
-                                className="w-full border border-purple-300 rounded px-3 py-2 text-sm"
+                                className="w-full border border-teal-300 rounded px-3 py-2 text-sm"
                                 disabled={operationLoading}
                                 data-testid="blocked-tenants-input"
                             />
@@ -221,7 +267,7 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
                         <button
                             onClick={handleTenantAccessSubmit}
                             disabled={operationLoading}
-                            className="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 disabled:opacity-50"
+                            className="px-3 py-1 bg-teal-600 text-white rounded text-sm hover:bg-teal-700 disabled:opacity-50"
                             data-testid="save-tenant-access-button"
                         >
                             {operationLoading ? 'Saving...' : 'Save Tenant Access'}
@@ -245,50 +291,45 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
                 </div>
             ) : (
                 <div className="text-sm text-gray-600 space-y-1">
-                    <div>Percentage: {flag.tenantRolloutPercentage || 0}%</div>
-                    <div>Allowed Tenants: {flag.allowedTenants?.length || 0}</div>
-                    <div>Blocked Tenants: {flag.blockedTenants?.length || 0}</div>
-                    
-                    {/* Display current tenants */}
-                    {flag.allowedTenants && flag.allowedTenants.length > 0 && (
-                        <div className="mt-2">
-                            <span className="text-xs font-medium text-green-700">Allowed: </span>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                                {flag.allowedTenants.slice(0, 5).map((tenant) => (
-                                    <span
-                                        key={tenant}
-                                        className="inline-flex items-center px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full border border-green-200"
-                                    >
-                                        <UserCheck className="w-3 h-3 mr-1" />
-                                        {tenant}
-                                    </span>
-                                ))}
-                                {flag.allowedTenants.length > 5 && (
-                                    <span className="text-xs text-gray-500">+{flag.allowedTenants.length - 5} more</span>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                    
-                    {flag.blockedTenants && flag.blockedTenants.length > 0 && (
-                        <div className="mt-2">
-                            <span className="text-xs font-medium text-red-700">Blocked: </span>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                                {flag.blockedTenants.slice(0, 5).map((tenant) => (
-                                    <span
-                                        key={tenant}
-                                        className="inline-flex items-center px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full border border-red-200"
-                                    >
-                                        <UserX className="w-3 h-3 mr-1" />
-                                        {tenant}
-                                    </span>
-                                ))}
-                                {flag.blockedTenants.length > 5 && (
-                                    <span className="text-xs text-gray-500">+{flag.blockedTenants.length - 5} more</span>
-                                )}
-                            </div>
-                        </div>
-                    )}
+                    {(() => {
+                        // Check flag mode and show appropriate text
+                        if (components.baseStatus === 'Enabled') {
+                            return <div className="text-green-600 font-medium">Open access - available to all tenants</div>;
+                        }
+                        
+                        // Check if tenant access control is set
+                        if (components.hasPercentage || components.hasTenantTargeting) {
+                            return (
+                                <>
+                                    {/* Display rollout percentage */}
+                                    {components.hasPercentage && (
+                                        <div>Percentage Rollout: {flag.tenantRolloutPercentage || 0}%</div>
+                                    )}
+                                    {components.hasTenantTargeting && (
+                                        <>
+                                            {/* Display allowed tenants using the extracted function */}
+                                            {flag.allowedTenants && flag.allowedTenants.length > 0 && 
+                                                renderAllowedTenants(flag.allowedTenants)
+                                            }
+                                            {/* Display blocked tenants using the extracted function */}
+                                            {flag.blockedTenants && flag.blockedTenants.length > 0 && 
+                                                renderBlockedTenants(flag.blockedTenants)
+                                            }
+                                        </>
+                                    )}
+                                </>
+                            );
+                        }
+                        
+                        // Check if tenant access control is set
+                        if ((!components.hasTenantTargeting && flag.tenantRolloutPercentage <= 0) && components.baseStatus === 'Other') {
+                            return <div className="text-gray-500 italic">No tenant restrictions</div>;
+                        } else if (components.baseStatus === 'Disabled') {
+                            return <div className="text-orange-600 font-medium">Access denied to all tenants - flag is disabled</div>;
+                        }
+
+                        return <div className="text-gray-500 italic">Tenant access control configuration incomplete</div>;
+                    })()}
                 </div>
             )}
         </div>

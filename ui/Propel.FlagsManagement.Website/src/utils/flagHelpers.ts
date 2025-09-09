@@ -20,7 +20,7 @@ export interface StatusComponents {
     hasPercentage: boolean;
     hasUserTargeting: boolean;
 	hasTenantTargeting: boolean;
-    baseStatus: 'Enabled' | 'Disabled';
+    baseStatus: 'Enabled' | 'Disabled' | 'Other';
 }
 
 // Helper function to determine status from evaluationModes array
@@ -64,7 +64,7 @@ export const parseStatusComponents = (flag: FeatureFlagDto): StatusComponents =>
         hasPercentage: modes.includes(5) || modes.includes(6), // UserRolloutPercentage or TenantRolloutPercentage
         hasUserTargeting: modes.includes(4), // FlagEvaluationMode.UserTargeted
         hasTenantTargeting: modes.includes(7), // FlagEvaluationMode.TenantTargeted
-        baseStatus: modes.includes(1) ? 'Enabled' : 'Disabled' // FlagEvaluationMode.Enabled
+        baseStatus: modes.includes(1) ? 'Enabled' : (modes.includes(0) ? 'Disabled' : 'Other')// FlagEvaluationMode.Enabled
     };
 
     return components;
