@@ -283,7 +283,7 @@ const FeatureFlagManager = () => {
     }
 
     return (
-        <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen">
+        <div className="max-w-[1600px] mx-auto p-8 bg-gray-50 min-h-screen">
             {/* Error display */}
             {error && (
                 <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
@@ -300,12 +300,12 @@ const FeatureFlagManager = () => {
                 </div>
             )}
 
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Feature Flags</h1>
                     <p className="text-gray-600">Manage feature releases and rollouts</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-4">
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
@@ -334,16 +334,16 @@ const FeatureFlagManager = () => {
                 />
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Flag List */}
-                <div className="space-y-4">
+            <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
+                {/* Flag List - Takes up 2 columns */}
+                <div className="xl:col-span-2 space-y-4">
                     <div className="flex justify-between items-center">
                         <h2 className="text-lg font-semibold text-gray-900">
                             Flags ({totalCount} total)
                         </h2>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         {flags.map((flag) => (
                             <FlagCard
                                 key={flag.key}
@@ -370,17 +370,21 @@ const FeatureFlagManager = () => {
                     />
                 </div>
 
-                {/* Flag Details */}
-                <div>
+                {/* Flag Details - Takes up 3 columns */}
+                <div className="xl:col-span-3">
                     {selectedFlag ? (
                         <>
                             <h2 className="text-lg font-semibold text-gray-900 mb-4">Flag Details</h2>
                             <FlagDetails
                                 flag={selectedFlag}
                                 onToggle={quickToggle}
-                                onSetPercentage={handleSetPercentage}
-                                onEnableUsers={handleEnableUsers}
-                                onDisableUsers={handleDisableUsers}
+                                onUpdateUserAccess={(allowedUsers, blockedUsers, percentage) => {
+                                    const request: UserAccessRequest = {};
+                                    if (allowedUsers !== undefined) request.allowedUsers = allowedUsers;
+                                    if (blockedUsers !== undefined) request.blockedUsers = blockedUsers;
+                                    if (percentage !== undefined) request.percentage = percentage;
+                                    return updateUserAccess(selectedFlag.key, request);
+                                }}
                                 onSchedule={handleScheduleFlag}
                                 onClearSchedule={handleClearSchedule}
                                 onUpdateTimeWindow={handleUpdateTimeWindow}

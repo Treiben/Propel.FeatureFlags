@@ -16,7 +16,8 @@ import {
 } from './flag-details/TimeWindowComponents';
 import { 
     UserAccessControlStatusIndicator, 
-    UserAccessControlEditor 
+    UserAccessSection,
+    UserAccessControlEditor
 } from './flag-details/UserAccessControlComponents';
 import { 
     ExpirationWarning, 
@@ -176,7 +177,6 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-lg font-semibold text-gray-900">{flag.name}</h3>
-                        <FlagStatusIndicators flag={flag} />
                         {!flag.isPermanent && (
                             <button
                                 onClick={() => onDelete(flag.key)}
@@ -326,6 +326,13 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 flag={flag}
                 onUpdateTimeWindow={handleUpdateTimeWindowWrapper}
                 onClearTimeWindow={handleClearTimeWindowWrapper}
+                operationLoading={operationLoading}
+            />
+
+            <UserAccessSection
+                flag={flag}
+                onUpdateUserAccess={handleUpdateUserAccessWrapper}
+                onClearUserAccess={handleClearUserAccessWrapper}
                 operationLoading={operationLoading}
             />
 
