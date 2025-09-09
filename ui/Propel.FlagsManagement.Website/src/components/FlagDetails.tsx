@@ -177,7 +177,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            {/* Flag Header - Enable/Disable and Delete buttons */}
+            {/* Flag Header - Enable/Disable, Test Evaluation, and Delete buttons */}
             <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -201,7 +201,18 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                                     <Eye className="w-4 h-4" />
                                 )}
                             </button>
-                            {/* Delete button now also follows the same condition - only shown if flag is not permanent */}
+                            
+                            {/* Test Flag Evaluation Button */}
+                            {onEvaluateFlag && (
+                                <button
+                                    onClick={() => setShowEvaluation(!showEvaluation)}
+                                    className="p-2 rounded-md transition-colors font-medium shadow-sm bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300"
+                                    title="Test Flag Evaluation"
+                                >
+                                    <Play className="w-4 h-4" />
+                                </button>
+                            )}
+                            
                             {!flag.isPermanent && (
                                 <button
                                     onClick={() => onDelete(flag.key)}
@@ -222,90 +233,75 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
             <p className="text-gray-600 mb-6">{flag.description || 'No description provided'}</p>
 
-            {/* Flag Evaluation Section */}
-            {onEvaluateFlag && (
+            {/* Test Evaluation Panel - shown when evaluation button is clicked */}
+            {onEvaluateFlag && showEvaluation && (
                 <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-medium text-blue-900">Test Flag Evaluation</h4>
-                        <button
-                            onClick={() => setShowEvaluation(!showEvaluation)}
-                            className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                        >
-                            <Play className="w-3 h-3" />
-                            {showEvaluation ? 'Hide' : 'Show'} Test
-                        </button>
+                    <h4 className="font-medium text-blue-900 mb-3">Test Flag Evaluation</h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label className="block text-xs font-medium text-blue-700 mb-1">Test User ID (optional)</label>
+                            <input
+                                type="text"
+                                value={testUserId}
+                                onChange={(e) => setTestUserId(e.target.value)}
+                                placeholder="user123"
+                                className="w-full px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-blue-700 mb-1">Attributes (JSON)</label>
+                            <input
+                                type="text"
+                                value={testAttributes}
+                                onChange={(e) => setTestAttributes(e.target.value)}
+                                placeholder='{"country": "US", "plan": "premium"}'
+                                className="w-full px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                        </div>
                     </div>
-
-                    {showEvaluation && (
-                        <>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                                <div>
-                                    <label className="block text-xs font-medium text-blue-700 mb-1">Test User ID (optional)</label>
-                                    <input
-                                        type="text"
-                                        value={testUserId}
-                                        onChange={(e) => setTestUserId(e.target.value)}
-                                        placeholder="user123"
-                                        className="w-full px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-blue-700 mb-1">Attributes (JSON)</label>
-                                    <input
-                                        type="text"
-                                        value={testAttributes}
-                                        onChange={(e) => setTestAttributes(e.target.value)}
-                                        placeholder='{"country": "US", "plan": "premium"}'
-                                        className="w-full px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                    />
-                                </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={handleEvaluate}
-                                    disabled={evaluationLoading}
-                                    className="flex items-center gap-1 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {evaluationLoading ? (
-                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                    ) : (
-                                        <Play className="w-3 h-3" />
-                                    )}
-                                    Evaluate
-                                </button>
-                                
-                                {evaluationResult && (
-                                    <div className="flex items-center gap-1 text-xs">
-                                        {evaluationResult.isEnabled ? (
-                                            <CheckCircle className="w-3 h-3 text-green-600" />
-                                        ) : (
-                                            <XCircle className="w-3 h-3 text-red-600" />
-                                        )}
-                                        <span className={evaluationResult.isEnabled ? 'text-green-700' : 'text-red-700'}>
-                                            {evaluationResult.isEnabled ? 'Enabled' : 'Disabled'}
-                                        </span>
-                                        {evaluationResult.reason && (
-                                            <span className="text-blue-600">({evaluationResult.reason})</span>
-                                        )}
-                                        {evaluationResult.variation && evaluationResult.variation !== 'default' && (
-                                            <span className="text-blue-600">- Variation: {evaluationResult.variation}</span>
-                                        )}
-                                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleEvaluate}
+                            disabled={evaluationLoading}
+                            className="flex items-center gap-1 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {evaluationLoading ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                                <Play className="w-3 h-3" />
+                            )}
+                            Evaluate
+                        </button>
+                        
+                        {evaluationResult && (
+                            <div className="flex items-center gap-1 text-xs">
+                                {evaluationResult.isEnabled ? (
+                                    <CheckCircle className="w-3 h-3 text-green-600" />
+                                ) : (
+                                    <XCircle className="w-3 h-3 text-red-600" />
+                                )}
+                                <span className={evaluationResult.isEnabled ? 'text-green-700' : 'text-red-700'}>
+                                    {evaluationResult.isEnabled ? 'Enabled' : 'Disabled'}
+                                </span>
+                                {evaluationResult.reason && (
+                                    <span className="text-blue-600">({evaluationResult.reason})</span>
+                                )}
+                                {evaluationResult.variation && evaluationResult.variation !== 'default' && (
+                                    <span className="text-blue-600">- Variation: {evaluationResult.variation}</span>
                                 )}
                             </div>
-                        </>
-                    )}
+                        )}
+                    </div>
                 </div>
             )}
 
-            {/* Status Indicators - RESTORED to original positions */}
+            {/* Status Indicators */}
             <ExpirationWarning flag={flag} />
             <SchedulingStatusIndicator flag={flag} />
             <TimeWindowStatusIndicator flag={flag} />
             <UserAccessControlStatusIndicator flag={flag} />
-
-            {/* Quick Actions section removed - Enable/Disable button moved to header */}
 
             {/* Warnings */}
             <PermanentFlagWarning flag={flag} />
@@ -317,7 +313,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 operationLoading={operationLoading}
             />
 
-            {/* Business Logic Sections - RESTORED to original positions */}
+            {/* Business Logic Sections */}
             <SchedulingSection
                 flag={flag}
                 onSchedule={handleScheduleWrapper}
