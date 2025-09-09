@@ -62,13 +62,16 @@ interface UserAccessSectionProps {
 	operationLoading: boolean;
 }
 
-// Helper function to display allowed users
-const renderAllowedUsers = (users: string[]) => {
+// Helper function to display allowed users with expansion
+const renderAllowedUsers = (users: string[], expanded: boolean, onToggleExpand: () => void) => {
+	const displayUsers = expanded ? users : users.slice(0, 3);
+	const hasMore = users.length > 3;
+
 	return (
 		<div className="mt-2">
 			<span className="text-xs font-medium text-green-700">Allowed: </span>
 			<div className="flex flex-wrap gap-1 mt-1">
-				{users.slice(0, 5).map((user) => (
+				{displayUsers.map((user) => (
 					<span
 						key={user}
 						className="inline-flex items-center px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full border border-green-200"
@@ -77,21 +80,39 @@ const renderAllowedUsers = (users: string[]) => {
 						{user}
 					</span>
 				))}
-				{users.length > 5 && (
-					<span className="text-xs text-gray-500">+{users.length - 5} more</span>
+				{hasMore && !expanded && (
+					<button
+						onClick={onToggleExpand}
+						className="inline-flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full border border-gray-200 hover:bg-gray-200 transition-colors cursor-pointer"
+						title={`Show ${users.length - 3} more users`}
+					>
+						...
+					</button>
+				)}
+				{hasMore && expanded && (
+					<button
+						onClick={onToggleExpand}
+						className="inline-flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full border border-gray-200 hover:bg-gray-200 transition-colors cursor-pointer"
+						title="Show less"
+					>
+						Show less
+					</button>
 				)}
 			</div>
 		</div>
 	);
 };
 
-// Helper function to display blocked users
-const renderBlockedUsers = (users: string[]) => {
+// Helper function to display blocked users with expansion
+const renderBlockedUsers = (users: string[], expanded: boolean, onToggleExpand: () => void) => {
+	const displayUsers = expanded ? users : users.slice(0, 3);
+	const hasMore = users.length > 3;
+
 	return (
 		<div className="mt-2">
 			<span className="text-xs font-medium text-red-700">Blocked: </span>
 			<div className="flex flex-wrap gap-1 mt-1">
-				{users.slice(0, 5).map((user) => (
+				{displayUsers.map((user) => (
 					<span
 						key={user}
 						className="inline-flex items-center px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full border border-red-200"
@@ -100,8 +121,23 @@ const renderBlockedUsers = (users: string[]) => {
 						{user}
 					</span>
 				))}
-				{users.length > 5 && (
-					<span className="text-xs text-gray-500">+{users.length - 5} more</span>
+				{hasMore && !expanded && (
+					<button
+						onClick={onToggleExpand}
+						className="inline-flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full border border-gray-200 hover:bg-gray-200 transition-colors cursor-pointer"
+						title={`Show ${users.length - 3} more users`}
+					>
+						...
+					</button>
+				)}
+				{hasMore && expanded && (
+					<button
+						onClick={onToggleExpand}
+						className="inline-flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full border border-gray-200 hover:bg-gray-200 transition-colors cursor-pointer"
+						title="Show less"
+					>
+						Show less
+					</button>
 				)}
 			</div>
 		</div>
@@ -120,6 +156,8 @@ export const UserAccessSection: React.FC<UserAccessSectionProps> = ({
 		allowedUsersInput: '',
 		blockedUsersInput: ''
 	});
+	const [expandedAllowedUsers, setExpandedAllowedUsers] = useState(false);
+	const [expandedBlockedUsers, setExpandedBlockedUsers] = useState(false);
 
 	const components = parseStatusComponents(flag);
 
@@ -130,6 +168,9 @@ export const UserAccessSection: React.FC<UserAccessSectionProps> = ({
 			allowedUsersInput: '',
 			blockedUsersInput: ''
 		});
+		// Reset expansion state when flag changes
+		setExpandedAllowedUsers(false);
+		setExpandedBlockedUsers(false);
 	}, [flag.key, flag.userRolloutPercentage]);
 
 	const handleUserAccessSubmit = async () => {
@@ -169,7 +210,8 @@ export const UserAccessSection: React.FC<UserAccessSectionProps> = ({
 		}
 	};
 
-	const hasUserAccessControl = components.hasPercentage || components.hasUserTargeting ||
+	const hasUserAccessControl = components.hasUserTargeting ||
+		(flag.userRolloutPercentage && flag.userRolloutPercentage > 0) ||
 		(flag.allowedUsers && flag.allowedUsers.length > 0) ||
 		(flag.blockedUsers && flag.blockedUsers.length > 0);
 
@@ -297,33 +339,41 @@ export const UserAccessSection: React.FC<UserAccessSectionProps> = ({
 							return <div className="text-green-600 font-medium">Open access - available to all users</div>;
 						};
 						// Check if user access control is set
-						if (components.hasPercentage || components.hasUserTargeting) {
+						if (flag.userRolloutPercentage > 0 || components.hasUserTargeting) {
 							return (
 								<>
 									{/* Display rollout percentage */}
-									{components.hasPercentage && (
-										<div>Percentage Rollout: {flag.userRolloutPercentage || 0}%</div>
+									{flag.userRolloutPercentage > 0 && (
+										<div>Percentage Rollout: {flag.userRolloutPercentage}%</div>
 									)}
 									{components.hasUserTargeting && (
 										<>
-											{/* Display allowed users using the extracted function */}
-											{flag.allowedUsers && flag.allowedUsers.length > 0 && 
-												renderAllowedUsers(flag.allowedUsers)
+											{/* Display allowed users using the updated function */}
+											{flag.allowedUsers && flag.allowedUsers.length > 0 &&
+												renderAllowedUsers(
+													flag.allowedUsers,
+													expandedAllowedUsers,
+													() => setExpandedAllowedUsers(!expandedAllowedUsers)
+												)
 											}
-											{/* Display blocked users using the extracted function */}
-											{flag.blockedUsers && flag.blockedUsers.length > 0 && 
-												renderBlockedUsers(flag.blockedUsers)
+											{/* Display blocked users using the updated function */}
+											{flag.blockedUsers && flag.blockedUsers.length > 0 &&
+												renderBlockedUsers(
+													flag.blockedUsers,
+													expandedBlockedUsers,
+													() => setExpandedBlockedUsers(!expandedBlockedUsers)
+												)
 											}
 										</>
 									)}
 								</>
 							);
 						}
-							// Check if user access control is set
-							if ((!components.hasUserTargeting && flag.userRolloutPercentage <= 0) && components.baseStatus === 'Other') {
-								return <div className="text-gray-500 italic">No user restrictions</div>;
+						// Check if user access control is set
+						if ((!components.hasUserTargeting && flag.userRolloutPercentage <= 0) && components.baseStatus === 'Other') {
+							return <div className="text-gray-500 italic">No user restrictions</div>;
 						} else if (components.baseStatus === 'Disabled') {
-								return <div className="text-orange-600 font-medium">Access denied to all users - flag is disabled</div>;
+							return <div className="text-orange-600 font-medium">Access denied to all users - flag is disabled</div>;
 						}
 
 						return <div className="text-gray-500 italic">User access control configuration incomplete</div>;
