@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building, Percent, Shield, ShieldX, X } from 'lucide-react';
+import { Building, Percent, Shield, ShieldX, X, Info } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
 import { parseStatusComponents } from '../../utils/flagHelpers';
 
@@ -61,6 +61,34 @@ interface TenantAccessSectionProps {
 	onClearTenantAccess: () => Promise<void>;
 	operationLoading: boolean;
 }
+
+const InfoTooltip: React.FC<{ content: string; className?: string }> = ({ content, className = "" }) => {
+	const [showTooltip, setShowTooltip] = useState(false);
+
+	return (
+		<div className={`relative inline-block ${className}`}>
+			<button
+				onMouseEnter={() => setShowTooltip(true)}
+				onMouseLeave={() => setShowTooltip(false)}
+				onClick={(e) => {
+					e.preventDefault();
+					setShowTooltip(!showTooltip);
+				}}
+				className="text-gray-400 hover:text-gray-600 transition-colors"
+				type="button"
+			>
+				<Info className="w-4 h-4" />
+			</button>
+			
+			{showTooltip && (
+				<div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-lg shadow-lg max-w-xs whitespace-normal">
+					{content}
+					<div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+				</div>
+			)}
+		</div>
+	);
+};
 
 // Helper function to display allowed tenants with expansion
 const renderAllowedTenants = (tenants: string[], expanded: boolean, onToggleExpand: () => void) => {
@@ -222,7 +250,10 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 	return (
 		<div className="space-y-4 mb-6">
 			<div className="flex justify-between items-center">
-				<h4 className="font-medium text-gray-900">Tenant Access Control</h4>
+				<div className="flex items-center gap-2">
+					<h4 className="font-medium text-gray-900">Tenant Access Control</h4>
+					<InfoTooltip content="Manage multi-tenant rollouts with percentage controls for enterprise deployments and tenant-specific feature access." />
+				</div>
 				<div className="flex gap-2">
 					<button
 						onClick={() => setEditingTenantAccess(true)}

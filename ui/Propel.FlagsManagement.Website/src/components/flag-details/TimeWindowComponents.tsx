@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, Timer, X } from 'lucide-react';
+import { Clock, Timer, X, Info } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
 import { getTimeZones, getDaysOfWeek } from '../../services/apiService';
 import {
@@ -56,6 +56,34 @@ interface TimeWindowSectionProps {
 	operationLoading: boolean;
 }
 
+const InfoTooltip: React.FC<{ content: string; className?: string }> = ({ content, className = "" }) => {
+	const [showTooltip, setShowTooltip] = useState(false);
+
+	return (
+		<div className={`relative inline-block ${className}`}>
+			<button
+				onMouseEnter={() => setShowTooltip(true)}
+				onMouseLeave={() => setShowTooltip(false)}
+				onClick={(e) => {
+					e.preventDefault();
+					setShowTooltip(!showTooltip);
+				}}
+				className="text-gray-400 hover:text-gray-600 transition-colors"
+				type="button"
+			>
+				<Info className="w-4 h-4" />
+			</button>
+			
+			{showTooltip && (
+				<div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-lg shadow-lg max-w-xs whitespace-normal">
+					{content}
+					<div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+				</div>
+			)}
+		</div>
+	);
+};
+
 export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
 	flag,
 	onUpdateTimeWindow,
@@ -111,7 +139,10 @@ export const TimeWindowSection: React.FC<TimeWindowSectionProps> = ({
 	return (
 		<div className="space-y-4 mb-6">
 			<div className="flex justify-between items-center">
-				<h4 className="font-medium text-gray-900">Time Window</h4>
+				<div className="flex items-center gap-2">
+					<h4 className="font-medium text-gray-900">Time Window</h4>
+					<InfoTooltip content="Restrict flag activation to specific hours and days. Ideal for business hours, maintenance windows, and region-specific operations." />
+				</div>
 				<div className="flex gap-2">
 					<button
 						onClick={() => setEditingTimeWindow(true)}

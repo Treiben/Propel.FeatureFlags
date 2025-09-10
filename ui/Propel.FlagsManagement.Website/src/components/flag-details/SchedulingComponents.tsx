@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, PlayCircle, X } from 'lucide-react';
+import { Calendar, Clock, PlayCircle, X, Info } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
 import {
 	getScheduleStatus,
@@ -74,6 +74,34 @@ interface SchedulingSectionProps {
 	operationLoading: boolean;
 }
 
+const InfoTooltip: React.FC<{ content: string; className?: string }> = ({ content, className = "" }) => {
+	const [showTooltip, setShowTooltip] = useState(false);
+
+	return (
+		<div className={`relative inline-block ${className}`}>
+			<button
+				onMouseEnter={() => setShowTooltip(true)}
+				onMouseLeave={() => setShowTooltip(false)}
+				onClick={(e) => {
+					e.preventDefault();
+					setShowTooltip(!showTooltip);
+				}}
+				className="text-gray-400 hover:text-gray-600 transition-colors"
+				type="button"
+			>
+				<Info className="w-4 h-4" />
+			</button>
+			
+			{showTooltip && (
+				<div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-lg shadow-lg max-w-xs whitespace-normal">
+					{content}
+					<div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+				</div>
+			)}
+		</div>
+	);
+};
+
 export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
 	flag,
 	onSchedule,
@@ -120,7 +148,10 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
 	return (
 		<div className="space-y-4 mb-6">
 			<div className="flex justify-between items-center">
-				<h4 className="font-medium text-gray-900">Scheduling</h4>
+				<div className="flex items-center gap-2">
+					<h4 className="font-medium text-gray-900">Scheduling</h4>
+					<InfoTooltip content="Automatically enable/disable flags at specific dates and times. Perfect for coordinated releases, marketing campaigns, and planned rollouts." />
+				</div>
 				<div className="flex gap-2">
 					<button
 						onClick={() => setEditingSchedule(true)}
@@ -168,7 +199,6 @@ export const SchedulingSection: React.FC<SchedulingSectionProps> = ({
 								value={scheduleData.disableDate}
 								onChange={(e) => setScheduleData({ ...scheduleData, disableDate: e.target.value })}
 								className="w-full border border-blue-300 rounded px-3 py-2 text-sm"
-								disabled={operationLoading}
 								min={scheduleData.enableDate || new Date().toISOString().slice(0, 16)}
 								data-testid="disable-date-input"
 							/>
