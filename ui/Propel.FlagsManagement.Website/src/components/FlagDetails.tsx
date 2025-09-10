@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Trash2, Eye, EyeOff, Play, Loader2, CheckCircle, XCircle } from 'lucide-react';
-import type { FeatureFlagDto, EvaluationResult } from '../services/apiService';
+import type { FeatureFlagDto, EvaluationResult, TargetingRule } from '../services/apiService';
 import { StatusBadge } from './StatusBadge';
 import { parseStatusComponents } from '../utils/flagHelpers';
 
@@ -21,6 +21,10 @@ import {
     TenantAccessControlStatusIndicator,
     TenantAccessSection
 } from './flag-details/TenantAccessControlComponents';
+import {
+    TargetingRulesStatusIndicator,
+    TargetingRulesSection
+} from './flag-details/TargetingRuleComponents';
 import { 
     ExpirationWarning, 
     PermanentFlagWarning, 
@@ -33,6 +37,7 @@ interface FlagDetailsProps {
     onToggle: (flag: FeatureFlagDto) => Promise<void>;
     onUpdateUserAccess: (allowedUsers?: string[], blockedUsers?: string[], percentage?: number) => Promise<void>;
     onUpdateTenantAccess: (allowedTenants?: string[], blockedTenants?: string[], percentage?: number) => Promise<void>;
+    onUpdateTargetingRules: (targetingRules?: TargetingRule[]) => Promise<void>;
     onSchedule: (flag: FeatureFlagDto, enableDate: string, disableDate?: string) => Promise<void>;
     onClearSchedule: (flag: FeatureFlagDto) => Promise<void>;
     onUpdateTimeWindow: (flag: FeatureFlagDto, timeWindowData: {
@@ -60,6 +65,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     onToggle,
     onUpdateUserAccess,
 	onUpdateTenantAccess,
+    onUpdateTargetingRules,
     onSchedule,
     onClearSchedule,
     onUpdateTimeWindow,
@@ -127,6 +133,25 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
         try {
             // Clear tenant access by setting empty arrays and 0 percentage
             await onUpdateTenantAccess([], [], 0);
+        } finally {
+            setOperationLoading(false);
+        }
+    };
+
+    const handleUpdateTargetingRulesWrapper = async (targetingRules?: TargetingRule[]) => {
+        setOperationLoading(true);
+        try {
+            await onUpdateTargetingRules(targetingRules);
+        } finally {
+            setOperationLoading(false);
+        }
+    };
+
+    const handleClearTargetingRulesWrapper = async () => {
+        setOperationLoading(true);
+        try {
+            // Clear targeting rules by setting empty array
+            await onUpdateTargetingRules([]);
         } finally {
             setOperationLoading(false);
         }
@@ -206,6 +231,9 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     // Check if TenantAccessControlStatusIndicator should be shown
     const shouldShowTenantAccessIndicator = flag.evaluationModes?.includes(6) || flag.evaluationModes?.includes(7); // TenantRolloutPercentage or TenantTargeted
+
+    // Check if TargetingRulesStatusIndicator should be shown
+    const shouldShowTargetingRulesIndicator = flag.evaluationModes?.includes(8) || (flag.targetingRules && flag.targetingRules.length > 0); // TargetingRules mode or has targeting rules
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -335,6 +363,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             <TimeWindowStatusIndicator flag={flag} />
             {shouldShowUserAccessIndicator && <UserAccessControlStatusIndicator flag={flag} />}
             {shouldShowTenantAccessIndicator && <TenantAccessControlStatusIndicator flag={flag} />}
+            {shouldShowTargetingRulesIndicator && <TargetingRulesStatusIndicator flag={flag} />}
 
             {/* Warnings */}
             <PermanentFlagWarning flag={flag} />
@@ -372,6 +401,13 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 flag={flag}
                 onUpdateTenantAccess={handleUpdateTenantAccessWrapper}
                 onClearTenantAccess={handleClearTenantAccessWrapper}
+                operationLoading={operationLoading}
+            />
+
+            <TargetingRulesSection
+                flag={flag}
+                onUpdateTargetingRules={handleUpdateTargetingRulesWrapper}
+                onClearTargetingRules={handleClearTargetingRulesWrapper}
                 operationLoading={operationLoading}
             />
 

@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Calendar, Percent, Users, Building, Clock, Settings, Plus } from 'lucide-react';
+import { Eye, EyeOff, Calendar, Percent, Users, Building, Clock, Settings, Plus, Target } from 'lucide-react';
 import { getStatusColor, parseStatusComponents, getStatusDescription } from '../utils/flagHelpers';
 import type { FeatureFlagDto } from '../services/apiService';
 import type { JSX } from 'react';
@@ -22,7 +22,8 @@ const getStatusIcons = (flag: FeatureFlagDto): JSX.Element[] => {
         && !components.hasTimeWindow
         && !components.hasPercentage
         && !components.hasUserTargeting
-        && !components.hasTenantTargeting) {
+        && !components.hasTenantTargeting
+        && !components.hasTargetingRules) { // Add hasTargetingRules check
         icons.push(<EyeOff key="disabled" className="w-3 h-3" />);
     }
 
@@ -39,9 +40,11 @@ const getStatusIcons = (flag: FeatureFlagDto): JSX.Element[] => {
     if (components.hasUserTargeting) {
         icons.push(<Users key="users" className="w-3 h-3" />);
     }
-
     if (components.hasTenantTargeting) {
         icons.push(<Building key="tenants" className="w-3 h-3" />);
+    }
+    if (components.hasTargetingRules) { // Add targeting rules icon
+        icons.push(<Target key="targeting-rules" className="w-3 h-3" />);
     }
 
     // If no specific icons, show settings

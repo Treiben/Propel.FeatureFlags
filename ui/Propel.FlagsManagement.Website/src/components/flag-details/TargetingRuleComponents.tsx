@@ -1,0 +1,456 @@
+﻿import { useState, useEffect } from 'react';
+import { Target, Plus, Trash2, X } from 'lucide-react';
+import type { FeatureFlagDto, TargetingRule } from '../../services/apiService';
+import { getTargetingOperators, getTargetingOperatorLabel, TargetingOperator } from '../../services/apiService';
+import { parseStatusComponents, hasValidTargetingRules } from '../../utils/flagHelpers';
+
+interface TargetingRulesStatusIndicatorProps {
+	flag: FeatureFlagDto;
+}
+
+export const TargetingRulesStatusIndicator: React.FC<TargetingRulesStatusIndicatorProps> = ({ flag }) => {
+	const components = parseStatusComponents(flag);
+	const targetingRulesCount = hasValidTargetingRules(flag.targetingRules) ? flag.targetingRules.length : 0;
+
+	// Debug logging
+	console.log('TargetingRulesStatusIndicator Debug:', {
+		hasTargetingRules: components.hasTargetingRules,
+		targetingRulesCount,
+		targetingRules: flag.targetingRules,
+		evaluationModes: flag.evaluationModes
+	});
+
+	if (!components.hasTargetingRules && targetingRulesCount === 0) return null;
+
+	return (
+		<div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+			<div className="flex items-center gap-2 mb-3">
+				<Target className="w-4 h-4 text-emerald-600" />
+				<h4 className="font-medium text-emerald-900">Custom Targeting Rules</h4>
+			</div>
+
+			<div className="space-y-2">
+				<div className="flex items-center gap-2 text-sm">
+					<span className="font-medium">Active Rules:</span>
+					<span className="text-emerald-700 font-semibold">{targetingRulesCount} rule{targetingRulesCount !== 1 ? 's' : ''}</span>
+				</div>
+				
+				{/* Show preview of first few rules - with null safety */}
+				{hasValidTargetingRules(flag.targetingRules) && flag.targetingRules.slice(0, 2).map((rule, index) => (
+					<div key={index} className="text-xs text-emerald-700 bg-emerald-100 rounded px-2 py-1">
+						<span className="font-mono">{rule?.attribute || 'Unknown'}</span>
+						<span className="mx-1">{getTargetingOperatorLabel(rule?.operator).toLowerCase()}</span>
+						<span className="font-mono">
+							{Array.isArray(rule?.values) ? rule.values.slice(0, 2).join(', ') : 'No values'}
+						</span>
+						{Array.isArray(rule?.values) && rule.values.length > 2 && (
+							<span> (+{rule.values.length - 2} more)</span>
+						)}
+						<span className="mx-1">→</span>
+						<span className="font-semibold">{rule?.variation || 'on'}</span>
+					</div>
+				))}
+				
+				{targetingRulesCount > 2 && (
+					<div className="text-xs text-emerald-600 italic">
+						...and {targetingRulesCount - 2} more rule{targetingRulesCount - 2 !== 1 ? 's' : ''}
+					</div>
+				)}
+			</div>
+		</div>
+	);
+};
+
+interface TargetingRulesSectionProps {
+	flag: FeatureFlagDto;
+	onUpdateTargetingRules: (targetingRules?: TargetingRule[]) => Promise<void>;
+	onClearTargetingRules: () => Promise<void>;
+	operationLoading: boolean;
+}
+
+interface TargetingRuleForm {
+	attribute: string;
+	operator: TargetingOperator;
+	values: string[];
+	variation: string;
+}
+
+const emptyRule: TargetingRuleForm = {
+	attribute: '',
+	operator: TargetingOperator.Equals,
+	values: [''],
+	variation: 'on'
+};
+
+// Helper function to safely convert operator
+const safeConvertOperator = (operator: any): TargetingOperator => {
+	if (typeof operator === 'number') {
+		return operator as TargetingOperator;
+	}
+	if (typeof operator === 'string') {
+		const operatorMap: Record<string, TargetingOperator> = {
+			'Equals': TargetingOperator.Equals,
+			'NotEquals': TargetingOperator.NotEquals,
+			'Contains': TargetingOperator.Contains,
+			'NotContains': TargetingOperator.NotContains,
+			'In': TargetingOperator.In,
+			'NotIn': TargetingOperator.NotIn,
+			'GreaterThan': TargetingOperator.GreaterThan,
+			'LessThan': TargetingOperator.LessThan
+		};
+		return operatorMap[operator] || TargetingOperator.Equals;
+	}
+	return TargetingOperator.Equals;
+};
+
+export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
+	flag,
+	onUpdateTargetingRules,
+	onClearTargetingRules,
+	operationLoading
+}) => {
+	const [editingTargetingRules, setEditingTargetingRules] = useState(false);
+	const [targetingRulesForm, setTargetingRulesForm] = useState<TargetingRuleForm[]>([]);
+
+	const components = parseStatusComponents(flag);
+	const targetingOperators = getTargetingOperators();
+
+	// Update local state when flag changes - with comprehensive null safety
+	useEffect(() => {
+		console.log('TargetingRulesSection Effect Debug:', {
+			flagKey: flag.key,
+			targetingRules: flag.targetingRules,
+			isArray: Array.isArray(flag.targetingRules),
+			length: flag.targetingRules?.length
+		});
+
+		try {
+			if (hasValidTargetingRules(flag.targetingRules)) {
+				const safeRules = flag.targetingRules.map((rule, index) => {
+					console.log(`Processing rule ${index}:`, rule);
+					return {
+						attribute: rule?.attribute || '',
+						operator: safeConvertOperator(rule?.operator),
+						values: Array.isArray(rule?.values) ? [...rule.values] : [''],
+						variation: rule?.variation || 'on'
+					};
+				});
+				setTargetingRulesForm(safeRules);
+			} else {
+				setTargetingRulesForm([]);
+			}
+		} catch (error) {
+			console.error('Error processing targeting rules:', error);
+			setTargetingRulesForm([]);
+		}
+	}, [flag.key, flag.targetingRules]);
+
+	const handleTargetingRulesSubmit = async () => {
+		try {
+			// Convert form data to API format with null safety
+			const targetingRules: TargetingRule[] = targetingRulesForm
+				.filter(rule => rule?.attribute?.trim() && Array.isArray(rule?.values) && rule.values.some(v => v?.trim()))
+				.map(rule => ({
+					attribute: rule.attribute.trim(),
+					operator: getTargetingOperatorLabel(rule.operator), // Convert to string for API
+					values: rule.values.filter(v => v?.trim()).map(v => v.trim()),
+					variation: rule.variation?.trim() || 'on'
+				}));
+
+			console.log('Submitting targeting rules:', targetingRules);
+			await onUpdateTargetingRules(targetingRules);
+			setEditingTargetingRules(false);
+		} catch (error) {
+			console.error('Failed to update targeting rules:', error);
+		}
+	};
+
+	const handleClearTargetingRules = async () => {
+		try {
+			await onClearTargetingRules();
+		} catch (error) {
+			console.error('Failed to clear targeting rules:', error);
+		}
+	};
+
+	const addRule = () => {
+		setTargetingRulesForm([...targetingRulesForm, { ...emptyRule }]);
+	};
+
+	const removeRule = (index: number) => {
+		setTargetingRulesForm(targetingRulesForm.filter((_, i) => i !== index));
+	};
+
+	const updateRule = (index: number, updates: Partial<TargetingRuleForm>) => {
+		setTargetingRulesForm(targetingRulesForm.map((rule, i) => 
+			i === index ? { ...rule, ...updates } : rule
+		));
+	};
+
+	const addValue = (ruleIndex: number) => {
+		const updatedRules = [...targetingRulesForm];
+		if (updatedRules[ruleIndex] && Array.isArray(updatedRules[ruleIndex].values)) {
+			updatedRules[ruleIndex].values.push('');
+			setTargetingRulesForm(updatedRules);
+		}
+	};
+
+	const removeValue = (ruleIndex: number, valueIndex: number) => {
+		const updatedRules = [...targetingRulesForm];
+		if (updatedRules[ruleIndex] && Array.isArray(updatedRules[ruleIndex].values)) {
+			updatedRules[ruleIndex].values = updatedRules[ruleIndex].values.filter((_, i) => i !== valueIndex);
+			setTargetingRulesForm(updatedRules);
+		}
+	};
+
+	const updateValue = (ruleIndex: number, valueIndex: number, value: string) => {
+		const updatedRules = [...targetingRulesForm];
+		if (updatedRules[ruleIndex] && Array.isArray(updatedRules[ruleIndex].values)) {
+			updatedRules[ruleIndex].values[valueIndex] = value;
+			setTargetingRulesForm(updatedRules);
+		}
+	};
+
+	const hasTargetingRules = hasValidTargetingRules(flag.targetingRules);
+
+	const resetForm = () => {
+		try {
+			if (hasTargetingRules) {
+				const safeRules = flag.targetingRules.map(rule => ({
+					attribute: rule?.attribute || '',
+					operator: safeConvertOperator(rule?.operator),
+					values: Array.isArray(rule?.values) ? [...rule.values] : [''],
+					variation: rule?.variation || 'on'
+				}));
+				setTargetingRulesForm(safeRules);
+			} else {
+				setTargetingRulesForm([]);
+			}
+		} catch (error) {
+			console.error('Error resetting form:', error);
+			setTargetingRulesForm([]);
+		}
+	};
+
+	return (
+		<div className="space-y-4 mb-6">
+			<div className="flex justify-between items-center">
+				<h4 className="font-medium text-gray-900">Custom Targeting Rules</h4>
+				<div className="flex gap-2">
+					<button
+						onClick={() => setEditingTargetingRules(true)}
+						disabled={operationLoading}
+						className="text-emerald-600 hover:text-emerald-800 text-sm flex items-center gap-1 disabled:opacity-50"
+						data-testid="manage-targeting-rules-button"
+					>
+						<Target className="w-4 h-4" />
+						Configure Rules
+					</button>
+					{hasTargetingRules && (
+						<button
+							onClick={handleClearTargetingRules}
+							disabled={operationLoading}
+							className="text-red-600 hover:text-red-800 text-sm flex items-center gap-1 disabled:opacity-50"
+							title="Clear All Targeting Rules"
+							data-testid="clear-targeting-rules-button"
+						>
+							<X className="w-4 h-4" />
+							Clear
+						</button>
+					)}
+				</div>
+			</div>
+
+			{editingTargetingRules ? (
+				<div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+					<div className="space-y-4">
+						<div className="flex justify-between items-center">
+							<h5 className="font-medium text-emerald-800">Targeting Rules Configuration</h5>
+							<button
+								onClick={addRule}
+								disabled={operationLoading}
+								className="text-emerald-600 hover:text-emerald-800 text-sm flex items-center gap-1 disabled:opacity-50"
+							>
+								<Plus className="w-4 h-4" />
+								Add Rule
+							</button>
+						</div>
+						
+						{targetingRulesForm.length === 0 ? (
+							<div className="text-center py-8 text-emerald-600">
+								<Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
+								<p className="text-sm">No targeting rules configured</p>
+								<p className="text-xs mt-1">Click "Add Rule" to create your first targeting rule</p>
+							</div>
+						) : (
+							<div className="space-y-4">
+								{targetingRulesForm.map((rule, ruleIndex) => (
+									<div key={ruleIndex} className="border border-emerald-300 rounded-lg p-3 bg-white">
+										<div className="flex justify-between items-start mb-3">
+											<span className="text-sm font-medium text-emerald-700">Rule #{ruleIndex + 1}</span>
+											<button
+												onClick={() => removeRule(ruleIndex)}
+												disabled={operationLoading}
+												className="text-red-500 hover:text-red-700 p-1"
+												title="Remove Rule"
+											>
+												<Trash2 className="w-4 h-4" />
+											</button>
+										</div>
+										
+										<div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+											{/* Attribute */}
+											<div>
+												<label className="block text-xs font-medium text-emerald-700 mb-1">Attribute</label>
+												<input
+													type="text"
+													value={rule?.attribute || ''}
+													onChange={(e) => updateRule(ruleIndex, { attribute: e.target.value })}
+													placeholder="userId, tenantId, country..."
+													className="w-full border border-emerald-300 rounded px-2 py-1 text-xs"
+													disabled={operationLoading}
+												/>
+											</div>
+											
+											{/* Operator */}
+											<div>
+												<label className="block text-xs font-medium text-emerald-700 mb-1">Operator</label>
+												<select
+													value={rule?.operator ?? TargetingOperator.Equals}
+													onChange={(e) => updateRule(ruleIndex, { operator: parseInt(e.target.value) as TargetingOperator })}
+													className="w-full border border-emerald-300 rounded px-2 py-1 text-xs"
+													disabled={operationLoading}
+												>
+													{targetingOperators.map(op => (
+														<option key={op.value} value={op.value} title={op.description}>
+															{op.label}
+														</option>
+													))}
+												</select>
+											</div>
+											
+											{/* Variation */}
+											<div>
+												<label className="block text-xs font-medium text-emerald-700 mb-1">Variation</label>
+												<input
+													type="text"
+													value={rule?.variation || ''}
+													onChange={(e) => updateRule(ruleIndex, { variation: e.target.value })}
+													placeholder="on, off, v1, v2..."
+													className="w-full border border-emerald-300 rounded px-2 py-1 text-xs"
+													disabled={operationLoading}
+												/>
+											</div>
+											
+											{/* Add Value Button */}
+											<div className="flex items-end">
+												<button
+													onClick={() => addValue(ruleIndex)}
+													disabled={operationLoading}
+													className="w-full px-2 py-1 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-1"
+												>
+													<Plus className="w-3 h-3" />
+													Add Value
+												</button>
+											</div>
+										</div>
+										
+										{/* Values */}
+										<div>
+											<label className="block text-xs font-medium text-emerald-700 mb-1">Values</label>
+											<div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+												{Array.isArray(rule?.values) && rule.values.map((value, valueIndex) => (
+													<div key={valueIndex} className="flex gap-1">
+														<input
+															type="text"
+															value={value || ''}
+															onChange={(e) => updateValue(ruleIndex, valueIndex, e.target.value)}
+															placeholder="Enter value..."
+															className="flex-1 border border-emerald-300 rounded px-2 py-1 text-xs"
+															disabled={operationLoading}
+														/>
+														{rule.values.length > 1 && (
+															<button
+																onClick={() => removeValue(ruleIndex, valueIndex)}
+																disabled={operationLoading}
+																className="text-red-500 hover:text-red-700 p-1"
+																title="Remove Value"
+															>
+																<X className="w-3 h-3" />
+															</button>
+														)}
+													</div>
+												))}
+											</div>
+										</div>
+									</div>
+								))}
+							</div>
+						)}
+					</div>
+
+					<div className="flex gap-2 mt-4">
+						<button
+							onClick={handleTargetingRulesSubmit}
+							disabled={operationLoading}
+							className="px-3 py-1 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-50"
+							data-testid="save-targeting-rules-button"
+						>
+							{operationLoading ? 'Saving...' : 'Save Targeting Rules'}
+						</button>
+						<button
+							onClick={() => {
+								setEditingTargetingRules(false);
+								resetForm();
+							}}
+							disabled={operationLoading}
+							className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400 disabled:opacity-50"
+							data-testid="cancel-targeting-rules-button"
+						>
+							Cancel
+						</button>
+					</div>
+				</div>
+			) : (
+				<div className="text-sm text-gray-600 space-y-1">
+					{(() => {
+						// Check flag mode and show appropriate text
+						if (components.baseStatus === 'Enabled') {
+							return <div className="text-green-600 font-medium">No custom targeting - flag enabled for all users</div>;
+						}
+
+						// Check if targeting rules are set
+						if (hasTargetingRules) {
+							return (
+								<div className="space-y-2">
+									<div>Active Targeting Rules: {flag.targetingRules.length}</div>
+									<div className="space-y-1">
+										{flag.targetingRules.slice(0, 3).map((rule, index) => (
+											<div key={index} className="text-xs bg-gray-100 rounded px-2 py-1 font-mono">
+												{rule?.attribute || 'Unknown'} {getTargetingOperatorLabel(rule?.operator).toLowerCase()} [{Array.isArray(rule?.values) ? rule.values.join(', ') : 'No values'}] → {rule?.variation || 'on'}
+											</div>
+										))}
+										{flag.targetingRules.length > 3 && (
+											<div className="text-xs text-gray-500 italic">
+												...and {flag.targetingRules.length - 3} more rule{flag.targetingRules.length - 3 !== 1 ? 's' : ''}
+											</div>
+										)}
+									</div>
+								</div>
+							);
+						}
+
+						// Check if no targeting rules and not enabled
+						if (!hasTargetingRules && components.baseStatus === 'Other') {
+							return <div className="text-gray-500 italic">No custom targeting rules configured</div>;
+						} else if (components.baseStatus === 'Disabled') {
+							return <div className="text-orange-600 font-medium">Custom targeting disabled - flag is disabled</div>;
+						}
+
+						return <div className="text-gray-500 italic">Targeting rules configuration incomplete</div>;
+					})()}
+				</div>
+			)}
+		</div>
+	);
+};

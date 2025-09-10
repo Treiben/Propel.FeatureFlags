@@ -20,6 +20,7 @@ export interface StatusComponents {
     hasPercentage: boolean;
     hasUserTargeting: boolean;
 	hasTenantTargeting: boolean;
+    hasTargetingRules: boolean; // Add this line
     baseStatus: 'Enabled' | 'Disabled' | 'Other';
 }
 
@@ -36,6 +37,7 @@ export const getStatusFromEvaluationModes = (modes: number[]): string => {
     const hasUserRollout = modes.includes(5);
     const hasTenantRollout = modes.includes(6);
 	const hasTenantTargeted = modes.includes(7);
+    const hasTargetingRules = modes.includes(8); // Add this line
     
     // If only enabled
     if (hasEnabled && modes.length === 1) return 'Enabled';
@@ -50,8 +52,14 @@ export const getStatusFromEvaluationModes = (modes: number[]): string => {
     if (hasUserRollout || hasTenantRollout) features.push('Percentage');
     if (hasUserTargeted) features.push('UserTargeted');
     if (hasTenantTargeted) features.push('TenantTargeted');
+    if (hasTargetingRules) features.push('TargetingRules'); // Add this line
     
     return features.length > 0 ? features.join('With') : 'Disabled';
+};
+
+// Helper function to safely check if targeting rules exist
+export const hasValidTargetingRules = (targetingRules: any): boolean => {
+    return Array.isArray(targetingRules) && targetingRules.length > 0;
 };
 
 // Helper function to parse compound status into components - Updated to work with evaluationModes
@@ -64,6 +72,7 @@ export const parseStatusComponents = (flag: FeatureFlagDto): StatusComponents =>
         hasPercentage: modes.includes(5) || modes.includes(6), // UserRolloutPercentage or TenantRolloutPercentage
         hasUserTargeting: modes.includes(4), // FlagEvaluationMode.UserTargeted
         hasTenantTargeting: modes.includes(7), // FlagEvaluationMode.TenantTargeted
+        hasTargetingRules: modes.includes(8) || hasValidTargetingRules(flag.targetingRules), // Safe check
         baseStatus: modes.includes(1) ? 'Enabled' : (modes.includes(0) ? 'Disabled' : 'Other')// FlagEvaluationMode.Enabled
     };
 
@@ -77,7 +86,9 @@ export const getStatusDescription = (flag: FeatureFlagDto): string => {
 
     if (components.baseStatus === 'Enabled') return 'Enabled';
     if (components.baseStatus === 'Disabled' && !components.isScheduled
-        && !components.hasTimeWindow && !components.hasPercentage && !components.hasUserTargeting && !components.hasTenantTargeting) {
+        && !components.hasTimeWindow && !components.hasPercentage 
+        && !components.hasUserTargeting && !components.hasTenantTargeting 
+        && !components.hasTargetingRules) { // Add this
         return 'Disabled';
     }
 
@@ -86,6 +97,7 @@ export const getStatusDescription = (flag: FeatureFlagDto): string => {
     if (components.hasPercentage) features.push('Percentage');
     if (components.hasUserTargeting) features.push('User Targeted');
     if (components.hasTenantTargeting) features.push('Tenant Targeted');
+    if (components.hasTargetingRules) features.push('Targeting Rules'); // Add this
 
     return features.join(' + ');
 };
@@ -281,7 +293,9 @@ export const getStatusColor = (flag: FeatureFlagDto): string => {
     if (components.baseStatus === 'Enabled') {
         return 'bg-green-100 text-green-800';
     }
-    if (components.baseStatus === 'Disabled' && !components.isScheduled && !components.hasTimeWindow && !components.hasPercentage && !components.hasUserTargeting) {
+    if (components.baseStatus === 'Disabled' && !components.isScheduled && !components.hasTimeWindow 
+        && !components.hasPercentage && !components.hasUserTargeting && !components.hasTenantTargeting 
+        && !components.hasTargetingRules) { // Add this
         return 'bg-red-100 text-red-800';
     }
 
@@ -300,6 +314,9 @@ export const getStatusColor = (flag: FeatureFlagDto): string => {
     }
     if (components.hasTenantTargeting) {
         return 'bg-teal-100 text-teal-800';
+    }
+    if (components.hasTargetingRules) { // Add this
+        return 'bg-emerald-100 text-emerald-800';
     }
     return 'bg-gray-100 text-gray-800';
 };

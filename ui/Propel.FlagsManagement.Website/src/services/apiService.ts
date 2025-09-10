@@ -116,12 +116,63 @@ export interface TenantAccessRequest {
 	percentage?: number;
 }
 
+// Added TargetingRulesRequest to match UpdateTargetingRulesRequest from C#
+export interface TargetingRulesRequest {
+	targetingRules?: TargetingRule[];
+	removeTargetingRules: boolean;
+}
+
 export interface EvaluationResult {
 	isEnabled: boolean;
 	variation: string;
 	reason: string;
 	metadata: Record<string, any>;
 }
+
+// Update the TargetingOperator enum to match C# numeric values
+export enum TargetingOperator {
+	Equals = 0,
+	NotEquals = 1,
+	Contains = 2,
+	NotContains = 3,
+	In = 4,
+	NotIn = 5,
+	GreaterThan = 6,
+	LessThan = 7
+}
+
+// Helper function to convert enum number to string label
+export const getTargetingOperatorLabel = (operator: number | string): string => {
+	const operatorMap: Record<number, string> = {
+		0: 'Equals',
+		1: 'NotEquals', 
+		2: 'Contains',
+		3: 'NotContains',
+		4: 'In',
+		5: 'NotIn',
+		6: 'GreaterThan',
+		7: 'LessThan'
+	};
+	
+	if (typeof operator === 'number') {
+		return operatorMap[operator] || 'Equals';
+	}
+	return operator || 'Equals';
+};
+
+// Helper function to get available targeting operators
+export const getTargetingOperators = (): { value: TargetingOperator; label: string; description: string }[] => {
+	return [
+		{ value: TargetingOperator.Equals, label: 'Equals', description: 'Exact match' },
+		{ value: TargetingOperator.NotEquals, label: 'Not Equals', description: 'Does not match exactly' },
+		{ value: TargetingOperator.Contains, label: 'Contains', description: 'Contains the value' },
+		{ value: TargetingOperator.NotContains, label: 'Not Contains', description: 'Does not contain the value' },
+		{ value: TargetingOperator.In, label: 'In', description: 'Value is in the list' },
+		{ value: TargetingOperator.NotIn, label: 'Not In', description: 'Value is not in the list' },
+		{ value: TargetingOperator.GreaterThan, label: 'Greater Than', description: 'Numeric value is greater' },
+		{ value: TargetingOperator.LessThan, label: 'Less Than', description: 'Numeric value is less' }
+	];
+};
 
 // API Error handling
 export class ApiError extends Error {
@@ -407,12 +458,10 @@ export const getEvaluationModes = (): { value: number; label: string }[] => {
 		{ value: 4, label: 'User Targeted' },
 		{ value: 5, label: 'User Rollout Percentage' },
 		{ value: 6, label: 'Tenant Rollout Percentage' },
-		{ value: 7, label: 'Tenant Targeted' }
+		{ value: 7, label: 'Tenant Targeted' },
+		{ value: 8, label: 'Targeting Rules' }
 	]
 };
-
-// Export the DateTimeConverter for use in other modules
-export { DateTimeConverter };
 
 // API Service
 export const apiService = {
@@ -567,6 +616,15 @@ export const apiService = {
 		// Updated consolidated tenant access management endpoint
 		updateTenantAccess: async (key: string, request: TenantAccessRequest) => {
 			const flag = await apiRequest<FeatureFlagDto>(`/feature-flags/${key}/tenants`, {
+				method: 'POST',
+				body: JSON.stringify(request),
+			});
+			return DateTimeConverter.convertFeatureFlagDtoToLocal(flag);
+		},
+
+		// New targeting rules endpoint
+		updateTargetingRules: async (key: string, request: TargetingRulesRequest) => {
+			const flag = await apiRequest<FeatureFlagDto>(`/feature-flags/${key}/targeting-rules`, {
 				method: 'POST',
 				body: JSON.stringify(request),
 			});

@@ -11,7 +11,8 @@ import {
     type ScheduleFlagRequest,
     type EvaluationResult,
     type UserAccessRequest,
-    type TenantAccessRequest
+    type TenantAccessRequest,
+    type TargetingRulesRequest
 } from '../services/apiService';
 import { config } from '../config/environment';
 
@@ -49,6 +50,7 @@ export interface UseFeatureFlagsActions {
 	setTimeWindow: (key: string, request: SetTimeWindowRequest) => Promise<FeatureFlagDto>;
     updateUserAccess: (key: string, request: UserAccessRequest) => Promise<FeatureFlagDto>;
     updateTenantAccess: (key: string, request: TenantAccessRequest) => Promise<FeatureFlagDto>;
+    updateTargetingRules: (key: string, request: TargetingRulesRequest) => Promise<FeatureFlagDto>;
     searchFlags: (params?: { tag?: string; status?: string }) => Promise<void>;
     filterFlags: (params: GetFlagsParams) => Promise<void>;
     clearError: () => void;
@@ -313,6 +315,22 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         }
     }, []);
 
+    const updateTargetingRules = useCallback(async (key: string, request: TargetingRulesRequest): Promise<FeatureFlagDto> => {
+        try {
+            updateState({ error: null });
+            console.log('Updating targeting rules for flag:', key, 'with request:', request); // Debug log
+            // Returns converted DTO with local times
+            const updatedFlag = await apiService.operations.updateTargetingRules(key, request);
+            console.log('Updated flag received:', updatedFlag); // Debug log
+            updateFlagInState(updatedFlag);
+            return updatedFlag;
+        } catch (error) {
+            console.error('Error in updateTargetingRules:', error); // Enhanced error logging
+            handleError(error, 'update targeting rules');
+            throw error;
+        }
+    }, []);
+
     const searchFlags = useCallback(async (params?: { tag?: string; status?: string }): Promise<void> => {
         try {
             updateState({ loading: true, error: null });
@@ -477,6 +495,7 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         setTimeWindow,
         updateUserAccess,
 		updateTenantAccess,
+        updateTargetingRules,
         searchFlags,
         filterFlags,
         clearError,

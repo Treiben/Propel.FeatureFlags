@@ -1,4 +1,4 @@
-import { Lock, PlayCircle, Trash2, Timer } from 'lucide-react';
+import { Lock, PlayCircle, Trash2, Timer, Target } from 'lucide-react';
 import type { FeatureFlagDto } from '../services/apiService';
 import { StatusBadge } from './StatusBadge';
 import { getScheduleStatus, getTimeWindowStatus, formatRelativeTime, hasValidTags, getTagEntries, parseStatusComponents } from '../utils/flagHelpers';
@@ -51,6 +51,12 @@ export const FlagCard: React.FC<FlagCardProps> = ({
                                 <span className="font-medium">ACTIVE</span>
                             </div>
                         )}
+                        {components.hasTargetingRules && (
+                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs flex-shrink-0">
+                                <Target className="w-3 h-3" />
+                                <span className="font-medium">RULES</span>
+                            </div>
+                        )}
                     </div>
                     <p className="text-sm text-gray-500 font-mono truncate">{flag.key}</p>
                     <p className="text-sm text-gray-600 mt-1 line-clamp-2">{flag.description || 'No description'}</p>
@@ -75,6 +81,10 @@ export const FlagCard: React.FC<FlagCardProps> = ({
 
                     {components.hasPercentage && (
                         <span className="text-xs text-gray-500">{flag.userRolloutPercentage || 0}%</span>
+                    )}
+
+                    {components.hasTargetingRules && (
+                        <span className="text-xs text-gray-500">{flag.targetingRules?.length || 0} rule{(flag.targetingRules?.length || 0) !== 1 ? 's' : ''}</span>
                     )}
 
                     {components.isScheduled && scheduleStatus.nextAction && scheduleStatus.nextActionTime && (

@@ -17,6 +17,8 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<IValidator<UpdateFlagRequest>, UpdateFlagRequestValidator>();
 		services.AddScoped<IValidator<UpdateScheduleRequest>, UpdateScheduleRequestValidator>();
 		services.AddScoped<IValidator<UpdateTimeWindowRequest>, UpdateTimeWindowRequestValidator>();
+		services.AddScoped<IValidator<UpdateTargetingRulesRequest>, UpdateTargetingRulesRequestValidator>();
+		services.AddScoped<IValidator< TargetingRuleDto>, TargetingRuleDtoValidator>();
 
 		return services;
 	}
@@ -28,6 +30,7 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<FlagEvaluationHandler>();
 		services.AddScoped<ManageTenantAccessHandler>();
 		services.AddScoped<ManageUserAccessHandler>();
+		services.AddScoped<UpdateTargetingRulesHandler>();
 		services.AddScoped<ToggleFlagHandler>();
 		services.AddScoped<UpdateFlagHandler>();
 		services.AddScoped<UpdateScheduleHandler>();
