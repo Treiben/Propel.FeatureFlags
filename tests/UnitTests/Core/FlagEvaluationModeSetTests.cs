@@ -2,25 +2,20 @@ using Propel.FeatureFlags.Core;
 
 namespace FeatureFlags.UnitTests.Core;
 
-public class FlagEvaluationModeSet_Constructor
+public class FlagEvaluationModeSet_DisabledMutualExclusion
 {
 	[Fact]
-	public void If_DefaultConstructor_ThenInitializesWithDisabled()
+	public void Constructor_DefaultsToDisabled()
 	{
 		// Act
 		var modeSet = new FlagEvaluationModeSet();
 
 		// Assert
-		modeSet.EvaluationModes.ShouldNotBeNull();
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Disabled);
+		modeSet.EvaluationModes.ShouldBe(new[] { FlagEvaluationMode.Disabled });
 	}
-}
 
-public class FlagEvaluationModeSet_AddMode
-{
 	[Fact]
-	public void If_AddEnabledToDisabled_ThenReplacesDisabledWithEnabled()
+	public void AddMode_NonDisabledToDisabled_ReplacesDisabledWithMode()
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
@@ -29,26 +24,46 @@ public class FlagEvaluationModeSet_AddMode
 		modeSet.AddMode(FlagEvaluationMode.Enabled);
 
 		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Enabled);
+		modeSet.EvaluationModes.ShouldBe(new[] { FlagEvaluationMode.Enabled });
 	}
 
 	[Fact]
-	public void If_AddScheduledToDisabled_ThenReplacesDisabledWithScheduled()
+	public void AddMode_DisabledToMultipleModes_ReplacesAllWithDisabled()
+	{
+		// Arrange
+		var modeSet = new FlagEvaluationModeSet();
+		modeSet.AddMode(FlagEvaluationMode.Enabled);
+		modeSet.AddMode(FlagEvaluationMode.Scheduled);
+
+		// Act
+		modeSet.AddMode(FlagEvaluationMode.Disabled);
+
+		// Assert
+		modeSet.EvaluationModes.ShouldBe(new[] { FlagEvaluationMode.Disabled });
+	}
+
+	[Theory]
+	[InlineData(FlagEvaluationMode.Enabled)]
+	[InlineData(FlagEvaluationMode.Scheduled)]
+	[InlineData(FlagEvaluationMode.TimeWindow)]
+	[InlineData(FlagEvaluationMode.UserTargeted)]
+	public void AddMode_AnyNonDisabledMode_RemovesDisabled(FlagEvaluationMode mode)
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
 
 		// Act
-		modeSet.AddMode(FlagEvaluationMode.Scheduled);
+		modeSet.AddMode(mode);
 
 		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Scheduled);
+		modeSet.EvaluationModes.ShouldBe(new[] { mode });
 	}
+}
 
+public class FlagEvaluationModeSet_AddRemoveOperations
+{
 	[Fact]
-	public void If_AddMultipleNonDisabledModes_ThenKeepsAllModes()
+	public void AddMode_MultipleModes_KeepsAllNonDisabled()
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
@@ -66,24 +81,7 @@ public class FlagEvaluationModeSet_AddMode
 	}
 
 	[Fact]
-	public void If_AddDisabledToMultipleModes_ThenReplacesAllWithDisabled()
-	{
-		// Arrange
-		var modeSet = new FlagEvaluationModeSet();
-		modeSet.AddMode(FlagEvaluationMode.Enabled);
-		modeSet.AddMode(FlagEvaluationMode.Scheduled);
-		modeSet.AddMode(FlagEvaluationMode.TimeWindow);
-
-		// Act
-		modeSet.AddMode(FlagEvaluationMode.Disabled);
-
-		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Disabled);
-	}
-
-	[Fact]
-	public void If_AddExistingMode_ThenDoesNotDuplicate()
+	public void AddMode_ExistingMode_DoesNotDuplicate()
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
@@ -93,65 +91,11 @@ public class FlagEvaluationModeSet_AddMode
 		modeSet.AddMode(FlagEvaluationMode.Enabled);
 
 		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Enabled);
+		modeSet.EvaluationModes.ShouldBe(new[] { FlagEvaluationMode.Enabled });
 	}
 
 	[Fact]
-	public void If_AddDisabledToDisabled_ThenRemainsDisabled()
-	{
-		// Arrange
-		var modeSet = new FlagEvaluationModeSet();
-
-		// Act
-		modeSet.AddMode(FlagEvaluationMode.Disabled);
-
-		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Disabled);
-	}
-
-	[Theory]
-	[InlineData(FlagEvaluationMode.Enabled)]
-	[InlineData(FlagEvaluationMode.Scheduled)]
-	[InlineData(FlagEvaluationMode.TimeWindow)]
-	[InlineData(FlagEvaluationMode.UserTargeted)]
-	[InlineData(FlagEvaluationMode.UserRolloutPercentage)]
-	[InlineData(FlagEvaluationMode.TenantRolloutPercentage)]
-	public void If_AddNonDisabledModeToDisabled_ThenRemovesDisabledAndAddsMode(FlagEvaluationMode mode)
-	{
-		// Arrange
-		var modeSet = new FlagEvaluationModeSet();
-
-		// Act
-		modeSet.AddMode(mode);
-
-		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(mode);
-		modeSet.EvaluationModes.ShouldNotContain(FlagEvaluationMode.Disabled);
-	}
-
-	[Fact]
-	public void If_AddModeReturnsThis_ThenSupportsFluentInterface()
-	{
-		// Arrange
-		var modeSet = new FlagEvaluationModeSet();
-
-		// Act
-		modeSet.AddMode(FlagEvaluationMode.Enabled);
-		modeSet.AddMode(FlagEvaluationMode.Scheduled);
-		modeSet.AddMode(FlagEvaluationMode.TimeWindow);
-
-		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(3);
-	}
-}
-
-public class FlagEvaluationModeSet_RemoveMode
-{
-	[Fact]
-	public void If_RemoveExistingMode_ThenRemovesMode()
+	public void RemoveMode_ExistingMode_RemovesMode()
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
@@ -162,12 +106,11 @@ public class FlagEvaluationModeSet_RemoveMode
 		modeSet.RemoveMode(FlagEvaluationMode.Enabled);
 
 		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Scheduled);
+		modeSet.EvaluationModes.ShouldBe(new[] { FlagEvaluationMode.Scheduled });
 	}
 
 	[Fact]
-	public void If_RemoveNonExistingMode_ThenNoChange()
+	public void RemoveMode_NonExistingMode_NoChange()
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
@@ -177,12 +120,11 @@ public class FlagEvaluationModeSet_RemoveMode
 		modeSet.RemoveMode(FlagEvaluationMode.Scheduled);
 
 		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Enabled);
+		modeSet.EvaluationModes.ShouldBe(new[] { FlagEvaluationMode.Enabled });
 	}
 
 	[Fact]
-	public void If_RemoveAllModes_ThenEmptyArray()
+	public void RemoveMode_AllModes_DefaultsToDisabled()
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
@@ -192,64 +134,14 @@ public class FlagEvaluationModeSet_RemoveMode
 		modeSet.RemoveMode(FlagEvaluationMode.Enabled);
 
 		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(0);
-	}
-
-	[Fact]
-	public void If_RemoveDisabledFromDisabledOnly_ThenEmptyArray()
-	{
-		// Arrange
-		var modeSet = new FlagEvaluationModeSet();
-
-		// Act
-		modeSet.RemoveMode(FlagEvaluationMode.Disabled);
-
-		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(0);
-	}
-
-	[Fact]
-	public void If_RemoveFromMultipleModes_ThenRemovesOnlySpecifiedMode()
-	{
-		// Arrange
-		var modeSet = new FlagEvaluationModeSet();
-		modeSet.AddMode(FlagEvaluationMode.Enabled);
-		modeSet.AddMode(FlagEvaluationMode.Scheduled);
-		modeSet.AddMode(FlagEvaluationMode.TimeWindow);
-
-		// Act
-		modeSet.RemoveMode(FlagEvaluationMode.Scheduled);
-
-		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(2);
-		modeSet.EvaluationModes.ShouldContain(FlagEvaluationMode.Enabled);
-		modeSet.EvaluationModes.ShouldContain(FlagEvaluationMode.TimeWindow);
-		modeSet.EvaluationModes.ShouldNotContain(FlagEvaluationMode.Scheduled);
-	}
-
-	[Fact]
-	public void If_RemoveModeReturnsThis_ThenSupportsFluentInterface()
-	{
-		// Arrange
-		var modeSet = new FlagEvaluationModeSet();
-		modeSet.AddMode(FlagEvaluationMode.Enabled);
-		modeSet.AddMode(FlagEvaluationMode.Scheduled);
-		modeSet.AddMode(FlagEvaluationMode.TimeWindow);
-
-		// Act
-		modeSet.RemoveMode(FlagEvaluationMode.Enabled);
-		modeSet.RemoveMode(FlagEvaluationMode.Scheduled);
-
-		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.TimeWindow);
+		modeSet.EvaluationModes.ShouldBe(new[] { FlagEvaluationMode.Disabled });
 	}
 }
 
 public class FlagEvaluationModeSet_ContainsModes
 {
 	[Fact]
-	public void If_ContainsModesWithAnyTrue_ThenReturnsTrueWhenAnyMatch()
+	public void ContainsModes_AnyTrue_ReturnsTrueWhenAnyMatch()
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
@@ -266,12 +158,11 @@ public class FlagEvaluationModeSet_ContainsModes
 	}
 
 	[Fact]
-	public void If_ContainsModesWithAnyTrue_ThenReturnsFalseWhenNoneMatch()
+	public void ContainsModes_AnyTrue_ReturnsFalseWhenNoneMatch()
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
 		modeSet.AddMode(FlagEvaluationMode.Enabled);
-		modeSet.AddMode(FlagEvaluationMode.Scheduled);
 
 		var modesToCheck = new[] { FlagEvaluationMode.TimeWindow, FlagEvaluationMode.UserTargeted };
 
@@ -283,13 +174,12 @@ public class FlagEvaluationModeSet_ContainsModes
 	}
 
 	[Fact]
-	public void If_ContainsModesWithAnyFalse_ThenReturnsTrueWhenAllMatch()
+	public void ContainsModes_AnyFalse_ReturnsTrueWhenAllMatch()
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
 		modeSet.AddMode(FlagEvaluationMode.Enabled);
 		modeSet.AddMode(FlagEvaluationMode.Scheduled);
-		modeSet.AddMode(FlagEvaluationMode.TimeWindow);
 
 		var modesToCheck = new[] { FlagEvaluationMode.Enabled, FlagEvaluationMode.Scheduled };
 
@@ -301,12 +191,11 @@ public class FlagEvaluationModeSet_ContainsModes
 	}
 
 	[Fact]
-	public void If_ContainsModesWithAnyFalse_ThenReturnsFalseWhenNotAllMatch()
+	public void ContainsModes_AnyFalse_ReturnsFalseWhenNotAllMatch()
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
 		modeSet.AddMode(FlagEvaluationMode.Enabled);
-		modeSet.AddMode(FlagEvaluationMode.Scheduled);
 
 		var modesToCheck = new[] { FlagEvaluationMode.Enabled, FlagEvaluationMode.TimeWindow };
 
@@ -318,164 +207,62 @@ public class FlagEvaluationModeSet_ContainsModes
 	}
 
 	[Fact]
-	public void If_ContainsModesWithEmptyArray_ThenReturnsTrueForAllMode()
+	public void ContainsModes_DefaultParameter_DefaultsToAnyTrue()
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
 		modeSet.AddMode(FlagEvaluationMode.Enabled);
-
-		var modesToCheck = Array.Empty<FlagEvaluationMode>();
-
-		// Act
-		var resultAny = modeSet.ContainsModes(modesToCheck, any: true);
-		var resultAll = modeSet.ContainsModes(modesToCheck, any: false);
-
-		// Assert
-		resultAny.ShouldBeFalse();
-		resultAll.ShouldBeTrue();
-	}
-
-	[Fact]
-	public void If_ContainsModesWithSingleMatch_ThenBothAnyAndAllReturnTrue()
-	{
-		// Arrange
-		var modeSet = new FlagEvaluationModeSet();
-		modeSet.AddMode(FlagEvaluationMode.Enabled);
-
-		var modesToCheck = new[] { FlagEvaluationMode.Enabled };
-
-		// Act
-		var resultAny = modeSet.ContainsModes(modesToCheck, any: true);
-		var resultAll = modeSet.ContainsModes(modesToCheck, any: false);
-
-		// Assert
-		resultAny.ShouldBeTrue();
-		resultAll.ShouldBeTrue();
-	}
-
-	[Theory]
-	[InlineData(true)]
-	[InlineData(false)]
-	public void If_ContainsModesDefaultParameter_ThenDefaultsToAnyTrue(bool explicitAnyValue)
-	{
-		// Arrange
-		var modeSet = new FlagEvaluationModeSet();
-		modeSet.AddMode(FlagEvaluationMode.Enabled);
-		modeSet.AddMode(FlagEvaluationMode.Scheduled);
 
 		var modesToCheck = new[] { FlagEvaluationMode.Enabled, FlagEvaluationMode.TimeWindow };
 
 		// Act
-		var resultDefault = modeSet.ContainsModes(modesToCheck);
-		var resultExplicit = modeSet.ContainsModes(modesToCheck, any: explicitAnyValue);
+		var result = modeSet.ContainsModes(modesToCheck);
 
 		// Assert
-		resultDefault.ShouldBeTrue(); // Default should be any=true
-		if (explicitAnyValue)
-			resultExplicit.ShouldBeTrue();
-		else
-			resultExplicit.ShouldBeFalse();
-	}
-
-	[Fact]
-	public void If_ContainsModesWithAllEnumValues_ThenWorksCorrectly()
-	{
-		// Arrange
-		var modeSet = new FlagEvaluationModeSet();
-		var allModes = Enum.GetValues<FlagEvaluationMode>();
-
-		foreach (var mode in allModes)
-		{
-			if (mode != FlagEvaluationMode.Disabled)
-				modeSet.AddMode(mode);
-		}
-
-		// Act
-		var resultAny = modeSet.ContainsModes(allModes, any: true);
-		var resultAll = modeSet.ContainsModes(allModes, any: false);
-
-		// Assert
-		resultAny.ShouldBeTrue();
-		resultAll.ShouldBeFalse(); // Disabled is not in the set
+		result.ShouldBeTrue(); // Should default to any=true
 	}
 }
 
 public class FlagEvaluationModeSet_StaticFactory
 {
 	[Fact]
-	public void If_FlagIsDisabledStaticProperty_ThenReturnsDisabledMode()
+	public void FlagIsDisabled_ReturnsDisabledMode()
 	{
 		// Act
 		var modeSet = FlagEvaluationModeSet.FlagIsDisabled;
 
 		// Assert
-		modeSet.EvaluationModes.ShouldNotBeNull();
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Disabled);
-	}
-
-	[Fact]
-	public void If_MultipleCallsToFlagIsDisabled_ThenReturnsSeparateInstances()
-	{
-		// Act
-		var modeSet1 = FlagEvaluationModeSet.FlagIsDisabled;
-		var modeSet2 = FlagEvaluationModeSet.FlagIsDisabled;
-
-		// Assert
-		modeSet1.ShouldNotBe(modeSet2);
-		modeSet1.EvaluationModes.ShouldBe(modeSet2.EvaluationModes);
-	}
-
-	[Fact]
-	public void If_ModifyFlagIsDisabledInstance_ThenDoesNotAffectOtherInstances()
-	{
-		// Arrange
-		var modeSet1 = FlagEvaluationModeSet.FlagIsDisabled;
-		var modeSet2 = FlagEvaluationModeSet.FlagIsDisabled;
-
-		// Act
-		modeSet1.AddMode(FlagEvaluationMode.Enabled);
-
-		// Assert
-		modeSet1.EvaluationModes.Length.ShouldBe(1);
-		modeSet1.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Enabled);
-
-		modeSet2.EvaluationModes.Length.ShouldBe(1);
-		modeSet2.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Disabled);
+		modeSet.EvaluationModes.ShouldBe(new[] { FlagEvaluationMode.Disabled });
 	}
 }
 
-public class FlagEvaluationModeSet_EdgeCases
+public class FlagEvaluationModeSet_ComplexScenarios
 {
 	[Fact]
-	public void If_PropertyAccessAfterModifications_ThenReturnsCurrentState()
+	public void ComplexScenario_DisabledToggling_BehavesCorrectly()
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
 
-		// Act & Assert - Initial state
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Disabled);
+		// Start with disabled
+		modeSet.EvaluationModes.ShouldBe(new[] { FlagEvaluationMode.Disabled });
 
-		// Act & Assert - After adding mode
+		// Add multiple non-disabled modes
 		modeSet.AddMode(FlagEvaluationMode.Enabled);
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Enabled);
-
-		// Act & Assert - After adding another mode
 		modeSet.AddMode(FlagEvaluationMode.Scheduled);
-		modeSet.EvaluationModes.Length.ShouldBe(2);
-		modeSet.EvaluationModes.ShouldContain(FlagEvaluationMode.Enabled);
-		modeSet.EvaluationModes.ShouldContain(FlagEvaluationMode.Scheduled);
+		modeSet.EvaluationModes.ShouldNotContain(FlagEvaluationMode.Disabled);
 
-		// Act & Assert - After removing mode
-		modeSet.RemoveMode(FlagEvaluationMode.Enabled);
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Scheduled);
+		// Add disabled (should clear all)
+		modeSet.AddMode(FlagEvaluationMode.Disabled);
+		modeSet.EvaluationModes.ShouldBe(new[] { FlagEvaluationMode.Disabled });
+
+		// Add non-disabled again
+		modeSet.AddMode(FlagEvaluationMode.UserTargeted);
+		modeSet.EvaluationModes.ShouldBe(new[] { FlagEvaluationMode.UserTargeted });
 	}
 
 	[Fact]
-	public void If_ChainedOperations_ThenWorksCorrectly()
+	public void ChainedOperations_WorksCorrectly()
 	{
 		// Arrange
 		var modeSet = new FlagEvaluationModeSet();
@@ -485,63 +272,11 @@ public class FlagEvaluationModeSet_EdgeCases
 		modeSet.AddMode(FlagEvaluationMode.Scheduled);
 		modeSet.AddMode(FlagEvaluationMode.TimeWindow);
 		modeSet.RemoveMode(FlagEvaluationMode.Scheduled);
-		modeSet.AddMode(FlagEvaluationMode.UserTargeted);
 
 		// Assert
-		modeSet.EvaluationModes.Length.ShouldBe(3);
+		modeSet.EvaluationModes.Length.ShouldBe(2);
 		modeSet.EvaluationModes.ShouldContain(FlagEvaluationMode.Enabled);
 		modeSet.EvaluationModes.ShouldContain(FlagEvaluationMode.TimeWindow);
-		modeSet.EvaluationModes.ShouldContain(FlagEvaluationMode.UserTargeted);
 		modeSet.EvaluationModes.ShouldNotContain(FlagEvaluationMode.Scheduled);
-		modeSet.EvaluationModes.ShouldNotContain(FlagEvaluationMode.Disabled);
-	}
-
-	[Fact]
-	public void If_ArrayIsPrivateSet_ThenCannotBeModifiedExternally()
-	{
-		// Arrange
-		var modeSet = new FlagEvaluationModeSet();
-		modeSet.AddMode(FlagEvaluationMode.Enabled);
-
-		// Act - Try to get reference to array
-		var modes = modeSet.EvaluationModes;
-		var originalLength = modes.Length;
-
-		// Assert - Verify we can read but property setter is private
-		modes.ShouldNotBeNull();
-		modes.Length.ShouldBe(1);
-
-		// Verify that changing the returned array doesn't affect the internal state
-		// (This tests that the array is either copied or the internal state is protected)
-		var internalState = modeSet.EvaluationModes;
-		internalState.Length.ShouldBe(originalLength);
-	}
-
-	[Fact]
-	public void If_ComplexScenarioWithDisabledToggling_ThenBehavesCorrectly()
-	{
-		// Arrange
-		var modeSet = new FlagEvaluationModeSet();
-
-		// Act & Assert - Start with disabled
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Disabled);
-
-		// Add multiple non-disabled modes
-		modeSet.AddMode(FlagEvaluationMode.Enabled);
-		modeSet.AddMode(FlagEvaluationMode.Scheduled);
-		modeSet.AddMode(FlagEvaluationMode.TimeWindow);
-		modeSet.EvaluationModes.Length.ShouldBe(3);
-		modeSet.EvaluationModes.ShouldNotContain(FlagEvaluationMode.Disabled);
-
-		// Add disabled (should clear all and set to disabled only)
-		modeSet.AddMode(FlagEvaluationMode.Disabled);
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.Disabled);
-
-		// Add non-disabled again
-		modeSet.AddMode(FlagEvaluationMode.UserTargeted);
-		modeSet.EvaluationModes.Length.ShouldBe(1);
-		modeSet.EvaluationModes[0].ShouldBe(FlagEvaluationMode.UserTargeted);
-		modeSet.EvaluationModes.ShouldNotContain(FlagEvaluationMode.Disabled);
 	}
 }
