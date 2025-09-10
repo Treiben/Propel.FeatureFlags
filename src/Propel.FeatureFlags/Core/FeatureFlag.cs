@@ -11,7 +11,7 @@ public class FeatureFlag
 	public FlagLifecycle Lifecycle { get; set; } = FlagLifecycle.DefaultLifecycle;
 	public FlagAuditRecord AuditRecord { get; set; } = FlagAuditRecord.NewFlag();
 	// Targeting
-	public List<TargetingRule> TargetingRules { get; set; } = [];
+	public List<ITargetingRule> TargetingRules { get; set; } = [];
 	public FlagUserAccessControl UserAccess { get; set; } = FlagUserAccessControl.Unrestricted;
 	public FlagTenantAccessControl TenantAccess { get; set; } = FlagTenantAccessControl.Unrestricted;
 	// Variations for A/B testing
