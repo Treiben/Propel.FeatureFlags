@@ -638,7 +638,7 @@ export const apiService = {
 		evaluate: async (key: string, userId?: string, attributes?: Record<string, any>) => {
 			const params = new URLSearchParams();
 			if (userId) params.append('userId', userId);
-			if (attributes) params.append('attributes', JSON.stringify(attributes));
+			if (attributes) params.append('kvAttributes', JSON.stringify(attributes)); // Changed from 'attributes' to 'kvAttributes'
 
 			const query = params.toString();
 			const response = await apiRequest<Record<string, EvaluationResult>>(`/feature-flags/evaluate/${key}${query ? `?${query}` : ''}`);
