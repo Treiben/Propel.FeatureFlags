@@ -74,15 +74,12 @@ public sealed class UpdateTargetingRulesHandler(
 			else if (request.TargetingRules != null && request.TargetingRules.Count > 0)
 			{
 				// Replace existing targeting rules with new ones
-				flag.TargetingRules = request.TargetingRules
-					.Select(dto => new TargetingRule
-					{
-						Attribute = dto.Attribute,
-						Operator = dto.Operator,
-						Values = [.. dto.Values],
-						Variation = dto.Variation
-					})
-					.ToList();
+				flag.TargetingRules = [.. request.TargetingRules.Select(dto => 
+							TargetingRuleFactory.CreaterTargetingRule(
+															dto.Attribute, 
+															dto.Operator, 
+															dto.Values,
+															dto.Variation))];
 
 				// Add the TargetingRules evaluation mode
 				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TargetingRules);

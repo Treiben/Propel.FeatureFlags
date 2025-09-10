@@ -1,7 +1,5 @@
 ﻿using Propel.FeatureFlags.Core;
-using Propel.FlagsManagement.Api.Endpoints.Shared;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Propel.FlagsManagement.Api.Endpoints.Dto;
 
@@ -27,7 +25,7 @@ public record FeatureFlagResponse
 	public int TenantRolloutPercentage { get; set; }
 	public List<string> AllowedTenants { get; set; } = [];
 	public List<string> BlockedTenants { get; set; } = [];
-	public List<TargetingRule> TargetingRules { get; set; } = [];
+	public string TargetingRules { get; set; } = string.Empty;
 	public Dictionary<string, object> Variations { get; set; } = [];
 	public string DefaultVariation { get; set; } = string.Empty;
 	public Dictionary<string, string> Tags { get; set; } = [];
@@ -64,7 +62,7 @@ public record FeatureFlagResponse
 		TenantRolloutPercentage = flag.TenantAccess.RolloutPercentage;
 		AllowedTenants = flag.TenantAccess.AllowedTenants;
 		BlockedTenants = flag.TenantAccess.BlockedTenants;
-		TargetingRules = flag.TargetingRules;
+		TargetingRules = JsonSerializer.Serialize(flag.TargetingRules, JsonDefaults.JsonOptions);
 		Variations = flag.Variations.Values;
 		DefaultVariation = flag.Variations.DefaultVariation;
 		Tags = flag.Tags;
