@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { Target, Plus, Trash2, X } from 'lucide-react';
-import type { FeatureFlagDto, TargetingRule } from '../../services/apiService';
+import type { FeatureFlagDto, TargetingRule, TargetingRulesRequest } from '../../services/apiService';
 import { getTargetingOperators, getTargetingOperatorLabel, TargetingOperator } from '../../services/apiService';
 import { parseStatusComponents, hasValidTargetingRules } from '../../utils/flagHelpers';
 
@@ -57,7 +57,7 @@ export const TargetingRulesStatusIndicator: React.FC<TargetingRulesStatusIndicat
 
 interface TargetingRulesSectionProps {
 	flag: FeatureFlagDto;
-	onUpdateTargetingRules: (targetingRules?: TargetingRule[]) => Promise<void>;
+	onUpdateTargetingRules: (targetingRules?: TargetingRule[], removeTargetingRules?: boolean) => Promise<void>;
 	onClearTargetingRules: () => Promise<void>;
 	operationLoading: boolean;
 }
@@ -152,7 +152,13 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 				}));
 
 			console.log('Submitting targeting rules:', targetingRules);
-			await onUpdateTargetingRules(targetingRules);
+			
+			// Use the callback prop to update targeting rules
+			await onUpdateTargetingRules(
+				targetingRules.length > 0 ? targetingRules : undefined,
+				targetingRules.length === 0
+			);
+			
 			setEditingTargetingRules(false);
 		} catch (error) {
 			console.error('Failed to update targeting rules:', error);
@@ -161,6 +167,7 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 
 	const handleClearTargetingRules = async () => {
 		try {
+			// Use the callback prop to clear targeting rules
 			await onClearTargetingRules();
 		} catch (error) {
 			console.error('Failed to clear targeting rules:', error);
@@ -379,6 +386,18 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 										</div>
 									</div>
 								))}
+
+								{/* Debugging: Show processed targeting rules in a visible area */}
+								<div className="p-4 bg-gray-50 border border-gray-300 rounded-lg">
+									<h6 className="font-medium text-gray-800 mb-2">Debug Info</h6>
+									<div className="text-xs text-gray-600">
+										{targetingRulesForm.map((rule, index) => (
+											<div key={index} className="whitespace-pre-wrap">
+												{`Rule ${index + 1}: ${JSON.stringify(rule, null, 2)}`}
+											</div>
+										))}
+									</div>
+								</div>
 							</div>
 						)}
 					</div>
