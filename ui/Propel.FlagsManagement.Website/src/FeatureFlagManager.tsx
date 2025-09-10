@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AlertCircle, Filter, Plus, Settings, X } from 'lucide-react';
 import { useFeatureFlags } from './hooks/useFeatureFlags';
-import type { CreateFeatureFlagRequest, GetFlagsParams, ModifyFlagRequest, UserAccessRequest, TenantAccessRequest } from './services/apiService';
+import type { CreateFeatureFlagRequest, GetFlagsParams, ModifyFlagRequest, UserAccessRequest, TenantAccessRequest, TargetingRulesRequest, TargetingRule } from './services/apiService';
 import { getDayOfWeekNumber } from './utils/flagHelpers';
 
 // Import components
@@ -35,6 +35,7 @@ const FeatureFlagManager = () => {
         setTimeWindow,
         updateUserAccess,
         updateTenantAccess,
+        updateTargetingRules,
         loadFlagsPage,
         filterFlags,
         deleteFlag,
@@ -161,6 +162,21 @@ const FeatureFlagManager = () => {
             });
         } catch (error) {
             console.error('Failed to clear time window:', error);
+        }
+    };
+
+    const handleUpdateTargetingRulesWrapper = async (targetingRules?: TargetingRule[]) => {
+        if (!selectedFlag) return;
+        
+        try {
+            const request: TargetingRulesRequest = {
+                targetingRules: targetingRules && targetingRules.length > 0 ? targetingRules : undefined,
+                removeTargetingRules: !targetingRules || targetingRules.length === 0
+            };
+            
+            await updateTargetingRules(selectedFlag.key, request);
+        } catch (error) {
+            console.error('Failed to update targeting rules:', error);
         }
     };
 
@@ -393,6 +409,7 @@ const FeatureFlagManager = () => {
                                     if (percentage !== undefined) request.percentage = percentage;
                                     return updateTenantAccess(selectedFlag.key, request);
                                 }}
+                                onUpdateTargetingRules={handleUpdateTargetingRulesWrapper}
                                 onSchedule={handleScheduleFlag}
                                 onClearSchedule={handleClearSchedule}
                                 onUpdateTimeWindow={handleUpdateTimeWindow}

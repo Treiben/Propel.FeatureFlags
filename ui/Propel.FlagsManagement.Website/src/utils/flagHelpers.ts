@@ -315,8 +315,8 @@ export const getStatusColor = (flag: FeatureFlagDto): string => {
     if (components.hasTenantTargeting) {
         return 'bg-teal-100 text-teal-800';
     }
-    if (components.hasTargetingRules) { // Add this
-        return 'bg-emerald-100 text-emerald-800';
+    if (components.hasTargetingRules) { 
+        return 'bg-orange-100 text-orange-800';
     }
     return 'bg-gray-100 text-gray-800';
 };
