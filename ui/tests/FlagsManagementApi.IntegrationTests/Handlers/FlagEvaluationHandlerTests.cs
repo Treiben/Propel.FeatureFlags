@@ -127,13 +127,11 @@ public class FlagEvaluationHandler_WithAttributes(FlagsManagementApiFixture fixt
 		var flag = TestHelpers.CreateTestFlag("attr-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = 
 		[
-			new TargetingRule
-			{
-				Attribute = "region",
-				Operator = TargetingOperator.In,
-				Values = ["US", "CA"],
-				Variation = "region-specific"
-			}
+			TargetingRuleFactory
+			.CreaterTargetingRule(attribute: "region", 
+			op: TargetingOperator.In, 
+			values: ["US", "CA"], 
+			variation: "region-specific")
 		];
 		await fixture.Repository.CreateAsync(flag);
 

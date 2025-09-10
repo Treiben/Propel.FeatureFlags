@@ -29,9 +29,8 @@ public class FlagsManagementApiFixture : IAsyncLifetime
 	public ToggleFlagHandler ToggleFlagHandler { get; private set; } = null!;
 	public UpdateFlagHandler UpdateFlagHandler { get; private set; } = null!;
 	public UpdateScheduleHandler UpdateScheduleHandler { get; private set; } = null!;
-	public UpdateTenantRolloutPercentageHandler UpdateTenantRolloutPercentageHandler { get; private set; } = null!;
 	public UpdateTimeWindowHandler UpdateTimeWindowHandler { get; private set; } = null!;
-	public UpdateUserRolloutPercentageHandler UpdateUserRolloutPercentageHandler { get; private set; } = null!;
+	public UpdateTargetingRulesHandler UpdateTargetingRulesHandler { get; private set; } = null!;
 
 
 	public IFeatureFlagRepository Repository { get; private set; } = null!;
@@ -106,9 +105,8 @@ public class FlagsManagementApiFixture : IAsyncLifetime
 		ToggleFlagHandler = _serviceProvider.GetRequiredService<ToggleFlagHandler>();
 		UpdateFlagHandler = _serviceProvider.GetRequiredService<UpdateFlagHandler>();
 		UpdateScheduleHandler = _serviceProvider.GetRequiredService<UpdateScheduleHandler>();
-		UpdateTenantRolloutPercentageHandler = _serviceProvider.GetRequiredService<UpdateTenantRolloutPercentageHandler>();
 		UpdateTimeWindowHandler = _serviceProvider.GetRequiredService<UpdateTimeWindowHandler>();
-		UpdateUserRolloutPercentageHandler = _serviceProvider.GetRequiredService<UpdateUserRolloutPercentageHandler>();
+		UpdateTargetingRulesHandler = _serviceProvider.GetRequiredService<UpdateTargetingRulesHandler>();
 	}
 
 	public async Task DisposeAsync()

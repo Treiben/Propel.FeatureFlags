@@ -40,4 +40,8 @@
     <Using Include="Microsoft.AspNetCore.Http.HttpResults" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Validators\" />
+  </ItemGroup>
+
 </Project>
