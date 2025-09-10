@@ -12,48 +12,42 @@ export const TargetingRulesStatusIndicator: React.FC<TargetingRulesStatusIndicat
 	const components = parseStatusComponents(flag);
 	const targetingRulesCount = hasValidTargetingRules(flag.targetingRules) ? flag.targetingRules.length : 0;
 
-	// Debug logging
-	console.log('TargetingRulesStatusIndicator Debug:', {
-		hasTargetingRules: components.hasTargetingRules,
-		targetingRulesCount,
-		targetingRules: flag.targetingRules,
-		evaluationModes: flag.evaluationModes
-	});
-
 	if (!components.hasTargetingRules && targetingRulesCount === 0) return null;
 
+	// Get unique attributes from the rules for display
+	const uniqueAttributes = hasValidTargetingRules(flag.targetingRules) 
+		? [...new Set(flag.targetingRules.map(rule => rule?.attribute).filter(attr => attr))]
+		: [];
+
 	return (
-		<div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+		<div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
 			<div className="flex items-center gap-2 mb-3">
-				<Target className="w-4 h-4 text-emerald-600" />
-				<h4 className="font-medium text-emerald-900">Custom Targeting Rules</h4>
+				<Target className="w-4 h-4 text-orange-600" />
+				<h4 className="font-medium text-orange-900">Custom Targeting Rules</h4>
 			</div>
 
 			<div className="space-y-2">
 				<div className="flex items-center gap-2 text-sm">
 					<span className="font-medium">Active Rules:</span>
-					<span className="text-emerald-700 font-semibold">{targetingRulesCount} rule{targetingRulesCount !== 1 ? 's' : ''}</span>
+					<span className="text-orange-700 font-semibold">{targetingRulesCount} rule{targetingRulesCount !== 1 ? 's' : ''}</span>
 				</div>
 				
-				{/* Show preview of first few rules - with null safety */}
-				{hasValidTargetingRules(flag.targetingRules) && flag.targetingRules.slice(0, 2).map((rule, index) => (
-					<div key={index} className="text-xs text-emerald-700 bg-emerald-100 rounded px-2 py-1">
-						<span className="font-mono">{rule?.attribute || 'Unknown'}</span>
-						<span className="mx-1">{getTargetingOperatorLabel(rule?.operator).toLowerCase()}</span>
-						<span className="font-mono">
-							{Array.isArray(rule?.values) ? rule.values.slice(0, 2).join(', ') : 'No values'}
-						</span>
-						{Array.isArray(rule?.values) && rule.values.length > 2 && (
-							<span> (+{rule.values.length - 2} more)</span>
-						)}
-						<span className="mx-1">→</span>
-						<span className="font-semibold">{rule?.variation || 'on'}</span>
-					</div>
-				))}
-				
-				{targetingRulesCount > 2 && (
-					<div className="text-xs text-emerald-600 italic">
-						...and {targetingRulesCount - 2} more rule{targetingRulesCount - 2 !== 1 ? 's' : ''}
+				{/* Show rule attributes instead of full rule details */}
+				{uniqueAttributes.length > 0 && (
+					<div className="flex items-center gap-2 text-sm">
+						<span className="font-medium">Targeting:</span>
+						<div className="flex flex-wrap gap-1">
+							{uniqueAttributes.slice(0, 3).map((attribute, index) => (
+								<span key={index} className="text-xs text-orange-700 bg-orange-100 rounded px-2 py-1 font-mono">
+									{attribute}
+								</span>
+							))}
+							{uniqueAttributes.length > 3 && (
+								<span className="text-xs text-orange-600 italic">
+									+{uniqueAttributes.length - 3} more
+								</span>
+							)}
+						</div>
 					</div>
 				)}
 			</div>
@@ -240,7 +234,7 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 					<button
 						onClick={() => setEditingTargetingRules(true)}
 						disabled={operationLoading}
-						className="text-emerald-600 hover:text-emerald-800 text-sm flex items-center gap-1 disabled:opacity-50"
+						className="text-orange-600 hover:text-orange-800 text-sm flex items-center gap-1 disabled:opacity-50"
 						data-testid="manage-targeting-rules-button"
 					>
 						<Target className="w-4 h-4" />
@@ -262,14 +256,14 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 			</div>
 
 			{editingTargetingRules ? (
-				<div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+				<div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
 					<div className="space-y-4">
 						<div className="flex justify-between items-center">
-							<h5 className="font-medium text-emerald-800">Targeting Rules Configuration</h5>
+							<h5 className="font-medium text-orange-800">Targeting Rules Configuration</h5>
 							<button
 								onClick={addRule}
 								disabled={operationLoading}
-								className="text-emerald-600 hover:text-emerald-800 text-sm flex items-center gap-1 disabled:opacity-50"
+								className="text-orange-600 hover:text-orange-800 text-sm flex items-center gap-1 disabled:opacity-50"
 							>
 								<Plus className="w-4 h-4" />
 								Add Rule
@@ -277,7 +271,7 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 						</div>
 						
 						{targetingRulesForm.length === 0 ? (
-							<div className="text-center py-8 text-emerald-600">
+							<div className="text-center py-8 text-orange-600">
 								<Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
 								<p className="text-sm">No targeting rules configured</p>
 								<p className="text-xs mt-1">Click "Add Rule" to create your first targeting rule</p>
@@ -285,9 +279,9 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 						) : (
 							<div className="space-y-4">
 								{targetingRulesForm.map((rule, ruleIndex) => (
-									<div key={ruleIndex} className="border border-emerald-300 rounded-lg p-3 bg-white">
+									<div key={ruleIndex} className="border border-orange-300 rounded-lg p-3 bg-white">
 										<div className="flex justify-between items-start mb-3">
-											<span className="text-sm font-medium text-emerald-700">Rule #{ruleIndex + 1}</span>
+											<span className="text-sm font-medium text-orange-700">Rule #{ruleIndex + 1}</span>
 											<button
 												onClick={() => removeRule(ruleIndex)}
 												disabled={operationLoading}
@@ -301,24 +295,24 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 										<div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
 											{/* Attribute */}
 											<div>
-												<label className="block text-xs font-medium text-emerald-700 mb-1">Attribute</label>
+												<label className="block text-xs font-medium text-orange-700 mb-1">Attribute</label>
 												<input
 													type="text"
 													value={rule?.attribute || ''}
 													onChange={(e) => updateRule(ruleIndex, { attribute: e.target.value })}
 													placeholder="userId, tenantId, country..."
-													className="w-full border border-emerald-300 rounded px-2 py-1 text-xs"
+													className="w-full border border-orange-300 rounded px-2 py-1 text-xs"
 													disabled={operationLoading}
 												/>
 											</div>
 											
 											{/* Operator */}
 											<div>
-												<label className="block text-xs font-medium text-emerald-700 mb-1">Operator</label>
+												<label className="block text-xs font-medium text-orange-700 mb-1">Operator</label>
 												<select
 													value={rule?.operator ?? TargetingOperator.Equals}
 													onChange={(e) => updateRule(ruleIndex, { operator: parseInt(e.target.value) as TargetingOperator })}
-													className="w-full border border-emerald-300 rounded px-2 py-1 text-xs"
+													className="w-full border border-orange-300 rounded px-2 py-1 text-xs"
 													disabled={operationLoading}
 												>
 													{targetingOperators.map(op => (
@@ -331,13 +325,13 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 											
 											{/* Variation */}
 											<div>
-												<label className="block text-xs font-medium text-emerald-700 mb-1">Variation</label>
+												<label className="block text-xs font-medium text-orange-700 mb-1">Variation</label>
 												<input
 													type="text"
 													value={rule?.variation || ''}
 													onChange={(e) => updateRule(ruleIndex, { variation: e.target.value })}
 													placeholder="on, off, v1, v2..."
-													className="w-full border border-emerald-300 rounded px-2 py-1 text-xs"
+													className="w-full border border-orange-300 rounded px-2 py-1 text-xs"
 													disabled={operationLoading}
 												/>
 											</div>
@@ -347,7 +341,7 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 												<button
 													onClick={() => addValue(ruleIndex)}
 													disabled={operationLoading}
-													className="w-full px-2 py-1 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-1"
+													className="w-full px-2 py-1 text-xs bg-orange-600 text-white rounded hover:bg-orange-700 disabled:opacity-50 flex items-center justify-center gap-1"
 												>
 													<Plus className="w-3 h-3" />
 													Add Value
@@ -357,7 +351,7 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 										
 										{/* Values */}
 										<div>
-											<label className="block text-xs font-medium text-emerald-700 mb-1">Values</label>
+											<label className="block text-xs font-medium text-orange-700 mb-1">Values</label>
 											<div className="grid grid-cols-1 md:grid-cols-2 gap-2">
 												{Array.isArray(rule?.values) && rule.values.map((value, valueIndex) => (
 													<div key={valueIndex} className="flex gap-1">
@@ -366,7 +360,7 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 															value={value || ''}
 															onChange={(e) => updateValue(ruleIndex, valueIndex, e.target.value)}
 															placeholder="Enter value..."
-															className="flex-1 border border-emerald-300 rounded px-2 py-1 text-xs"
+															className="flex-1 border border-orange-300 rounded px-2 py-1 text-xs"
 															disabled={operationLoading}
 														/>
 														{rule.values.length > 1 && (
@@ -393,7 +387,7 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 						<button
 							onClick={handleTargetingRulesSubmit}
 							disabled={operationLoading}
-							className="px-3 py-1 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-50"
+							className="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700 disabled:opacity-50"
 							data-testid="save-targeting-rules-button"
 						>
 							{operationLoading ? 'Saving...' : 'Save Targeting Rules'}
