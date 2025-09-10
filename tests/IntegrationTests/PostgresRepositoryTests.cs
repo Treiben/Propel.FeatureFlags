@@ -30,13 +30,12 @@ public class GetAsync_WhenFlagExists(PostgresRepoTestsFixture fixture) : IClassF
 		var flag = TestHelpers.CreateTestFlag("complex-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules =
 		[
-			new TargetingRule
-			{
-				Attribute = "region",
-				Operator = TargetingOperator.In,
-				Values = ["US", "CA"],
-				Variation = "region-specific"
-			}
+			TargetingRuleFactory.CreaterTargetingRule(
+				attribute: "region",
+				op: TargetingOperator.In,
+				values: ["US", "CA"],
+				variation: "region-specific"
+			)
 		];
 		flag.UserAccess = new FlagUserAccessControl(allowedUsers: ["user1", "user2"]);
 		flag.Tags = new Dictionary<string, string> { { "team", "platform" }, { "env", "test" } };
@@ -48,10 +47,14 @@ public class GetAsync_WhenFlagExists(PostgresRepoTestsFixture fixture) : IClassF
 
 		// Assert
 		result.ShouldNotBeNull();
+
 		result.TargetingRules.Count.ShouldBe(1);
-		result.TargetingRules[0].Attribute.ShouldBe("region");
-		result.TargetingRules[0].Values.ShouldContain("US");
+		result.TargetingRules.ShouldBeOfType<List<ITargetingRule>>();
 		result.Tags.ShouldContainKeyAndValue("team", "platform");
+
+		var stringRule = (StringTargetingRule)result.TargetingRules[0];
+		stringRule.Attribute.ShouldBe("region");
+		stringRule.Values.ShouldContain("US");
 	}
 }
 
@@ -355,7 +358,9 @@ public class UpdateAsync_WithExistingFlag(PostgresRepoTestsFixture fixture) : IC
 
 		// Assert
 		result.ShouldBe(flag);
+
 		var retrieved = await fixture.Repository.GetAsync("update-test");
+
 		retrieved.ShouldNotBeNull();
 		retrieved.Name.ShouldBe("Updated Name");
 		retrieved.Description.ShouldBe("Updated Description");

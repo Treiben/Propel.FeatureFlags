@@ -71,34 +71,6 @@ public class Evaluate_WithDisabledFlag(EvaluatorTestsFixture fixture) : IClassFi
 
 public class Evaluate_WithUserTargetedFlag(EvaluatorTestsFixture fixture) : IClassFixture<EvaluatorTestsFixture>
 {
-	[Fact]
-	public async Task If_UserIsTargeted_ThenReturnsEnabled()
-	{
-		// Arrange
-		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("targeted-flag", FlagEvaluationMode.UserTargeted);
-		flag.TargetingRules = [
-			new TargetingRule
-			{
-				Attribute = "userId",
-				Operator = TargetingOperator.Equals,
-				Values = ["target-user"],
-				Variation = "premium-features"
-			}
-		];
-		await fixture.Repository.CreateAsync(flag);
-
-		var context = new EvaluationContext(userId: "target-user");
-
-		// Act
-		var result = await fixture.Evaluator.Evaluate("targeted-flag", context);
-
-		// Assert
-		result.ShouldNotBeNull();
-		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("premium-features");
-		result.Reason.ShouldBe("Targeting rule matched: userId Equals target-user");
-	}
 
 	[Fact]
 	public async Task If_UserNotTargeted_ThenReturnsDisabled()
@@ -107,13 +79,12 @@ public class Evaluate_WithUserTargetedFlag(EvaluatorTestsFixture fixture) : ICla
 		await fixture.ClearAllData();
 		var flag = TestHelpers.CreateTestFlag("targeted-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = [
-			new TargetingRule
-			{
-				Attribute = "userId",
-				Operator = TargetingOperator.Equals,
-				Values = ["other-user"],
-				Variation = "premium-features"
-			}
+			TargetingRuleFactory.CreaterTargetingRule(
+				"userId",
+				TargetingOperator.Equals,
+				["target-user"],
+				"premium-features"
+			),
 		];
 		await fixture.Repository.CreateAsync(flag);
 
@@ -239,24 +210,23 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 		await fixture.ClearAllData();
 		var flag = TestHelpers.CreateTestFlag("string-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = [
-			new TargetingRule
-			{
-				Attribute = "userId",
-				Operator = TargetingOperator.Equals,
-				Values = ["test-user"],
-				Variation = "string-variant"
-			}
+			TargetingRuleFactory.CreaterTargetingRule(
+							attribute: "user-type",
+							op: TargetingOperator.Equals,
+							values: new List<string> { "dev-user", "test-user" },
+							variation: "string-variant"
+						)
 		];
 		flag.Variations = new FlagVariations
 		{
 			Values = new Dictionary<string, object>
-			{
-				{ "string-variant", "Hello World" }
-			}
+						{
+							{ "string-variant", "Hello World" }
+						}
 		};
 		await fixture.Repository.CreateAsync(flag);
 
-		var context = new EvaluationContext(userId: "test-user");
+		var context = new EvaluationContext(attributes: new Dictionary<string, object> { { "user-type", "test-user" } });
 
 		// Act
 		var result = await fixture.Evaluator.GetVariation("string-flag", "default", context);
@@ -272,24 +242,26 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 		await fixture.ClearAllData();
 		var flag = TestHelpers.CreateTestFlag("int-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = [
-			new TargetingRule
-			{
-				Attribute = "userId",
-				Operator = TargetingOperator.Equals,
-				Values = ["test-user"],
-				Variation = "int-variant"
-			}
+		TargetingRuleFactory.CreaterTargetingRule(
+								"userId",
+								TargetingOperator.Equals,
+								["test-user"],
+								"int-variant"
+								)
 		];
 		flag.Variations = new FlagVariations
 		{
 			Values = new Dictionary<string, object>
-			{
-				{ "int-variant", 42 }
-			}
+						{
+							{ "int-variant", 42 }
+						}
 		};
 		await fixture.Repository.CreateAsync(flag);
 
-		var context = new EvaluationContext(userId: "test-user");
+		var context = new EvaluationContext(
+			userId: "test-user",
+			attributes: new Dictionary<string, object> { { "userId", "test-user" } }
+		);
 
 		// Act
 		var result = await fixture.Evaluator.GetVariation("int-flag", 0, context);

@@ -424,28 +424,6 @@ public static class NpgsqlDataReaderExtensions
 		var json = await reader.GetDataAsync<string>(columnName);
 		return JsonSerializer.Deserialize<T>(json, JsonDefaults.JsonOptions) ?? default!;
 	}
-	public static async Task<List<ITargetingRule>> DeserializeTargetingRules(this NpgsqlDataReader reader, string columnName)
-	{
-		var ordinal = reader.GetOrdinal(columnName);
-		if (await reader.IsDBNullAsync(ordinal))
-			return default!;
-
-		var json = await reader.GetDataAsync<string>(columnName);
-
-		try
-		{
-			var deserialized = JsonSerializer.Deserialize<List<ITargetingRule<double>>>(json, JsonDefaults.JsonOptions);
-			if (deserialized != null)
-				return deserialized.Cast<ITargetingRule>().ToList();
-		}
-		catch (JsonException)
-		{
-			var deserialized = JsonSerializer.Deserialize<List<ITargetingRule<string>>>(json, JsonDefaults.JsonOptions) ?? default!;
-			if (deserialized != null)
-				return deserialized.Cast<ITargetingRule>().ToList();
-		}
-		return default!;
-	}
 
 	public static async Task<T> GetDataAsync<T>(this NpgsqlDataReader reader, string columnName)
 	{
@@ -512,7 +490,7 @@ public static class NpgsqlDataReaderExtensions
 			UserAccess = userAccess,
 			TenantAccess = tenantAccess,
 			Variations = variations,
-			TargetingRules = await reader.DeserializeTargetingRules("targeting_rules"),
+			TargetingRules = await reader.Deserialize<List<ITargetingRule>>("targeting_rules"),
 			Tags = await reader.Deserialize<Dictionary<string, string>>("tags"),
 
 		};

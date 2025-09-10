@@ -40,13 +40,18 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		var flag = TestHelpers.CreateTestFlag("complex-flag", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules =
 		[
-			new TargetingRule
-			{
-				Attribute = "region",
-				Operator = TargetingOperator.In,
-				Values = ["US", "CA", "UK"],
-				Variation = "region-specific"
-			}
+			TargetingRuleFactory.CreaterTargetingRule(
+				"region",
+				TargetingOperator.In,
+				["US", "CA", "UK"],
+				"region-specific"
+			),
+			TargetingRuleFactory.CreaterTargetingRule(
+				"age",
+				TargetingOperator.GreaterThan,
+				["18", "21"],
+				"adult"
+			)
 		];
 		flag.UserAccess = new FlagUserAccessControl(allowedUsers: ["admin1", "admin2"]);
 		flag.Variations = new FlagVariations
@@ -67,12 +72,21 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 
 		// Assert
 		var retrieved = await fixture.Cache.GetAsync("complex-flag");
+
 		retrieved.ShouldNotBeNull();
-		retrieved.TargetingRules.Count.ShouldBe(1);
-		retrieved.TargetingRules[0].Attribute.ShouldBe("region");
-		retrieved.TargetingRules[0].Values.ShouldContain("US");
-		retrieved.UserAccess.IsUserExplicitlyManaged("admin1").ShouldBeTrue(); 
+		retrieved.UserAccess.IsUserExplicitlyManaged("admin1").ShouldBeTrue();
 		retrieved.Tags.ShouldContainKeyAndValue("team", "platform");
+
+		retrieved.TargetingRules.ShouldBeOfType<List<ITargetingRule>>();
+		retrieved.TargetingRules.Count.ShouldBe(2);
+
+		var stringRule = retrieved.TargetingRules[0] as StringTargetingRule;
+		stringRule!.Attribute.ShouldBe("region");
+		stringRule.Values.ShouldContain("UK");
+
+		var numericRule = retrieved.TargetingRules[1] as NumericTargetingRule;
+		numericRule!.Attribute.ShouldBe("age");
+		numericRule.Values.ShouldContain(21);
 	}
 
 	[Fact]

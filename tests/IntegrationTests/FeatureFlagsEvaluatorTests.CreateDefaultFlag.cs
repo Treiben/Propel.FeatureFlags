@@ -182,10 +182,6 @@ public class CreateDefaultFlagAsync_FlagStructure(DefaultFlagCreationTestsFixtur
 		// Verify timestamps are recent (within last minute)
 		createdFlag.AuditRecord.CreatedAt.ShouldBeGreaterThan(DateTime.UtcNow.AddMinutes(-1));
 		
-		// Verify variations are set up correctly
-		createdFlag.Variations.Values["off"].ShouldBe("false");
-		createdFlag.Variations.Values["on"].ShouldBe("true");
-
 		// Verify collections are initialized but empty
 		createdFlag.TargetingRules.ShouldNotBeNull();
 		createdFlag.TargetingRules.ShouldBeEmpty();

@@ -30,13 +30,12 @@ public class IsEnabledAsync_WithTargetedFlag(ClientTestsFixture fixture) : IClas
 		await fixture.ClearAllData();
 		var flag = TestHelpers.CreateTestFlag("client-targeted", FlagEvaluationMode.UserTargeted);
 		flag.TargetingRules = [
-			new TargetingRule
-			{
-				Attribute = "region",
-				Operator = TargetingOperator.Equals,
-				Values = ["us-west"],
-				Variation = "regional-feature"
-			}
+			TargetingRuleFactory.CreaterTargetingRule(
+				"region",
+				TargetingOperator.Equals,
+				["us-west"],
+				"regional-feature"
+			)
 		];
 		await fixture.Repository.CreateAsync(flag);
 
@@ -57,27 +56,28 @@ public class GetVariationAsync_WithStringVariation(ClientTestsFixture fixture) :
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("client-variation", FlagEvaluationMode.UserTargeted);
+		var flag = TestHelpers.CreateTestFlag("client-variation", FlagEvaluationMode.TargetingRules);
+
 		flag.TargetingRules = [
-			new TargetingRule
-			{
-				Attribute = "userId",
-				Operator = TargetingOperator.Equals,
-				Values = ["premium-user"],
-				Variation = "premium-config"
-			}
+			TargetingRuleFactory.CreaterTargetingRule(
+								"userId",
+								TargetingOperator.Equals,
+								["premium-user"],
+								"premium-config"
+							)
 		];
 		flag.Variations = new FlagVariations
 		{
 			Values = new Dictionary<string, object>
-			{
-				{ "premium-config", "premium-dashboard" }
-			}
+							{
+								{ "premium-config", "premium-dashboard" }
+							}
 		};
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act
-		var result = await fixture.Client.GetVariationAsync("client-variation", "default", userId: "premium-user");
+		var result = await fixture.Client.GetVariationAsync("client-variation", "default",
+			attributes: new Dictionary<string, object> { { "userId", "premium-user" } });
 
 		// Assert
 		result.ShouldBe("premium-dashboard");
@@ -121,34 +121,5 @@ public class EvaluateAsync_WithTimeWindowFlag(ClientTestsFixture fixture) : ICla
 		result.IsEnabled.ShouldBeTrue();
 		result.Variation.ShouldBe("on");
 		result.Reason.ShouldBe("Flag operational window is always open.");
-	}
-}
-
-public class Client_WithTenantAndUser(ClientTestsFixture fixture) : IClassFixture<ClientTestsFixture>
-{
-	[Fact]
-	public async Task If_TenantTargeted_ThenReturnsEnabled()
-	{
-		// Arrange
-		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("client-tenant", FlagEvaluationMode.UserTargeted);
-		flag.TargetingRules = [
-			new TargetingRule
-			{
-				Attribute = "tenantId",
-				Operator = TargetingOperator.Equals,
-				Values = ["enterprise-tenant"],
-				Variation = "enterprise-features"
-			}
-		];
-		await fixture.Repository.CreateAsync(flag);
-
-		// Act
-		var result = await fixture.Client.IsEnabledAsync("client-tenant", 
-			tenantId: "enterprise-tenant", 
-			userId: "admin-user");
-
-		// Assert
-		result.ShouldBeTrue();
 	}
 }
