@@ -35,10 +35,22 @@ public sealed class FlagEvaluationManager : IFlagEvaluationManager
 			}
 		}
 
+		var selectedVariation = result?.Variation ?? flag.Variations.DefaultVariation ?? "on";
+
+		if (!string.IsNullOrWhiteSpace(context.UserId))
+		{
+			selectedVariation = flag.Variations.SelectVariationFor(flag.Key, context.UserId!);
+		}
+
+		if (!string.IsNullOrWhiteSpace(context.TenantId))
+		{
+			selectedVariation = flag.Variations.SelectVariationFor(flag.Key, context.TenantId!);
+		}	
+
 		if (processingHandlers.Count > 1)
 		{
 			var reason = $"All [{flag.ActiveEvaluationModes}] conditions met for feature flag activation";
-			return new EvaluationResult(isEnabled: true, variation: result!.Variation ?? "on", reason: reason);
+			return new EvaluationResult(isEnabled: true, variation: selectedVariation, reason: reason);
 		}
 
 		return result;

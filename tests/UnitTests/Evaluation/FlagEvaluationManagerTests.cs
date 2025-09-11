@@ -175,7 +175,7 @@ public class FlagEvaluationManager_ProcessEvaluation_MultipleHandlers
 			ActiveEvaluationModes = new EvaluationModes(),
 			Variations = new Variations { DefaultVariation = "all-passed" }
 		};
-		var context = new EvaluationContext();
+		var context = new EvaluationContext(tenantId: "tenant1", userId: "user1");
 
 		// Act
 		var result = await manager.ProcessEvaluation(flag, context);
