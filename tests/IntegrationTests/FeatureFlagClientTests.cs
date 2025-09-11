@@ -10,7 +10,7 @@ public class IsEnabledAsync_WithEnabledFlag(ClientTestsFixture fixture) : IClass
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("client-enabled", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("client-enabled", EvaluationMode.Enabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -28,7 +28,7 @@ public class IsEnabledAsync_WithTargetedFlag(ClientTestsFixture fixture) : IClas
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("client-targeted", FlagEvaluationMode.UserTargeted);
+		var flag = TestHelpers.CreateTestFlag("client-targeted", EvaluationMode.UserTargeted);
 		flag.TargetingRules = [
 			TargetingRuleFactory.CreaterTargetingRule(
 				"region",
@@ -56,7 +56,7 @@ public class GetVariationAsync_WithStringVariation(ClientTestsFixture fixture) :
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("client-variation", FlagEvaluationMode.TargetingRules);
+		var flag = TestHelpers.CreateTestFlag("client-variation", EvaluationMode.TargetingRules);
 
 		flag.TargetingRules = [
 			TargetingRuleFactory.CreaterTargetingRule(
@@ -66,7 +66,7 @@ public class GetVariationAsync_WithStringVariation(ClientTestsFixture fixture) :
 								"premium-config"
 							)
 		];
-		flag.Variations = new FlagVariations
+		flag.Variations = new Variations
 		{
 			Values = new Dictionary<string, object>
 							{
@@ -91,7 +91,7 @@ public class GetVariationAsync_WithDisabledFlag(ClientTestsFixture fixture) : IC
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("client-disabled", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("client-disabled", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -109,8 +109,8 @@ public class EvaluateAsync_WithTimeWindowFlag(ClientTestsFixture fixture) : ICla
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("client-window", FlagEvaluationMode.TimeWindow);
-		flag.OperationalWindow = FlagOperationalWindow.AlwaysOpen;
+		var flag = TestHelpers.CreateTestFlag("client-window", EvaluationMode.TimeWindow);
+		flag.OperationalWindow = OperationalWindow.AlwaysOpen;
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act

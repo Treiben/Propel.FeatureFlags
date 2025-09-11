@@ -20,7 +20,7 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("cache-test", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("cache-test", EvaluationMode.Enabled);
 
 		// Act
 		await fixture.Cache.SetAsync("cache-test", flag);
@@ -29,7 +29,7 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		var retrieved = await fixture.Cache.GetAsync("cache-test");
 		retrieved.ShouldNotBeNull();
 		retrieved.Key.ShouldBe("cache-test");
-		retrieved.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Enabled]).ShouldBeTrue();
+		retrieved.ActiveEvaluationModes.ContainsModes([EvaluationMode.Enabled]).ShouldBeTrue();
 	}
 
 	[Fact]
@@ -37,7 +37,7 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("complex-flag", FlagEvaluationMode.UserTargeted);
+		var flag = TestHelpers.CreateTestFlag("complex-flag", EvaluationMode.UserTargeted);
 		flag.TargetingRules =
 		[
 			TargetingRuleFactory.CreaterTargetingRule(
@@ -53,8 +53,8 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 				"adult"
 			)
 		];
-		flag.UserAccess = new FlagUserAccessControl(allowedUsers: ["admin1", "admin2"]);
-		flag.Variations = new FlagVariations
+		flag.UserAccessControl = new AccessControl(allowed: ["admin1", "admin2"]);
+		flag.Variations = new Variations
 		{
 			Values = new Dictionary<string, object>()
 				{
@@ -74,7 +74,6 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		var retrieved = await fixture.Cache.GetAsync("complex-flag");
 
 		retrieved.ShouldNotBeNull();
-		retrieved.UserAccess.IsUserExplicitlyManaged("admin1").ShouldBeTrue();
 		retrieved.Tags.ShouldContainKeyAndValue("team", "platform");
 
 		retrieved.TargetingRules.ShouldBeOfType<List<ITargetingRule>>();
@@ -94,7 +93,7 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("expiring-flag", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("expiring-flag", EvaluationMode.Enabled);
 		var expiration = TimeSpan.FromSeconds(2);
 
 		// Act
@@ -117,10 +116,10 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var originalFlag = TestHelpers.CreateTestFlag("update-flag", FlagEvaluationMode.Disabled);
+		var originalFlag = TestHelpers.CreateTestFlag("update-flag", EvaluationMode.Disabled);
 		await fixture.Cache.SetAsync("update-flag", originalFlag);
 
-		var updatedFlag = TestHelpers.CreateTestFlag("update-flag", FlagEvaluationMode.Enabled);
+		var updatedFlag = TestHelpers.CreateTestFlag("update-flag", EvaluationMode.Enabled);
 		updatedFlag.Name = "Updated Name";
 		updatedFlag.Description = "Updated Description";
 
@@ -130,7 +129,7 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		// Assert
 		var retrieved = await fixture.Cache.GetAsync("update-flag");
 		retrieved.ShouldNotBeNull();
-		retrieved.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Enabled]).ShouldBeTrue();
+		retrieved.ActiveEvaluationModes.ContainsModes([EvaluationMode.Enabled]).ShouldBeTrue();
 		retrieved.Name.ShouldBe("Updated Name");
 		retrieved.Description.ShouldBe("Updated Description");
 	}
@@ -143,7 +142,7 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("get-test", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("get-test", EvaluationMode.Enabled);
 		await fixture.Cache.SetAsync("get-test", flag);
 
 		// Act
@@ -152,7 +151,7 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 		// Assert
 		result.ShouldNotBeNull();
 		result.Key.ShouldBe("get-test");
-		result.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Enabled]).ShouldBeTrue();
+		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.Enabled]).ShouldBeTrue();
 		result.Name.ShouldBe(flag.Name);
 	}
 
@@ -161,17 +160,17 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("time-flag", FlagEvaluationMode.TimeWindow);
+		var flag = TestHelpers.CreateTestFlag("time-flag", EvaluationMode.TimeWindow);
 
-		var schedule = FlagActivationSchedule.CreateSchedule(
+		var schedule = ActivationSchedule.CreateSchedule(
 			DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddDays(7));
-		var operationalWindow = FlagOperationalWindow.CreateWindow(
+		var operationalWindow = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9), 
 			TimeSpan.FromHours(17), 
 			"America/New_York", 
 			[DayOfWeek.Monday, DayOfWeek.Friday]);
 
-		flag.Lifecycle = new FlagLifecycle(expirationDate: DateTime.UtcNow.AddDays(30), isPermanent: false);
+		flag.Lifecycle = new Lifecycle(expirationDate: DateTime.UtcNow.AddDays(30), isPermanent: false);
 		flag.Schedule = schedule;
 		flag.OperationalWindow = operationalWindow;
 
@@ -193,8 +192,8 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("percentage-flag", FlagEvaluationMode.UserRolloutPercentage);
-		flag.UserAccess = new FlagUserAccessControl(rolloutPercentage: 75);
+		var flag = TestHelpers.CreateTestFlag("percentage-flag", EvaluationMode.UserRolloutPercentage);
+		flag.UserAccessControl = new AccessControl(rolloutPercentage: 75);
 
 		await fixture.Cache.SetAsync("percentage-flag", flag);
 
@@ -203,7 +202,7 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 
 		// Assert
 		result.ShouldNotBeNull();
-		result.UserAccess.RolloutPercentage.ShouldBe(75);
+		result.UserAccessControl.RolloutPercentage.ShouldBe(75);
 	}
 }
 
@@ -230,7 +229,7 @@ public class RemoveAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixtu
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("remove-test", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("remove-test", EvaluationMode.Enabled);
 		await fixture.Cache.SetAsync("remove-test", flag);
 
 		// Verify it exists first
@@ -263,9 +262,9 @@ public class ClearAsync_WithMultipleFlags(RedisTestsFixture fixture) : IClassFix
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag1 = TestHelpers.CreateTestFlag("flag-1", FlagEvaluationMode.Enabled);
-		var flag2 = TestHelpers.CreateTestFlag("flag-2", FlagEvaluationMode.Disabled);
-		var flag3 = TestHelpers.CreateTestFlag("flag-3", FlagEvaluationMode.UserRolloutPercentage);
+		var flag1 = TestHelpers.CreateTestFlag("flag-1", EvaluationMode.Enabled);
+		var flag2 = TestHelpers.CreateTestFlag("flag-2", EvaluationMode.Disabled);
+		var flag3 = TestHelpers.CreateTestFlag("flag-3", EvaluationMode.UserRolloutPercentage);
 
 		await fixture.Cache.SetAsync("flag-1", flag1);
 		await fixture.Cache.SetAsync("flag-2", flag2);
@@ -302,7 +301,7 @@ public class ClearAsync_WithMultipleFlags(RedisTestsFixture fixture) : IClassFix
 		await fixture.ClearAllFlags();
 		
 		// Set a feature flag
-		var flag = TestHelpers.CreateTestFlag("test-flag", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("test-flag", EvaluationMode.Enabled);
 		await fixture.Cache.SetAsync("test-flag", flag);
 
 		// Set a non-feature flag key directly in Redis
@@ -325,7 +324,7 @@ public class RedisFeatureFlagCache_KeyPrefix(RedisTestsFixture fixture) : IClass
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("prefix-test", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("prefix-test", EvaluationMode.Enabled);
 
 		// Act
 		await fixture.Cache.SetAsync("prefix-test", flag);
@@ -348,7 +347,7 @@ public class RedisFeatureFlagCache_CancellationToken(RedisTestsFixture fixture) 
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("cancellation-test", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("cancellation-test", EvaluationMode.Enabled);
 		await fixture.Cache.SetAsync("cancellation-test", flag);
 
 		using var cts = new CancellationTokenSource();

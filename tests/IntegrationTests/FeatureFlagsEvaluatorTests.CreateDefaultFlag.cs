@@ -39,8 +39,8 @@ public class EvaluateAsync_WithAutoCreatedFlag(DefaultFlagCreationTestsFixture f
 		createdFlag.Key.ShouldBe("auto-created-flag");
 		createdFlag.Name.ShouldBe("auto-created-flag");
 		createdFlag.Description.ShouldBe("Auto-created flag for auto-created-flag");
-		createdFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Disabled]).ShouldBeTrue();
-		createdFlag.AuditRecord.CreatedBy.ShouldBe("system");
+		createdFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Disabled]).ShouldBeTrue();
+		createdFlag.Created.Actor.ShouldBe("system");
 		createdFlag.Variations.DefaultVariation.ShouldBe("off");
 	}
 
@@ -176,16 +176,16 @@ public class CreateDefaultFlagAsync_FlagStructure(DefaultFlagCreationTestsFixtur
 		createdFlag.Key.ShouldBe(flagKey);
 		createdFlag.Name.ShouldBe(flagKey);
 		createdFlag.Description.ShouldBe($"Auto-created flag for {flagKey}");
-		createdFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Disabled]).ShouldBeTrue();
-		createdFlag.AuditRecord.CreatedBy.ShouldBe("system");
+		createdFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Disabled]).ShouldBeTrue();
+		createdFlag.Created.Actor.ShouldBe("system");
 		
 		// Verify timestamps are recent (within last minute)
-		createdFlag.AuditRecord.CreatedAt.ShouldBeGreaterThan(DateTime.UtcNow.AddMinutes(-1));
+		createdFlag.Created.Timestamp.ShouldBeGreaterThan(DateTime.UtcNow.AddMinutes(-1));
 		
 		// Verify collections are initialized but empty
 		createdFlag.TargetingRules.ShouldNotBeNull();
 		createdFlag.TargetingRules.ShouldBeEmpty();
-		createdFlag.UserAccess.HasAccessRestrictions().ShouldBeFalse();
+		createdFlag.UserAccessControl.HasAccessRestrictions().ShouldBeFalse();
 	}
 
 	[Fact]
@@ -292,7 +292,7 @@ public class CreateDefaultFlagAsync_WithDifferentContexts(DefaultFlagCreationTes
 		var createdFlag = await fixture.Repository.GetAsync("time-flag");
 		createdFlag.ShouldNotBeNull();
 		// The flag's CreatedAt should be current time, not evaluation time
-		createdFlag.AuditRecord.CreatedAt.ShouldBeGreaterThan(customTime);
+		createdFlag.Created.Timestamp.ShouldBeGreaterThan(customTime);
 	}
 }
 
