@@ -935,6 +935,28 @@ INSERT INTO usage_demo.feature_flags (
     NOW() + INTERVAL '1 year'
 ) ON CONFLICT (key) DO NOTHING;
 
+INSERT INTO usage_demo.feature_flags (
+    key, name, description, evaluation_modes, created_by, updated_by,
+    variations, default_variation, tags, user_percentage_enabled, expiration_date
+) VALUES (
+    'checkout-version',
+    'Order Processing Algorithm A/B Test',
+    'A/B testing different order processing implementations - v1 (legacy proven), v2 (enhanced optimized), v3 (experimental cutting-edge)',
+    '[5]', -- UserRolloutPercentage
+    'system',
+    'system',
+    '{"v1": "v1", "v2": "v2", "v3": "v3"}',
+    'v1', -- Default to proven legacy implementation
+    '{"service": "orders", "type": "processing-algorithm", "component": "checkout", "criticality": "high", "test-type": "a-b-technical", "status": "user-percentage"}',
+    33, -- 33% gradual rollout for new technical implementations (remaining 67% get v1)
+    NOW() + INTERVAL '6 months' -- 6 month A/B test period
+) ON CONFLICT (key) DO UPDATE SET 
+    variations = EXCLUDED.variations,
+    default_variation = EXCLUDED.default_variation,
+    user_percentage_enabled = EXCLUDED.user_percentage_enabled,
+    description = EXCLUDED.description,
+    tags = EXCLUDED.tags;
+
 -- Grant permissions (if needed for specific user)
 -- GRANT ALL PRIVILEGES ON SCHEMA usage_demo TO propel_user;
 -- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA usage_demo TO propel_user;
