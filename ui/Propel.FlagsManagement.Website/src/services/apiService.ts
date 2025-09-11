@@ -26,7 +26,7 @@ export interface FeatureFlagDto {
 	tenantRolloutPercentage: number; // Renamed from tenantPercentageRollout to match C#
 	allowedTenants: string[];
 	blockedTenants: string[];
-	targetingRules: TargetingRule[];
+	targetingRules: string; // Changed from TargetingRule[] to string (JSON)
 	variations: Record<string, any>;
 	defaultVariation: string;
 	tags: Record<string, string>;
@@ -172,6 +172,59 @@ export const getTargetingOperators = (): { value: TargetingOperator; label: stri
 		{ value: TargetingOperator.GreaterThan, label: 'Greater Than', description: 'Numeric value is greater' },
 		{ value: TargetingOperator.LessThan, label: 'Less Than', description: 'Numeric value is less' }
 	];
+};
+
+// Helper functions for targeting rules JSON parsing
+export const parseTargetingRules = (targetingRulesJson: string): TargetingRule[] => {
+	try {
+		if (!targetingRulesJson || targetingRulesJson.trim() === '') {
+			return [];
+		}
+		
+		const parsed = JSON.parse(targetingRulesJson);
+		
+		// Handle both array and single object cases
+		if (Array.isArray(parsed)) {
+			return parsed;
+		} else if (parsed && typeof parsed === 'object') {
+			return [parsed];
+		}
+		
+		return [];
+	} catch (error) {
+		console.error('Failed to parse targeting rules JSON:', error, 'JSON:', targetingRulesJson);
+		return [];
+	}
+};
+
+export const stringifyTargetingRules = (targetingRules: TargetingRule[]): string => {
+	try {
+		return JSON.stringify(targetingRules || []);
+	} catch (error) {
+		console.error('Failed to stringify targeting rules:', error, 'Rules:', targetingRules);
+		return '[]';
+	}
+};
+
+// Helper function to safely check if targeting rules exist and have content
+export const hasValidTargetingRulesJson = (targetingRulesJson: string): boolean => {
+	try {
+		if (!targetingRulesJson || targetingRulesJson.trim() === '') {
+			return false;
+		}
+		
+		const parsed = JSON.parse(targetingRulesJson);
+		
+		if (Array.isArray(parsed)) {
+			return parsed.length > 0;
+		} else if (parsed && typeof parsed === 'object') {
+			return true;
+		}
+		
+		return false;
+	} catch (error) {
+		return false;
+	}
 };
 
 // API Error handling

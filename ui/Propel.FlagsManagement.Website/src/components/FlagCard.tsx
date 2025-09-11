@@ -1,5 +1,6 @@
 import { Lock, PlayCircle, Trash2, Timer, Target } from 'lucide-react';
 import type { FeatureFlagDto } from '../services/apiService';
+import { parseTargetingRules } from '../services/apiService';
 import { StatusBadge } from './StatusBadge';
 import { getScheduleStatus, getTimeWindowStatus, formatRelativeTime, hasValidTags, getTagEntries, parseStatusComponents } from '../utils/flagHelpers';
 
@@ -19,6 +20,10 @@ export const FlagCard: React.FC<FlagCardProps> = ({
     const scheduleStatus = getScheduleStatus(flag);
     const timeWindowStatus = getTimeWindowStatus(flag);
     const components = parseStatusComponents(flag);
+    
+    // Parse targeting rules from JSON string
+    const targetingRules = parseTargetingRules(flag.targetingRules);
+    const targetingRulesCount = targetingRules.length;
 
     return (
         <div
@@ -78,7 +83,7 @@ export const FlagCard: React.FC<FlagCardProps> = ({
                     )}
 
                     {components.hasTargetingRules && (
-                        <span className="text-xs text-gray-500">{flag.targetingRules?.length || 0} rule{(flag.targetingRules?.length || 0) !== 1 ? 's' : ''}</span>
+                        <span className="text-xs text-gray-500">{targetingRulesCount} rule{targetingRulesCount !== 1 ? 's' : ''}</span>
                     )}
 
                     {components.isScheduled && scheduleStatus.nextAction && scheduleStatus.nextActionTime && (

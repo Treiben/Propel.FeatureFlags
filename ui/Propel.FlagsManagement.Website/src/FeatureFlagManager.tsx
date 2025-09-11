@@ -165,13 +165,14 @@ const FeatureFlagManager = () => {
         }
     };
 
-    const handleUpdateTargetingRulesWrapper = async (targetingRules?: TargetingRule[]) => {
+    // Updated function to match the FlagDetails interface
+    const handleUpdateTargetingRulesWrapper = async (targetingRules?: TargetingRule[], removeTargetingRules?: boolean) => {
         if (!selectedFlag) return;
         
         try {
             const request: TargetingRulesRequest = {
                 targetingRules: targetingRules && targetingRules.length > 0 ? targetingRules : undefined,
-                removeTargetingRules: !targetingRules || targetingRules.length === 0
+                removeTargetingRules: removeTargetingRules || (!targetingRules || targetingRules.length === 0)
             };
             
             await updateTargetingRules(selectedFlag.key, request);

@@ -1,4 +1,5 @@
 import type { FeatureFlagDto } from '../services/apiService';
+import { hasValidTargetingRulesJson } from '../services/apiService';
 
 export interface ScheduleStatus {
     isActive: boolean;
@@ -57,8 +58,14 @@ export const getStatusFromEvaluationModes = (modes: number[]): string => {
     return features.length > 0 ? features.join('With') : 'Disabled';
 };
 
-// Helper function to safely check if targeting rules exist
-export const hasValidTargetingRules = (targetingRules: any): boolean => {
+// Helper function to safely check if targeting rules exist - Updated to work with JSON string
+export const hasValidTargetingRules = (targetingRules: string | any): boolean => {
+    // Handle both old array format (for backwards compatibility) and new JSON string format
+    if (typeof targetingRules === 'string') {
+        return hasValidTargetingRulesJson(targetingRules);
+    }
+    
+    // Legacy support for array format
     return Array.isArray(targetingRules) && targetingRules.length > 0;
 };
 
@@ -72,7 +79,7 @@ export const parseStatusComponents = (flag: FeatureFlagDto): StatusComponents =>
         hasPercentage: modes.includes(5) || modes.includes(6), // UserRolloutPercentage or TenantRolloutPercentage
         hasUserTargeting: modes.includes(4), // FlagEvaluationMode.UserTargeted
         hasTenantTargeting: modes.includes(7), // FlagEvaluationMode.TenantTargeted
-        hasTargetingRules: modes.includes(8) || hasValidTargetingRules(flag.targetingRules), // Safe check
+        hasTargetingRules: modes.includes(8) || hasValidTargetingRules(flag.targetingRules), // Safe check for JSON string
         baseStatus: modes.includes(1) ? 'Enabled' : (modes.includes(0) ? 'Disabled' : 'Other')// FlagEvaluationMode.Enabled
     };
 

@@ -43,8 +43,12 @@ public class ITargetingRuleJsonConverter : JsonConverter<ITargetingRule>
 			};
 		}
 
-		// Fallback: Try to infer type from Values property
-		if (jsonObject.TryGetProperty("Values", out var valuesProperty) && valuesProperty.ValueKind == JsonValueKind.Array)
+		// Fallback: Try to infer type from Values property (check both camelCase and PascalCase)
+		JsonElement valuesProperty = default;
+		bool hasValues = jsonObject.TryGetProperty("values", out valuesProperty) || 
+		                 jsonObject.TryGetProperty("Values", out valuesProperty);
+
+		if (hasValues && valuesProperty.ValueKind == JsonValueKind.Array)
 		{
 			var firstValue = valuesProperty.EnumerateArray().FirstOrDefault();
 
@@ -53,18 +57,6 @@ public class ITargetingRuleJsonConverter : JsonConverter<ITargetingRule>
 				JsonValueKind.String => JsonSerializer.Deserialize<StringTargetingRule>(jsonObject.GetRawText(), options),
 				JsonValueKind.Number => JsonSerializer.Deserialize<NumericTargetingRule>(jsonObject.GetRawText(), options),
 				_ => throw new JsonException("Cannot determine targeting rule type from Values property")
-			};
-		}
-
-		// Try to infer from property names if Values is missing or empty
-		if (jsonObject.TryGetProperty("values", out var valuesPropertyLower) && valuesPropertyLower.ValueKind == JsonValueKind.Array)
-		{
-			var firstValue = valuesPropertyLower.EnumerateArray().FirstOrDefault();
-			return firstValue.ValueKind switch
-			{
-				JsonValueKind.String => JsonSerializer.Deserialize<StringTargetingRule>(jsonObject.GetRawText(), options),
-				JsonValueKind.Number => JsonSerializer.Deserialize<NumericTargetingRule>(jsonObject.GetRawText(), options),
-				_ => throw new JsonException("Cannot determine targeting rule type from values property")
 			};
 		}
 
@@ -79,7 +71,7 @@ public class ITargetingRuleJsonConverter : JsonConverter<ITargetingRule>
 		// Write type discriminator
 		writer.WriteString(TypeDiscriminator, value.GetType().Name);
 
-		// Write all properties of the concrete type
+		// Write all properties using camelCase naming to match the JsonOptions policy
 		switch (value)
 		{
 			case StringTargetingRule stringRule:
@@ -97,21 +89,23 @@ public class ITargetingRuleJsonConverter : JsonConverter<ITargetingRule>
 
 	private static void WriteStringTargetingRule(Utf8JsonWriter writer, StringTargetingRule rule, JsonSerializerOptions options)
 	{
-		writer.WriteString("Attribute", rule.Attribute);
-		writer.WriteNumber("Operator", (int)rule.Operator);
-		writer.WriteString("Variation", rule.Variation);
+		// Use camelCase property names to match JsonNamingPolicy.CamelCase
+		writer.WriteString("attribute", rule.Attribute);
+		writer.WriteNumber("operator", (int)rule.Operator);
+		writer.WriteString("variation", rule.Variation);
 
-		writer.WritePropertyName("Values");
+		writer.WritePropertyName("values");
 		JsonSerializer.Serialize(writer, rule.Values, options);
 	}
 
 	private static void WriteNumericTargetingRule(Utf8JsonWriter writer, NumericTargetingRule rule, JsonSerializerOptions options)
 	{
-		writer.WriteString("Attribute", rule.Attribute);
-		writer.WriteNumber("Operator", (int)rule.Operator);
-		writer.WriteString("Variation", rule.Variation);
+		// Use camelCase property names to match JsonNamingPolicy.CamelCase
+		writer.WriteString("attribute", rule.Attribute);
+		writer.WriteNumber("operator", (int)rule.Operator);
+		writer.WriteString("variation", rule.Variation);
 
-		writer.WritePropertyName("Values");
+		writer.WritePropertyName("values");
 		JsonSerializer.Serialize(writer, rule.Values, options);
 	}
 }

@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import { Target, Plus, Trash2, X, Info } from 'lucide-react';
 import type { FeatureFlagDto, TargetingRule, TargetingRulesRequest } from '../../services/apiService';
-import { getTargetingOperators, getTargetingOperatorLabel, TargetingOperator } from '../../services/apiService';
+import { getTargetingOperators, getTargetingOperatorLabel, TargetingOperator, parseTargetingRules } from '../../services/apiService';
 import { parseStatusComponents, hasValidTargetingRules } from '../../utils/flagHelpers';
 
 interface TargetingRulesStatusIndicatorProps {
@@ -10,13 +10,16 @@ interface TargetingRulesStatusIndicatorProps {
 
 export const TargetingRulesStatusIndicator: React.FC<TargetingRulesStatusIndicatorProps> = ({ flag }) => {
 	const components = parseStatusComponents(flag);
-	const targetingRulesCount = hasValidTargetingRules(flag.targetingRules) ? flag.targetingRules.length : 0;
+	
+	// Parse targeting rules from JSON string
+	const targetingRules = parseTargetingRules(flag.targetingRules);
+	const targetingRulesCount = targetingRules.length;
 
 	if (!components.hasTargetingRules && targetingRulesCount === 0) return null;
 
 	// Get unique attributes from the rules for display
-	const uniqueAttributes = hasValidTargetingRules(flag.targetingRules) 
-		? [...new Set(flag.targetingRules.map(rule => rule?.attribute).filter(attr => attr))]
+	const uniqueAttributes = targetingRules.length > 0 
+		? [...new Set(targetingRules.map(rule => rule?.attribute).filter(attr => attr))]
 		: [];
 
 	return (
@@ -137,18 +140,20 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 	const components = parseStatusComponents(flag);
 	const targetingOperators = getTargetingOperators();
 
-	// Update local state when flag changes - with comprehensive null safety
+	// Update local state when flag changes - parse JSON string to array
 	useEffect(() => {
 		console.log('TargetingRulesSection Effect Debug:', {
 			flagKey: flag.key,
-			targetingRules: flag.targetingRules,
-			isArray: Array.isArray(flag.targetingRules),
-			length: flag.targetingRules?.length
+			targetingRulesJson: flag.targetingRules,
+			isString: typeof flag.targetingRules === 'string'
 		});
 
 		try {
-			if (hasValidTargetingRules(flag.targetingRules)) {
-				const safeRules = flag.targetingRules.map((rule, index) => {
+			// Parse targeting rules from JSON string
+			const targetingRules = parseTargetingRules(flag.targetingRules);
+			
+			if (targetingRules.length > 0) {
+				const safeRules = targetingRules.map((rule, index) => {
 					console.log(`Processing rule ${index}:`, rule);
 					return {
 						attribute: rule?.attribute || '',
@@ -240,12 +245,14 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 		}
 	};
 
-	const hasTargetingRules = hasValidTargetingRules(flag.targetingRules);
+	// Parse targeting rules from JSON string for display
+	const targetingRules = parseTargetingRules(flag.targetingRules);
+	const hasTargetingRules = targetingRules.length > 0;
 
 	const resetForm = () => {
 		try {
 			if (hasTargetingRules) {
-				const safeRules = flag.targetingRules.map(rule => ({
+				const safeRules = targetingRules.map(rule => ({
 					attribute: rule?.attribute || '',
 					operator: safeConvertOperator(rule?.operator),
 					values: Array.isArray(rule?.values) ? [...rule.values] : [''],
@@ -418,15 +425,21 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 									</div>
 								))}
 
-								{/* Debugging: Show processed targeting rules in a visible area */}
+								{/* Debugging: Show parsed targeting rules */}
 								<div className="p-4 bg-gray-50 border border-gray-300 rounded-lg">
 									<h6 className="font-medium text-gray-800 mb-2">Debug Info</h6>
 									<div className="text-xs text-gray-600">
-										{targetingRulesForm.map((rule, index) => (
-											<div key={index} className="whitespace-pre-wrap">
-												{`Rule ${index + 1}: ${JSON.stringify(rule, null, 2)}`}
-											</div>
-										))}
+										<div className="mb-2">
+											<strong>Original JSON:</strong> {flag.targetingRules}
+										</div>
+										<div>
+											<strong>Parsed Rules:</strong>
+											{targetingRulesForm.map((rule, index) => (
+												<div key={index} className="whitespace-pre-wrap">
+													{`Rule ${index + 1}: ${JSON.stringify(rule, null, 2)}`}
+												</div>
+											))}
+										</div>
 									</div>
 								</div>
 							</div>
@@ -467,16 +480,16 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 						if (hasTargetingRules) {
 							return (
 								<div className="space-y-2">
-									<div>Active Targeting Rules: {flag.targetingRules.length}</div>
+									<div>Active Targeting Rules: {targetingRules.length}</div>
 									<div className="space-y-1">
-										{flag.targetingRules.slice(0, 3).map((rule, index) => (
+										{targetingRules.slice(0, 3).map((rule, index) => (
 											<div key={index} className="text-xs bg-gray-100 rounded px-2 py-1 font-mono">
 												{rule?.attribute || 'Unknown'} {getTargetingOperatorLabel(rule?.operator).toLowerCase()} [{Array.isArray(rule?.values) ? rule.values.join(', ') : 'No values'}] → {rule?.variation || 'on'}
 											</div>
 										))}
-										{flag.targetingRules.length > 3 && (
+										{targetingRules.length > 3 && (
 											<div className="text-xs text-gray-500 italic">
-												...and {flag.targetingRules.length - 3} more rule{flag.targetingRules.length - 3 !== 1 ? 's' : ''}
+												...and {targetingRules.length - 3} more rule{targetingRules.length - 3 !== 1 ? 's' : ''}
 											</div>
 										)}
 									</div>

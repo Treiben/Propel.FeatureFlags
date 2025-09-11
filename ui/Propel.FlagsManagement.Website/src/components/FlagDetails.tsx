@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Trash2, Eye, EyeOff, Play, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import type { FeatureFlagDto, EvaluationResult, TargetingRule } from '../services/apiService';
+import { parseTargetingRules } from '../services/apiService';
 import { StatusBadge } from './StatusBadge';
 import { parseStatusComponents } from '../utils/flagHelpers';
 
@@ -37,7 +38,7 @@ interface FlagDetailsProps {
     onToggle: (flag: FeatureFlagDto) => Promise<void>;
     onUpdateUserAccess: (allowedUsers?: string[], blockedUsers?: string[], percentage?: number) => Promise<void>;
     onUpdateTenantAccess: (allowedTenants?: string[], blockedTenants?: string[], percentage?: number) => Promise<void>;
-    onUpdateTargetingRules: (targetingRules?: TargetingRule[]) => Promise<void>;
+    onUpdateTargetingRules: (targetingRules?: TargetingRule[], removeTargetingRules?: boolean) => Promise<void>;
     onSchedule: (flag: FeatureFlagDto, enableDate: string, disableDate?: string) => Promise<void>;
     onClearSchedule: (flag: FeatureFlagDto) => Promise<void>;
     onUpdateTimeWindow: (flag: FeatureFlagDto, timeWindowData: {
@@ -138,10 +139,10 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
         }
     };
 
-    const handleUpdateTargetingRulesWrapper = async (targetingRules?: TargetingRule[]) => {
+    const handleUpdateTargetingRulesWrapper = async (targetingRules?: TargetingRule[], removeTargetingRules?: boolean) => {
         setOperationLoading(true);
         try {
-            await onUpdateTargetingRules(targetingRules);
+            await onUpdateTargetingRules(targetingRules, removeTargetingRules);
         } finally {
             setOperationLoading(false);
         }
@@ -150,8 +151,8 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     const handleClearTargetingRulesWrapper = async () => {
         setOperationLoading(true);
         try {
-            // Clear targeting rules by setting empty array
-            await onUpdateTargetingRules([]);
+            // Clear targeting rules by setting removeTargetingRules to true
+            await onUpdateTargetingRules(undefined, true);
         } finally {
             setOperationLoading(false);
         }
@@ -226,14 +227,17 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     const components = parseStatusComponents(flag);
     const isEnabled = components.baseStatus === 'Enabled';
 
+    // Parse targeting rules from JSON string
+    const targetingRules = parseTargetingRules(flag.targetingRules);
+
     // Check if UserAccessControlStatusIndicator should be shown
     const shouldShowUserAccessIndicator = flag.evaluationModes?.includes(5) || flag.evaluationModes?.includes(4); // UserRolloutPercentage or UserTargeted
 
     // Check if TenantAccessControlStatusIndicator should be shown
     const shouldShowTenantAccessIndicator = flag.evaluationModes?.includes(6) || flag.evaluationModes?.includes(7); // TenantRolloutPercentage or TenantTargeted
 
-    // Check if TargetingRulesStatusIndicator should be shown
-    const shouldShowTargetingRulesIndicator = flag.evaluationModes?.includes(8) || (flag.targetingRules && flag.targetingRules.length > 0); // TargetingRules mode or has targeting rules
+    // Check if TargetingRulesStatusIndicator should be shown - Updated to use parsed targeting rules
+    const shouldShowTargetingRulesIndicator = flag.evaluationModes?.includes(8) || targetingRules.length > 0; // TargetingRules mode or has targeting rules
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
