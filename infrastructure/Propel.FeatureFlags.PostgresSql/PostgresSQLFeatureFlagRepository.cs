@@ -49,7 +49,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			var flag = await reader.LoadFlagFromReader();
 			_logger.LogDebug("Retrieved feature flag: {Key} with evaluation modes {Modes}",
 				flag.Key,
-				flag.EvaluationModeSet.EvaluationModes);
+				flag.ActiveEvaluationModes.Modes);
 			return flag;
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
@@ -333,14 +333,14 @@ public static class NpgsqlCommandExtensions
 		command.Parameters.AddWithValue("key", flag.Key);
 		command.Parameters.AddWithValue("name", flag.Name);
 		command.Parameters.AddWithValue("description", flag.Description);
-		command.Parameters.AddWithValue("created_at", flag.AuditRecord.CreatedAt);
-		command.Parameters.AddWithValue("created_by", flag.AuditRecord.CreatedBy);
-		command.Parameters.AddWithValue("updated_at", (object?)flag.AuditRecord.ModifiedAt ?? DBNull.Value);
-		command.Parameters.AddWithValue("updated_by", (object?)flag.AuditRecord.ModifiedBy ?? DBNull.Value);
+		command.Parameters.AddWithValue("created_at", flag.Created.Timestamp!);
+		command.Parameters.AddWithValue("created_by", flag.Created.Actor!);
+		command.Parameters.AddWithValue("updated_at", (object?)flag.LastModified?.Timestamp ?? DBNull.Value);
+		command.Parameters.AddWithValue("updated_by", (object?)flag.LastModified?.Actor ?? DBNull.Value);
 		command.Parameters.AddWithValue("expiration_date", (object?)flag.Lifecycle.ExpirationDate ?? DBNull.Value);
 		command.Parameters.AddWithValue("is_permanent", flag.Lifecycle.IsPermanent);
 
-		if (flag.Schedule.ScheduledEnableDate == DateTime.MinValue)			
+		if (flag.Schedule.ScheduledEnableDate == DateTime.MinValue)
 			command.Parameters.AddWithValue("scheduled_enable_date", DBNull.Value);
 		else
 			command.Parameters.AddWithValue("scheduled_enable_date", flag.Schedule.ScheduledEnableDate);
@@ -357,28 +357,28 @@ public static class NpgsqlCommandExtensions
 		// JSONB parameters require explicit type specification
 
 		var evaluationModesParam = command.Parameters.Add("evaluation_modes", NpgsqlDbType.Jsonb);
-		evaluationModesParam.Value = JsonSerializer.Serialize(flag.EvaluationModeSet.EvaluationModes.Select(m => (int)m), JsonDefaults.JsonOptions);
+		evaluationModesParam.Value = JsonSerializer.Serialize(flag.ActiveEvaluationModes.Modes.Select(m => (int)m), JsonDefaults.JsonOptions);
 
 		var windowDaysParam = command.Parameters.Add("window_days", NpgsqlDbType.Jsonb);
 		windowDaysParam.Value = JsonSerializer.Serialize(flag.OperationalWindow.WindowDays?.Select(d => (int)d) ?? [], JsonDefaults.JsonOptions);
 
-		command.Parameters.AddWithValue("user_percentage_enabled", flag.UserAccess.RolloutPercentage);
-		command.Parameters.AddWithValue("tenant_percentage_enabled", flag.TenantAccess.RolloutPercentage);
+		command.Parameters.AddWithValue("user_percentage_enabled", flag.UserAccessControl.RolloutPercentage);
+		command.Parameters.AddWithValue("tenant_percentage_enabled", flag.TenantAccessControl.RolloutPercentage);
 
 		var targetingRulesParam = command.Parameters.Add("targeting_rules", NpgsqlDbType.Jsonb);
 		targetingRulesParam.Value = JsonSerializer.Serialize(flag.TargetingRules, JsonDefaults.JsonOptions);
 
 		var enabledUsersParam = command.Parameters.Add("enabled_users", NpgsqlDbType.Jsonb);
-		enabledUsersParam.Value = JsonSerializer.Serialize(flag.UserAccess.AllowedUsers, JsonDefaults.JsonOptions);
+		enabledUsersParam.Value = JsonSerializer.Serialize(flag.UserAccessControl.Allowed, JsonDefaults.JsonOptions);
 
 		var disabledUsersParam = command.Parameters.Add("disabled_users", NpgsqlDbType.Jsonb);
-		disabledUsersParam.Value = JsonSerializer.Serialize(flag.UserAccess.BlockedUsers, JsonDefaults.JsonOptions);
+		disabledUsersParam.Value = JsonSerializer.Serialize(flag.UserAccessControl.Blocked, JsonDefaults.JsonOptions);
 
 		var enabledTenantsParam = command.Parameters.Add("enabled_tenants", NpgsqlDbType.Jsonb);
-		enabledTenantsParam.Value = JsonSerializer.Serialize(flag.TenantAccess.AllowedTenants, JsonDefaults.JsonOptions);
+		enabledTenantsParam.Value = JsonSerializer.Serialize(flag.TenantAccessControl.Allowed, JsonDefaults.JsonOptions);
 
 		var disabledTenantsParam = command.Parameters.Add("disabled_tenants", NpgsqlDbType.Jsonb);
-		disabledTenantsParam.Value = JsonSerializer.Serialize(flag.TenantAccess.BlockedTenants, JsonDefaults.JsonOptions);
+		disabledTenantsParam.Value = JsonSerializer.Serialize(flag.TenantAccessControl.Blocked, JsonDefaults.JsonOptions);
 
 		var variationsParam = command.Parameters.Add("variations", NpgsqlDbType.Jsonb);
 		variationsParam.Value = JsonSerializer.Serialize(flag.Variations.Values, JsonDefaults.JsonOptions);
@@ -439,39 +439,48 @@ public static class NpgsqlDataReaderExtensions
 	}
 	public static async Task<FeatureFlag> LoadFlagFromReader(this NpgsqlDataReader reader)
 	{
-		var evaluationModeSet = new FlagEvaluationModeSet(await reader.Deserialize<FlagEvaluationMode[]>("evaluation_modes"));
+		var evaluationModeSet = new EvaluationModes(await reader.Deserialize<EvaluationMode[]>("evaluation_modes"));
 
-		var lifecycle = new FlagLifecycle(
+		var lifecycle = new Lifecycle(
 				expirationDate: (await reader.GetDataAsync<DateTimeOffset?>("expiration_date"))?.UtcDateTime,
 				isPermanent: await reader.GetDataAsync<bool>("is_permanent")
 			);
-		var auditRecord = new FlagAuditRecord(
-				createdAt: (await reader.GetDataAsync<DateTimeOffset>("created_at")).UtcDateTime,
-				modifiedAt: (await reader.GetDataAsync<DateTimeOffset>("updated_at")).UtcDateTime,
-				createdBy: await reader.GetDataAsync<string>("created_by"),
-				modifiedBy: await reader.GetDataAsync<string>("updated_by")
+		var created = new Audit(
+				timestamp: (await reader.GetDataAsync<DateTimeOffset>("created_at")).UtcDateTime,
+				actor: await reader.GetDataAsync<string>("created_by")
 			);
-		var schedule = new FlagActivationSchedule(
+
+		Audit? modified = default;
+		var modifiedAt = await reader.GetDataAsync<DateTimeOffset?>("updated_at");
+		if (modifiedAt.HasValue && modifiedAt.Value > DateTime.MinValue.ToUniversalTime())
+		{
+			modified = new Audit(
+					timestamp: modifiedAt.Value.UtcDateTime,
+					actor: await reader.GetDataAsync<string>("updated_by")
+				);
+		}
+
+		var schedule = new ActivationSchedule(
 				scheduledEnableDate: (await reader.GetDataAsync<DateTimeOffset>("scheduled_enable_date")).UtcDateTime,
 				scheduledDisableDate: (await reader.GetDataAsync<DateTimeOffset>("scheduled_disable_date")).UtcDateTime
 			);
-		var window = new FlagOperationalWindow(
+		var window = new OperationalWindow(
 				windowStartTime: await reader.GetTimeOnly("window_start_time") ?? TimeSpan.Zero,
 				windowEndTime: await reader.GetTimeOnly("window_end_time") ?? new TimeSpan(23, 59, 59),
 				timeZone: await reader.GetDataAsync<string?>("time_zone") ?? "UTC",
 				windowDays: await reader.Deserialize<DayOfWeek[]?>("window_days")
 			);
-		var userAccess = new FlagUserAccessControl(
-				allowedUsers: await reader.Deserialize<List<string>>("enabled_users"),
-				blockedUsers: await reader.Deserialize<List<string>>("disabled_users"),
+		var userAccess = new AccessControl(
+				allowed: await reader.Deserialize<List<string>>("enabled_users"),
+				blocked: await reader.Deserialize<List<string>>("disabled_users"),
 				rolloutPercentage: await reader.GetDataAsync<int>("user_percentage_enabled")
 			);
-		var tenantAccess = new FlagTenantAccessControl(
-				allowedTenants: await reader.Deserialize<List<string>>("enabled_tenants"),
-				blockedTenants: await reader.Deserialize<List<string>>("disabled_tenants"),
+		var tenantAccess = new AccessControl(
+				allowed: await reader.Deserialize<List<string>>("enabled_tenants"),
+				blocked: await reader.Deserialize<List<string>>("disabled_tenants"),
 				rolloutPercentage: await reader.GetDataAsync<int>("tenant_percentage_enabled")
 			);
-		var variations = new FlagVariations
+		var variations = new Variations
 		{
 			Values = await reader.Deserialize<Dictionary<string, object>>("variations"),
 			DefaultVariation = await reader.GetDataAsync<string>("default_variation"),
@@ -482,17 +491,17 @@ public static class NpgsqlDataReaderExtensions
 			Key = await reader.GetDataAsync<string>("key"),
 			Name = await reader.GetDataAsync<string>("name"),
 			Description = await reader.GetDataAsync<string>("description"),
-			EvaluationModeSet = evaluationModeSet,
-			AuditRecord = auditRecord,
+			ActiveEvaluationModes = evaluationModeSet,
 			Lifecycle = lifecycle,
 			Schedule = schedule,
 			OperationalWindow = window,
-			UserAccess = userAccess,
-			TenantAccess = tenantAccess,
+			UserAccessControl = userAccess,
+			TenantAccessControl = tenantAccess,
 			Variations = variations,
 			TargetingRules = await reader.Deserialize<List<ITargetingRule>>("targeting_rules"),
 			Tags = await reader.Deserialize<Dictionary<string, string>>("tags"),
-
+			Created = created,
+			LastModified = modified
 		};
 	}
 }
