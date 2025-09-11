@@ -17,15 +17,15 @@ public class EvaluationModes
 {
 	public EvaluationMode[] Modes { get; private set; } = [EvaluationMode.Disabled];
 
-	public EvaluationModes(EvaluationMode[]? evaluationModes = null)
+	public EvaluationModes(EvaluationMode[]? modes = null)
 	{
-		if (evaluationModes == null || evaluationModes.Length == 0)
+		if (modes == null || modes.Length == 0)
 		{
 			Modes = [EvaluationMode.Disabled];
 		}
 		else
 		{
-			foreach (var mode in evaluationModes)
+			foreach (var mode in modes)
 			{
 				AddMode(mode);
 			}

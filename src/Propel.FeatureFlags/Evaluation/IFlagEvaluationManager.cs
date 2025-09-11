@@ -1,5 +1,6 @@
 ﻿using Propel.FeatureFlags.Core;
 using Propel.FeatureFlags.Evaluation.Handlers;
+using System.Data;
 
 namespace Propel.FeatureFlags.Evaluation;
 
@@ -37,7 +38,7 @@ public sealed class FlagEvaluationManager : IFlagEvaluationManager
 		if (processingHandlers.Count > 1)
 		{
 			var reason = $"All [{flag.ActiveEvaluationModes}] conditions met for feature flag activation";
-			return new EvaluationResult(isEnabled: true, variation: flag.Variations.DefaultVariation ?? "on", reason: reason);
+			return new EvaluationResult(isEnabled: true, variation: result!.Variation ?? "on", reason: reason);
 		}
 
 		return result;

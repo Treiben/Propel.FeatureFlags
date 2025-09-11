@@ -19,7 +19,7 @@ public sealed class TargetingRulesEvaluator : IOrderedEvaluator
 		{
 			if (EvaluateTargetingRule(rule, context.Attributes))
 			{
-				return new EvaluationResult(isEnabled: true, variation: rule.Variation,
+				return new EvaluationResult(isEnabled: true, variation: rule.Variation ?? "on",
 					reason: $"Targeting rule matched: {rule}");
 			}
 		}
