@@ -54,36 +54,33 @@ public sealed class ManageTenantAccessHandler(
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
 			}
 
-			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt,
-													flag.AuditRecord.CreatedBy,
-													DateTime.UtcNow,
-													currentUserService.UserName!);
+			flag.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
 
-			flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.Enabled);
+			flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Enabled);
 
 			if (request.Percentage == 0) // Special case: 0% effectively disables the flag
 			{
-				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.TenantRolloutPercentage);
+				flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.TenantRolloutPercentage);
 			}
 			else // Standard percentage rollout
 			{
-				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TenantRolloutPercentage);
+				flag.ActiveEvaluationModes.AddMode(EvaluationMode.TenantRolloutPercentage);
 			}
 
 			if (request.AllowedTenants?.Length > 0 || request.BlockedTenants?.Length > 0)
 			{
-				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TenantTargeted);
+				flag.ActiveEvaluationModes.AddMode(EvaluationMode.TenantTargeted);
 			}
 			else
 			{
 				// If no tenants are specified, remove the TenantTargeted mode
-				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.TenantTargeted);
+				flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.TenantTargeted);
 			}
 
-			flag.TenantAccess = new FlagTenantAccessControl(
-							allowedTenants: [.. request.AllowedTenants ?? []],
-							blockedTenants: [.. request.BlockedTenants ?? []],
-							rolloutPercentage: request.Percentage ?? flag.TenantAccess.RolloutPercentage);
+			flag.TenantAccessControl = new AccessControl(
+							allowed: [.. request.AllowedTenants ?? []],
+							blocked: [.. request.BlockedTenants ?? []],
+							rolloutPercentage: request.Percentage ?? flag.TenantAccessControl.RolloutPercentage);
 
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);

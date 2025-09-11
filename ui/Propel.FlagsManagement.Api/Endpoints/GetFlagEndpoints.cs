@@ -23,7 +23,7 @@ public record GetFeatureFlagRequest
 	public int? PageSize { get; init; }
 
 	// Evaluation mode filtering
-	public FlagEvaluationMode[]? Modes { get; init; }
+	public EvaluationMode[]? Modes { get; init; }
 
 	// Expiring flags only
 	public int? ExpiringInDays { get; init; }

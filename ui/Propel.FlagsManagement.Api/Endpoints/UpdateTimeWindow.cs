@@ -59,20 +59,20 @@ public sealed class UpdateTimeWindowHandler(
 			}
 
 			// Update flag for time window
-			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName);
+			flag.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
 
-			flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.Enabled);
+			flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Enabled);
 
 			if (request.RemoveTimeWindow)
 			{
-				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.TimeWindow);
-				flag.OperationalWindow = FlagOperationalWindow.AlwaysOpen;
+				flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.TimeWindow);
+				flag.OperationalWindow = FeatureFlags.Core.OperationalWindow.AlwaysOpen;
 			}
 			else
 			{
-				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TimeWindow);
+				flag.ActiveEvaluationModes.AddMode(EvaluationMode.TimeWindow);
 
-				flag.OperationalWindow = FlagOperationalWindow.CreateWindow(
+				flag.OperationalWindow = FeatureFlags.Core.OperationalWindow.CreateWindow(
 					request.WindowStartTime.ToTimeSpan(),
 					request.WindowEndTime.ToTimeSpan(),
 					request.TimeZone,

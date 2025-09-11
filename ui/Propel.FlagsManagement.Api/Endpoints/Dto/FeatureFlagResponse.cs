@@ -5,66 +5,52 @@ namespace Propel.FlagsManagement.Api.Endpoints.Dto;
 
 public record FeatureFlagResponse
 {
-	public string Key { get; set; } = string.Empty;
-	public string Name { get; set; } = string.Empty;
-	public string Description { get; set; } = string.Empty;
-	public FlagEvaluationMode[] EvaluationModes { get; set; } = [];
-	public DateTime CreatedAt { get; set; }
-	public DateTime? UpdatedAt { get; set; }
-	public string CreatedBy { get; set; } = string.Empty;
-	public string? UpdatedBy { get; set; } = string.Empty;
-	public DateTime? ScheduledEnableDate { get; set; }
-	public DateTime? ScheduledDisableDate { get; set; }
-	public TimeOnly? WindowStartTime { get; set; }
-	public TimeOnly? WindowEndTime { get; set; }
-	public string? TimeZone { get; set; }
-	public DayOfWeek[]? WindowDays { get; set; }
-	public int UserRolloutPercentage { get; set; }
-	public List<string> AllowedUsers { get; set; } = [];
-	public List<string> BlockedUsers { get; set; } = [];
-	public int TenantRolloutPercentage { get; set; }
-	public List<string> AllowedTenants { get; set; } = [];
-	public List<string> BlockedTenants { get; set; } = [];
-	public string TargetingRules { get; set; } = string.Empty;
-	public Dictionary<string, object> Variations { get; set; } = [];
-	public string DefaultVariation { get; set; } = string.Empty;
-	public Dictionary<string, string> Tags { get; set; } = [];
+	public string Key { get; set; } 
+	public string Name { get; set; } 
+	public string Description { get; set; } 
+
+	public EvaluationMode[] Modes { get; set; }
+
+	public Audit Created { get; set; } 
+	public Audit Updated { get; set; }
+
+	public ActivationSchedule Schedule { get; set; }
+	public OperationalWindow OperationalWindow { get; set; }
+
+	public AccessControl UserAccess { get; set; }
+	public AccessControl TenantAccess { get; set; }
+
+	public string? TargetingRules { get; set; } 
+
+	public Variations Variations { get; set; }
+
+	public Dictionary<string, string>? Tags { get; set; } = [];
 	public DateTime? ExpirationDate { get; set; }
 	public bool IsPermanent { get; set; }
-
-	public FeatureFlagResponse() { }
 
 	public FeatureFlagResponse(FeatureFlag flag)
 	{
 		Key = flag.Key;
 		Name = flag.Name;
 		Description = flag.Description;
-		EvaluationModes = flag.EvaluationModeSet.EvaluationModes;
-		CreatedAt = flag.AuditRecord.CreatedAt;
-		CreatedBy = flag.AuditRecord.CreatedBy;
-		UpdatedAt = flag.AuditRecord.ModifiedAt;
-		UpdatedBy = flag.AuditRecord.ModifiedBy;
+
+		Modes = flag.ActiveEvaluationModes.Modes;
+
+		Created = flag.Created;
+		Updated = flag.LastModified ?? flag.Created;
+		
+		Schedule = flag.Schedule;
+		OperationalWindow = flag.OperationalWindow;
+
+		UserAccess = flag.UserAccessControl;
+		TenantAccess = flag.TenantAccessControl;
+		
+		TargetingRules = JsonSerializer.Serialize(flag.TargetingRules, JsonDefaults.JsonOptions);
+
+		Variations = flag.Variations;
+
+		Tags = flag.Tags;
 		IsPermanent = flag.Lifecycle.IsPermanent;
 		ExpirationDate = flag.Lifecycle.ExpirationDate;
-		ScheduledEnableDate = flag.Schedule.ScheduledEnableDate != FlagActivationSchedule.Unscheduled.ScheduledEnableDate
-				? flag.Schedule.ScheduledEnableDate : null;
-		ScheduledDisableDate = flag.Schedule.ScheduledDisableDate != FlagActivationSchedule.Unscheduled.ScheduledDisableDate
-				? flag.Schedule.ScheduledDisableDate : null;
-		WindowStartTime = flag.OperationalWindow.WindowStartTime != FlagOperationalWindow.AlwaysOpen.WindowStartTime 
-				? TimeOnly.FromTimeSpan(flag.OperationalWindow.WindowStartTime) : null;
-		WindowEndTime = flag.OperationalWindow.WindowEndTime != FlagOperationalWindow.AlwaysOpen.WindowEndTime 
-				? TimeOnly.FromTimeSpan(flag.OperationalWindow.WindowEndTime) : null;
-		TimeZone = flag.OperationalWindow.TimeZone;
-		WindowDays = flag.OperationalWindow.WindowDays;
-		UserRolloutPercentage = flag.UserAccess.RolloutPercentage;
-		AllowedUsers = flag.UserAccess.AllowedUsers;
-		BlockedUsers = flag.UserAccess.BlockedUsers;
-		TenantRolloutPercentage = flag.TenantAccess.RolloutPercentage;
-		AllowedTenants = flag.TenantAccess.AllowedTenants;
-		BlockedTenants = flag.TenantAccess.BlockedTenants;
-		TargetingRules = JsonSerializer.Serialize(flag.TargetingRules, JsonDefaults.JsonOptions);
-		Variations = flag.Variations.Values;
-		DefaultVariation = flag.Variations.DefaultVariation;
-		Tags = flag.Tags;
 	}
 }

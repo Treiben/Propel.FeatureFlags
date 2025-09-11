@@ -21,7 +21,7 @@ public sealed class ToggleFlagEndpoint : IEndpoint
 				ToggleFlagHandler toggleFlagHandler, 
 				CancellationToken cancellationToken) =>
 				{
-					return await toggleFlagHandler.HandleAsync(key, FlagEvaluationMode.Enabled, request.Reason, cancellationToken);
+					return await toggleFlagHandler.HandleAsync(key, EvaluationMode.Enabled, request.Reason, cancellationToken);
 				})
 		.AddEndpointFilter<ValidationFilter<EnableFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
@@ -37,7 +37,7 @@ public sealed class ToggleFlagEndpoint : IEndpoint
 				ToggleFlagHandler toggleFlagHandler, 
 				CancellationToken cancellationToken) =>
 			{
-				return await toggleFlagHandler.HandleAsync(key, FlagEvaluationMode.Disabled, request.Reason, cancellationToken);
+				return await toggleFlagHandler.HandleAsync(key, EvaluationMode.Disabled, request.Reason, cancellationToken);
 			})
 		.AddEndpointFilter<ValidationFilter<DisableFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
@@ -54,7 +54,7 @@ public sealed class ToggleFlagHandler(
 		ILogger<ToggleFlagHandler> logger,
 		IFeatureFlagCache? cache = null)
 {
-	public async Task<IResult> HandleAsync(string key, FlagEvaluationMode evaluationMode, string reason,
+	public async Task<IResult> HandleAsync(string key, EvaluationMode evaluationMode, string reason,
 		CancellationToken cancellationToken)
 	{
 		// Validate key parameter
@@ -72,25 +72,25 @@ public sealed class ToggleFlagHandler(
 			}
 
 			// Check if the flag is already in the requested state
-			if (flag.EvaluationModeSet.ContainsModes([evaluationMode]))
+			if (flag.ActiveEvaluationModes.ContainsModes([evaluationMode]))
 			{
 				logger.LogInformation("Feature flag {Key} is already {Status} - no change needed", key, evaluationMode);
 				return Results.Ok(new FeatureFlagResponse(flag));
 			}
 
 			// Store previous state for logging
-			var previousModes = flag.EvaluationModeSet.EvaluationModes;
+			var previousModes = flag.ActiveEvaluationModes.Modes;
 
 			// Update flag
-			flag.EvaluationModeSet.AddMode(evaluationMode);
+			flag.ActiveEvaluationModes.AddMode(evaluationMode);
 			// Reset scheduling, time window, and user/tenant access when manually toggling
-			flag.Schedule = FlagActivationSchedule.Unscheduled;
-			flag.OperationalWindow = FlagOperationalWindow.AlwaysOpen;
-			flag.UserAccess = new FlagUserAccessControl(rolloutPercentage: evaluationMode == FlagEvaluationMode.Enabled ? 100 : 0);
-			flag.TenantAccess = new FlagTenantAccessControl(rolloutPercentage: evaluationMode == FlagEvaluationMode.Enabled ? 100 : 0);
+			flag.Schedule = ActivationSchedule.Unscheduled;
+			flag.OperationalWindow = OperationalWindow.AlwaysOpen;
+			flag.UserAccessControl = new AccessControl(rolloutPercentage: evaluationMode == EvaluationMode.Enabled ? 100 : 0);
+			flag.TenantAccessControl = new AccessControl(rolloutPercentage: evaluationMode == EvaluationMode.Enabled ? 100 : 0);
 
 			// Update audit record
-			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName!);
+			flag.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
 

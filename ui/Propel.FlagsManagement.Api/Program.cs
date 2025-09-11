@@ -48,7 +48,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 	options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 	options.SerializerOptions.WriteIndented = true;
 	options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-	options.SerializerOptions.Converters.Add(new EnumJsonConverter<FlagEvaluationMode>());
+	options.SerializerOptions.Converters.Add(new EnumJsonConverter<EvaluationMode>());
 	options.SerializerOptions.Converters.Add(new EnumJsonConverter<DayOfWeek>());
 	options.SerializerOptions.Converters.Add(new EnumJsonConverter<TargetingOperator>());
 });

@@ -57,19 +57,16 @@ public sealed class UpdateTargetingRulesHandler(
 			}
 
 			// Update audit record
-			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, 
-													flag.AuditRecord.CreatedBy,
-													DateTime.UtcNow,
-													currentUserService.UserName!);
+			flag.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
 
 			// Remove enabled mode as we're configuring specific targeting
-			flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.Enabled);
+			flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Enabled);
 
 			if (request.RemoveTargetingRules)
 			{
 				// Clear all targeting rules and remove the TargetingRules mode
 				flag.TargetingRules.Clear();
-				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.TargetingRules);
+				flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.TargetingRules);
 			}
 			else if (request.TargetingRules != null && request.TargetingRules.Count > 0)
 			{
@@ -82,13 +79,13 @@ public sealed class UpdateTargetingRulesHandler(
 															dto.Variation))];
 
 				// Add the TargetingRules evaluation mode
-				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TargetingRules);
+				flag.ActiveEvaluationModes.AddMode(EvaluationMode.TargetingRules);
 			}
 			else
 			{
 				// Clear targeting rules if empty list provided and remove the TargetingRules mode
 				flag.TargetingRules.Clear();
-				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.TargetingRules);
+				flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.TargetingRules);
 			}
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);

@@ -55,36 +55,33 @@ public sealed class ManageUserAccessHandler(
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
 			}
 
-			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, 
-													flag.AuditRecord.CreatedBy,
-													DateTime.UtcNow,
-													currentUserService.UserName!);
+			flag.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
 
-			flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.Enabled);
+			flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Enabled);
 
 			if (request.Percentage == 0) // Special case: 0% effectively disables the flag
 			{
-				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.UserRolloutPercentage);
+				flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.UserRolloutPercentage);
 			}
 			else // Standard percentage rollout
 			{
-				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.UserRolloutPercentage);
+				flag.ActiveEvaluationModes.AddMode(EvaluationMode.UserRolloutPercentage);
 			}
 
 			if (request.AllowedUsers?.Length > 0 || request.BlockedUsers?.Length > 0)
 			{
-				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.UserTargeted);
+				flag.ActiveEvaluationModes.AddMode(EvaluationMode.UserTargeted);
 			}
 			else
 			{
 				// If no users are specified, remove the UserTargeted mode
-				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.UserTargeted);
+				flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.UserTargeted);
 			}
 
-			flag.UserAccess = new FlagUserAccessControl(
-								allowedUsers: [.. request.AllowedUsers ?? []],
-								blockedUsers: [.. request.BlockedUsers ?? []],
-								rolloutPercentage: request.Percentage ?? flag.UserAccess.RolloutPercentage);
+			flag.UserAccessControl = new AccessControl(
+								allowed: [.. request.AllowedUsers ?? []],
+								blocked: [.. request.BlockedUsers ?? []],
+								rolloutPercentage: request.Percentage ?? flag.UserAccessControl.RolloutPercentage);
 
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);

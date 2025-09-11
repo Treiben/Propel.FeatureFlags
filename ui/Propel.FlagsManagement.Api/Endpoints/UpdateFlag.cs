@@ -82,7 +82,7 @@ public sealed class UpdateFlagHandler(
 		}
 	}
 
-	public static void ModifyFlagFromRequest(UpdateFlagRequest source, FeatureFlag dest, string updatedBy)
+	public static void ModifyFlagFromRequest(UpdateFlagRequest source, FeatureFlag dest, string username)
 	{
 		// Update only non-null properties from the request
 		if (source.Name != null)
@@ -91,12 +91,12 @@ public sealed class UpdateFlagHandler(
 		if (source.Description != null)
 			dest.Description = source.Description;
 
-		dest.AuditRecord = new FlagAuditRecord(dest.AuditRecord.CreatedAt, dest.AuditRecord.CreatedBy, DateTime.UtcNow, updatedBy);
+		dest.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: username);
 
 		if (source.Tags != null)
 			dest.Tags = source.Tags;
 
-		dest.Lifecycle = new FlagLifecycle(isPermanent: source.IsPermanent, expirationDate: source.ExpirationDate);
+		dest.Lifecycle = new Lifecycle(isPermanent: source.IsPermanent, expirationDate: source.ExpirationDate);
 	}
 }
 

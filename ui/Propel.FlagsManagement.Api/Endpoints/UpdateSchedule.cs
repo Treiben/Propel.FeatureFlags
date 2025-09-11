@@ -54,19 +54,19 @@ public sealed class UpdateScheduleHandler(
 			}
 
 			// Update flag for scheduling
-			flag.AuditRecord = new FlagAuditRecord(flag.AuditRecord.CreatedAt, flag.AuditRecord.CreatedBy, DateTime.UtcNow, currentUserService.UserName);
+			flag.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
 
-			flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.Enabled);
+			flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Enabled);
 
 			if (request.RemoveSchedule)
 			{
-				flag.Schedule = FlagActivationSchedule.Unscheduled;
-				flag.EvaluationModeSet.RemoveMode(FlagEvaluationMode.Scheduled);
+				flag.Schedule = ActivationSchedule.Unscheduled;
+				flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Scheduled);
 			}
 			else
 			{
-				flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Scheduled);
-				flag.Schedule = FlagActivationSchedule.CreateSchedule(request.EnableDate, request.DisableDate);
+				flag.ActiveEvaluationModes.AddMode(EvaluationMode.Scheduled);
+				flag.Schedule = ActivationSchedule.CreateSchedule(request.EnableDate, request.DisableDate);
 			}
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
