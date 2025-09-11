@@ -25,9 +25,20 @@ public sealed class UserRolloutEvaluator: IOrderedEvaluator
 		var (result, because) = flag.UserAccess.EvaluateUserAccess(context.UserId!, flag.Key);
 		var isEnabled = result == UserAccessResult.Allowed;
 
-		return new EvaluationResult( 
-			isEnabled: isEnabled,
-			variation: isEnabled ? "on" : flag.Variations.DefaultVariation,
+		if (isEnabled == false)
+		{
+			return new EvaluationResult(
+				isEnabled: false,
+				variation: flag.Variations.DefaultVariation,
+				reason: because);
+		}
+
+		// For enabled users, determine which variation they should get
+		var selectedVariation = flag.Variations.SelectVariationFor(flag.Key, context.UserId!);
+
+		return new EvaluationResult(
+			isEnabled: true,
+			variation: selectedVariation,
 			reason: because);
 	}
 }

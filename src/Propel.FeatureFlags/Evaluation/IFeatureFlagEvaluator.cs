@@ -20,30 +20,16 @@ public sealed class FeatureFlagEvaluator(
 
 	public async Task<EvaluationResult?> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
-		// Try cache first
-		FeatureFlag? flag = null;
-		if (cache != null)
-			flag = await cache.GetAsync(flagKey, cancellationToken);
-
+		var flag = await GetFlagAsync(flagKey, cancellationToken);
 		if (flag == null)
 		{
-			flag = await _repository.GetAsync(flagKey, cancellationToken);
-			if (flag == null)
-			{
-				// Auto-create flag in disabled state for deployment scenarios
-				await CreateAndCacheDefaultFlagAsync(flagKey, cancellationToken);
-				return new EvaluationResult
-				(
-					isEnabled: false,
-					reason: "Flag not found, created default disabled flag"
-				);
-			}
-		}
-
-		// Cache for future requests
-		if (cache != null)
-		{
-			await cache.SetAsync(flagKey, flag, TimeSpan.FromMinutes(5), cancellationToken);
+			// Auto-create flag in disabled state for deployment scenarios
+			await CreateDefaultFlagAsync(flagKey, cancellationToken);
+			return new EvaluationResult
+			(
+				isEnabled: false,
+				reason: "Flag not found, created default disabled flag"
+			);
 		}
 
 		return await _evaluationManager.ProcessEvaluation(flag, context);
@@ -53,20 +39,24 @@ public sealed class FeatureFlagEvaluator(
 	{
 		try
 		{
-			var result = await Evaluate(flagKey, context, cancellationToken);
+			// Get flag once and reuse for both evaluation and variation lookup
+			var flag = await GetFlagAsync(flagKey, cancellationToken);
+			if (flag == null)
+			{
+				// Auto-create and return default
+				await CreateDefaultFlagAsync(flagKey, cancellationToken);
+				return defaultValue;
+			}
+
+			// Evaluate using the already-fetched flag
+			var result = await _evaluationManager.ProcessEvaluation(flag, context);
 			if (result?.IsEnabled == false)
 			{
 				return defaultValue;
 			}
 
-			FeatureFlag? flag = null;
-			if (cache != null)
-			{
-				flag = await cache.GetAsync(flagKey, cancellationToken);
-			}
-			flag ??= await _repository.GetAsync(flagKey, cancellationToken);
-
-			if (flag?.Variations.Values.TryGetValue(result!.Variation, out var variationValue) == true)
+			// Use the same flag instance for variation lookup
+			if (flag.Variations.Values.TryGetValue(result!.Variation, out var variationValue))
 			{
 				if (variationValue is JsonElement jsonElement)
 				{
@@ -92,7 +82,31 @@ public sealed class FeatureFlagEvaluator(
 		}
 	}
 
-	private async Task CreateAndCacheDefaultFlagAsync(string flagKey, CancellationToken cancellationToken)
+	private async Task<FeatureFlag?> GetFlagAsync(string flagKey, CancellationToken cancellationToken)
+	{
+		// Try cache first
+		FeatureFlag? flag = null;
+		if (cache != null)
+		{
+			flag = await cache.GetAsync(flagKey, cancellationToken);
+		}
+
+		// If not in cache, get from repository
+		if (flag == null)
+		{
+			flag = await _repository.GetAsync(flagKey, cancellationToken);
+			
+			// Cache for future requests if found
+			if (flag != null && cache != null)
+			{
+				await cache.SetAsync(flagKey, flag, TimeSpan.FromMinutes(5), cancellationToken);
+			}
+		}
+
+		return flag;
+	}
+
+	private async Task CreateDefaultFlagAsync(string flagKey, CancellationToken cancellationToken)
 	{
 		var defaultFlag = new FeatureFlag
 		{

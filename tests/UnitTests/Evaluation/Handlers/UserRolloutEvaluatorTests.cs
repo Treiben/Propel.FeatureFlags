@@ -79,8 +79,8 @@ public class UserRolloutEvaluatorTests
 		{
 			Key = "test-flag",
 			UserAccess = new FlagUserAccessControl(allowedUsers: ["user123"]),
-			Variations = new FlagVariations { DefaultVariation = "disabled" }
 		};
+
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
@@ -147,8 +147,8 @@ public class UserRolloutEvaluatorTests
 		{
 			Key = "test-flag",
 			UserAccess = new FlagUserAccessControl(rolloutPercentage: 100),
-			Variations = new FlagVariations { DefaultVariation = "restricted" }
 		};
+		flag.Variations.DefaultVariation = "restricted";
 		var context = new EvaluationContext(userId: "any-user");
 
 		// Act
@@ -205,9 +205,8 @@ public class UserRolloutEvaluatorTests
 			UserAccess = new FlagUserAccessControl(
 				allowedUsers: ["beta-tester"],
 				rolloutPercentage: 15),
-			Variations = new FlagVariations { DefaultVariation = "stable-version" }
 		};
-
+		flag.Variations.DefaultVariation = "stable-version";
 		// Act
 		var betaResult = await _evaluator.ProcessEvaluation(flag,
 			new EvaluationContext(userId: "beta-tester"));
@@ -228,5 +227,64 @@ public class UserRolloutEvaluatorTests
 		{
 			regularResult.Reason.ShouldMatch(@"User not in rollout: \d+% >= 15%");
 		}
+	}
+	
+	[Fact]
+	public async Task ProcessEvaluation_SimpleOnOffFlag_ReturnsOnVariation()
+	{
+		// Arrange
+		var flag = new FeatureFlag
+		{
+			Key = "simple-flag",
+			UserAccess = new FlagUserAccessControl(allowedUsers: ["user123"]),
+			Variations = new FlagVariations 
+			{ 
+				Values = new Dictionary<string, object> { { "on", true }, { "off", false } },
+				DefaultVariation = "off" 
+			}
+		};
+		var context = new EvaluationContext(userId: "user123");
+
+		// Act
+		var result = await _evaluator.ProcessEvaluation(flag, context);
+
+		// Assert
+		result.ShouldNotBeNull();
+		result.IsEnabled.ShouldBeTrue();
+		result.Variation.ShouldBe("on");
+	}
+
+	[Fact]
+	public async Task ProcessEvaluation_MultipleVariations_ReturnsConsistentVariationSelection()
+	{
+		// Arrange
+		var flag = new FeatureFlag
+		{
+			Key = "checkout-version",
+			UserAccess = new FlagUserAccessControl(allowedUsers: ["user123"]),
+			Variations = new FlagVariations 
+			{ 
+				Values = new Dictionary<string, object> 
+				{
+					{ "v1", "version1" },
+					{ "v2", "version2" }, 
+					{ "v3", "version3" }
+				},
+				DefaultVariation = "v1" 
+			}
+		};
+		var context = new EvaluationContext(userId: "user123");
+
+		// Act - Multiple calls should return same variation
+		var result1 = await _evaluator.ProcessEvaluation(flag, context);
+		var result2 = await _evaluator.ProcessEvaluation(flag, context);
+
+		// Assert
+		result1.ShouldNotBeNull();
+		result2.ShouldNotBeNull();
+		result1.IsEnabled.ShouldBeTrue();
+		result2.IsEnabled.ShouldBeTrue();
+		result1.Variation.ShouldBe(result2.Variation);
+		result1.Variation.ShouldBeOneOf("v1", "v2", "v3");
 	}
 }

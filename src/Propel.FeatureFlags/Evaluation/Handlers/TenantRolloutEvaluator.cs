@@ -23,12 +23,22 @@ public sealed class TenantRolloutEvaluator : IOrderedEvaluator
 		}
 
 		var (result, because) = flag.TenantAccess.EvaluateTenantAccess(context.TenantId!, flag.Key);
-
 		var isEnabled = result == TenantAccessResult.Allowed;
 
+		if (!isEnabled)
+		{
+			return new EvaluationResult(
+				isEnabled: false,
+				variation: flag.Variations.DefaultVariation,
+				reason: because);
+		}
+
+		// For enabled tenants, determine which variation they should get
+		var selectedVariation = flag.Variations.SelectVariationFor(flag.Key, context.TenantId!);
+
 		return new EvaluationResult(
-			isEnabled: isEnabled,
-			variation: isEnabled ? "on" : flag.Variations.DefaultVariation,
+			isEnabled: true,
+			variation: selectedVariation,
 			reason: because);
 	}
 }
