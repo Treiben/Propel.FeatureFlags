@@ -8,12 +8,12 @@ public sealed class OperationalWindowEvaluator : IOrderedEvaluator
 
 	public bool CanProcess(FeatureFlag flag, EvaluationContext context)
 	{
-		return flag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.TimeWindow]);
+		return flag.ActiveEvaluationModes.ContainsModes([EvaluationMode.TimeWindow]);
 	}
 
 	public async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
 	{
-		if (flag.OperationalWindow == FlagOperationalWindow.AlwaysOpen)
+		if (flag.OperationalWindow == OperationalWindow.AlwaysOpen)
 		{
 			// Always open window means the flag is always active
 			return new EvaluationResult(isEnabled: true, variation: "on", reason: "Flag operational window is always open.");

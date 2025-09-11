@@ -1,11 +1,11 @@
 ﻿namespace Propel.FeatureFlags.Core;
 
-public class FlagActivationSchedule
+public class ActivationSchedule
 {
 	public DateTime ScheduledEnableDate { get; }
 	public DateTime? ScheduledDisableDate { get; }
 
-	public FlagActivationSchedule(DateTime scheduledEnableDate, DateTime? scheduledDisableDate = null)
+	public ActivationSchedule(DateTime scheduledEnableDate, DateTime? scheduledDisableDate = null)
 	{
 		var scheduledEnableUtcDate = NormalizeToUtc(scheduledEnableDate);
 		var scheduledDisableUtcDate = NormalizeToUtc(scheduledDisableDate.HasValue == false || scheduledDisableDate == DateTime.MinValue 
@@ -20,10 +20,10 @@ public class FlagActivationSchedule
 		ScheduledDisableDate = scheduledDisableUtcDate;
 	}
 
-	public static FlagActivationSchedule Unscheduled => new(DateTime.MinValue, DateTime.MaxValue);
+	public static ActivationSchedule Unscheduled => new(DateTime.MinValue, DateTime.MaxValue);
 
 	// This method is used to create new flag schedules in valid state
-	public static FlagActivationSchedule CreateSchedule(DateTime scheduledEnableDate, DateTime? scheduledDisableDate = null)
+	public static ActivationSchedule CreateSchedule(DateTime scheduledEnableDate, DateTime? scheduledDisableDate = null)
 	{
 
 		if (scheduledEnableDate <= DateTime.MinValue)
@@ -36,7 +36,7 @@ public class FlagActivationSchedule
 			throw new ArgumentException("Scheduled enable date must be in the future.");
 		}
 
-		return new FlagActivationSchedule(scheduledEnableDate, scheduledDisableDate);
+		return new ActivationSchedule(scheduledEnableDate, scheduledDisableDate);
 	}
 
 	public bool HasSchedule()
@@ -84,7 +84,7 @@ public class FlagActivationSchedule
 		return dateTime.ToUniversalTime();
 	}
 
-	public static bool operator ==(FlagActivationSchedule? left, FlagActivationSchedule? right)
+	public static bool operator ==(ActivationSchedule? left, ActivationSchedule? right)
 	{
 		if (left is null && right is null) 
 			return true;
@@ -95,14 +95,14 @@ public class FlagActivationSchedule
 			&& left.ScheduledDisableDate == right.ScheduledDisableDate;
 	}
 
-	public static bool operator !=(FlagActivationSchedule? left, FlagActivationSchedule? right)
+	public static bool operator !=(ActivationSchedule? left, ActivationSchedule? right)
 	{
 		return !(left == right);
 	}
 
 	public override bool Equals(object obj)
 	{
-		return obj is FlagActivationSchedule other && this == other;
+		return obj is ActivationSchedule other && this == other;
 	}
 
 	public override int GetHashCode()

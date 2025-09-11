@@ -9,12 +9,12 @@ public sealed class TerminalStateEvaluator : IOrderedEvaluator
 	public bool CanProcess(FeatureFlag flag, EvaluationContext context)
 	{
 		// Handle fundamental states that don't require complex logic
-		return flag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Disabled, FlagEvaluationMode.Enabled]);
+		return flag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Disabled, EvaluationMode.Enabled]);
 	}
 
 	public async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
 	{
-		if (flag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Disabled]))
+		if (flag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Disabled]))
 		{
 			return new EvaluationResult(
 				isEnabled: false, 

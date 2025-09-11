@@ -2,7 +2,7 @@ using System;
 
 namespace Propel.FeatureFlags.Core;
 
-public class FlagOperationalWindow(
+public class OperationalWindow(
 			TimeSpan windowStartTime,
 			TimeSpan windowEndTime,
 			string timeZone = "UTC",
@@ -19,12 +19,12 @@ public class FlagOperationalWindow(
 			DayOfWeek.Saturday,
 			DayOfWeek.Sunday];
 
-	public static FlagOperationalWindow AlwaysOpen => new(
+	public static OperationalWindow AlwaysOpen => new(
 		windowStartTime: TimeSpan.Zero,
 		windowEndTime: new TimeSpan(23, 59, 59));
 
 	// This method is used to create a new operation window in valid state
-	public static FlagOperationalWindow CreateWindow(
+	public static OperationalWindow CreateWindow(
 											TimeSpan startTime, 
 											TimeSpan endTime,
 											string? timeZone = null,
@@ -51,7 +51,7 @@ public class FlagOperationalWindow(
 		// Validate allowed days
 		var validatedDays = ValidateAllowedDays(allowedDays);
 
-		return new FlagOperationalWindow(startTime, endTime, validatedTimeZone, validatedDays);
+		return new OperationalWindow(startTime, endTime, validatedTimeZone, validatedDays);
 	}
 
 	public bool HasWindow()
@@ -160,7 +160,7 @@ public class FlagOperationalWindow(
 		return distinctDays;
 	}
 
-	public static bool operator ==(FlagOperationalWindow? left, FlagOperationalWindow? right)
+	public static bool operator ==(OperationalWindow? left, OperationalWindow? right)
 	{
 		if (ReferenceEquals(left, right))
 			return true;
@@ -174,14 +174,14 @@ public class FlagOperationalWindow(
 			   left.WindowDays.OrderBy(d => d).SequenceEqual(right.WindowDays.OrderBy(d => d));
 	}
 
-	public static bool operator !=(FlagOperationalWindow? left, FlagOperationalWindow? right)
+	public static bool operator !=(OperationalWindow? left, OperationalWindow? right)
 	{
 		return !(left == right);
 	}
 
 	public override bool Equals(object? obj)
 	{
-		return obj is FlagOperationalWindow other && this == other;
+		return obj is OperationalWindow other && this == other;
 	}
 
 	public override int GetHashCode()

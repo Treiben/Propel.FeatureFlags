@@ -1,11 +1,11 @@
 ﻿namespace Propel.FeatureFlags.Core;
 
-public class FlagVariations
+public class Variations
 {
 	public Dictionary<string, object> Values { get; set; } = [];
 	public string DefaultVariation { get; set; } = "off";
 
-	public static FlagVariations OnOff => new()
+	public static Variations OnOff => new()
 	{
 		Values = new Dictionary<string, object>
 		{

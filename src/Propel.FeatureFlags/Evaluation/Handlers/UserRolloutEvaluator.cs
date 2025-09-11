@@ -8,11 +8,8 @@ public sealed class UserRolloutEvaluator: IOrderedEvaluator
 
 	public bool CanProcess(FeatureFlag flag, EvaluationContext context)
 	{
-		var mustEvaluateUser = !string.IsNullOrWhiteSpace(context.UserId)
-			&& flag.UserAccess.IsUserExplicitlyManaged(context.UserId!);
-
-		return mustEvaluateUser 
-			|| (flag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.UserRolloutPercentage]) && flag.UserAccess.HasAccessRestrictions());
+		return flag.ActiveEvaluationModes.ContainsModes([EvaluationMode.UserRolloutPercentage, EvaluationMode.UserTargeted]) 
+			|| flag.UserAccessControl.HasAccessRestrictions();
 	}
 
 	public async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
@@ -22,8 +19,8 @@ public sealed class UserRolloutEvaluator: IOrderedEvaluator
 			throw new InvalidOperationException("User ID is required for percentage rollout evaluation.");
 		}
 
-		var (result, because) = flag.UserAccess.EvaluateUserAccess(context.UserId!, flag.Key);
-		var isEnabled = result == UserAccessResult.Allowed;
+		var (result, because) = flag.UserAccessControl.EvaluateAccess(context.UserId!, flag.Key);
+		var isEnabled = result == AccessResult.Allowed;
 
 		if (isEnabled == false)
 		{

@@ -8,11 +8,8 @@ public sealed class TenantRolloutEvaluator : IOrderedEvaluator
 
 	public bool CanProcess(FeatureFlag flag, EvaluationContext context)
 	{
-		var mustEvaluateTenant = !string.IsNullOrWhiteSpace(context.TenantId)
-			&& flag.TenantAccess.IsTenantExplicitlyManaged(context.TenantId!);
-
-		return mustEvaluateTenant
-			|| (flag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.TenantRolloutPercentage]) && flag.TenantAccess.HasAccessRestrictions());
+		return flag.ActiveEvaluationModes.ContainsModes([EvaluationMode.TenantRolloutPercentage, EvaluationMode.TenantTargeted]) 
+			|| flag.TenantAccessControl.HasAccessRestrictions();
 	}
 
 	public async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
@@ -22,8 +19,8 @@ public sealed class TenantRolloutEvaluator : IOrderedEvaluator
 			throw new InvalidOperationException("Tenant ID is required for percentage rollout evaluation.");
 		}
 
-		var (result, because) = flag.TenantAccess.EvaluateTenantAccess(context.TenantId!, flag.Key);
-		var isEnabled = result == TenantAccessResult.Allowed;
+		var (result, because) = flag.TenantAccessControl.EvaluateAccess(context.TenantId!, flag.Key);
+		var isEnabled = result == AccessResult.Allowed;
 
 		if (!isEnabled)
 		{

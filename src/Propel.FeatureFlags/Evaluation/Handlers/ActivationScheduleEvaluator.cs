@@ -8,7 +8,7 @@ public sealed class ActivationScheduleEvaluator: IOrderedEvaluator
 
 	public bool CanProcess(FeatureFlag flag, EvaluationContext context)
 	{
-		return flag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Scheduled]);
+		return flag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Scheduled]);
 	}
 
 	public async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)

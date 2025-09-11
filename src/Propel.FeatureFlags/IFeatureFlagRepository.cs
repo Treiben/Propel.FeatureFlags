@@ -5,7 +5,7 @@ namespace Propel.FeatureFlags;
 public record FeatureFlagFilter
 {
 	public Dictionary<string, string>? Tags { get; set; }
-	public FlagEvaluationMode[]? EvaluationModes { get; set; }
+	public EvaluationMode[]? EvaluationModes { get; set; }
 	public int? ExpiringInDays { get; set; }
 }
 

@@ -36,7 +36,7 @@ public sealed class FlagEvaluationManager : IFlagEvaluationManager
 
 		if (processingHandlers.Count > 1)
 		{
-			var reason = $"All [{flag.EvaluationModeSet}] conditions met for feature flag activation";
+			var reason = $"All [{flag.ActiveEvaluationModes}] conditions met for feature flag activation";
 			return new EvaluationResult(isEnabled: true, variation: flag.Variations.DefaultVariation ?? "on", reason: reason);
 		}
 

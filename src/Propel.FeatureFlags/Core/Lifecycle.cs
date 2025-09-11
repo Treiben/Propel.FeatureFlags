@@ -1,12 +1,16 @@
 ﻿namespace Propel.FeatureFlags.Core;
 
-public class FlagLifecycle(DateTime? expirationDate, bool isPermanent)
+public class Lifecycle(DateTime? expirationDate, bool isPermanent)
 {
 	public DateTime? ExpirationDate { get; } = NormalizeToUtc(expirationDate, isPermanent);
 
 	public bool IsPermanent { get; } = isPermanent;
 
-	public static FlagLifecycle DefaultLifecycle => new(DateTime.UtcNow.AddDays(30), false);
+	public static Lifecycle DefaultLifecycle => new(DateTime.UtcNow.AddDays(30), false);
+
+	public static Lifecycle Permanent => new(null, true);
+
+	public bool CanBeDeleted => !IsPermanent && (ExpirationDate == null || ExpirationDate <= DateTime.UtcNow);
 
 	private static DateTime NormalizeToUtc(DateTime? dateTime, bool isPermanent)
 	{
