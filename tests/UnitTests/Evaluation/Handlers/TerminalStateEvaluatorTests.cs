@@ -12,8 +12,8 @@ public class TerminalStateEvaluator_CanProcess
 	public void CanProcess_FlagHasDisabledMode_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { EvaluationModeSet = new FlagEvaluationModeSet() };
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Disabled);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Disabled);
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
@@ -23,8 +23,8 @@ public class TerminalStateEvaluator_CanProcess
 	public void CanProcess_FlagHasEnabledMode_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { EvaluationModeSet = new FlagEvaluationModeSet() };
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Enabled);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Enabled);
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
@@ -34,24 +34,24 @@ public class TerminalStateEvaluator_CanProcess
 	public void CanProcess_FlagHasBothDisabledAndEnabled_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { EvaluationModeSet = new FlagEvaluationModeSet() };
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Enabled);
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Disabled);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Enabled);
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Disabled);
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
 	}
 
 	[Theory]
-	[InlineData(FlagEvaluationMode.Scheduled)]
-	[InlineData(FlagEvaluationMode.TimeWindow)]
-	[InlineData(FlagEvaluationMode.UserTargeted)]
-	[InlineData(FlagEvaluationMode.TenantRolloutPercentage)]
-	public void CanProcess_FlagHasOnlyNonTerminalModes_ReturnsFalse(FlagEvaluationMode mode)
+	[InlineData(EvaluationMode.Scheduled)]
+	[InlineData(EvaluationMode.TimeWindow)]
+	[InlineData(EvaluationMode.UserTargeted)]
+	[InlineData(EvaluationMode.TenantRolloutPercentage)]
+	public void CanProcess_FlagHasOnlyNonTerminalModes_ReturnsFalse(EvaluationMode mode)
 	{
 		// Arrange
-		var flag = new FeatureFlag { EvaluationModeSet = new FlagEvaluationModeSet() };
-		flag.EvaluationModeSet.AddMode(mode);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
+		flag.ActiveEvaluationModes.AddMode(mode);
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeFalse();
@@ -79,10 +79,10 @@ public class TerminalStateEvaluator_ProcessEvaluation
 		var flag = new FeatureFlag
 		{
 			Key = "test-disabled-flag",
-			EvaluationModeSet = new FlagEvaluationModeSet(),
-			Variations = new FlagVariations { DefaultVariation = "disabled-variation" }
+			ActiveEvaluationModes = new EvaluationModes(),
+			Variations = new Variations { DefaultVariation = "disabled-variation" }
 		};
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Disabled);
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Disabled);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flag, new EvaluationContext());
@@ -100,10 +100,10 @@ public class TerminalStateEvaluator_ProcessEvaluation
 		var flag = new FeatureFlag
 		{
 			Key = "test-enabled-flag",
-			EvaluationModeSet = new FlagEvaluationModeSet(),
-			Variations = new FlagVariations { DefaultVariation = "should-not-be-used" }
+			ActiveEvaluationModes = new EvaluationModes(),
+			Variations = new Variations { DefaultVariation = "should-not-be-used" }
 		};
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Enabled);
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Enabled);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flag, new EvaluationContext());
@@ -121,11 +121,11 @@ public class TerminalStateEvaluator_ProcessEvaluation
 		var flag = new FeatureFlag
 		{
 			Key = "priority-test-flag",
-			EvaluationModeSet = new FlagEvaluationModeSet(),
-			Variations = new FlagVariations { DefaultVariation = "disabled-wins" }
+			ActiveEvaluationModes = new EvaluationModes(),
+			Variations = new Variations { DefaultVariation = "disabled-wins" }
 		};
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Enabled);
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Disabled);
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Enabled);
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Disabled);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flag, new EvaluationContext());
@@ -166,10 +166,10 @@ public class TerminalStateEvaluator_ProcessEvaluation
 		var flag = new FeatureFlag
 		{
 			Key = "variation-test",
-			EvaluationModeSet = new FlagEvaluationModeSet(),
-			Variations = new FlagVariations { DefaultVariation = defaultVariation }
+			ActiveEvaluationModes = new EvaluationModes(),
+			Variations = new Variations { DefaultVariation = defaultVariation }
 		};
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Disabled);
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Disabled);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flag, new EvaluationContext());
@@ -186,10 +186,10 @@ public class TerminalStateEvaluator_ProcessEvaluation
 		var flag = new FeatureFlag
 		{
 			Key = "always-on-test",
-			EvaluationModeSet = new FlagEvaluationModeSet(),
-			Variations = new FlagVariations { DefaultVariation = "should-be-ignored" }
+			ActiveEvaluationModes = new EvaluationModes(),
+			Variations = new Variations { DefaultVariation = "should-be-ignored" }
 		};
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Enabled);
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Enabled);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flag, new EvaluationContext());

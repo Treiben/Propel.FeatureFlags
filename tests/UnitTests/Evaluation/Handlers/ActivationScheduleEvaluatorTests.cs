@@ -12,8 +12,8 @@ public class ActivationScheduleEvaluator_CanProcess
 	public void CanProcess_FlagHasScheduledMode_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { EvaluationModeSet = new FlagEvaluationModeSet() };
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Scheduled);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Scheduled);
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
@@ -23,24 +23,24 @@ public class ActivationScheduleEvaluator_CanProcess
 	public void CanProcess_FlagHasMultipleModesIncludingScheduled_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { EvaluationModeSet = new FlagEvaluationModeSet() };
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Scheduled);
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TimeWindow);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Scheduled);
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TimeWindow);
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
 	}
 
 	[Theory]
-	[InlineData(FlagEvaluationMode.Disabled)]
-	[InlineData(FlagEvaluationMode.Enabled)]
-	[InlineData(FlagEvaluationMode.TimeWindow)]
-	[InlineData(FlagEvaluationMode.UserTargeted)]
-	public void CanProcess_FlagDoesNotHaveScheduledMode_ReturnsFalse(FlagEvaluationMode mode)
+	[InlineData(EvaluationMode.Disabled)]
+	[InlineData(EvaluationMode.Enabled)]
+	[InlineData(EvaluationMode.TimeWindow)]
+	[InlineData(EvaluationMode.UserTargeted)]
+	public void CanProcess_FlagDoesNotHaveScheduledMode_ReturnsFalse(EvaluationMode mode)
 	{
 		// Arrange
-		var flag = new FeatureFlag { EvaluationModeSet = new FlagEvaluationModeSet() };
-		flag.EvaluationModeSet.AddMode(mode);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
+		flag.ActiveEvaluationModes.AddMode(mode);
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeFalse();
@@ -57,8 +57,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		// Arrange
 		var flag = new FeatureFlag
 		{
-			Schedule = FlagActivationSchedule.Unscheduled,
-			Variations = new FlagVariations { DefaultVariation = "off" }
+			Schedule = ActivationSchedule.Unscheduled,
+			Variations = new Variations { DefaultVariation = "off" }
 		};
 
 		// Act
@@ -79,8 +79,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			Schedule = new FlagActivationSchedule(enableDate),
-			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
+			Schedule = new ActivationSchedule(enableDate),
+			Variations = new Variations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
@@ -101,8 +101,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			Schedule = new FlagActivationSchedule(enableDate),
-			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
+			Schedule = new ActivationSchedule(enableDate),
+			Variations = new Variations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: enableDate);
 
@@ -124,8 +124,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			Schedule = new FlagActivationSchedule(enableDate),
-			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
+			Schedule = new ActivationSchedule(enableDate),
+			Variations = new Variations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
@@ -148,8 +148,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			Schedule = new FlagActivationSchedule(enableDate, disableDate),
-			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
+			Schedule = new ActivationSchedule(enableDate, disableDate),
+			Variations = new Variations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
@@ -171,8 +171,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			Schedule = new FlagActivationSchedule(enableDate, disableDate),
-			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
+			Schedule = new ActivationSchedule(enableDate, disableDate),
+			Variations = new Variations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: disableDate);
 
@@ -195,8 +195,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			Schedule = new FlagActivationSchedule(enableDate, disableDate),
-			Variations = new FlagVariations { DefaultVariation = "scheduled-off" }
+			Schedule = new ActivationSchedule(enableDate, disableDate),
+			Variations = new Variations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
@@ -217,8 +217,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			Schedule = new FlagActivationSchedule(enableDate),
-			Variations = new FlagVariations { DefaultVariation = "off" }
+			Schedule = new ActivationSchedule(enableDate),
+			Variations = new Variations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(evaluationTime: null);
 
@@ -239,8 +239,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			Schedule = new FlagActivationSchedule(launchDate, endDate),
-			Variations = new FlagVariations { DefaultVariation = "feature-disabled" }
+			Schedule = new ActivationSchedule(launchDate, endDate),
+			Variations = new Variations { DefaultVariation = "feature-disabled" }
 		};
 
 		// Act & Assert - Before launch

@@ -2,13 +2,13 @@ using Propel.FeatureFlags.Core;
 
 namespace FeatureFlags.UnitTests.Core;
 
-public class FlagVariations_SelectVariationFor
+public class Variations_SelectVariationFor
 {
 	[Fact]
 	public void SelectVariationFor_SimpleOnOffFlag_ReturnsOn()
 	{
 		// Arrange
-		var variations = new FlagVariations
+		var variations = new Variations
 		{
 			Values = new Dictionary<string, object>
 			{
@@ -29,7 +29,7 @@ public class FlagVariations_SelectVariationFor
 	public void SelectVariationFor_MultipleVariations_ReturnsConsistentHashBasedSelection()
 	{
 		// Arrange
-		var variations = new FlagVariations
+		var variations = new Variations
 		{
 			Values = new Dictionary<string, object>
 			{

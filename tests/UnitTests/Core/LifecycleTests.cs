@@ -2,13 +2,13 @@ using Propel.FeatureFlags.Core;
 
 namespace FeatureFlags.UnitTests.Core;
 
-public class FlagLifecycle_Constructor
+public class Lifecycle_Constructor
 {
 	[Fact]
 	public void If_PermanentFlag_ThenSetsMaxDateAndPermanent()
 	{
 		// Act
-		var lifecycle = new FlagLifecycle(DateTime.UtcNow.AddDays(10), isPermanent: true);
+		var lifecycle = new Lifecycle(DateTime.UtcNow.AddDays(10), isPermanent: true);
 
 		// Assert
 		lifecycle.IsPermanent.ShouldBeTrue();
@@ -19,7 +19,7 @@ public class FlagLifecycle_Constructor
 	public void If_NullExpirationDate_ThenSetsDefault30Days()
 	{
 		// Act
-		var lifecycle = new FlagLifecycle(null, isPermanent: false);
+		var lifecycle = new Lifecycle(null, isPermanent: false);
 
 		// Assert
 		lifecycle.IsPermanent.ShouldBeFalse();
@@ -34,7 +34,7 @@ public class FlagLifecycle_Constructor
 		var localDateTime = new DateTime(2025, 12, 31, 23, 59, 59, DateTimeKind.Local);
 
 		// Act
-		var lifecycle = new FlagLifecycle(localDateTime, isPermanent: false);
+		var lifecycle = new Lifecycle(localDateTime, isPermanent: false);
 
 		// Assert
 		lifecycle.ExpirationDate.ShouldBe(localDateTime.ToUniversalTime());
@@ -42,13 +42,13 @@ public class FlagLifecycle_Constructor
 	}
 }
 
-public class FlagLifecycle_DefaultLifecycle
+public class Lifecycle_DefaultLifecycle
 {
 	[Fact]
 	public void ThenReturns30DayExpirationNonPermanent()
 	{
 		// Act
-		var lifecycle = FlagLifecycle.DefaultLifecycle;
+		var lifecycle = Lifecycle.DefaultLifecycle;
 
 		// Assert
 		lifecycle.IsPermanent.ShouldBeFalse();

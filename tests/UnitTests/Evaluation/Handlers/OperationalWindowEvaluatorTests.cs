@@ -12,8 +12,8 @@ public class OperationalWindowEvaluator_CanProcess
 	public void CanProcess_FlagHasTimeWindowMode_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { EvaluationModeSet = new FlagEvaluationModeSet() };
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TimeWindow);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TimeWindow);
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
@@ -23,24 +23,24 @@ public class OperationalWindowEvaluator_CanProcess
 	public void CanProcess_FlagHasMultipleModesIncludingTimeWindow_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { EvaluationModeSet = new FlagEvaluationModeSet() };
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TimeWindow);
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Scheduled);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TimeWindow);
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Scheduled);
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
 	}
 
 	[Theory]
-	[InlineData(FlagEvaluationMode.Disabled)]
-	[InlineData(FlagEvaluationMode.Enabled)]
-	[InlineData(FlagEvaluationMode.Scheduled)]
-	[InlineData(FlagEvaluationMode.UserTargeted)]
-	public void CanProcess_FlagDoesNotHaveTimeWindowMode_ReturnsFalse(FlagEvaluationMode mode)
+	[InlineData(EvaluationMode.Disabled)]
+	[InlineData(EvaluationMode.Enabled)]
+	[InlineData(EvaluationMode.Scheduled)]
+	[InlineData(EvaluationMode.UserTargeted)]
+	public void CanProcess_FlagDoesNotHaveTimeWindowMode_ReturnsFalse(EvaluationMode mode)
 	{
 		// Arrange
-		var flag = new FeatureFlag { EvaluationModeSet = new FlagEvaluationModeSet() };
-		flag.EvaluationModeSet.AddMode(mode);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
+		flag.ActiveEvaluationModes.AddMode(mode);
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeFalse();
@@ -57,8 +57,8 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		// Arrange
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = FlagOperationalWindow.AlwaysOpen,
-			Variations = new FlagVariations { DefaultVariation = "off" }
+			OperationalWindow = OperationalWindow.AlwaysOpen,
+			Variations = new Variations { DefaultVariation = "off" }
 		};
 
 		// Act
@@ -77,9 +77,9 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var evaluationTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc); // Monday 12 PM
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = FlagOperationalWindow.CreateWindow(
+			OperationalWindow = OperationalWindow.CreateWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17)),
-			Variations = new FlagVariations { DefaultVariation = "window-closed" }
+			Variations = new Variations { DefaultVariation = "window-closed" }
 		};
 
 		// Act
@@ -99,9 +99,9 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var evaluationTime = new DateTime(2024, 1, 15, 20, 0, 0, DateTimeKind.Utc); // Monday 8 PM
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = FlagOperationalWindow.CreateWindow(
+			OperationalWindow = OperationalWindow.CreateWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17)),
-			Variations = new FlagVariations { DefaultVariation = "window-closed" }
+			Variations = new Variations { DefaultVariation = "window-closed" }
 		};
 
 		// Act
@@ -123,9 +123,9 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = FlagOperationalWindow.CreateWindow(
+			OperationalWindow = OperationalWindow.CreateWindow(
 				TimeSpan.FromHours(22), TimeSpan.FromHours(6)), // 10 PM to 6 AM
-			Variations = new FlagVariations { DefaultVariation = "maintenance-off" }
+			Variations = new Variations { DefaultVariation = "maintenance-off" }
 		};
 
 		// Act
@@ -156,10 +156,10 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = FlagOperationalWindow.CreateWindow(
+			OperationalWindow = OperationalWindow.CreateWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 				allowedDays: weekdaysOnly),
-			Variations = new FlagVariations { DefaultVariation = "weekend-off" }
+			Variations = new Variations { DefaultVariation = "weekend-off" }
 		};
 
 		// Act
@@ -184,10 +184,10 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var evaluationTime = new DateTime(2024, 1, 15, 17, 0, 0, DateTimeKind.Utc); // 5 PM UTC
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = FlagOperationalWindow.CreateWindow(
+			OperationalWindow = OperationalWindow.CreateWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 				"Pacific Standard Time"), // Window is in PST
-			Variations = new FlagVariations { DefaultVariation = "off" }
+			Variations = new Variations { DefaultVariation = "off" }
 		};
 
 		// Act - Use Eastern time context (5 PM UTC = 12 PM EST, within window)
@@ -205,8 +205,8 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		// Arrange
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = FlagOperationalWindow.AlwaysOpen,
-			Variations = new FlagVariations { DefaultVariation = "off" }
+			OperationalWindow = OperationalWindow.AlwaysOpen,
+			Variations = new Variations { DefaultVariation = "off" }
 		};
 
 		// Act
@@ -229,10 +229,10 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		};
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = FlagOperationalWindow.CreateWindow(
+			OperationalWindow = OperationalWindow.CreateWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 				allowedDays: businessDays),
-			Variations = new FlagVariations { DefaultVariation = "after-hours" }
+			Variations = new Variations { DefaultVariation = "after-hours" }
 		};
 
 		// Act & Assert - During business hours (Wednesday 2 PM)

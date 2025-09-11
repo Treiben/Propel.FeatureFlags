@@ -2,7 +2,7 @@ using Propel.FeatureFlags.Core;
 
 namespace FeatureFlags.UnitTests.Core;
 
-public class FlagActivationSchedule_CreateSchedule
+public class ActivationSchedule_CreateSchedule
 {
 	[Fact]
 	public void CreateSchedule_ValidFutureDate_CreatesSchedule()
@@ -11,7 +11,7 @@ public class FlagActivationSchedule_CreateSchedule
 		var enableDate = DateTime.UtcNow.AddDays(1);
 
 		// Act
-		var schedule = FlagActivationSchedule.CreateSchedule(enableDate);
+		var schedule = ActivationSchedule.CreateSchedule(enableDate);
 
 		// Assert
 		schedule.ScheduledEnableDate.ShouldBe(enableDate);
@@ -27,7 +27,7 @@ public class FlagActivationSchedule_CreateSchedule
 		var disableDate = DateTime.UtcNow.AddDays(7);
 
 		// Act
-		var schedule = FlagActivationSchedule.CreateSchedule(enableDate, disableDate);
+		var schedule = ActivationSchedule.CreateSchedule(enableDate, disableDate);
 
 		// Assert
 		schedule.ScheduledEnableDate.ShouldBe(enableDate);
@@ -43,7 +43,7 @@ public class FlagActivationSchedule_CreateSchedule
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
-			FlagActivationSchedule.CreateSchedule(pastDate));
+			ActivationSchedule.CreateSchedule(pastDate));
 		exception.Message.ShouldBe("Scheduled enable date must be in the future.");
 	}
 
@@ -52,7 +52,7 @@ public class FlagActivationSchedule_CreateSchedule
 	{
 		// Act & Assert
 		Should.Throw<ArgumentException>(() =>
-			FlagActivationSchedule.CreateSchedule(DateTime.MinValue));
+			ActivationSchedule.CreateSchedule(DateTime.MinValue));
 	}
 
 	[Fact]
@@ -64,7 +64,7 @@ public class FlagActivationSchedule_CreateSchedule
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
-			FlagActivationSchedule.CreateSchedule(enableDate, disableDate));
+			ActivationSchedule.CreateSchedule(enableDate, disableDate));
 		exception.Message.ShouldBe("Scheduled disable date must be after the scheduled enable date.");
 	}
 
@@ -77,17 +77,17 @@ public class FlagActivationSchedule_CreateSchedule
 
 		// Act & Assert
 		Should.Throw<ArgumentException>(() =>
-			FlagActivationSchedule.CreateSchedule(enableDate, disableDate));
+			ActivationSchedule.CreateSchedule(enableDate, disableDate));
 	}
 }
 
-public class FlagActivationSchedule_Unscheduled
+public class ActivationSchedule_Unscheduled
 {
 	[Fact]
 	public void Unscheduled_HasBoundaryDateValues()
 	{
 		// Act
-		var schedule = FlagActivationSchedule.Unscheduled;
+		var schedule = ActivationSchedule.Unscheduled;
 
 		// Assert
 		schedule.ScheduledEnableDate.ShouldBe(DateTime.MinValue.ToUniversalTime());
@@ -99,7 +99,7 @@ public class FlagActivationSchedule_Unscheduled
 	public void Unscheduled_IsNeverActive()
 	{
 		// Arrange
-		var schedule = FlagActivationSchedule.Unscheduled;
+		var schedule = ActivationSchedule.Unscheduled;
 
 		// Act
 		var (isActive, reason) = schedule.IsActiveAt(DateTime.UtcNow);
@@ -110,14 +110,14 @@ public class FlagActivationSchedule_Unscheduled
 	}
 }
 
-public class FlagActivationSchedule_IsActiveAt
+public class ActivationSchedule_IsActiveAt
 {
 	[Fact]
 	public void IsActiveAt_BeforeEnableDate_ReturnsFalse()
 	{
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-1);
-		var schedule = new FlagActivationSchedule(enableDate);
+		var schedule = new ActivationSchedule(enableDate);
 		var evaluationTime = DateTime.UtcNow.AddHours(-2); // Before enable
 
 		// Act
@@ -133,7 +133,7 @@ public class FlagActivationSchedule_IsActiveAt
 	{
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-1);
-		var schedule = new FlagActivationSchedule(enableDate);
+		var schedule = new ActivationSchedule(enableDate);
 
 		// Act
 		var (isActive, reason) = schedule.IsActiveAt(enableDate);
@@ -148,7 +148,7 @@ public class FlagActivationSchedule_IsActiveAt
 	{
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-2);
-		var schedule = new FlagActivationSchedule(enableDate);
+		var schedule = new ActivationSchedule(enableDate);
 		var evaluationTime = DateTime.UtcNow;
 
 		// Act
@@ -165,7 +165,7 @@ public class FlagActivationSchedule_IsActiveAt
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-2);
 		var disableDate = DateTime.UtcNow.AddHours(2);
-		var schedule = new FlagActivationSchedule(enableDate, disableDate);
+		var schedule = new ActivationSchedule(enableDate, disableDate);
 		var evaluationTime = DateTime.UtcNow;
 
 		// Act
@@ -182,7 +182,7 @@ public class FlagActivationSchedule_IsActiveAt
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-2);
 		var disableDate = DateTime.UtcNow;
-		var schedule = new FlagActivationSchedule(enableDate, disableDate);
+		var schedule = new ActivationSchedule(enableDate, disableDate);
 
 		// Act
 		var (isActive, reason) = schedule.IsActiveAt(disableDate);
@@ -198,7 +198,7 @@ public class FlagActivationSchedule_IsActiveAt
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-3);
 		var disableDate = DateTime.UtcNow.AddHours(-1);
-		var schedule = new FlagActivationSchedule(enableDate, disableDate);
+		var schedule = new ActivationSchedule(enableDate, disableDate);
 		var evaluationTime = DateTime.UtcNow;
 
 		// Act
@@ -226,7 +226,7 @@ public class FlagActivationSchedule_IsActiveAt
 		var enableDate = baseTime.AddHours(enableHoursOffset);
 		var disableDate = baseTime.AddHours(disableHoursOffset);
 		var evaluationTime = baseTime.AddHours(evaluationHoursOffset);
-		var schedule = new FlagActivationSchedule(enableDate, disableDate);
+		var schedule = new ActivationSchedule(enableDate, disableDate);
 
 		// Act
 		var (isActive, reason) = schedule.IsActiveAt(evaluationTime);
@@ -237,14 +237,14 @@ public class FlagActivationSchedule_IsActiveAt
 	}
 }
 
-public class FlagActivationSchedule_HasSchedule
+public class ActivationSchedule_HasSchedule
 {
 	[Fact]
 	public void HasSchedule_WithEnableDate_ReturnsTrue()
 	{
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddDays(-1);
-		var schedule = new FlagActivationSchedule(enableDate);
+		var schedule = new ActivationSchedule(enableDate);
 
 		// Act & Assert
 		schedule.HasSchedule().ShouldBeTrue();
@@ -256,7 +256,7 @@ public class FlagActivationSchedule_HasSchedule
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddDays(-1);
 		var disableDate = DateTime.UtcNow.AddDays(1);
-		var schedule = new FlagActivationSchedule(enableDate, disableDate);
+		var schedule = new ActivationSchedule(enableDate, disableDate);
 
 		// Act & Assert
 		schedule.HasSchedule().ShouldBeTrue();
@@ -266,6 +266,6 @@ public class FlagActivationSchedule_HasSchedule
 	public void HasSchedule_Unscheduled_ReturnsFalse()
 	{
 		// Act & Assert
-		FlagActivationSchedule.Unscheduled.HasSchedule().ShouldBeFalse();
+		ActivationSchedule.Unscheduled.HasSchedule().ShouldBeFalse();
 	}
 }

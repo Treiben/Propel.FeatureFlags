@@ -101,7 +101,7 @@ public class TargetingRulesEvaluatorTests
 		return new FeatureFlag
 		{
 			TargetingRules = [CreateStringRule(attribute, op, values, variation)],
-			Variations = new FlagVariations { DefaultVariation = "off" }
+			Variations = new Variations { DefaultVariation = "off" }
 		};
 	}
 
@@ -110,7 +110,7 @@ public class TargetingRulesEvaluatorTests
 		return new FeatureFlag
 		{
 			TargetingRules = [CreateNumericRule(attribute, op, values, variation)],
-			Variations = new FlagVariations { DefaultVariation = "off" }
+			Variations = new Variations { DefaultVariation = "off" }
 		};
 	}
 

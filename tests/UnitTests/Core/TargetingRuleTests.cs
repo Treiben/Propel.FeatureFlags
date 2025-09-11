@@ -1,5 +1,4 @@
 using Propel.FeatureFlags.Core;
-using Xunit;
 
 namespace Propel.FeatureFlags.Tests.Core;
 

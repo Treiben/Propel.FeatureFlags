@@ -2,7 +2,7 @@ using Propel.FeatureFlags.Core;
 
 namespace FeatureFlags.UnitTests.Core;
 
-public class FlagOperationalWindow_Validation
+public class OperationalWindow_Validation
 {
 	[Theory]
 	[InlineData(-1, 0, 0)]
@@ -15,7 +15,7 @@ public class FlagOperationalWindow_Validation
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
-			FlagOperationalWindow.CreateWindow(invalidStartTime, endTime));
+			OperationalWindow.CreateWindow(invalidStartTime, endTime));
 		exception.ParamName.ShouldBe("startTime");
 	}
 
@@ -30,7 +30,7 @@ public class FlagOperationalWindow_Validation
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
-			FlagOperationalWindow.CreateWindow(startTime, invalidEndTime));
+			OperationalWindow.CreateWindow(startTime, invalidEndTime));
 		exception.ParamName.ShouldBe("endTime");
 	}
 
@@ -43,7 +43,7 @@ public class FlagOperationalWindow_Validation
 
 		// Act & Assert
 		Should.Throw<ArgumentException>(() =>
-			FlagOperationalWindow.CreateWindow(startTime, endTime, "Invalid/TimeZone"));
+			OperationalWindow.CreateWindow(startTime, endTime, "Invalid/TimeZone"));
 	}
 
 	[Theory]
@@ -53,7 +53,7 @@ public class FlagOperationalWindow_Validation
 	public void CreateWindow_NullOrEmptyTimeZone_DefaultsToUtc(string? timeZone)
 	{
 		// Act
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17), timeZone);
 
 		// Assert
@@ -70,7 +70,7 @@ public class FlagOperationalWindow_Validation
 		};
 
 		// Act
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17), allowedDays: duplicateDays);
 
 		// Assert
@@ -80,13 +80,13 @@ public class FlagOperationalWindow_Validation
 	}
 }
 
-public class FlagOperationalWindow_AlwaysOpen
+public class OperationalWindow_AlwaysOpen
 {
 	[Fact]
 	public void AlwaysOpen_ReturnsFullDayWindow()
 	{
 		// Act
-		var window = FlagOperationalWindow.AlwaysOpen;
+		var window = OperationalWindow.AlwaysOpen;
 
 		// Assert
 		window.WindowStartTime.ShouldBe(TimeSpan.Zero);
@@ -97,13 +97,13 @@ public class FlagOperationalWindow_AlwaysOpen
 	}
 }
 
-public class FlagOperationalWindow_IsActiveAt
+public class OperationalWindow_IsActiveAt
 {
 	[Fact]
 	public void IsActiveAt_WithinSameDayWindow_ReturnsTrue()
 	{
 		// Arrange
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17));
 		var evaluationTime = DateTime.UtcNow.Date.AddHours(12); // 12 PM
 
@@ -119,7 +119,7 @@ public class FlagOperationalWindow_IsActiveAt
 	public void IsActiveAt_OutsideSameDayWindow_ReturnsFalse()
 	{
 		// Arrange
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17));
 		var evaluationTime = DateTime.UtcNow.Date.AddHours(20); // 8 PM
 
@@ -135,7 +135,7 @@ public class FlagOperationalWindow_IsActiveAt
 	public void IsActiveAt_WithinOvernightWindow_ReturnsTrue()
 	{
 		// Arrange
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(22), TimeSpan.FromHours(6)); // 10 PM to 6 AM
 		var evaluationTime = DateTime.UtcNow.Date.AddHours(2); // 2 AM
 
@@ -151,7 +151,7 @@ public class FlagOperationalWindow_IsActiveAt
 	public void IsActiveAt_OutsideOvernightWindow_ReturnsFalse()
 	{
 		// Arrange
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(22), TimeSpan.FromHours(6)); // 10 PM to 6 AM
 		var evaluationTime = DateTime.UtcNow.Date.AddHours(12); // 12 PM
 
@@ -167,7 +167,7 @@ public class FlagOperationalWindow_IsActiveAt
 	public void IsActiveAt_AllowedDay_ReturnsTrue()
 	{
 		// Arrange
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 			allowedDays: [DayOfWeek.Monday]);
 
@@ -186,7 +186,7 @@ public class FlagOperationalWindow_IsActiveAt
 	public void IsActiveAt_DisallowedDay_ReturnsFalse()
 	{
 		// Arrange
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 			allowedDays: [DayOfWeek.Monday]);
 
@@ -205,7 +205,7 @@ public class FlagOperationalWindow_IsActiveAt
 	public void IsActiveAt_InvalidTimeZone_ReturnsFalse()
 	{
 		// Arrange
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17));
 
 		// Act
@@ -220,7 +220,7 @@ public class FlagOperationalWindow_IsActiveAt
 	public void IsActiveAt_ContextTimeZoneOverridesWindowTimeZone()
 	{
 		// Arrange
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 			"Pacific Standard Time");
 
@@ -236,7 +236,7 @@ public class FlagOperationalWindow_IsActiveAt
 	}
 }
 
-public class FlagOperationalWindow_TimeZoneHandling
+public class OperationalWindow_TimeZoneHandling
 {
 	[Fact]
 	public void CreateWindow_ValidTimeZones_CreatesSuccessfully()
@@ -247,7 +247,7 @@ public class FlagOperationalWindow_TimeZoneHandling
 		foreach (var timeZone in validTimeZones)
 		{
 			// Act & Assert
-			var window = Should.NotThrow(() => FlagOperationalWindow.CreateWindow(
+			var window = Should.NotThrow(() => OperationalWindow.CreateWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17), timeZone));
 			window.TimeZone.ShouldBe(timeZone);
 		}
@@ -257,7 +257,7 @@ public class FlagOperationalWindow_TimeZoneHandling
 	public void IsActiveAt_TimeZoneConversion_WorksCorrectly()
 	{
 		// Arrange - Window in Eastern Time
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 			"Eastern Standard Time");
 
@@ -273,13 +273,13 @@ public class FlagOperationalWindow_TimeZoneHandling
 	}
 }
 
-public class FlagOperationalWindow_EdgeCases
+public class OperationalWindow_EdgeCases
 {
 	[Fact]
 	public void IsActiveAt_ExactStartTime_ReturnsTrue()
 	{
 		// Arrange
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9).Add(TimeSpan.FromMinutes(30)),
 			TimeSpan.FromHours(17));
 		var evaluationTime = DateTime.UtcNow.Date.AddHours(9).AddMinutes(30);
@@ -296,7 +296,7 @@ public class FlagOperationalWindow_EdgeCases
 	public void IsActiveAt_ExactEndTime_ReturnsTrue()
 	{
 		// Arrange
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9),
 			TimeSpan.FromHours(17).Add(TimeSpan.FromMinutes(30)));
 		var evaluationTime = DateTime.UtcNow.Date.AddHours(17).AddMinutes(30);
@@ -313,7 +313,7 @@ public class FlagOperationalWindow_EdgeCases
 	public void HasWindow_ZeroStartTime_ReturnsFalse()
 	{
 		// Arrange
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.Zero, TimeSpan.FromHours(6));
 
 		// Act & Assert
@@ -324,7 +324,7 @@ public class FlagOperationalWindow_EdgeCases
 	public void HasWindow_NonZeroTimes_ReturnsTrue()
 	{
 		// Arrange
-		var window = FlagOperationalWindow.CreateWindow(
+		var window = OperationalWindow.CreateWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17));
 
 		// Act & Assert
