@@ -340,18 +340,18 @@ public static class NpgsqlCommandExtensions
 		command.Parameters.AddWithValue("expiration_date", (object?)flag.Lifecycle.ExpirationDate ?? DBNull.Value);
 		command.Parameters.AddWithValue("is_permanent", flag.Lifecycle.IsPermanent);
 
-		if (flag.Schedule.ScheduledEnableDate == DateTime.MinValue)
+		if (flag.Schedule.EnableOn == DateTime.MinValue)
 			command.Parameters.AddWithValue("scheduled_enable_date", DBNull.Value);
 		else
-			command.Parameters.AddWithValue("scheduled_enable_date", flag.Schedule.ScheduledEnableDate);
+			command.Parameters.AddWithValue("scheduled_enable_date", flag.Schedule.EnableOn);
 
-		if (flag.Schedule.ScheduledDisableDate == DateTime.MaxValue)
+		if (flag.Schedule.DisableOn == DateTime.MaxValue)
 			command.Parameters.AddWithValue("scheduled_disable_date", DBNull.Value);
 		else
-			command.Parameters.AddWithValue("scheduled_disable_date", (object?)flag.Schedule.ScheduledDisableDate ?? DBNull.Value);
+			command.Parameters.AddWithValue("scheduled_disable_date", (object?)flag.Schedule.DisableOn ?? DBNull.Value);
 
-		command.Parameters.AddWithValue("window_start_time", (object?)flag.OperationalWindow.WindowStartTime ?? DBNull.Value);
-		command.Parameters.AddWithValue("window_end_time", (object?)flag.OperationalWindow.WindowEndTime ?? DBNull.Value);
+		command.Parameters.AddWithValue("window_start_time", (object?)flag.OperationalWindow.StartOn ?? DBNull.Value);
+		command.Parameters.AddWithValue("window_end_time", (object?)flag.OperationalWindow.StopOn ?? DBNull.Value);
 		command.Parameters.AddWithValue("time_zone", (object?)flag.OperationalWindow.TimeZone ?? DBNull.Value);
 
 		// JSONB parameters require explicit type specification
@@ -360,7 +360,7 @@ public static class NpgsqlCommandExtensions
 		evaluationModesParam.Value = JsonSerializer.Serialize(flag.ActiveEvaluationModes.Modes.Select(m => (int)m), JsonDefaults.JsonOptions);
 
 		var windowDaysParam = command.Parameters.Add("window_days", NpgsqlDbType.Jsonb);
-		windowDaysParam.Value = JsonSerializer.Serialize(flag.OperationalWindow.WindowDays?.Select(d => (int)d) ?? [], JsonDefaults.JsonOptions);
+		windowDaysParam.Value = JsonSerializer.Serialize(flag.OperationalWindow.DaysActive?.Select(d => (int)d) ?? [], JsonDefaults.JsonOptions);
 
 		command.Parameters.AddWithValue("user_percentage_enabled", flag.UserAccessControl.RolloutPercentage);
 		command.Parameters.AddWithValue("tenant_percentage_enabled", flag.TenantAccessControl.RolloutPercentage);
@@ -461,14 +461,14 @@ public static class NpgsqlDataReaderExtensions
 		}
 
 		var schedule = new ActivationSchedule(
-				scheduledEnableDate: (await reader.GetDataAsync<DateTimeOffset>("scheduled_enable_date")).UtcDateTime,
-				scheduledDisableDate: (await reader.GetDataAsync<DateTimeOffset>("scheduled_disable_date")).UtcDateTime
+				enableOn: (await reader.GetDataAsync<DateTimeOffset>("scheduled_enable_date")).UtcDateTime,
+				disableOn: (await reader.GetDataAsync<DateTimeOffset>("scheduled_disable_date")).UtcDateTime
 			);
 		var window = new OperationalWindow(
-				windowStartTime: await reader.GetTimeOnly("window_start_time") ?? TimeSpan.Zero,
-				windowEndTime: await reader.GetTimeOnly("window_end_time") ?? new TimeSpan(23, 59, 59),
+				startOn: await reader.GetTimeOnly("window_start_time") ?? TimeSpan.Zero,
+				stopOn: await reader.GetTimeOnly("window_end_time") ?? new TimeSpan(23, 59, 59),
 				timeZone: await reader.GetDataAsync<string?>("time_zone") ?? "UTC",
-				windowDays: await reader.Deserialize<DayOfWeek[]?>("window_days")
+				daysActive: await reader.Deserialize<DayOfWeek[]?>("window_days")
 			);
 		var userAccess = new AccessControl(
 				allowed: await reader.Deserialize<List<string>>("enabled_users"),
