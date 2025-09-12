@@ -307,11 +307,11 @@ public class CreateAsync_WithValidFlag(PostgresRepoTestsFixture fixture) : IClas
 		retrieved.ShouldNotBeNull();
 
 		// Account for PostgreSQL TIMESTAMPTZ microsecond precision loss
-		retrieved.Schedule.ScheduledEnableDate.ShouldBeInRange(
+		retrieved.Schedule.EnableOn.ShouldBeInRange(
 			startDt.AddTicks(-10),
 			startDt.AddTicks(10));
 
-		retrieved.Schedule.ScheduledDisableDate.Value.ShouldBeInRange(
+		retrieved.Schedule.DisableOn.Value.ShouldBeInRange(
 			endDt.AddTicks(-10),
 			endDt.AddTicks(10));
 	}
@@ -333,9 +333,9 @@ public class CreateAsync_WithValidFlag(PostgresRepoTestsFixture fixture) : IClas
 		// Assert
 		var retrieved = await fixture.Repository.GetAsync("window-flag");
 		retrieved.ShouldNotBeNull();
-		retrieved.OperationalWindow.WindowStartTime.ShouldBe(TimeSpan.FromHours(9));
+		retrieved.OperationalWindow.StartOn.ShouldBe(TimeSpan.FromHours(9));
 		retrieved.OperationalWindow.TimeZone.ShouldBe("America/New_York");
-		retrieved.OperationalWindow.WindowDays.ShouldContain(DayOfWeek.Monday);
+		retrieved.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Monday);
 	}
 }
 

@@ -74,9 +74,9 @@ public class OperationalWindow_Validation
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17), allowedDays: duplicateDays);
 
 		// Assert
-		window.WindowDays.Length.ShouldBe(2);
-		window.WindowDays.ShouldContain(DayOfWeek.Monday);
-		window.WindowDays.ShouldContain(DayOfWeek.Tuesday);
+		window.DaysActive.Length.ShouldBe(2);
+		window.DaysActive.ShouldContain(DayOfWeek.Monday);
+		window.DaysActive.ShouldContain(DayOfWeek.Tuesday);
 	}
 }
 
@@ -89,10 +89,10 @@ public class OperationalWindow_AlwaysOpen
 		var window = OperationalWindow.AlwaysOpen;
 
 		// Assert
-		window.WindowStartTime.ShouldBe(TimeSpan.Zero);
-		window.WindowEndTime.ShouldBe(new TimeSpan(23, 59, 59));
+		window.StartOn.ShouldBe(TimeSpan.Zero);
+		window.StopOn.ShouldBe(new TimeSpan(23, 59, 59));
 		window.TimeZone.ShouldBe("UTC");
-		window.WindowDays.Length.ShouldBe(7);
+		window.DaysActive.Length.ShouldBe(7);
 		window.HasWindow().ShouldBeFalse(); // Zero start time = no window
 	}
 }

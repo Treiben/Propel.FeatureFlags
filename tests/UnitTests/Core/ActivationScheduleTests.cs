@@ -14,8 +14,8 @@ public class ActivationSchedule_CreateSchedule
 		var schedule = ActivationSchedule.CreateSchedule(enableDate);
 
 		// Assert
-		schedule.ScheduledEnableDate.ShouldBe(enableDate);
-		schedule.ScheduledDisableDate.ShouldBe(DateTime.MaxValue);
+		schedule.EnableOn.ShouldBe(enableDate);
+		schedule.DisableOn.ShouldBe(DateTime.MaxValue);
 		schedule.HasSchedule().ShouldBeTrue();
 	}
 
@@ -30,8 +30,8 @@ public class ActivationSchedule_CreateSchedule
 		var schedule = ActivationSchedule.CreateSchedule(enableDate, disableDate);
 
 		// Assert
-		schedule.ScheduledEnableDate.ShouldBe(enableDate);
-		schedule.ScheduledDisableDate.ShouldBe(disableDate);
+		schedule.EnableOn.ShouldBe(enableDate);
+		schedule.DisableOn.ShouldBe(disableDate);
 		schedule.HasSchedule().ShouldBeTrue();
 	}
 
@@ -90,8 +90,8 @@ public class ActivationSchedule_Unscheduled
 		var schedule = ActivationSchedule.Unscheduled;
 
 		// Assert
-		schedule.ScheduledEnableDate.ShouldBe(DateTime.MinValue.ToUniversalTime());
-		schedule.ScheduledDisableDate.ShouldBe(DateTime.MaxValue.ToUniversalTime());
+		schedule.EnableOn.ShouldBe(DateTime.MinValue.ToUniversalTime());
+		schedule.DisableOn.ShouldBe(DateTime.MaxValue.ToUniversalTime());
 		schedule.HasSchedule().ShouldBeFalse();
 	}
 
