@@ -1,17 +1,15 @@
-using System;
-
 namespace Propel.FeatureFlags.Core;
 
 public class OperationalWindow(
-			TimeSpan windowStartTime,
-			TimeSpan windowEndTime,
+			TimeSpan startOn,
+			TimeSpan stopOn,
 			string timeZone = "UTC",
-			DayOfWeek[]? windowDays = null)
+			DayOfWeek[]? daysActive = null)
 {
-	public TimeSpan WindowStartTime { get; } = windowStartTime;
-	public TimeSpan WindowEndTime { get; } = windowEndTime;
+	public TimeSpan StartOn { get; } = startOn;
+	public TimeSpan StopOn { get; } = stopOn;
 	public string TimeZone { get; } = timeZone ?? "UTC";
-	public DayOfWeek[] WindowDays { get; } = windowDays ?? [DayOfWeek.Monday,
+	public DayOfWeek[] DaysActive { get; } = daysActive ?? [DayOfWeek.Monday,
 			DayOfWeek.Tuesday,
 			DayOfWeek.Wednesday,
 			DayOfWeek.Thursday,
@@ -20,8 +18,8 @@ public class OperationalWindow(
 			DayOfWeek.Sunday];
 
 	public static OperationalWindow AlwaysOpen => new(
-		windowStartTime: TimeSpan.Zero,
-		windowEndTime: new TimeSpan(23, 59, 59));
+		startOn: TimeSpan.Zero,
+		stopOn: new TimeSpan(23, 59, 59));
 
 	// This method is used to create a new operation window in valid state
 	public static OperationalWindow CreateWindow(
@@ -56,7 +54,7 @@ public class OperationalWindow(
 
 	public bool HasWindow()
 	{
-		return WindowStartTime > TimeSpan.Zero && WindowEndTime > TimeSpan.Zero;
+		return StartOn > TimeSpan.Zero && StopOn > TimeSpan.Zero;
 	}
 
 	public (bool, string) IsActiveAt(DateTime evaluationTime, string? contextTimeZone = null)
@@ -93,20 +91,20 @@ public class OperationalWindow(
 
 	private bool IsAllowedDay(DayOfWeek dayOfWeek)
 	{
-		return WindowDays.Contains(dayOfWeek);
+		return DaysActive.Contains(dayOfWeek);
 	}
 
 	private bool IsWithinTimeRange(TimeSpan currentTime)
 	{
-		if (WindowStartTime <= WindowEndTime)
+		if (StartOn <= StopOn)
 		{
 			// Same day window (e.g., 9:00 - 17:00)
-			return currentTime >= WindowStartTime && currentTime <= WindowEndTime;
+			return currentTime >= StartOn && currentTime <= StopOn;
 		}
 		else
 		{
 			// Overnight window (e.g., 22:00 - 06:00)
-			return currentTime >= WindowStartTime || currentTime <= WindowEndTime;
+			return currentTime >= StartOn || currentTime <= StopOn;
 		}
 	}
 
@@ -168,10 +166,10 @@ public class OperationalWindow(
 		if (left is null || right is null)
 			return false;
 
-		return left.WindowStartTime == right.WindowStartTime &&
-			   left.WindowEndTime == right.WindowEndTime &&
+		return left.StartOn == right.StartOn &&
+			   left.StopOn == right.StopOn &&
 			   string.Equals(left.TimeZone, right.TimeZone, StringComparison.OrdinalIgnoreCase) &&
-			   left.WindowDays.OrderBy(d => d).SequenceEqual(right.WindowDays.OrderBy(d => d));
+			   left.DaysActive.OrderBy(d => d).SequenceEqual(right.DaysActive.OrderBy(d => d));
 	}
 
 	public static bool operator !=(OperationalWindow? left, OperationalWindow? right)
@@ -187,46 +185,16 @@ public class OperationalWindow(
 	public override int GetHashCode()
 	{
 		var hash = new HashCode();
-		hash.Add(WindowStartTime);
-		hash.Add(WindowEndTime);
+		hash.Add(StartOn);
+		hash.Add(StopOn);
 		hash.Add(TimeZone, StringComparer.OrdinalIgnoreCase);
 
 		// Add sorted days to ensure consistent hash regardless of order
-		foreach (var day in WindowDays.OrderBy(d => d))
+		foreach (var day in DaysActive.OrderBy(d => d))
 		{
 			hash.Add(day);
 		}
 
 		return hash.ToHashCode();
-	}
-}
-
-public static class TimeZoneHelper
-{
-	public static List<string> GetSystemTimeZones()
-	{
-		var timeZones = new List<string>();
-		foreach (var tz in TimeZoneInfo.GetSystemTimeZones())
-		{
-			timeZones.Add(tz.Id);
-		}
-		return timeZones;
-	}
-
-	public static (TimeSpan, DayOfWeek) GetCurrentTimeAndDayInTimeZone(string timeZoneId, DateTime evaluationTime)
-	{
-		var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-		
-		// Ensure we're working with UTC time
-		if (evaluationTime.Kind != DateTimeKind.Utc)
-		{
-			evaluationTime = DateTime.SpecifyKind(evaluationTime, DateTimeKind.Utc);
-		}
-		
-		var localTime = TimeZoneInfo.ConvertTimeFromUtc(evaluationTime, timeZoneInfo);
-		var currentTime = localTime.TimeOfDay;
-		var currentDay = localTime.DayOfWeek;
-
-		return (currentTime, currentDay);
 	}
 }

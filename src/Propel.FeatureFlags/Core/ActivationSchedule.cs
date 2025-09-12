@@ -2,50 +2,50 @@
 
 public class ActivationSchedule
 {
-	public DateTime ScheduledEnableDate { get; }
-	public DateTime? ScheduledDisableDate { get; }
+	public DateTime EnableOn { get; }
+	public DateTime? DisableOn { get; }
 
-	public ActivationSchedule(DateTime scheduledEnableDate, DateTime? scheduledDisableDate = null)
+	public ActivationSchedule(DateTime enableOn, DateTime? disableOn = null)
 	{
-		var scheduledEnableUtcDate = NormalizeToUtc(scheduledEnableDate);
-		var scheduledDisableUtcDate = NormalizeToUtc(scheduledDisableDate.HasValue == false || scheduledDisableDate == DateTime.MinValue 
-											? DateTime.MaxValue : scheduledDisableDate.Value);
+		var enableOnUtc = DateTimeHelper.NormalizeToUtc(enableOn);
+		var disableOnUtc = DateTimeHelper.NormalizeToUtc(disableOn.HasValue == false || disableOn == DateTime.MinValue 
+											? DateTime.MaxValue : disableOn.Value);
 
-		if (scheduledDisableUtcDate <= scheduledEnableUtcDate)
+		if (disableOnUtc <= enableOnUtc)
 		{
 			throw new ArgumentException("Scheduled disable date must be after the scheduled enable date.");
 		}
 
-		ScheduledEnableDate = scheduledEnableUtcDate;
-		ScheduledDisableDate = scheduledDisableUtcDate;
+		EnableOn = enableOnUtc;
+		DisableOn = disableOnUtc;
 	}
 
 	public static ActivationSchedule Unscheduled => new(DateTime.MinValue, DateTime.MaxValue);
 
 	// This method is used to create new flag schedules in valid state
-	public static ActivationSchedule CreateSchedule(DateTime scheduledEnableDate, DateTime? scheduledDisableDate = null)
+	public static ActivationSchedule CreateSchedule(DateTime enableOn, DateTime? disableOn = null)
 	{
 
-		if (scheduledEnableDate <= DateTime.MinValue)
+		if (enableOn <= DateTime.MinValue)
 		{
 			throw new ArgumentException("Scheduled enable date must be a valid date.");
 		}
 
-		if (NormalizeToUtc(scheduledEnableDate) <= DateTime.UtcNow)
+		if (DateTimeHelper.NormalizeToUtc(enableOn) <= DateTime.UtcNow)
 		{
 			throw new ArgumentException("Scheduled enable date must be in the future.");
 		}
 
-		return new ActivationSchedule(scheduledEnableDate, scheduledDisableDate);
+		return new ActivationSchedule(enableOn, disableOn);
 	}
 
 	public bool HasSchedule()
 	{
-		var hasStartSchedule = ScheduledEnableDate > DateTime.MinValue.ToUniversalTime();
-		var hasNoStartSchedule = ScheduledEnableDate == DateTime.MinValue.ToUniversalTime();
+		var hasStartSchedule = EnableOn > DateTime.MinValue.ToUniversalTime();
+		var hasNoStartSchedule = EnableOn == DateTime.MinValue.ToUniversalTime();
 
-		var hasEndSchedule = ScheduledDisableDate < DateTime.MaxValue.ToUniversalTime();
-		var hasNoEndSchedule = ScheduledDisableDate == DateTime.MaxValue.ToUniversalTime();
+		var hasEndSchedule = DisableOn < DateTime.MaxValue.ToUniversalTime();
+		var hasNoEndSchedule = DisableOn == DateTime.MaxValue.ToUniversalTime();
 
 		return (hasStartSchedule && (hasEndSchedule || hasNoEndSchedule))
 			|| (hasEndSchedule && (hasStartSchedule || hasNoStartSchedule));
@@ -62,26 +62,17 @@ public class ActivationSchedule
 		var utcEvaluationTime = evaluationTime.ToUniversalTime();
 
 		// If the current time is before the enable date, the flag is not enabled
-		if (utcEvaluationTime < ScheduledEnableDate)
+		if (utcEvaluationTime < EnableOn)
 		{
 			return (false, "Scheduled enable date not reached");
 		}
 		// If a disable date is set and the current time is after it, the flag is not enabled
-		if (utcEvaluationTime >= ScheduledDisableDate)
+		if (utcEvaluationTime >= DisableOn)
 		{
 			return (false, "Scheduled disable date passed");
 		}
 		// Otherwise, the flag is enabled
 		return (true, "Scheduled enable date reached");
-	}
-
-	private static DateTime NormalizeToUtc(DateTime dateTime)
-	{
-		if (dateTime.Kind == DateTimeKind.Utc)
-		{
-			return dateTime;
-		}
-		return dateTime.ToUniversalTime();
 	}
 
 	public static bool operator ==(ActivationSchedule? left, ActivationSchedule? right)
@@ -91,8 +82,8 @@ public class ActivationSchedule
 		if (left is null || right is null) 
 			return false;
 
-		return left.ScheduledEnableDate == right.ScheduledEnableDate
-			&& left.ScheduledDisableDate == right.ScheduledDisableDate;
+		return left.EnableOn == right.EnableOn
+			&& left.DisableOn == right.DisableOn;
 	}
 
 	public static bool operator !=(ActivationSchedule? left, ActivationSchedule? right)
@@ -107,6 +98,6 @@ public class ActivationSchedule
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(ScheduledEnableDate, ScheduledDisableDate);
+		return HashCode.Combine(EnableOn, DisableOn);
 	}
 }
