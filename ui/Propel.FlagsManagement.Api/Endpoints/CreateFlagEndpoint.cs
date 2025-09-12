@@ -83,7 +83,7 @@ public sealed class CreateFlagHandler(
 			Name = source.Name,
 			Description = source.Description ?? string.Empty,
 			Tags = source.Tags ?? [],
-			Created = Audit.FlagCreated(createdBy),
+			Created = FeatureFlags.Core.Audit.FlagCreated(createdBy),
 			Lifecycle = new Lifecycle(isPermanent: source.IsPermanent, expirationDate: source.ExpirationDate)
 		};
 	}

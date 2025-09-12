@@ -1,5 +1,4 @@
 ﻿using FluentValidation;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Propel.FeatureFlags;
 using Propel.FeatureFlags.Cache;
 using Propel.FeatureFlags.Core;
@@ -55,7 +54,7 @@ public sealed class ManageUserAccessHandler(
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
 			}
 
-			flag.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
+			flag.LastModified = new FeatureFlags.Core.Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
 
 			flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Enabled);
 

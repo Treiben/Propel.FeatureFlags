@@ -57,7 +57,7 @@ public sealed class UpdateTargetingRulesHandler(
 			}
 
 			// Update audit record
-			flag.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
+			flag.LastModified = new FeatureFlags.Core.Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
 
 			// Remove enabled mode as we're configuring specific targeting
 			flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Enabled);

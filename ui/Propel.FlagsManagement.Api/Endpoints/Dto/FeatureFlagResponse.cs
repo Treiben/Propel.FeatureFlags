@@ -3,6 +3,10 @@ using System.Text.Json;
 
 namespace Propel.FlagsManagement.Api.Endpoints.Dto;
 
+public record ActivationSchedule(DateTimeOffset? EnableOnUtc, DateTimeOffset? DisableOnUtc);
+public record Audit(DateTimeOffset? TimestampUtc, string? Actor);
+public record OperationalWindow(TimeOnly? StartOn, TimeOnly? StopOn, string TimeZone = "UTC", DayOfWeek[]? DaysActive = null);
+
 public record FeatureFlagResponse
 {
 	public string Key { get; set; } 
@@ -14,11 +18,11 @@ public record FeatureFlagResponse
 	public Audit Created { get; set; } 
 	public Audit Updated { get; set; }
 
-	public ActivationSchedule Schedule { get; set; }
-	public OperationalWindow OperationalWindow { get; set; }
+	public ActivationSchedule? Schedule { get; set; }
+	public OperationalWindow? TimeWindow { get; set; }
 
-	public AccessControl UserAccess { get; set; }
-	public AccessControl TenantAccess { get; set; }
+	public AccessControl? UserAccess { get; set; }
+	public AccessControl? TenantAccess { get; set; }
 
 	public string? TargetingRules { get; set; } 
 
@@ -36,11 +40,22 @@ public record FeatureFlagResponse
 
 		Modes = flag.ActiveEvaluationModes.Modes;
 
-		Created = flag.Created;
-		Updated = flag.LastModified ?? flag.Created;
+		Created = new Audit(new DateTimeOffset(flag?.Created.Timestamp ?? DateTime.MinValue), flag?.Created.Actor);
+		Updated = new Audit(new DateTimeOffset(flag?.LastModified?.Timestamp ?? flag.Created.Timestamp), flag?.LastModified?.Actor ?? flag.Created.Actor);
 		
-		Schedule = flag.Schedule;
-		OperationalWindow = flag.OperationalWindow;
+		Schedule = flag.Schedule?.HasSchedule() == true 
+			? new ActivationSchedule(
+				new DateTimeOffset(flag.Schedule.EnableOn), 
+				flag.Schedule.DisableOn.HasValue ? new DateTimeOffset(flag.Schedule.DisableOn.Value) : null)
+			: null;
+
+		TimeWindow = flag.OperationalWindow?.HasWindow() == true 
+			? new OperationalWindow(
+				TimeOnly.FromTimeSpan(flag.OperationalWindow.StartOn), 
+				TimeOnly.FromTimeSpan(flag.OperationalWindow.StopOn),
+				flag.OperationalWindow.TimeZone,
+				flag.OperationalWindow.DaysActive)
+			: null;
 
 		UserAccess = flag.UserAccessControl;
 		TenantAccess = flag.TenantAccessControl;

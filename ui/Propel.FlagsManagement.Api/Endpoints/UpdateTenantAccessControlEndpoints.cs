@@ -54,7 +54,7 @@ public sealed class ManageTenantAccessHandler(
 				return HttpProblemFactory.NotFound("Feature flag", key, logger);
 			}
 
-			flag.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
+			flag.LastModified = new FeatureFlags.Core.Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
 
 			flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Enabled);
 

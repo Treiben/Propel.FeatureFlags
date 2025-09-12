@@ -7,14 +7,7 @@ using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
 
-public record UpdateFlagRequest
-{
-	public string? Name { get; set; }
-	public string? Description { get; set; }
-	public Dictionary<string, string>? Tags { get; set; }
-	public bool IsPermanent { get; set; }
-	public DateTime? ExpirationDate { get; set; }
-}
+public record UpdateFlagRequest(string? Name, string? Description, Dictionary<string, string>? Tags, bool IsPermanent, DateTime? ExpirationDate);
 
 public sealed class UpdateFlagEndpoint : IEndpoint
 {
@@ -91,7 +84,7 @@ public sealed class UpdateFlagHandler(
 		if (source.Description != null)
 			dest.Description = source.Description;
 
-		dest.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: username);
+		dest.LastModified = new FeatureFlags.Core.Audit(timestamp: DateTime.UtcNow, actor: username);
 
 		if (source.Tags != null)
 			dest.Tags = source.Tags;

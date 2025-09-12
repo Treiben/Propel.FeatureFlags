@@ -7,7 +7,7 @@ using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
 
-public record UpdateScheduleRequest(DateTime EnableDate, DateTime? DisableDate, bool RemoveSchedule);
+public record UpdateScheduleRequest(DateTimeOffset EnableOn, DateTimeOffset? DisableOn, bool RemoveSchedule);
 
 public sealed class UpdateScheduleEndpoint : IEndpoint
 {
@@ -54,28 +54,30 @@ public sealed class UpdateScheduleHandler(
 			}
 
 			// Update flag for scheduling
-			flag.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
+			flag.LastModified = new FeatureFlags.Core.Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
 
 			flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Enabled);
 
 			if (request.RemoveSchedule)
 			{
-				flag.Schedule = ActivationSchedule.Unscheduled;
+				flag.Schedule = FeatureFlags.Core.ActivationSchedule.Unscheduled;
 				flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Scheduled);
 			}
 			else
 			{
 				flag.ActiveEvaluationModes.AddMode(EvaluationMode.Scheduled);
-				flag.Schedule = ActivationSchedule.CreateSchedule(request.EnableDate, request.DisableDate);
+				flag.Schedule = FeatureFlags.Core.ActivationSchedule.CreateSchedule(
+					DateTimeHelper.NormalizeToUtc(request.EnableOn)!.Value,
+					DateTimeHelper.NormalizeToUtc(request.DisableOn));
 			}
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
 
 			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
 
-			var scheduleInfo = request.DisableDate.HasValue
-				? $"enable at {flag.Schedule.ScheduledEnableDate:yyyy-MM-dd HH:mm} UTC, disable at {flag.Schedule.ScheduledDisableDate:yyyy-MM-dd HH:mm} UTC"
-				: $"enable at {flag.Schedule.ScheduledEnableDate:yyyy-MM-dd HH:mm} UTC";
+			var scheduleInfo = request.DisableOn.HasValue
+				? $"enable at {flag.Schedule.EnableOn:yyyy-MM-dd HH:mm} UTC, disable at {flag.Schedule.DisableOn:yyyy-MM-dd HH:mm} UTC"
+				: $"enable at {flag.Schedule.EnableOn:yyyy-MM-dd HH:mm} UTC";
 
 			logger.LogInformation("Feature flag {Key} scheduled by {User} to {ScheduleInfo}",
 				key, currentUserService.UserName, scheduleInfo);
@@ -102,19 +104,19 @@ public sealed class UpdateScheduleRequestValidator : AbstractValidator<UpdateSch
 	public UpdateScheduleRequestValidator()
 	{
 		// Only validate dates when RemoveSchedule is false
-		RuleFor(c => c.EnableDate)
+		RuleFor(c => c.EnableOn)
 			.GreaterThan(DateTime.UtcNow)
 			.When(c => !c.RemoveSchedule)
 			.WithMessage("Enable date must be in the future. Use immediate operations for current changes");
 
-		RuleFor(c => c.DisableDate)
-			.GreaterThan(c => c.EnableDate)
-			.When(c => c.DisableDate.HasValue && !c.RemoveSchedule)
+		RuleFor(c => c.DisableOn)
+			.GreaterThan(c => c.EnableOn)
+			.When(c => c.DisableOn.HasValue && !c.RemoveSchedule)
 			.WithMessage("Disable date must be after enable date");
 
-		RuleFor(c => c.DisableDate)
+		RuleFor(c => c.DisableOn)
 			.GreaterThan(DateTime.UtcNow)
-			.When(c => c.DisableDate.HasValue && !c.RemoveSchedule)
+			.When(c => c.DisableOn.HasValue && !c.RemoveSchedule)
 			.WithMessage("Disable date must be in the future");
 	}
 }

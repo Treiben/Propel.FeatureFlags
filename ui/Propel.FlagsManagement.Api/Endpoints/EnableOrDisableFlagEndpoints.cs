@@ -83,14 +83,15 @@ public sealed class ToggleFlagHandler(
 
 			// Update flag
 			flag.ActiveEvaluationModes.AddMode(evaluationMode);
+
 			// Reset scheduling, time window, and user/tenant access when manually toggling
-			flag.Schedule = ActivationSchedule.Unscheduled;
-			flag.OperationalWindow = OperationalWindow.AlwaysOpen;
+			flag.Schedule = FeatureFlags.Core.ActivationSchedule.Unscheduled;
+			flag.OperationalWindow = FeatureFlags.Core.OperationalWindow.AlwaysOpen;
 			flag.UserAccessControl = new AccessControl(rolloutPercentage: evaluationMode == EvaluationMode.Enabled ? 100 : 0);
 			flag.TenantAccessControl = new AccessControl(rolloutPercentage: evaluationMode == EvaluationMode.Enabled ? 100 : 0);
 
 			// Update audit record
-			flag.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
+			flag.LastModified = new FeatureFlags.Core.Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
 

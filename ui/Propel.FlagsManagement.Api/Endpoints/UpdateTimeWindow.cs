@@ -8,10 +8,10 @@ using Propel.FlagsManagement.Api.Endpoints.Shared;
 namespace Propel.FlagsManagement.Api.Endpoints;
 
 public record UpdateTimeWindowRequest(
-	TimeOnly WindowStartTime,
-	TimeOnly WindowEndTime, 
+	TimeOnly StartOn,
+	TimeOnly EndOn, 
 	string TimeZone, 
-	List<DayOfWeek> WindowDays,
+	List<DayOfWeek> DaysActive,
 	bool RemoveTimeWindow);
 
 public sealed class UpdateTimeWindowEndpoint : IEndpoint
@@ -59,7 +59,7 @@ public sealed class UpdateTimeWindowHandler(
 			}
 
 			// Update flag for time window
-			flag.LastModified = new Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
+			flag.LastModified = new FeatureFlags.Core.Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
 
 			flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Enabled);
 
@@ -73,10 +73,10 @@ public sealed class UpdateTimeWindowHandler(
 				flag.ActiveEvaluationModes.AddMode(EvaluationMode.TimeWindow);
 
 				flag.OperationalWindow = FeatureFlags.Core.OperationalWindow.CreateWindow(
-					request.WindowStartTime.ToTimeSpan(),
-					request.WindowEndTime.ToTimeSpan(),
+					request.StartOn.ToTimeSpan(),
+					request.EndOn.ToTimeSpan(),
 					request.TimeZone,
-					request.WindowDays);
+					request.DaysActive);
 			}
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
@@ -108,19 +108,19 @@ public sealed class UpdateTimeWindowRequestValidator : AbstractValidator<UpdateT
 	public UpdateTimeWindowRequestValidator()
 	{
 		// Only validate when RemoveTimeWindow is false
-		RuleFor(c => c.WindowStartTime)
+		RuleFor(c => c.StartOn)
 			.NotEqual(TimeOnly.MinValue)
-			.When(c => !c.RemoveTimeWindow || c.WindowDays.Count > 0)
+			.When(c => !c.RemoveTimeWindow || c.DaysActive.Count > 0)
 			.WithMessage("Window start time is required when setting a time window");
 
-		RuleFor(c => c.WindowEndTime)
-			.GreaterThan(c => c.WindowStartTime)
-			.When(c => !c.RemoveTimeWindow && c.WindowStartTime != TimeOnly.MinValue)
+		RuleFor(c => c.EndOn)
+			.GreaterThan(c => c.StartOn)
+			.When(c => !c.RemoveTimeWindow && c.StartOn != TimeOnly.MinValue)
 			.WithMessage("Window end time must be after window start time");
 
 		RuleFor(c => c.TimeZone)
 			.Must(BeValidTimeZone)
-			.When(c => !c.RemoveTimeWindow && c.WindowStartTime != TimeOnly.MinValue)
+			.When(c => !c.RemoveTimeWindow && c.StartOn != TimeOnly.MinValue)
 			.WithMessage("Time zone is required when setting a time window and must be a time zone identifier");
 	}
 
