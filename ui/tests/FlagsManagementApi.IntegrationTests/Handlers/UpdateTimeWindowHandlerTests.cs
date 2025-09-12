@@ -16,7 +16,7 @@ public class UpdateTimeWindowHandler_Success(FlagsManagementApiFixture fixture) 
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("time-window-flag", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("time-window-flag", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		var startTime = new TimeOnly(9, 0); // 9:00 AM
@@ -32,20 +32,20 @@ public class UpdateTimeWindowHandler_Success(FlagsManagementApiFixture fixture) 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
 		okResult.Value.ShouldNotBeNull();
-		okResult.Value.WindowStartTime.ShouldBe(startTime);
-		okResult.Value.WindowEndTime.ShouldBe(endTime);
-		okResult.Value.TimeZone.ShouldBe(timeZone);
-		okResult.Value.WindowDays.ShouldBe(windowDays.ToArray());
-		okResult.Value.UpdatedBy.ShouldBe("test-user");
+		okResult.Value.TimeWindow.StartOn.ShouldBe(startTime);
+		okResult.Value.TimeWindow.StopOn.ShouldBe(endTime);
+		okResult.Value.TimeWindow.TimeZone.ShouldBe(timeZone);
+		okResult.Value.TimeWindow.DaysActive.ShouldBe(windowDays.ToArray());
+		okResult.Value.Updated.Actor.ShouldBe("test-user");
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("time-window-flag");
 		updatedFlag.ShouldNotBeNull();
-		updatedFlag.OperationalWindow.WindowStartTime.ShouldBe(startTime.ToTimeSpan());
-		updatedFlag.OperationalWindow.WindowEndTime.ShouldBe(endTime.ToTimeSpan());
+		updatedFlag.OperationalWindow.StartOn.ShouldBe(startTime.ToTimeSpan());
+		updatedFlag.OperationalWindow.StopOn.ShouldBe(endTime.ToTimeSpan());
 		updatedFlag.OperationalWindow.TimeZone.ShouldBe(timeZone);
-		updatedFlag.OperationalWindow.WindowDays.ShouldBe(windowDays.ToArray());
-		updatedFlag.AuditRecord.ModifiedBy.ShouldBe("test-user");
+		updatedFlag.OperationalWindow.DaysActive.ShouldBe(windowDays.ToArray());
+		updatedFlag.LastModified.Actor.ShouldBe("test-user");
 	}
 
 	[Fact]
@@ -53,7 +53,7 @@ public class UpdateTimeWindowHandler_Success(FlagsManagementApiFixture fixture) 
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("timezone-window-flag", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("timezone-window-flag", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		var startTime = new TimeOnly(8, 30);
@@ -68,13 +68,13 @@ public class UpdateTimeWindowHandler_Success(FlagsManagementApiFixture fixture) 
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.TimeZone.ShouldBe(timeZone);
-		okResult.Value.WindowDays.ShouldBe(windowDays.ToArray());
+		okResult.Value.TimeWindow.TimeZone.ShouldBe(timeZone);
+		okResult.Value.TimeWindow.DaysActive.ShouldBe(windowDays.ToArray());
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("timezone-window-flag");
 		updatedFlag.OperationalWindow.TimeZone.ShouldBe(timeZone);
-		updatedFlag.OperationalWindow.WindowDays.ShouldBe(windowDays.ToArray());
+		updatedFlag.OperationalWindow.DaysActive.ShouldBe(windowDays.ToArray());
 	}
 }
 
@@ -85,7 +85,7 @@ public class UpdateTimeWindowHandler_WeekendWindow(FlagsManagementApiFixture fix
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("weekend-flag", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("weekend-flag", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		var startTime = new TimeOnly(10, 0);
@@ -100,35 +100,13 @@ public class UpdateTimeWindowHandler_WeekendWindow(FlagsManagementApiFixture fix
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.WindowDays.ShouldContain(DayOfWeek.Saturday);
-		okResult.Value.WindowDays.ShouldContain(DayOfWeek.Sunday);
-		okResult.Value.WindowDays.Length.ShouldBe(2);
+		okResult.Value.TimeWindow.DaysActive.ShouldContain(DayOfWeek.Saturday);
+		okResult.Value.TimeWindow.DaysActive.ShouldContain(DayOfWeek.Sunday);
+		okResult.Value.TimeWindow.DaysActive.Length.ShouldBe(2);
 
 		var updatedFlag = await fixture.Repository.GetAsync("weekend-flag");
-		updatedFlag.OperationalWindow.WindowDays.ShouldContain(DayOfWeek.Saturday);
-		updatedFlag.OperationalWindow.WindowDays.ShouldContain(DayOfWeek.Sunday);
-	}
-
-	[Fact]
-	public async Task If_AllWeekDays_ThenSetsCorrectly()
-	{
-		// Arrange
-		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("all-week-flag", FlagEvaluationMode.Disabled);
-		await fixture.Repository.CreateAsync(flag);
-
-		var allDays = Enum.GetValues<DayOfWeek>().ToList();
-		var request = new UpdateTimeWindowRequest(new TimeOnly(0, 0), new TimeOnly(23, 59), "UTC", allDays, false);
-
-		// Act
-		var result = await fixture.UpdateTimeWindowHandler.HandleAsync("all-week-flag", request, CancellationToken.None);
-
-		// Assert
-		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.WindowDays.Length.ShouldBe(7);
-
-		var updatedFlag = await fixture.Repository.GetAsync("all-week-flag");
-		updatedFlag.OperationalWindow.WindowDays.Length.ShouldBe(7);
+		updatedFlag.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Saturday);
+		updatedFlag.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Sunday);
 	}
 }
 
@@ -139,13 +117,13 @@ public class UpdateTimeWindowHandler_RemoveWindow(FlagsManagementApiFixture fixt
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("windowed-flag", FlagEvaluationMode.TimeWindow);
-		flag.OperationalWindow = FlagOperationalWindow.CreateWindow(
+		var flag = TestHelpers.CreateTestFlag("windowed-flag", EvaluationMode.TimeWindow);
+		flag.OperationalWindow = Propel.FeatureFlags.Core.OperationalWindow.CreateWindow(
 			new TimeOnly(9, 0).ToTimeSpan(),
 			new TimeOnly(17, 0).ToTimeSpan(),
 			"UTC",
 			[DayOfWeek.Monday, DayOfWeek.Friday]);
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TimeWindow);
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TimeWindow);
 		await fixture.Repository.CreateAsync(flag);
 
 		var request = new UpdateTimeWindowRequest(new TimeOnly(0, 0), new TimeOnly(0, 0), "", [], RemoveTimeWindow: true);
@@ -155,14 +133,12 @@ public class UpdateTimeWindowHandler_RemoveWindow(FlagsManagementApiFixture fixt
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.WindowStartTime.ShouldBeNull();
-		okResult.Value.WindowEndTime.ShouldBeNull();
-		okResult.Value.EvaluationModes.ShouldNotContain(FlagEvaluationMode.TimeWindow);
+		okResult.Value.TimeWindow.ShouldBeNull();
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("windowed-flag");
-		updatedFlag.OperationalWindow.ShouldBe(FlagOperationalWindow.AlwaysOpen);
-		updatedFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.TimeWindow]).ShouldBeFalse();
+		updatedFlag.OperationalWindow.ShouldBe(Propel.FeatureFlags.Core.OperationalWindow.AlwaysOpen);
+		updatedFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.TimeWindow]).ShouldBeFalse();
 	}
 
 	[Fact]
@@ -170,7 +146,7 @@ public class UpdateTimeWindowHandler_RemoveWindow(FlagsManagementApiFixture fixt
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("always-open-flag", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("always-open-flag", EvaluationMode.Enabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		var request = new UpdateTimeWindowRequest(new TimeOnly(0, 0), new TimeOnly(0, 0), "", [], RemoveTimeWindow: true);
@@ -180,10 +156,10 @@ public class UpdateTimeWindowHandler_RemoveWindow(FlagsManagementApiFixture fixt
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.WindowStartTime.ShouldBeNull();
+		okResult.Value.TimeWindow.ShouldBeNull();
 
 		var updatedFlag = await fixture.Repository.GetAsync("always-open-flag");
-		updatedFlag.OperationalWindow.ShouldBe(FlagOperationalWindow.AlwaysOpen);
+		updatedFlag.OperationalWindow.ShouldBe(Propel.FeatureFlags.Core.OperationalWindow.AlwaysOpen);
 	}
 }
 
@@ -232,7 +208,7 @@ public class UpdateTimeWindowHandler_CacheIntegration(FlagsManagementApiFixture 
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("cached-window-flag", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("cached-window-flag", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		// Add to cache

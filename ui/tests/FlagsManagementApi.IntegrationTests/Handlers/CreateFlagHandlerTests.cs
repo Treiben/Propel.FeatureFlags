@@ -34,14 +34,14 @@ public class CreateFlagHandler_Success(FlagsManagementApiFixture fixture) : ICla
 		createdResponse.Value.Key.ShouldBe("test-flag-1");
 		createdResponse.Value.Name.ShouldBe("Test Flag 1");
 		createdResponse.Value.Description.ShouldBe("A test flag");
-		createdResponse.Value.CreatedBy.ShouldBe("test-user");
+		createdResponse.Value.Created.Actor.ShouldBe("test-user");
 
 		// Verify flag was created in repository
 		var createdFlag = await fixture.Repository.GetAsync("test-flag-1");
 		createdFlag.ShouldNotBeNull();
 		createdFlag.Key.ShouldBe("test-flag-1");
 		createdFlag.Name.ShouldBe("Test Flag 1");
-		createdFlag.AuditRecord.CreatedBy.ShouldBe("test-user");
+		createdFlag.Created.Actor.ShouldBe("test-user");
 	}
 
 	[Fact]
@@ -76,7 +76,7 @@ public class CreateFlagHandler_Conflict(FlagsManagementApiFixture fixture) : ICl
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var existingFlag = TestHelpers.CreateTestFlag("duplicate-key", FlagEvaluationMode.Disabled);
+		var existingFlag = TestHelpers.CreateTestFlag("duplicate-key", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(existingFlag);
 
 		var request = new CreateFeatureFlagRequest
@@ -171,8 +171,8 @@ public class CreateFlagHandler_DefaultValues(FlagsManagementApiFixture fixture) 
 		createdResponse.Value.Tags.ShouldBeEmpty();
 
 		var createdFlag = await fixture.Repository.GetAsync("default-flag");
-		createdFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Disabled]).ShouldBeTrue();
-		createdFlag.UserAccess.HasAccessRestrictions().ShouldBeFalse();
+		createdFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Disabled]).ShouldBeTrue();
+		createdFlag.UserAccessControl.HasAccessRestrictions().ShouldBeFalse();
 		createdFlag.TargetingRules.ShouldBeEmpty();
 	}
 }

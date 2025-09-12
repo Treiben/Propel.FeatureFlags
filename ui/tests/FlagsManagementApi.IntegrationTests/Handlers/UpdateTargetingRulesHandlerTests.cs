@@ -16,7 +16,7 @@ public class UpdateTargetingRulesHandler_Success(FlagsManagementApiFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("string-targeting-flag", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("string-targeting-flag", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		var targetingRules = new List<TargetingRuleDto>
@@ -33,17 +33,17 @@ public class UpdateTargetingRulesHandler_Success(FlagsManagementApiFixture fixtu
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
 		okResult.Value.ShouldNotBeNull();
-		okResult.Value.EvaluationModes.ShouldContain(FlagEvaluationMode.TargetingRules);
-		okResult.Value.EvaluationModes.ShouldNotContain(FlagEvaluationMode.Enabled);
-		okResult.Value.UpdatedBy.ShouldBe("test-user");
+		okResult.Value.Modes.ShouldContain(EvaluationMode.TargetingRules);
+		okResult.Value.Modes.ShouldNotContain(EvaluationMode.Enabled);
+		okResult.Value.Updated.Actor.ShouldBe("test-user");
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("string-targeting-flag");
 		updatedFlag.ShouldNotBeNull();
 		updatedFlag.TargetingRules.Count.ShouldBe(2);
-		updatedFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.TargetingRules]).ShouldBeTrue();
-		updatedFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Enabled]).ShouldBeFalse();
-		updatedFlag.AuditRecord.ModifiedBy.ShouldBe("test-user");
+		updatedFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.TargetingRules]).ShouldBeTrue();
+		updatedFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Enabled]).ShouldBeFalse();
+		updatedFlag.LastModified.Actor.ShouldBe("test-user");
 
 		// Verify rule details
 		var userRule = updatedFlag.TargetingRules.First(r => r.Attribute == "userId");
@@ -56,7 +56,7 @@ public class UpdateTargetingRulesHandler_Success(FlagsManagementApiFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("numeric-targeting-flag", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("numeric-targeting-flag", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		var targetingRules = new List<TargetingRuleDto>
@@ -72,7 +72,7 @@ public class UpdateTargetingRulesHandler_Success(FlagsManagementApiFixture fixtu
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.EvaluationModes.ShouldContain(FlagEvaluationMode.TargetingRules);
+		okResult.Value.Modes.ShouldContain(EvaluationMode.TargetingRules);
 
 		// Verify in repository - numeric rules should be created as NumericTargetingRule
 		var updatedFlag = await fixture.Repository.GetAsync("numeric-targeting-flag");
@@ -92,11 +92,11 @@ public class UpdateTargetingRulesHandler_ReplaceExisting(FlagsManagementApiFixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("replace-rules-flag", FlagEvaluationMode.TargetingRules);
+		var flag = TestHelpers.CreateTestFlag("replace-rules-flag", EvaluationMode.TargetingRules);
 		flag.TargetingRules = [
 			TargetingRuleFactory.CreaterTargetingRule("oldAttribute", TargetingOperator.Equals, ["oldValue"], "old")
 		];
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TargetingRules);
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TargetingRules);
 		await fixture.Repository.CreateAsync(flag);
 
 		var newTargetingRules = new List<TargetingRuleDto>
@@ -111,7 +111,7 @@ public class UpdateTargetingRulesHandler_ReplaceExisting(FlagsManagementApiFixtu
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.EvaluationModes.ShouldContain(FlagEvaluationMode.TargetingRules);
+		okResult.Value.Modes.ShouldContain(EvaluationMode.TargetingRules);
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("replace-rules-flag");
@@ -125,11 +125,11 @@ public class UpdateTargetingRulesHandler_ReplaceExisting(FlagsManagementApiFixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("clear-rules-flag", FlagEvaluationMode.TargetingRules);
+		var flag = TestHelpers.CreateTestFlag("clear-rules-flag", EvaluationMode.TargetingRules);
 		flag.TargetingRules = [
 			TargetingRuleFactory.CreaterTargetingRule("existingRule", TargetingOperator.Equals, ["value"], "variation")
 		];
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TargetingRules);
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TargetingRules);
 		await fixture.Repository.CreateAsync(flag);
 
 		var request = new UpdateTargetingRulesRequest([], false);
@@ -139,11 +139,11 @@ public class UpdateTargetingRulesHandler_ReplaceExisting(FlagsManagementApiFixtu
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.EvaluationModes.ShouldNotContain(FlagEvaluationMode.TargetingRules);
+		okResult.Value.Modes.ShouldNotContain(EvaluationMode.TargetingRules);
 
 		var updatedFlag = await fixture.Repository.GetAsync("clear-rules-flag");
 		updatedFlag.TargetingRules.ShouldBeEmpty();
-		updatedFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.TargetingRules]).ShouldBeFalse();
+		updatedFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.TargetingRules]).ShouldBeFalse();
 	}
 }
 
@@ -154,12 +154,12 @@ public class UpdateTargetingRulesHandler_RemoveRules(FlagsManagementApiFixture f
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("remove-rules-flag", FlagEvaluationMode.TargetingRules);
+		var flag = TestHelpers.CreateTestFlag("remove-rules-flag", EvaluationMode.TargetingRules);
 		flag.TargetingRules = [
 			TargetingRuleFactory.CreaterTargetingRule("userId", TargetingOperator.Equals, ["user123"], "premium"),
 			TargetingRuleFactory.CreaterTargetingRule("role", TargetingOperator.Contains, ["admin"], "admin")
 		];
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.TargetingRules);
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TargetingRules);
 		await fixture.Repository.CreateAsync(flag);
 
 		var request = new UpdateTargetingRulesRequest(null, RemoveTargetingRules: true);
@@ -169,12 +169,12 @@ public class UpdateTargetingRulesHandler_RemoveRules(FlagsManagementApiFixture f
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.EvaluationModes.ShouldNotContain(FlagEvaluationMode.TargetingRules);
+		okResult.Value.Modes.ShouldNotContain(EvaluationMode.TargetingRules);
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("remove-rules-flag");
 		updatedFlag.TargetingRules.ShouldBeEmpty();
-		updatedFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.TargetingRules]).ShouldBeFalse();
+		updatedFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.TargetingRules]).ShouldBeFalse();
 	}
 
 	[Fact]
@@ -182,7 +182,7 @@ public class UpdateTargetingRulesHandler_RemoveRules(FlagsManagementApiFixture f
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("no-rules-flag", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("no-rules-flag", EvaluationMode.Enabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		var request = new UpdateTargetingRulesRequest(null, RemoveTargetingRules: true);
@@ -192,7 +192,7 @@ public class UpdateTargetingRulesHandler_RemoveRules(FlagsManagementApiFixture f
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.EvaluationModes.ShouldNotContain(FlagEvaluationMode.TargetingRules);
+		okResult.Value.Modes.ShouldNotContain(EvaluationMode.TargetingRules);
 
 		var updatedFlag = await fixture.Repository.GetAsync("no-rules-flag");
 		updatedFlag.TargetingRules.ShouldBeEmpty();
@@ -252,7 +252,7 @@ public class UpdateTargetingRulesHandler_CacheIntegration(FlagsManagementApiFixt
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("cached-targeting-flag", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("cached-targeting-flag", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		// Add to cache

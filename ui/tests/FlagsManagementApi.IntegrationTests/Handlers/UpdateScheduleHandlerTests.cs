@@ -1,3 +1,4 @@
+using Azure;
 using FlagsManagementApi.IntegrationTests.Support;
 using Propel.FeatureFlags.Core;
 using Propel.FlagsManagement.Api.Endpoints;
@@ -16,11 +17,11 @@ public class UpdateScheduleHandler_Success(FlagsManagementApiFixture fixture) : 
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("schedule-test-flag", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("schedule-test-flag", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
-		var enableDate = DateTime.UtcNow.AddHours(2);
-		var disableDate = DateTime.UtcNow.AddDays(1);
+		var enableDate = DateTimeOffset.UtcNow.AddHours(2);
+		var disableDate = DateTimeOffset.UtcNow.AddDays(1);
 		var request = new UpdateScheduleRequest(enableDate, disableDate, false);
 
 		// Act
@@ -28,21 +29,21 @@ public class UpdateScheduleHandler_Success(FlagsManagementApiFixture fixture) : 
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.ShouldNotBeNull();
-		okResult.Value.ScheduledEnableDate.ShouldBe(enableDate);
-		okResult.Value.ScheduledDisableDate.Value.ShouldBe(disableDate);
-		okResult.Value.EvaluationModes.ShouldContain(FlagEvaluationMode.Scheduled);
-		okResult.Value.UpdatedBy.ShouldBe("test-user");
+		var ffResponse = okResult.Value;
+		ffResponse.ShouldNotBeNull();
+		ffResponse.Schedule.ShouldBe(new Propel.FlagsManagement.Api.Endpoints.Dto.ActivationSchedule(enableDate, disableDate));
+		ffResponse.Modes.ShouldContain(EvaluationMode.Scheduled);
+		ffResponse.Updated.Actor.ShouldBe("test-user");
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("schedule-test-flag");
 		updatedFlag.ShouldNotBeNull();
-		updatedFlag.Schedule.ScheduledEnableDate.ShouldBeInRange(
-			enableDate.AddTicks(-10), enableDate.AddTicks(10));
-		updatedFlag.Schedule.ScheduledDisableDate.Value.ShouldBeInRange(
-			disableDate.AddTicks(-10), disableDate.AddTicks(10));
-		updatedFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Scheduled]).ShouldBeTrue();
-		updatedFlag.AuditRecord.ModifiedBy.ShouldBe("test-user");
+		updatedFlag.Schedule.EnableOn.ShouldBeInRange(
+			enableDate.DateTime.AddTicks(-10), enableDate.DateTime.AddTicks(10));
+		updatedFlag.Schedule.DisableOn.Value.ShouldBeInRange(
+			disableDate.DateTime.AddTicks(-10), disableDate.DateTime.AddTicks(10));
+		updatedFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Scheduled]).ShouldBeTrue();
+		updatedFlag.LastModified.Actor.ShouldBe("test-user");
 	}
 
 	[Fact]
@@ -50,10 +51,10 @@ public class UpdateScheduleHandler_Success(FlagsManagementApiFixture fixture) : 
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("enable-only-flag", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("enable-only-flag", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
-		var enableDate = DateTime.UtcNow.AddHours(3);
+		var enableDate = DateTimeOffset.UtcNow.AddHours(3);
 		var request = new UpdateScheduleRequest(enableDate, null, false);
 
 		// Act
@@ -61,16 +62,17 @@ public class UpdateScheduleHandler_Success(FlagsManagementApiFixture fixture) : 
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.ScheduledEnableDate.ShouldBe(enableDate);
-		okResult.Value.ScheduledDisableDate.ShouldBeNull();
-		okResult.Value.EvaluationModes.ShouldContain(FlagEvaluationMode.Scheduled);
+		var ffResponse = okResult.Value;
+		ffResponse.ShouldNotBeNull();
+		ffResponse.Schedule.ShouldBe(new Propel.FlagsManagement.Api.Endpoints.Dto.ActivationSchedule(enableDate, DateTimeOffset.MaxValue));
+		ffResponse.Modes.ShouldContain(EvaluationMode.Scheduled);
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("enable-only-flag");
-		updatedFlag.Schedule.ScheduledEnableDate.ShouldBeInRange(
-			enableDate.AddTicks(-10),
-			enableDate.AddTicks(10));
-		updatedFlag.Schedule.ScheduledDisableDate.ShouldBe(DateTime.MaxValue.ToUniversalTime());
+		updatedFlag.ShouldNotBeNull();
+		updatedFlag.Schedule.EnableOn.ShouldBeInRange(
+			enableDate.DateTime.AddTicks(-10), enableDate.DateTime.AddTicks(10));
+		updatedFlag.Schedule.DisableOn.ShouldBe(DateTime.MaxValue.ToUniversalTime());
 	}
 }
 
@@ -81,9 +83,9 @@ public class UpdateScheduleHandler_RemoveSchedule(FlagsManagementApiFixture fixt
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("scheduled-flag", FlagEvaluationMode.Scheduled);
-		flag.Schedule = FlagActivationSchedule.CreateSchedule(DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddDays(1));
-		flag.EvaluationModeSet.AddMode(FlagEvaluationMode.Scheduled);
+		var flag = TestHelpers.CreateTestFlag("scheduled-flag", EvaluationMode.Scheduled);
+		flag.Schedule = Propel.FeatureFlags.Core.ActivationSchedule.CreateSchedule(DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddDays(1));
+		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Scheduled);
 		await fixture.Repository.CreateAsync(flag);
 
 		var request = new UpdateScheduleRequest(DateTime.UtcNow.AddHours(1), null, true);
@@ -93,14 +95,16 @@ public class UpdateScheduleHandler_RemoveSchedule(FlagsManagementApiFixture fixt
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.ScheduledEnableDate.ShouldBeNull();
-		okResult.Value.ScheduledDisableDate.ShouldBeNull();
-		okResult.Value.EvaluationModes.ShouldNotContain(FlagEvaluationMode.Scheduled);
+		var ffResponse = okResult.Value;
+		ffResponse.ShouldNotBeNull();
+		ffResponse.Schedule.ShouldBeNull();
+		ffResponse.Modes.ShouldNotContain(EvaluationMode.Scheduled);
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("scheduled-flag");
-		updatedFlag.Schedule.ShouldBe(FlagActivationSchedule.Unscheduled);
-		updatedFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Scheduled]).ShouldBeFalse();
+		updatedFlag.ShouldNotBeNull();
+		updatedFlag.Schedule.ShouldBe(Propel.FeatureFlags.Core.ActivationSchedule.Unscheduled);
+		updatedFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Scheduled]).ShouldBeFalse();
 	}
 
 	[Fact]
@@ -108,7 +112,7 @@ public class UpdateScheduleHandler_RemoveSchedule(FlagsManagementApiFixture fixt
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("unscheduled-flag", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("unscheduled-flag", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		var request = new UpdateScheduleRequest(DateTime.UtcNow.AddHours(1), null, true);
@@ -118,11 +122,14 @@ public class UpdateScheduleHandler_RemoveSchedule(FlagsManagementApiFixture fixt
 
 		// Assert
 		var okResult = result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		okResult.Value.ScheduledEnableDate.ShouldBeNull();
-		okResult.Value.ScheduledDisableDate.ShouldBeNull();
+		var ffResponse = okResult.Value;
+		ffResponse.ShouldNotBeNull();
+		ffResponse.Schedule.ShouldBeNull();
+		ffResponse.Modes.ShouldNotContain(EvaluationMode.Scheduled);
 
 		var updatedFlag = await fixture.Repository.GetAsync("unscheduled-flag");
-		updatedFlag.Schedule.ShouldBe(FlagActivationSchedule.Unscheduled);
+		updatedFlag.ShouldNotBeNull();
+		updatedFlag.Schedule.ShouldBe(Propel.FeatureFlags.Core.ActivationSchedule.Unscheduled);
 	}
 }
 
@@ -173,7 +180,7 @@ public class UpdateScheduleHandler_CacheIntegration(FlagsManagementApiFixture fi
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("cached-schedule-flag", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("cached-schedule-flag", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		// Add to cache

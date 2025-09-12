@@ -15,8 +15,8 @@ public class FlagEvaluationHandler_SingleFlag(FlagsManagementApiFixture fixture)
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("eval-enabled-flag", FlagEvaluationMode.Enabled);
-		flag.UserAccess = new FlagUserAccessControl(rolloutPercentage: 100);
+		var flag = TestHelpers.CreateTestFlag("eval-enabled-flag", EvaluationMode.Enabled);
+		flag.UserAccessControl = new AccessControl(rolloutPercentage: 100);
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -35,7 +35,7 @@ public class FlagEvaluationHandler_SingleFlag(FlagsManagementApiFixture fixture)
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("eval-disabled-flag", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("eval-disabled-flag", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -68,7 +68,7 @@ public class FlagEvaluationHandler_SingleFlag(FlagsManagementApiFixture fixture)
 		// Verify flag was auto-created
 		var createdFlag = await fixture.Repository.GetAsync("non-existent-flag");
 		createdFlag.ShouldNotBeNull();
-		createdFlag.EvaluationModeSet.ContainsModes([FlagEvaluationMode.Disabled]).ShouldBeTrue();
+		createdFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Disabled]).ShouldBeTrue();
 	}
 }
 
@@ -79,9 +79,9 @@ public class FlagEvaluationHandler_MultipleFlags(FlagsManagementApiFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var enabledFlag = TestHelpers.CreateTestFlag("multi-enabled", FlagEvaluationMode.Enabled);
-		enabledFlag.UserAccess = new FlagUserAccessControl(rolloutPercentage: 100);
-		var disabledFlag = TestHelpers.CreateTestFlag("multi-disabled", FlagEvaluationMode.Disabled);
+		var enabledFlag = TestHelpers.CreateTestFlag("multi-enabled", EvaluationMode.Enabled);
+		enabledFlag.UserAccessControl = new AccessControl(rolloutPercentage: 100);
+		var disabledFlag = TestHelpers.CreateTestFlag("multi-disabled", EvaluationMode.Disabled);
 		
 		await fixture.Repository.CreateAsync(enabledFlag);
 		await fixture.Repository.CreateAsync(disabledFlag);
@@ -102,8 +102,8 @@ public class FlagEvaluationHandler_MultipleFlags(FlagsManagementApiFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var existingFlag = TestHelpers.CreateTestFlag("existing-flag", FlagEvaluationMode.Enabled);
-		existingFlag.UserAccess = new FlagUserAccessControl(rolloutPercentage: 100);
+		var existingFlag = TestHelpers.CreateTestFlag("existing-flag", EvaluationMode.Enabled);
+		existingFlag.UserAccessControl = new AccessControl(rolloutPercentage: 100);
 		await fixture.Repository.CreateAsync(existingFlag);
 
 		// Act
@@ -124,7 +124,7 @@ public class FlagEvaluationHandler_WithAttributes(FlagsManagementApiFixture fixt
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("attr-flag", FlagEvaluationMode.UserTargeted);
+		var flag = TestHelpers.CreateTestFlag("attr-flag", EvaluationMode.UserTargeted);
 		flag.TargetingRules = 
 		[
 			TargetingRuleFactory
@@ -152,8 +152,8 @@ public class FlagEvaluationHandler_WithAttributes(FlagsManagementApiFixture fixt
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("json-attr-flag", FlagEvaluationMode.Enabled);
-		flag.UserAccess = new FlagUserAccessControl(rolloutPercentage: 100);
+		var flag = TestHelpers.CreateTestFlag("json-attr-flag", EvaluationMode.Enabled);
+		flag.UserAccessControl = new AccessControl(rolloutPercentage: 100);
 		await fixture.Repository.CreateAsync(flag);
 
 		var jsonAttributes = """{"country":"US","plan":"premium"}""";

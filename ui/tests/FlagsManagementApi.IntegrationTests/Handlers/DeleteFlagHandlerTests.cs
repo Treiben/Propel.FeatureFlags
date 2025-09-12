@@ -14,7 +14,7 @@ public class DeleteFlagHandler_Success(FlagsManagementApiFixture fixture) : ICla
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("deletable-flag", FlagEvaluationMode.Disabled);
+		var flag = TestHelpers.CreateTestFlag("deletable-flag", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		// Act
@@ -34,7 +34,7 @@ public class DeleteFlagHandler_Success(FlagsManagementApiFixture fixture) : ICla
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("cached-flag", FlagEvaluationMode.Enabled);
+		var flag = TestHelpers.CreateTestFlag("cached-flag", EvaluationMode.Enabled);
 		await fixture.Repository.CreateAsync(flag);
 		
 		// Add to cache
@@ -89,8 +89,8 @@ public class DeleteFlagHandler_PermanentFlag(FlagsManagementApiFixture fixture) 
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var permanentFlag = TestHelpers.CreateTestFlag("permanent-flag", FlagEvaluationMode.Enabled);
-		permanentFlag.Lifecycle = new FlagLifecycle(expirationDate: null, isPermanent: true);
+		var permanentFlag = TestHelpers.CreateTestFlag("permanent-flag", EvaluationMode.Enabled);
+		permanentFlag.Lifecycle = new Lifecycle(expirationDate: null, isPermanent: true);
 		await fixture.Repository.CreateAsync(permanentFlag);
 
 		// Act
