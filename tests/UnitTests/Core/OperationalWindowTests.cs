@@ -1,3 +1,4 @@
+using Propel.FeatureFlags;
 using Propel.FeatureFlags.Core;
 
 namespace FeatureFlags.UnitTests.Core;
