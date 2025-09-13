@@ -6,6 +6,10 @@ public class FeatureFlag
 	public string Name { get; set; } = string.Empty;
 	public string Description { get; set; } = string.Empty;
 
+	// Caller information for uniqueness enforcement
+	public string ApplicationName { get; set; } = string.Empty;
+	public string? ApplicationVersion { get; set; } = string.Empty;
+
 	public EvaluationModes ActiveEvaluationModes { get; set; } = EvaluationModes.FlagIsDisabled;
 
 	public ActivationSchedule Schedule { get; set; } = ActivationSchedule.Unscheduled;
