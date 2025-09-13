@@ -1,56 +1,46 @@
-﻿using Propel.FeatureFlags;
+﻿using Propel.ClientApi.FeatureFlags;
+using Propel.FeatureFlags;
 
 namespace Propel.ClientApi.Services;
 
-//=== SERVICE LAYER FEATURE FLAG INTEGRATION DEMO ===
-//
-// ✅ CORRECT USAGE - Service Layer Feature Flags:
-// • Progressive rollout of new service implementations
-// • A/B testing different technical approaches (algorithms, APIs, processors)
-// • Gradual migration from legacy to new systems
-// • Risk mitigation with automatic fallback mechanisms
-// • Performance testing of new integrations
-// • Canary releases of critical service components
-//
-// ❌ INCORRECT USAGE:
-// • User payment plan restrictions (premium vs basic features)
-// • Geographic payment method limitations due to business rules
-// • Currency restrictions based on user subscription
-// • Payment limits based on user account type
-// • Fee structures or pricing logic
-//
-// This service demonstrates the feature flag usage:
-// 1. Technical implementation switching (v1 vs v2 processors)
-// 2. Automatic fallback for resilience
-// 3. Rich context for intelligent targeting
-// 4. Same business outcome regardless of flag state
-// 5. Progressive rollout with risk mitigation
-//
-// THE BUSINESS LOGIC REMAINS UNCHANGED:
-// All customers can process payments successfully regardless of which
-// technical implementation handles their request. The feature flag
-// controls HOW we process payments, not WHO can process payments.
+/// <summary>
+///=== SERVICE LAYER FEATURE FLAG INTEGRATION DEMO ===
+///
+/// ✅ CORRECT USAGE - Service Layer Feature Flags:
+/// • Progressive rollout of new service implementations
+/// • A/B testing different technical approaches (algorithms, APIs, processors)
+/// • Gradual migration from legacy to new systems
+/// • Risk mitigation with automatic fallback mechanisms
+/// • Performance testing of new integrations
+/// • Canary releases of critical service components
+///
+/// ❌ INCORRECT USAGE:
+/// • User payment plan restrictions (premium vs basic features)
+/// • Geographic payment method limitations due to business rules
+/// • Currency restrictions based on user subscription
+/// • Payment limits based on user account type
+/// • Fee structures or pricing logic
+///
+/// This service demonstrates the feature flag usage:
+/// 1. Technical implementation switching (v1 vs v2 processors)
+/// 2. Automatic fallback for resilience
+/// 3. Rich context for intelligent targeting
+/// 4. Same business outcome regardless of flag state
+/// 5. Progressive rollout with risk mitigation
+///
+/// THE BUSINESS LOGIC REMAINS UNCHANGED:
+/// All customers can process payments successfully regardless of which
+/// technical implementation handles their request. The feature flag
+/// controls HOW we process payments, not WHO can process payments.
+/// </summary>
 
 // ===== 1. SERVICE LAYER INTEGRATION =====
-public class PaymentService
+public class PaymentService(
+	IFeatureFlagClient featureFlags,
+	IPaymentProcessorV1 legacyProcessor,
+	IPaymentProcessorV2 newProcessor,
+	ILogger<PaymentService> logger)
 {
-	private readonly IFeatureFlagClient _featureFlags;
-	private readonly IPaymentProcessorV1 _legacyProcessor;
-	private readonly IPaymentProcessorV2 _newProcessor;
-	private readonly ILogger<PaymentService> _logger;
-
-	public PaymentService(
-		IFeatureFlagClient featureFlags,
-		IPaymentProcessorV1 legacyProcessor,
-		IPaymentProcessorV2 newProcessor,
-		ILogger<PaymentService> logger)
-	{
-		_featureFlags = featureFlags;
-		_legacyProcessor = legacyProcessor;
-		_newProcessor = newProcessor;
-		_logger = logger;
-	}
-
 	public async Task<PaymentResult> ProcessPaymentAsync(PaymentRequest request)
 	{
 		// IMPORTANT: This context is for TECHNICAL routing decisions,
@@ -70,12 +60,22 @@ public class PaymentService
 		// • Use new processor in specific countries for testing
 		// • Enable gradually based on customer risk profiles
 		//
-		if (await _featureFlags.IsEnabledAsync(flagKey: "new-payment-processor", userId: request.CustomerId, attributes: context))
+
+		if (await featureFlags.IsEnabledAsync(flagKey: "new-payment-processor", userId: request.CustomerId, attributes: context))
+		{
+			// Legacy string-based feature flag check (v1)
+			// Uses string key which is more error-prone and lacks compile-time safety
+		}
+
+		// Type-safe feature flag evaluation (v2) - RECOMMENDED APPROACH
+		// Provides compile-time safety, auto-completion, and better maintainability
+		// Uses strongly-typed feature flag definition with default values
+		if (await featureFlags.IsEnabledAsync(ApplicationFeatureFlags.NewPaymentProcessorFeatureFlag, userId: request.CustomerId, attributes: context))
 		{
 			try
 			{
-				_logger.LogInformation("Using new payment processor for customer {CustomerId}", request.CustomerId);
-				return await _newProcessor.ProcessAsync(request);
+				logger.LogInformation("Using new payment processor for customer {CustomerId}", request.CustomerId);
+				return await newProcessor.ProcessAsync(request);
 			}
 			catch (Exception ex)
 			{
@@ -88,14 +88,14 @@ public class PaymentService
 				// This fallback is TECHNICAL resilience, not business logic.
 				// All users should be able to complete payments successfully.
 				//
-				_logger.LogError(ex, "New payment processor failed, falling back to legacy for customer {CustomerId}", request.CustomerId);
+				logger.LogError(ex, "New payment processor failed, falling back to legacy for customer {CustomerId}", request.CustomerId);
 
-				return await _legacyProcessor.ProcessAsync(request);
+				return await legacyProcessor.ProcessAsync(request);
 			}
 		}
 
 		// Default to proven, stable implementation
-		return await _legacyProcessor.ProcessAsync(request);
+		return await legacyProcessor.ProcessAsync(request);
 	}
 
 	private async Task<double> CalculateRiskScore(PaymentRequest request)

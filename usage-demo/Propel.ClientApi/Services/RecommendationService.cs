@@ -9,17 +9,8 @@ public interface IRecommendationService
 	Task<List<Product>> GetRecommendationsAsync(string userId, string category);
 }
 
-public class RecommendationService : IRecommendationService
+public class RecommendationService(IFeatureFlagClient featureFlags, ILogger<RecommendationService> logger) : IRecommendationService
 {
-	private readonly IFeatureFlagClient _featureFlags;
-	private readonly ILogger<RecommendationService> _logger;
-
-	public RecommendationService(IFeatureFlagClient featureFlags, ILogger<RecommendationService> logger)
-	{
-		_featureFlags = featureFlags;
-		_logger = logger;
-	}
-
 	public async Task<List<Product>> GetRecommendationsAsync(string userId, string category)
 	{
 		var context = new Dictionary<string, object>
@@ -29,14 +20,14 @@ public class RecommendationService : IRecommendationService
 		};
 
 		// A/B test for recommendation algorithm
-		var algorithm = await _featureFlags.GetVariationAsync(
-			flagKey: "recommendation-algorithm",
-			defaultValue: "collaborative-filtering", // default
-			userId: userId,
-			attributes: context
-		);
+		var algorithm = await featureFlags.GetVariationAsync(
+				flag: ApplicationFeatureFlags.RecommendationAlgorithmFeatureFlag,
+				defaultValue: "collaborative-filtering", // default
+				userId: userId,
+				attributes: context
+			);
 
-		_logger.LogInformation("Using recommendation algorithm {Algorithm} for user {UserId}", algorithm, userId);
+		logger.LogInformation("Using recommendation algorithm {Algorithm} for user {UserId}", algorithm, userId);
 
 		return algorithm switch
 		{
