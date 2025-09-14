@@ -1,0 +1,57 @@
+﻿using Propel.FeatureFlags.Cache;
+using Propel.FeatureFlags.Core;
+
+namespace Propel.FeatureFlags.Evaluation.GlobalScope;
+
+public interface IGlobalFlagEvaluator
+{
+	Task<EvaluationResult?> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default);
+}
+
+public class GlobalFlagEvaluator(
+	IFeatureFlagRepository repository,
+	IFlagEvaluationManager evaluationManager,
+	IFeatureFlagCache? cache = null) : IGlobalFlagEvaluator
+{
+	private readonly IFeatureFlagRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+	private readonly IFlagEvaluationManager _evaluationManager = evaluationManager ?? throw new ArgumentNullException(nameof(evaluationManager));
+
+	public async Task<EvaluationResult?> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default)
+	{
+		var flag = await GetFlagAsync(flagKey, cancellationToken);
+		if (flag == null)
+		{
+			throw new Exception("The global feature flag is not found. Please create the flag in the system before evaluating it or remove reference to it.");
+		}
+
+		return await _evaluationManager.ProcessEvaluation(flag, context);
+	}
+
+	private async Task<FeatureFlag?> GetFlagAsync(string flagKey, CancellationToken cancellationToken)
+	{
+		// Create composite key for uniqueness per application
+		var cacheKey = new CacheKey(flagKey, ["global"]);
+		// Try cache first
+		FeatureFlag? flag = null;
+		if (cache != null)
+		{
+			flag = await cache.GetAsync(cacheKey, cancellationToken);
+		}
+
+		// If not in cache, get from repository
+		if (flag == null)
+		{
+			flag = await _repository.GetAsync(flagKey, new FeatureFlagFilter {
+				Scope = Scope.Global
+			}, cancellationToken);
+
+			// Cache for future requests if found
+			if (flag != null && cache != null)
+			{
+				await cache.SetAsync(cacheKey, flag, TimeSpan.FromMinutes(5), cancellationToken);
+			}
+		}
+
+		return flag;
+	}
+}

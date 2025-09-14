@@ -1,6 +1,6 @@
 ﻿using Propel.FeatureFlags.Core;
 
-namespace Propel.FeatureFlags.Evaluation.Handlers;
+namespace Propel.FeatureFlags.Evaluation.Strategies;
 
 public sealed class TargetingRulesEvaluator : IOrderedEvaluator
 {
