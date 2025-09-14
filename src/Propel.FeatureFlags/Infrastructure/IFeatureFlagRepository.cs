@@ -9,7 +9,7 @@ public record FeatureFlagFilter
 	public int? ExpiringInDays { get; set; }
 	public string ApplicationName { get; set; } = string.Empty;
 	public string? ApplicationVersion { get; set; }
-	public Scope Scope { get; set; }
+	public Scope? Scope { get; set; }
 	}
 
 public record PagedResult<T>

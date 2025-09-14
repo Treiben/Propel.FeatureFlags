@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Npgsql;
 
-namespace Propel.FeatureFlags.PostgresSql;
+namespace Propel.FeatureFlags.Infrastructure.PostgresSql;
 
 public class PostgreSQLDatabaseInitializer
 {
@@ -14,8 +14,8 @@ public class PostgreSQLDatabaseInitializer
 	{
 		ArgumentException.ThrowIfNullOrEmpty(connectionString, nameof(connectionString));
 
-		this._connectionString = connectionString;
-		this._logger = logger;
+		_connectionString = connectionString;
+		_logger = logger;
 
 		var connectionBuilder = new NpgsqlConnectionStringBuilder(connectionString);
 		_databaseName = connectionBuilder.Database!;
@@ -121,9 +121,12 @@ CREATE TABLE feature_flags (
     created_by VARCHAR(255) NOT NULL,
     updated_by VARCHAR(255) NULL,
     
-    -- Lifecycle
+    -- Retention and expiration
     is_permanent BOOLEAN NOT NULL DEFAULT FALSE,
     expiration_date TIMESTAMP WITH TIME ZONE NOT NULL,
+	application_name VARCHAR(255) NOT NULL DEFAULT 'global',
+	application_version VARCHAR(100) NULL,
+	scope VARCHAR(50) NOT NULL DEFAULT 'global',
     
     -- Scheduling
     scheduled_enable_date TIMESTAMP WITH TIME ZONE NULL,

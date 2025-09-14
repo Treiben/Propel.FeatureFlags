@@ -1,16 +1,31 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
-namespace Propel.FeatureFlags.PostgresSql;
+namespace Propel.FeatureFlags.Infrastructure.PostgresSql;
 
 public static class ServiceCollectionExtensions
 {
 	public static IServiceCollection AddPostgresSqlFeatureFlags(this IServiceCollection services, string connectionString)
 	{
+		// Configure connection string with resilience settings here
+		var builder = new NpgsqlConnectionStringBuilder(connectionString)
+		{
+			CommandTimeout = 30,
+			Timeout = 15,
+			MaxPoolSize = 100,
+			MinPoolSize = 5,
+			Pooling = true,
+			ConnectionIdleLifetime = 300,
+			ConnectionPruningInterval = 10
+		};
+
+		var configuredConnectionString = builder.ToString();
+
 		services.AddSingleton<IFeatureFlagRepository>(sp =>
-				new PostgreSQLFeatureFlagRepository(
-					connectionString ?? throw new InvalidOperationException("PostgreSQL connection string required"),
-					sp.GetRequiredService<ILogger<PostgreSQLFeatureFlagRepository>>()));
+			new PostgreSQLFeatureFlagRepository(
+				configuredConnectionString,
+				sp.GetRequiredService<ILogger<PostgreSQLFeatureFlagRepository>>()));
 
 		services.AddSingleton(sp =>
 			new PostgreSQLDatabaseInitializer(

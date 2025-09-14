@@ -1,11 +1,12 @@
 ﻿using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Helpers;
+using System.Data;
 using System.Text.Json;
 
-namespace Propel.FeatureFlags.PostgresSql;
+namespace Propel.FeatureFlags.Infrastructure.PostgresSql;
 
 public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 {
@@ -16,16 +17,16 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 	{
 		_connectionString = connectionString;
 		_logger = logger;
-		_logger.LogDebug("PostgreSQL Feature Flag Repository initialized");
+		_logger.LogDebug("PostgreSQL Feature Flag Repository initialized with connection pooling");
 	}
 
 	public async Task<FeatureFlag?> GetAsync(string key, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default)
 	{
-		_logger.LogDebug("Getting feature flag with key: {Key}", key);
+		_logger.LogDebug("Getting feature flag with key: {Key}, Scope: {Scope}, Application: {Application}",
+			key, filter?.Scope, filter?.ApplicationName);
 
-		var (whereClause, parameters) = BuildWhereClause(key, filter.Scope, filter.ApplicationName, filter.ApplicationVersion);
-
-		string sql = $@"SELECT * FROM feature_flags {whereClause}";
+		var (whereClause, parameters) = BuildWhereClause(key, filter?.Scope ?? Scope.Application, filter?.ApplicationName, filter?.ApplicationVersion);
+		var sql = $"SELECT * FROM feature_flags {whereClause}";
 
 		try
 		{
@@ -38,14 +39,13 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 			if (!await reader.ReadAsync(cancellationToken))
 			{
-				_logger.LogDebug("Feature flag with key {Key} not found within {Application} scope", key, filter?.ApplicationName);
+				_logger.LogDebug("Feature flag with key {Key} not found within scope {Scope}", key, filter?.Scope);
 				return null;
 			}
 
 			var flag = await reader.LoadFlagFromReader();
 			_logger.LogDebug("Retrieved feature flag: {Key} with evaluation modes {Modes}",
-				flag.Key,
-				flag.ActiveEvaluationModes.Modes);
+				flag.Key, string.Join(",", flag.ActiveEvaluationModes.Modes));
 			return flag;
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
@@ -59,7 +59,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 	{
 		_logger.LogDebug("Retrieving all feature flags");
 
-		const string sql = @"SELECT * FROM feature_flags ORDER BY name";
+		const string sql = "SELECT * FROM feature_flags ORDER BY name";
 
 		try
 		{
@@ -87,42 +87,42 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 	public async Task<PagedResult<FeatureFlag>> GetPagedAsync(int page, int pageSize, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default)
 	{
-		_logger.LogDebug("Getting paged feature flags - Page: {Page}, PageSize: {PageSize}, Filter: {@Filter}", page, pageSize, filter);
+		_logger.LogDebug("Getting paged feature flags - Page: {Page}, PageSize: {PageSize}", page, pageSize);
 
-		// Validate pagination parameters
-		if (page < 1) page = 1;
-		if (pageSize < 1) pageSize = 10;
-		if (pageSize > 100) pageSize = 100; // Limit maximum page size
+		// Validate and normalize pagination parameters
+		page = Math.Max(1, page);
+		pageSize = Math.Clamp(pageSize, 1, 100);
 
 		var (whereClause, parameters) = BuildFilterConditions(filter);
 
-		// Count query
-		var countSql = $"SELECT COUNT(*) FROM feature_flags {whereClause}";
-
-		// Data query with pagination
-		var dataSql = $@"SELECT * FROM feature_flags {whereClause} ORDER BY name LIMIT @pageSize OFFSET @offset";
+		// Use window function for better performance - single query instead of separate count
+		var sql = $@"
+            SELECT *, COUNT(*) OVER() as total_count 
+            FROM feature_flags {whereClause} 
+            ORDER BY name 
+            LIMIT @pageSize OFFSET @offset";
 
 		try
 		{
 			using var connection = new NpgsqlConnection(_connectionString);
-			using var countCommand = new NpgsqlCommand(countSql, connection);
+			using var command = new NpgsqlCommand(sql, connection);
 
-			countCommand.AddFilterParameters(parameters);
-
-			// Get paged data
-			using var dataCommand = new NpgsqlCommand(dataSql, connection);
-			dataCommand.AddFilterParameters(parameters);
-			dataCommand.Parameters.AddWithValue("pageSize", pageSize);
-			dataCommand.Parameters.AddWithValue("offset", (page - 1) * pageSize);
+			command.AddFilterParameters(parameters);
+			command.Parameters.AddWithValue("pageSize", pageSize);
+			command.Parameters.AddWithValue("offset", (page - 1) * pageSize);
 
 			await connection.OpenAsync(cancellationToken);
-
-			int totalCount = Convert.ToInt32(await countCommand.ExecuteScalarAsync(cancellationToken));
-			using var reader = await dataCommand.ExecuteReaderAsync(cancellationToken);
+			using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
 			var flags = new List<FeatureFlag>();
+			int totalCount = 0;
+
 			while (await reader.ReadAsync(cancellationToken))
 			{
+				if (totalCount == 0) // Set total count from first row
+				{
+					totalCount = await reader.GetFieldValueAsync<int>("total_count");
+				}
 				flags.Add(await reader.LoadFlagFromReader());
 			}
 
@@ -148,34 +148,30 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 	public async Task<FeatureFlag> CreateAsync(FeatureFlag flag, CancellationToken cancellationToken = default)
 	{
-		_logger.LogDebug("Creating feature flag with key: {Key} for application: {Application}", flag.Key, flag.Lifecycle.ApplicationName);
+		_logger.LogDebug("Creating feature flag with key: {Key} for application: {Application}",
+			flag.Key, flag.Retention.ApplicationName);
 
-		// Check for duplicate flag name within the same application
-		await ValidateUniqueFlagNamePerApplicationAsync(
-				key: flag.Key,
-				applicationName: flag.Lifecycle.ApplicationName,
-				applicationVersion: flag.Lifecycle.ApplicationVersion,
-				scope: flag.Lifecycle.Scope, 
-				cancellationToken);
+		// Validate uniqueness
+		await ValidateUniqueFlagAsync(flag.Key, flag.Retention.Scope, flag.Retention.ApplicationName, flag.Retention.ApplicationVersion, cancellationToken);
 
 		const string sql = @"
-                INSERT INTO feature_flags (
-                    key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
-                    expiration_date, scheduled_enable_date, scheduled_disable_date,
-                    window_start_time, window_end_time, time_zone, window_days,
-                    user_percentage_enabled, targeting_rules, enabled_users, disabled_users,
-					enabled_tenants, disabled_tenants, tenant_percentage_enabled,
-                    variations, default_variation, tags, is_permanent,
-                    application_name, application_version, scope
-                ) VALUES (
-                    @key, @name, @description, @evaluation_modes, @created_at, @updated_at, @created_by, @updated_by,
-                    @expiration_date, @scheduled_enable_date, @scheduled_disable_date,
-                    @window_start_time, @window_end_time, @time_zone, @window_days,
-                    @user_percentage_enabled, @targeting_rules, @enabled_users, @disabled_users,
-					@enabled_tenants, @disabled_tenants, @tenant_percentage_enabled,
-                    @variations, @default_variation, @tags, @is_permanent,
-                    @application_name, @application_version, @scope
-                )";
+            INSERT INTO feature_flags (
+                key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
+                expiration_date, scheduled_enable_date, scheduled_disable_date,
+                window_start_time, window_end_time, time_zone, window_days,
+                user_percentage_enabled, targeting_rules, enabled_users, disabled_users,
+                enabled_tenants, disabled_tenants, tenant_percentage_enabled,
+                variations, default_variation, tags, is_permanent,
+                application_name, application_version, scope
+            ) VALUES (
+                @key, @name, @description, @evaluation_modes, @created_at, @updated_at, @created_by, @updated_by,
+                @expiration_date, @scheduled_enable_date, @scheduled_disable_date,
+                @window_start_time, @window_end_time, @time_zone, @window_days,
+                @user_percentage_enabled, @targeting_rules, @enabled_users, @disabled_users,
+                @enabled_tenants, @disabled_tenants, @tenant_percentage_enabled,
+                @variations, @default_variation, @tags, @is_permanent,
+                @application_name, @application_version, @scope
+            )";
 
 		try
 		{
@@ -186,12 +182,12 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			await connection.OpenAsync(cancellationToken);
 			await command.ExecuteNonQueryAsync(cancellationToken);
 
-			_logger.LogDebug("Successfully created feature flag: {Key} for application: {ApplicationName}", flag.Key, flag.Lifecycle.ApplicationName);
+			_logger.LogDebug("Successfully created feature flag: {Key}", flag.Key);
 			return flag;
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
 		{
-			_logger.LogError(ex, "Error creating feature flag with key {Key} for application {ApplicationName}", flag.Key, flag.Lifecycle.ApplicationName);
+			_logger.LogError(ex, "Error creating feature flag with key {Key}", flag.Key);
 			throw;
 		}
 	}
@@ -200,19 +196,23 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 	{
 		_logger.LogDebug("Updating feature flag with key: {Key}", flag.Key);
 
-		var (whereClause, parameters) = BuildWhereClause(
-									flag.Key,
-									flag.Lifecycle.Scope,
-									flag.Lifecycle.ApplicationName,
-									flag.Lifecycle.ApplicationVersion);
-		 string sql = $@"
-                UPDATE feature_flags SET 
-                    name = @name, description = @description, evaluation_modes = @evaluation_modes, updated_at = @updated_at, updated_by = @updated_by,
-                    expiration_date = @expiration_date, scheduled_enable_date = @scheduled_enable_date, scheduled_disable_date = @scheduled_disable_date,
-                    window_start_time = @window_start_time, window_end_time = @window_end_time, time_zone = @time_zone, window_days = @window_days,
-                    user_percentage_enabled = @user_percentage_enabled, targeting_rules = @targeting_rules, enabled_users = @enabled_users, disabled_users = @disabled_users,
-					enabled_tenants = @enabled_tenants, disabled_tenants = @disabled_tenants, tenant_percentage_enabled = @tenant_percentage_enabled,
-                    variations = @variations, default_variation = @default_variation, tags = @tags, is_permanent = @is_permanent {whereClause}";
+		var (whereClause, parameters) = BuildWhereClause(flag.Key, flag.Retention.Scope, flag.Retention.ApplicationName, flag.Retention.ApplicationVersion);
+
+		var sql = $@"
+            UPDATE feature_flags SET 
+                name = @name, description = @description, evaluation_modes = @evaluation_modes, 
+                updated_at = @updated_at, updated_by = @updated_by,
+                expiration_date = @expiration_date, scheduled_enable_date = @scheduled_enable_date, 
+                scheduled_disable_date = @scheduled_disable_date,
+                window_start_time = @window_start_time, window_end_time = @window_end_time, 
+                time_zone = @time_zone, window_days = @window_days,
+                user_percentage_enabled = @user_percentage_enabled, targeting_rules = @targeting_rules, 
+                enabled_users = @enabled_users, disabled_users = @disabled_users,
+                enabled_tenants = @enabled_tenants, disabled_tenants = @disabled_tenants, 
+                tenant_percentage_enabled = @tenant_percentage_enabled,
+                variations = @variations, default_variation = @default_variation, 
+                tags = @tags, is_permanent = @is_permanent 
+            {whereClause}";
 
 		try
 		{
@@ -223,16 +223,18 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 			await connection.OpenAsync(cancellationToken);
 			var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
+
 			if (rowsAffected == 0)
 			{
-				_logger.LogError("Feature flag '{Key}' not found during update", flag.Key);
-				throw new InvalidOperationException($"Feature flag '{flag.Key}' not found");
+				var message = $"Feature flag '{flag.Key}' not found";
+				_logger.LogWarning(message);
+				throw new InvalidOperationException(message);
 			}
 
 			_logger.LogDebug("Successfully updated feature flag: {Key}", flag.Key);
 			return flag;
 		}
-		catch (Exception ex) when (ex is not InvalidOperationException && ex is not OperationCanceledException)
+		catch (Exception ex) when (ex is not OperationCanceledException)
 		{
 			_logger.LogError(ex, "Error updating feature flag with key {Key}", flag.Key);
 			throw;
@@ -243,12 +245,8 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 	{
 		_logger.LogDebug("Deleting feature flag with key: {Key}", flag.Key);
 
-		var (whereClause, parameters) = BuildWhereClause(
-											flag.Key, 
-											flag.Lifecycle.Scope, 
-											flag.Lifecycle.ApplicationName,
-											flag.Lifecycle.ApplicationVersion);
-		string sql = $@"DELETE FROM feature_flags {whereClause}";
+		var (whereClause, parameters) = BuildWhereClause(flag.Key, flag.Retention.Scope, flag.Retention.ApplicationName, flag.Retention.ApplicationVersion);
+		var sql = $"DELETE FROM feature_flags {whereClause}";
 
 		try
 		{
@@ -274,18 +272,13 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		}
 	}
 
-	private async Task ValidateUniqueFlagNamePerApplicationAsync(
-							string key, 
-							string? applicationName, 
-							string? applicationVersion, 
-							Scope scope, 
-							CancellationToken cancellationToken)
+	private async Task ValidateUniqueFlagAsync(string key, Scope scope, string? applicationName, string? applicationVersion, CancellationToken cancellationToken)
 	{
 		var (whereClause, parameters) = BuildWhereClause(key, scope, applicationName, applicationVersion);
-		string checkSql = @"SELECT COUNT(*) FROM feature_flags {whereClause}";
+		var sql = $"SELECT COUNT(*) FROM feature_flags {whereClause}";
 
 		using var connection = new NpgsqlConnection(_connectionString);
-		using var command = new NpgsqlCommand(checkSql, connection);
+		using var command = new NpgsqlCommand(sql, connection);
 		command.AddFilterParameters(parameters);
 
 		await connection.OpenAsync(cancellationToken);
@@ -293,13 +286,14 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 		if (count > 0)
 		{
-			var message = "Feature flag with key {Key} already exists for application {ApplicationName}. Each application must have unique flag names.";
-			_logger.LogWarning(message, key, applicationName);
+			var message = $"Feature flag with key '{key}' already exists in scope '{scope}' for application '{applicationName}'";
+			_logger.LogWarning(message);
 			throw new InvalidOperationException(message);
 		}
 	}
 
-	private static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(string key, Scope scope, string? applicationName, string? applicationVersion)
+	private static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(
+		string key, Scope scope, string? applicationName, string? applicationVersion)
 	{
 		var parameters = new Dictionary<string, object>
 		{
@@ -307,21 +301,28 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			["scope"] = (int)scope
 		};
 
-		var whereClause = "WHERE key = @key AND (scope = 0 AND scope = @scope)";
-
-		// If application scope, filter by application name and version
-		if (scope == Scope.Application)
+		if (scope == Scope.Global)
 		{
-			if (string.IsNullOrEmpty(applicationName))
-			{
-				throw new ArgumentException("Application name must be provided for application-scoped flags.", nameof(applicationName));
-			}
-			parameters["application_name"] = applicationName;
-			parameters["application_version"] = (object?)applicationVersion ?? DBNull.Value;
-			whereClause = "WHERE key = @key AND ((scope = 0 AND scope = @scope) OR (scope = 1 AND application_name = @application_name AND application_version = @application_version))";
+			return ("WHERE key = @key AND scope = @scope", parameters);
 		}
 
-		return (whereClause, parameters);
+		// Application or Feature scope
+		if (string.IsNullOrEmpty(applicationName))
+		{
+			throw new ArgumentException("Application name required for application-scoped flags.", nameof(applicationName));
+		}
+
+		parameters["application_name"] = applicationName;
+
+		if (!string.IsNullOrEmpty(applicationVersion))
+		{
+			parameters["application_version"] = applicationVersion;
+			return ("WHERE key = @key AND scope = @scope AND application_name = @application_name AND application_version = @application_version", parameters);
+		}
+		else
+		{
+			return ("WHERE key = @key AND scope = @scope AND application_name = @application_name AND application_version IS NULL", parameters);
+		}
 	}
 
 	private static (string whereClause, Dictionary<string, object> parameters) BuildFilterConditions(FeatureFlagFilter? filter)
@@ -332,15 +333,31 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		if (filter == null)
 			return (string.Empty, parameters);
 
-		// Modes filtering
+		// Scope filtering
+		if (filter.Scope.HasValue)
+		{
+			conditions.Add("scope = @scope");
+			parameters["scope"] = (int)filter.Scope.Value;
+		}
+
+		// Application filtering
+		if (!string.IsNullOrEmpty(filter.ApplicationName))
+		{
+			conditions.Add("application_name = @application_name");
+			parameters["application_name"] = filter.ApplicationName;
+		}
+
+		// Evaluation modes filtering
 		if (filter.EvaluationModes != null && filter.EvaluationModes.Length > 0)
 		{
+			var modeConditions = new List<string>();
 			for (int i = 0; i < filter.EvaluationModes.Length; i++)
 			{
-				int[] mode = [(int)filter.EvaluationModes[i]];
-				conditions.Add($"evaluation_modes @> @mode{i}");
-				parameters[$"mode{i}"] = JsonSerializer.Serialize(mode, JsonDefaults.JsonOptions);
+				var modeParam = $"mode{i}";
+				modeConditions.Add($"evaluation_modes @> @{modeParam}");
+				parameters[modeParam] = JsonSerializer.Serialize(new[] { (int)filter.EvaluationModes[i] }, JsonDefaults.JsonOptions);
 			}
+			conditions.Add($"({string.Join(" OR ", modeConditions)})");
 		}
 
 		// Expiration filtering
@@ -354,25 +371,35 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		// Tags filtering
 		if (filter.Tags != null && filter.Tags.Count > 0)
 		{
-			for (int i = 0; i < filter.Tags.Count; i++)
+			var tagConditions = new List<string>();
+			var tagIndex = 0;
+
+			foreach (var tag in filter.Tags)
 			{
-				var tag = filter.Tags.ElementAt(i);
 				if (string.IsNullOrEmpty(tag.Value))
 				{
-					// Search by tag key only when value is null or empty
-					conditions.Add($"tags ? @tagKey{i}");
-					parameters[$"tagKey{i}"] = tag.Key;
+					// Search by tag key only
+					var keyParam = $"tagKey{tagIndex}";
+					tagConditions.Add($"tags ? @{keyParam}");
+					parameters[keyParam] = tag.Key;
 				}
 				else
 				{
 					// Search by exact key-value match
-					conditions.Add($"tags @> @tag{i}");
-					parameters[$"tag{i}"] = JsonSerializer.Serialize(new Dictionary<string, string> { [tag.Key] = tag.Value });
+					var tagParam = $"tag{tagIndex}";
+					tagConditions.Add($"tags @> @{tagParam}");
+					parameters[tagParam] = JsonSerializer.Serialize(new Dictionary<string, string> { [tag.Key] = tag.Value }, JsonDefaults.JsonOptions);
 				}
+				tagIndex++;
+			}
+
+			if (tagConditions.Count > 0)
+			{
+				conditions.Add($"({string.Join(" OR ", tagConditions)})");
 			}
 		}
 
-		var whereClause = conditions.Count > 0 ? " WHERE " + string.Join(" OR ", conditions) : string.Empty;
+		var whereClause = conditions.Count > 0 ? " WHERE " + string.Join(" AND ", conditions) : string.Empty;
 		return (whereClause, parameters);
 	}
 }
@@ -381,19 +408,25 @@ public static class NpgsqlCommandExtensions
 {
 	public static void AddParameters(this NpgsqlCommand command, FeatureFlag flag)
 	{
+		// Basic string parameters
 		command.Parameters.AddWithValue("key", flag.Key);
 		command.Parameters.AddWithValue("name", flag.Name);
 		command.Parameters.AddWithValue("description", flag.Description);
-		command.Parameters.AddWithValue("created_at", flag.Created.Timestamp!);
-		command.Parameters.AddWithValue("created_by", flag.Created.Actor!);
+
+		// Audit parameters
+		command.Parameters.AddWithValue("created_at", flag.Created.Timestamp);
+		command.Parameters.AddWithValue("created_by", flag.Created.Actor ?? "system");
 		command.Parameters.AddWithValue("updated_at", (object?)flag.LastModified?.Timestamp ?? DBNull.Value);
 		command.Parameters.AddWithValue("updated_by", (object?)flag.LastModified?.Actor ?? DBNull.Value);
-		command.Parameters.AddWithValue("expiration_date", (object?)flag.Lifecycle.ExpirationDate ?? DBNull.Value);
-		command.Parameters.AddWithValue("is_permanent", flag.Lifecycle.IsPermanent);
-		command.Parameters.AddWithValue("application_name", (object?) flag.Lifecycle.ApplicationName ?? DBNull.Value);
-		command.Parameters.AddWithValue("application_version", (object?) flag.Lifecycle.ApplicationVersion ?? DBNull.Value);
-		command.Parameters.AddWithValue("scope", (int)flag.Lifecycle.Scope);
 
+		// Retention parameters
+		command.Parameters.AddWithValue("expiration_date", (object?)flag.Retention.ExpirationDate ?? DBNull.Value);
+		command.Parameters.AddWithValue("is_permanent", flag.Retention.IsPermanent);
+		command.Parameters.AddWithValue("application_name", (object?)flag.Retention.ApplicationName ?? DBNull.Value);
+		command.Parameters.AddWithValue("application_version", (object?)flag.Retention.ApplicationVersion ?? DBNull.Value);
+		command.Parameters.AddWithValue("scope", (int)flag.Retention.Scope);
+
+		// Schedule parameters - handle domain model defaults
 		if (flag.Schedule.EnableOn == DateTime.MinValue)
 			command.Parameters.AddWithValue("scheduled_enable_date", DBNull.Value);
 		else
@@ -402,22 +435,26 @@ public static class NpgsqlCommandExtensions
 		if (flag.Schedule.DisableOn == DateTime.MaxValue)
 			command.Parameters.AddWithValue("scheduled_disable_date", DBNull.Value);
 		else
-			command.Parameters.AddWithValue("scheduled_disable_date", (object?)flag.Schedule.DisableOn ?? DBNull.Value);
+			command.Parameters.AddWithValue("scheduled_disable_date", flag.Schedule.DisableOn);
 
-		command.Parameters.AddWithValue("window_start_time", (object?)flag.OperationalWindow.StartOn ?? DBNull.Value);
-		command.Parameters.AddWithValue("window_end_time", (object?)flag.OperationalWindow.StopOn ?? DBNull.Value);
-		command.Parameters.AddWithValue("time_zone", (object?)flag.OperationalWindow.TimeZone ?? DBNull.Value);
+		// Operational window parameters
+		command.Parameters.AddWithValue("window_start_time", flag.OperationalWindow.StartOn);
+		command.Parameters.AddWithValue("window_end_time", flag.OperationalWindow.StopOn);
+		command.Parameters.AddWithValue("time_zone", flag.OperationalWindow.TimeZone);
+
+		// Access control parameters
+		command.Parameters.AddWithValue("user_percentage_enabled", flag.UserAccessControl.RolloutPercentage);
+		command.Parameters.AddWithValue("tenant_percentage_enabled", flag.TenantAccessControl.RolloutPercentage);
+
+		// Variations
+		command.Parameters.AddWithValue("default_variation", flag.Variations.DefaultVariation);
 
 		// JSONB parameters require explicit type specification
-
 		var evaluationModesParam = command.Parameters.Add("evaluation_modes", NpgsqlDbType.Jsonb);
 		evaluationModesParam.Value = JsonSerializer.Serialize(flag.ActiveEvaluationModes.Modes.Select(m => (int)m), JsonDefaults.JsonOptions);
 
 		var windowDaysParam = command.Parameters.Add("window_days", NpgsqlDbType.Jsonb);
-		windowDaysParam.Value = JsonSerializer.Serialize(flag.OperationalWindow.DaysActive?.Select(d => (int)d) ?? [], JsonDefaults.JsonOptions);
-
-		command.Parameters.AddWithValue("user_percentage_enabled", flag.UserAccessControl.RolloutPercentage);
-		command.Parameters.AddWithValue("tenant_percentage_enabled", flag.TenantAccessControl.RolloutPercentage);
+		windowDaysParam.Value = JsonSerializer.Serialize(flag.OperationalWindow.DaysActive.Select(d => (int)d), JsonDefaults.JsonOptions);
 
 		var targetingRulesParam = command.Parameters.Add("targeting_rules", NpgsqlDbType.Jsonb);
 		targetingRulesParam.Value = JsonSerializer.Serialize(flag.TargetingRules, JsonDefaults.JsonOptions);
@@ -437,8 +474,6 @@ public static class NpgsqlCommandExtensions
 		var variationsParam = command.Parameters.Add("variations", NpgsqlDbType.Jsonb);
 		variationsParam.Value = JsonSerializer.Serialize(flag.Variations.Values, JsonDefaults.JsonOptions);
 
-		command.Parameters.AddWithValue("default_variation", flag.Variations.DefaultVariation);
-
 		var tagsParam = command.Parameters.Add("tags", NpgsqlDbType.Jsonb);
 		tagsParam.Value = JsonSerializer.Serialize(flag.Tags, JsonDefaults.JsonOptions);
 	}
@@ -449,13 +484,13 @@ public static class NpgsqlCommandExtensions
 		{
 			if (key.StartsWith("tag") && !key.StartsWith("tagKey"))
 			{
-				// JSONB parameter
+				// JSONB parameter for tag values
 				var parameter = command.Parameters.Add(key, NpgsqlDbType.Jsonb);
 				parameter.Value = value;
 			}
 			else if (key.StartsWith("mode"))
 			{
-				// JSONB parameter
+				// JSONB parameter for evaluation modes
 				var parameter = command.Parameters.Add(key, NpgsqlDbType.Jsonb);
 				parameter.Value = value;
 			}
@@ -469,95 +504,107 @@ public static class NpgsqlCommandExtensions
 
 public static class NpgsqlDataReaderExtensions
 {
-	public static async Task<T> Deserialize<T>(this NpgsqlDataReader reader, string columnName)
+	public static async Task<T> DeserializeAsync<T>(this NpgsqlDataReader reader, string columnName)
 	{
 		var ordinal = reader.GetOrdinal(columnName);
 		if (await reader.IsDBNullAsync(ordinal))
 			return default!;
 
-		var json = await reader.GetDataAsync<string>(columnName);
+		var json = await reader.GetFieldValueAsync<string>(ordinal);
 		return JsonSerializer.Deserialize<T>(json, JsonDefaults.JsonOptions) ?? default!;
 	}
 
-	public static async Task<T> GetDataAsync<T>(this NpgsqlDataReader reader, string columnName)
+	public static async Task<T> GetFieldValueOrDefaultAsync<T>(this NpgsqlDataReader reader, string columnName, T defaultValue = default!)
 	{
 		var ordinal = reader.GetOrdinal(columnName);
-		return await reader.IsDBNullAsync(ordinal) ? default! : await reader.GetFieldValueAsync<T>(ordinal);
+		return await reader.IsDBNullAsync(ordinal)
+			? defaultValue
+			: await reader.GetFieldValueAsync<T>(ordinal);
 	}
-	public static async Task<TimeSpan?> GetTimeOnly(this NpgsqlDataReader reader, string columnName)
-	{
-		var ordinal = reader.GetOrdinal(columnName);
-		if (await reader.IsDBNullAsync(ordinal))
-			return null;
-		return await reader.GetDataAsync<TimeSpan>(columnName);
-	}
+
 	public static async Task<FeatureFlag> LoadFlagFromReader(this NpgsqlDataReader reader)
 	{
-		var evaluationModeSet = new EvaluationModes(await reader.Deserialize<EvaluationMode[]>("evaluation_modes"));
+		// Load evaluation modes
+		var evaluationModes = await reader.DeserializeAsync<int[]>("evaluation_modes");
+		var evaluationModeSet = new EvaluationModes(evaluationModes?.Select(m => (EvaluationMode)m).ToArray());
 
-		var lifecycle = new Lifecycle(
-				expirationDate: (await reader.GetDataAsync<DateTimeOffset?>("expiration_date"))?.UtcDateTime,
-				isPermanent: await reader.GetDataAsync<bool>("is_permanent"),
-				scope: await reader.GetDataAsync<Scope>("scope"),
-				applicationName: await reader.GetDataAsync<string>("application_name"),
-				applicationVersion: await reader.GetDataAsync<string?>("application_version")
-			);
+		// Load retention policy
+		var retention = new RetentionPolicy(
+			isPermanent: await reader.GetFieldValueAsync<bool>("is_permanent"),
+			expirationDate: await reader.GetFieldValueOrDefaultAsync<DateTime?>("expiration_date") ?? DateTime.UtcNow.AddDays(30),
+			scope: await reader.GetFieldValueAsync<Scope>("scope"),
+			applicationName: await reader.GetFieldValueOrDefaultAsync<string?>("application_name"),
+			applicationVersion: await reader.GetFieldValueOrDefaultAsync<string?>("application_version")
+		);
 
+		// Load audit information
 		var created = new Audit(
-				timestamp: (await reader.GetDataAsync<DateTimeOffset>("created_at")).UtcDateTime,
-				actor: await reader.GetDataAsync<string>("created_by")
-			);
+			timestamp: await reader.GetFieldValueAsync<DateTime>("created_at"),
+			actor: await reader.GetFieldValueAsync<string>("created_by")
+		);
 
-		Audit? modified = default;
-		var modifiedAt = await reader.GetDataAsync<DateTimeOffset?>("updated_at");
-		if (modifiedAt.HasValue && modifiedAt.Value > DateTime.MinValue.ToUniversalTime())
+		Audit? modified = null;
+		var modifiedAt = await reader.GetFieldValueOrDefaultAsync<DateTime?>("updated_at");
+		var modifiedBy = await reader.GetFieldValueOrDefaultAsync<string?>("updated_by");
+		if (modifiedAt.HasValue && !string.IsNullOrEmpty(modifiedBy))
 		{
-			modified = new Audit(
-					timestamp: modifiedAt.Value.UtcDateTime,
-					actor: await reader.GetDataAsync<string>("updated_by")
-				);
+			modified = new Audit(timestamp: modifiedAt.Value, actor: modifiedBy);
 		}
 
+		// Load schedule - handle DB nulls properly
+		var enableOn = await reader.GetFieldValueOrDefaultAsync<DateTime?>("scheduled_enable_date");
+		var disableOn = await reader.GetFieldValueOrDefaultAsync<DateTime?>("scheduled_disable_date");
+
 		var schedule = new ActivationSchedule(
-				enableOn: (await reader.GetDataAsync<DateTimeOffset>("scheduled_enable_date")).UtcDateTime,
-				disableOn: (await reader.GetDataAsync<DateTimeOffset>("scheduled_disable_date")).UtcDateTime
-			);
-		var window = new OperationalWindow(
-				startOn: await reader.GetTimeOnly("window_start_time") ?? TimeSpan.Zero,
-				stopOn: await reader.GetTimeOnly("window_end_time") ?? new TimeSpan(23, 59, 59),
-				timeZone: await reader.GetDataAsync<string?>("time_zone") ?? "UTC",
-				daysActive: await reader.Deserialize<DayOfWeek[]?>("window_days")
-			);
+			enableOn: enableOn ?? DateTime.MinValue,
+			disableOn: disableOn ?? DateTime.MaxValue
+		);
+
+		// Load operational window
+		var windowDaysData = await reader.DeserializeAsync<int[]>("window_days");
+		var windowDays = windowDaysData?.Select(d => (DayOfWeek)d).ToArray();
+
+		var operationalWindow = new OperationalWindow(
+			startOn: await reader.GetFieldValueOrDefaultAsync<TimeSpan>("window_start_time"),
+			stopOn: await reader.GetFieldValueOrDefaultAsync<TimeSpan>("window_end_time", new TimeSpan(23, 59, 59)),
+			timeZone: await reader.GetFieldValueOrDefaultAsync<string>("time_zone", "UTC"),
+			daysActive: windowDays
+		);
+
+		// Load access controls
 		var userAccess = new AccessControl(
-				allowed: await reader.Deserialize<List<string>>("enabled_users"),
-				blocked: await reader.Deserialize<List<string>>("disabled_users"),
-				rolloutPercentage: await reader.GetDataAsync<int>("user_percentage_enabled")
-			);
+			allowed: await reader.DeserializeAsync<List<string>>("enabled_users"),
+			blocked: await reader.DeserializeAsync<List<string>>("disabled_users"),
+			rolloutPercentage: await reader.GetFieldValueAsync<int>("user_percentage_enabled")
+		);
+
 		var tenantAccess = new AccessControl(
-				allowed: await reader.Deserialize<List<string>>("enabled_tenants"),
-				blocked: await reader.Deserialize<List<string>>("disabled_tenants"),
-				rolloutPercentage: await reader.GetDataAsync<int>("tenant_percentage_enabled")
-			);
+			allowed: await reader.DeserializeAsync<List<string>>("enabled_tenants"),
+			blocked: await reader.DeserializeAsync<List<string>>("disabled_tenants"),
+			rolloutPercentage: await reader.GetFieldValueAsync<int>("tenant_percentage_enabled")
+		);
+
+		// Load variations
 		var variations = new Variations
 		{
-			Values = await reader.Deserialize<Dictionary<string, object>>("variations"),
-			DefaultVariation = await reader.GetDataAsync<string>("default_variation"),
+			Values = await reader.DeserializeAsync<Dictionary<string, object>>("variations") ?? [],
+			DefaultVariation = await reader.GetFieldValueOrDefaultAsync<string>("default_variation", "off")
 		};
 
 		return new FeatureFlag
 		{
-			Key = await reader.GetDataAsync<string>("key"),
-			Name = await reader.GetDataAsync<string>("name"),
-			Description = await reader.GetDataAsync<string>("description"),
+			Key = await reader.GetFieldValueAsync<string>("key"),
+			Name = await reader.GetFieldValueAsync<string>("name"),
+			Description = await reader.GetFieldValueAsync<string>("description"),
 			ActiveEvaluationModes = evaluationModeSet,
-			Lifecycle = lifecycle,
+			Retention = retention,
 			Schedule = schedule,
-			OperationalWindow = window,
+			OperationalWindow = operationalWindow,
 			UserAccessControl = userAccess,
 			TenantAccessControl = tenantAccess,
 			Variations = variations,
-			TargetingRules = await reader.Deserialize<List<ITargetingRule>>("targeting_rules"),
-			Tags = await reader.Deserialize<Dictionary<string, string>>("tags"),
+			TargetingRules = await reader.DeserializeAsync<List<ITargetingRule>>("targeting_rules") ?? [],
+			Tags = await reader.DeserializeAsync<Dictionary<string, string>>("tags") ?? [],
 			Created = created,
 			LastModified = modified
 		};
