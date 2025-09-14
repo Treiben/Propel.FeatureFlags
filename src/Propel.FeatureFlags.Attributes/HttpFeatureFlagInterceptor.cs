@@ -1,145 +1,241 @@
-﻿using Castle.Core.Internal;
-using Castle.DynamicProxy;
+﻿using Castle.DynamicProxy;
 using Microsoft.AspNetCore.Http;
 using Propel.FeatureFlags.AspNetCore.Extensions;
+using Propel.FeatureFlags.Services.ApplicationScope;
+using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace Propel.FeatureFlags.Attributes
-{
-	public sealed class HttpFeatureFlagInterceptor : IInterceptor
-	{
-		private readonly IHttpContextAccessor _httpContextAccessor;
+namespace Propel.FeatureFlags.Attributes;
 
-		public HttpFeatureFlagInterceptor(IHttpContextAccessor httpContextAccessor)
+public sealed class HttpFeatureFlagInterceptor(IHttpContextAccessor httpContextAccessor) : IInterceptor
+{
+	private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+
+	// Caching for performance
+	private static readonly ConcurrentDictionary<MethodInfo, FeatureFlaggedAttribute?> _attributeCache = new();
+	private static readonly ConcurrentDictionary<Type, IApplicationFeatureFlag?> _flagInstanceCache = new();
+
+	public void Intercept(IInvocation invocation)
+	{
+		var flagAttribute = GetFeatureFlagAttribute(invocation.Method);
+
+		if (flagAttribute == null)
 		{
-			_httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+			invocation.Proceed();
+			return;
 		}
 
-		public void Intercept(IInvocation invocation)
+		// Check if method is async
+		if (IsAsyncMethod(invocation.Method))
 		{
-			var method = invocation.GetConcreteMethod();
+			HandleAsyncInterception(invocation, flagAttribute);
+		}
+		else
+		{
+			HandleSyncInterception(invocation, flagAttribute);
+		}
+	}
 
-			method = invocation.InvocationTarget.GetType().
-			   GetMethod(method.Name);
+	private static bool IsAsyncMethod(MethodInfo method)
+	{
+		return method.ReturnType == typeof(Task) ||
+			   (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
+	}
 
-			var flagAttribute = method.GetAttribute<FeatureFlaggedAttribute>() ??
-							method.GetCustomAttribute<FeatureFlaggedAttribute>() ??
-							method.DeclaringType?.GetAttribute<FeatureFlaggedAttribute>() ??
-							method.DeclaringType?.GetCustomAttribute<FeatureFlaggedAttribute>();
+	private void HandleSyncInterception(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+	{
+		var featureFlag = GetFeatureFlagInstance(flagAttribute.FlagType);
+		if (featureFlag == null)
+		{
+			invocation.Proceed();
+			return;
+		}
 
-			if (flagAttribute == null)
+		// Use async method but block on result for sync methods
+		var isEnabled = IsEnabledAsync(featureFlag).GetAwaiter().GetResult();
+
+		if (isEnabled)
+		{
+			invocation.Proceed();
+		}
+		else
+		{
+			HandleFallback(invocation, flagAttribute);
+		}
+	}
+
+	private void HandleAsyncInterception(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+	{
+		if (invocation.Method.ReturnType.IsGenericType)
+		{
+			// Task<T>
+			var resultType = invocation.Method.ReturnType.GetGenericArguments()[0];
+			var method = typeof(HttpFeatureFlagInterceptor)
+				.GetMethod(nameof(HandleAsyncGeneric), BindingFlags.NonPublic | BindingFlags.Instance)!
+				.MakeGenericMethod(resultType);
+			invocation.ReturnValue = method.Invoke(this, [invocation, flagAttribute]);
+		}
+		else
+		{
+			// Task (void)
+			invocation.ReturnValue = HandleAsyncVoid(invocation, flagAttribute);
+		}
+	}
+
+	private async Task HandleAsyncVoid(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+	{
+		var featureFlag = GetFeatureFlagInstance(flagAttribute.FlagType);
+		if (featureFlag == null)
+		{
+			invocation.Proceed();
+			if (invocation.ReturnValue is Task task)
+				await task;
+			return;
+		}
+
+		if (await IsEnabledAsync(featureFlag))
+		{
+			invocation.Proceed();
+			if (invocation.ReturnValue is Task task)
+				await task;
+		}
+		else
+		{
+			await HandleAsyncFallback(invocation, flagAttribute);
+		}
+	}
+
+	private async Task<T> HandleAsyncGeneric<T>(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+	{
+		var featureFlag = GetFeatureFlagInstance(flagAttribute.FlagType);
+		if (featureFlag == null)
+		{
+			invocation.Proceed();
+			if (invocation.ReturnValue is Task<T> task)
+				return await task;
+			return (T)invocation.ReturnValue!;
+		}
+
+		if (await IsEnabledAsync(featureFlag))
+		{
+			invocation.Proceed();
+			if (invocation.ReturnValue is Task<T> task)
+				return await task;
+			return (T)invocation.ReturnValue!;
+		}
+		else
+		{
+			return await HandleAsyncFallbackGeneric<T>(invocation, flagAttribute);
+		}
+	}
+
+	private void HandleFallback(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+	{
+		if (!string.IsNullOrEmpty(flagAttribute.FallbackMethod))
+		{
+			var fallbackMethod = invocation.TargetType.GetMethod(flagAttribute.FallbackMethod);
+			if (fallbackMethod != null)
 			{
-				invocation.Proceed();
+				invocation.ReturnValue = fallbackMethod.Invoke(invocation.InvocationTarget, invocation.Arguments);
 				return;
 			}
-
-			// Handle async methods
-			if (invocation.Method.ReturnType == typeof(Task) || 
-			    invocation.Method.ReturnType.IsGenericType && invocation.Method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
-			{
-				InterceptAsync(invocation, flagAttribute);
-			}
-			else
-			{
-				Intercept(invocation, flagAttribute);
-			}
 		}
 
-		private void InterceptAsync(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
-		{
-			if (invocation.Method.ReturnType.IsGenericType)
-			{
-				var resultType = invocation.Method.ReturnType.GetGenericArguments()[0];
-				var method = typeof(HttpFeatureFlagInterceptor).GetMethod(nameof(InterceptAsyncGeneric), BindingFlags.NonPublic | BindingFlags.Instance)!
-					.MakeGenericMethod(resultType);
-				invocation.ReturnValue = method.Invoke(this, new object[] { invocation, flagAttribute });
-			}
-			else
-			{
-				invocation.ReturnValue = InterceptAsyncVoid(invocation, flagAttribute);
-			}
-		}
+		invocation.ReturnValue = GetDefaultValue(invocation.Method.ReturnType);
+	}
 
-		private void Intercept(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+	private async Task HandleAsyncFallback(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+	{
+		if (!string.IsNullOrEmpty(flagAttribute.FallbackMethod))
 		{
-			if (IsEnabled(flagAttribute.FlagKey))
+			var fallbackMethod = invocation.TargetType.GetMethod(flagAttribute.FallbackMethod);
+			if (fallbackMethod != null)
 			{
-				invocation.Proceed();
-			}
-			else if (!string.IsNullOrEmpty(flagAttribute.FallbackMethod))
-			{
-				// Call fallback method
-				var fallbackMethod = invocation.TargetType.GetMethod(flagAttribute.FallbackMethod);
-				invocation.ReturnValue = fallbackMethod?.Invoke(invocation.InvocationTarget, invocation.Arguments);
-			}
-			else
-			{
-				// Return default value or throw exception
-				invocation.ReturnValue = GetDefaultValue(invocation.Method.ReturnType);
-			}
-		}
-
-		private async Task InterceptAsyncVoid(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
-		{
-			if (IsEnabled(flagAttribute.FlagKey))
-			{
-				var result = invocation.Method.Invoke(invocation.InvocationTarget, invocation.Arguments);
+				var result = fallbackMethod.Invoke(invocation.InvocationTarget, invocation.Arguments);
 				if (result is Task task)
-				{
 					await task;
-				}
-			}
-			else if (!string.IsNullOrEmpty(flagAttribute.FallbackMethod))
-			{
-				var fallbackMethod = invocation.TargetType.GetMethod(flagAttribute.FallbackMethod);
-				if (fallbackMethod != null)
-				{
-					var result = fallbackMethod.Invoke(invocation.InvocationTarget, invocation.Arguments);
-					if (result is Task task)
-					{
-						await task;
-					}
-				}
+				return;
 			}
 		}
+		// For async void methods with no fallback, we just don't execute anything
+	}
 
-		private async Task<T> InterceptAsyncGeneric<T>(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+	private async Task<T> HandleAsyncFallbackGeneric<T>(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+	{
+		if (!string.IsNullOrEmpty(flagAttribute.FallbackMethod))
 		{
-			if (IsEnabled(flagAttribute.FlagKey))
+			var fallbackMethod = invocation.TargetType.GetMethod(flagAttribute.FallbackMethod);
+			if (fallbackMethod != null)
 			{
-				// Call the actual target method directly, not through the proxy
-				var result = invocation.Method.Invoke(invocation.InvocationTarget, invocation.Arguments);
+				var result = fallbackMethod.Invoke(invocation.InvocationTarget, invocation.Arguments);
 				if (result is Task<T> task)
-				{
 					return await task;
-				}
-				return (T)result!;
+				if (result is T directResult)
+					return directResult;
 			}
-			else if (!string.IsNullOrEmpty(flagAttribute.FallbackMethod))
+		}
+
+		return (T)GetDefaultValue(typeof(T))!;
+	}
+
+	private FeatureFlaggedAttribute? GetFeatureFlagAttribute(MethodInfo method)
+	{
+		return _attributeCache.GetOrAdd(method, m =>
+		{
+			// Check method first, then declaring type
+			return m.GetCustomAttribute<FeatureFlaggedAttribute>() ??
+				   m.DeclaringType?.GetCustomAttribute<FeatureFlaggedAttribute>();
+		});
+	}
+
+	private static IApplicationFeatureFlag? GetFeatureFlagInstance(Type flagType)
+	{
+		return _flagInstanceCache.GetOrAdd(flagType, type =>
+		{
+			try
 			{
-				var fallbackMethod = invocation.TargetType.GetMethod(flagAttribute.FallbackMethod);
-				if (fallbackMethod != null)
+				// Validate that the type implements IApplicationFeatureFlag
+				if (!typeof(IApplicationFeatureFlag).IsAssignableFrom(type))
+					return null;
+
+				// Look for a static Create method first
+				var createMethod = type.GetMethod("Create", BindingFlags.Public | BindingFlags.Static);
+				if (createMethod != null && typeof(IApplicationFeatureFlag).IsAssignableFrom(createMethod.ReturnType))
 				{
-					var result = fallbackMethod.Invoke(invocation.InvocationTarget, invocation.Arguments);
-					if (result is Task<T> task)
-					{
-						return await task;
-					}
+					return (IApplicationFeatureFlag?)createMethod.Invoke(null, null);
 				}
+
+				// Fall back to parameterless constructor
+				var constructor = type.GetConstructor(Type.EmptyTypes);
+				if (constructor != null)
+				{
+					return (IApplicationFeatureFlag?)Activator.CreateInstance(type);
+				}
+
+				return null;
 			}
+			catch
+			{
+				return null;
+			}
+		});
+	}
 
-			return (T)GetDefaultValue(typeof(T))!;
-		}
+	private async Task<bool> IsEnabledAsync(IApplicationFeatureFlag flag)
+	{
+		var context = _httpContextAccessor.HttpContext;
+		if (context == null)
+			return false;
 
-		private bool IsEnabled(string flagKey)
-		{
-			var context = _httpContextAccessor.HttpContext!;
-			return context.FeatureFlags()?.IsEnabledAsync(flagKey).Result ?? false;
-		}
+		var evaluator = context.FeatureFlags();
+		if (evaluator == null)
+			return false;
 
-		private static object? GetDefaultValue(Type type)
-		{
-			return type.IsValueType ? Activator.CreateInstance(type) : null;
-		}
+		return await evaluator.IsEnabledAsync(flag);
+	}
+
+	private static object? GetDefaultValue(Type type)
+	{
+		return type.IsValueType ? Activator.CreateInstance(type) : null;
 	}
 }
