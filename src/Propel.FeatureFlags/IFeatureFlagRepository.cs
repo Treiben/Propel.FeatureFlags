@@ -7,7 +7,10 @@ public record FeatureFlagFilter
 	public Dictionary<string, string>? Tags { get; set; }
 	public EvaluationMode[]? EvaluationModes { get; set; }
 	public int? ExpiringInDays { get; set; }
-}
+	public string ApplicationName { get; set; } = string.Empty;
+	public string? ApplicationVersion { get; set; }
+	public Scope Scope { get; set; }
+	}
 
 public record PagedResult<T>
 {
@@ -22,10 +25,10 @@ public record PagedResult<T>
 
 public interface IFeatureFlagRepository
 {
-	Task<FeatureFlag?> GetAsync(string key, CancellationToken cancellationToken = default);
+	Task<FeatureFlag?> GetAsync(string key, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default);
 	Task<List<FeatureFlag>> GetAllAsync(CancellationToken cancellationToken = default);
 	Task<PagedResult<FeatureFlag>> GetPagedAsync(int page, int pageSize, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default);
 	Task<FeatureFlag> CreateAsync(FeatureFlag flag, CancellationToken cancellationToken = default);
 	Task<FeatureFlag> UpdateAsync(FeatureFlag flag, CancellationToken cancellationToken = default);
-	Task<bool> DeleteAsync(string key, CancellationToken cancellationToken = default);
+	Task<bool> DeleteAsync(FeatureFlag flag, CancellationToken cancellationToken = default);
 }

@@ -1,6 +1,6 @@
-﻿namespace Propel.FeatureFlags;
+﻿namespace Propel.FeatureFlags.Helpers;
 
-public static class DateTimeHelper
+public static class DateTimeHelpers
 {
 	public static DateTime NormalizeToUtc(DateTime dateTime)
 	{

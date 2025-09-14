@@ -11,20 +11,23 @@ namespace Propel.FeatureFlags.Cache
 			_cache = cache ?? throw new ArgumentNullException(nameof(cache));
 		}
 
-		public Task<FeatureFlag?> GetAsync(string flagKey, CancellationToken cancellationToken = default)
+		public Task<FeatureFlag?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 		{
+			var flagKey = cacheKey.ComposeKey();
 			_cache.TryGetValue(flagKey, out FeatureFlag? flag);
 			return Task.FromResult(flag);
 		}
 
-		public Task SetAsync(string flagKey, FeatureFlag flag, TimeSpan? expiry = null, CancellationToken cancellationToken = default)
+		public Task SetAsync(CacheKey cacheKey, FeatureFlag flag, TimeSpan? expiry = null, CancellationToken cancellationToken = default)
 		{
+			var flagKey = cacheKey.ComposeKey();
 			_cache.Set(flagKey, flag, expiry ?? TimeSpan.FromMinutes(5));
 			return Task.CompletedTask;
 		}
 
-		public Task RemoveAsync(string flagKey, CancellationToken cancellationToken = default)
+		public Task RemoveAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 		{
+			var flagKey = cacheKey.ComposeKey();
 			_cache.Remove(flagKey);
 			return Task.CompletedTask;
 		}

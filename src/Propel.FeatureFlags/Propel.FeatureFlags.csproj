@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Cache\SystemMemoryCache.cs" />
     <Compile Remove="Core\FlagAuditRecord.cs" />
     <Compile Remove="Core\FlagTenantAccessControl.cs" />
     <Compile Remove="Core\FlagUserAccessControl.cs" />
