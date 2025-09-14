@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Evaluation.ApplicationScope;
 
 namespace Propel.FeatureFlags.AspNetCore.Extensions;
 
@@ -10,22 +10,12 @@ public static class HttpContextExtensions
 		return (HttpContextFeatureFlagEvaluator)context.Items["FeatureFlagEvaluator"]!;
 	}
 
-	public static async Task<bool> IsFeatureFlagEnabledAsync(this HttpContext context, string flagKey)
-	{
-		return await context.FeatureFlags().IsEnabledAsync(flagKey);
-	}
-
-	public static async Task<bool> IsFeatureFlagEnabledAsync(this HttpContext context, ITypeSafeFeatureFlag flag)
+	public static async Task<bool> IsFeatureFlagEnabledAsync(this HttpContext context, IApplicationFeatureFlag flag)
 	{
 		return await context.FeatureFlags().IsEnabledAsync(flag);
 	}
 
-	public static async Task<T> GetFeatureFlagVariationAsync<T>(this HttpContext context, string flagKey, T defaultValue)
-	{
-		return await context.FeatureFlags().GetVariationAsync(flagKey, defaultValue);
-	}
-
-	public static async Task<T> GetFeatureFlagVariationAsync<T>(this HttpContext context, ITypeSafeFeatureFlag flag, T defaultValue)
+	public static async Task<T> GetFeatureFlagVariationAsync<T>(this HttpContext context, IApplicationFeatureFlag flag, T defaultValue)
 	{
 		return await context.FeatureFlags().GetVariationAsync(flag, defaultValue);
 	}

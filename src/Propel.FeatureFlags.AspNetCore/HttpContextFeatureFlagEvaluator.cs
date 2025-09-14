@@ -1,37 +1,30 @@
-﻿using Propel.FeatureFlags.Core;
+﻿using Propel.FeatureFlags.Evaluation.ApplicationScope;
 
 namespace Propel.FeatureFlags.AspNetCore;
 
 public class HttpContextFeatureFlagEvaluator(IFeatureFlagClient client, string? tenantId, string? userId, Dictionary<string, object> attributes)
 {
-	public async Task<bool> IsEnabledAsync(string flagKey, bool enableOnCreate = false)
+	public async Task<bool> IsEnabledAsync(IApplicationFeatureFlag flag, bool enableOnCreate = false)
 	{
 		return await client.IsEnabledAsync(
-			flagKey: flagKey, 
+			flag: flag, 
 			tenantId: tenantId, 
 			userId: userId,
-			attributes: attributes, 
-			enableOnCreate: enableOnCreate);
+			attributes: attributes);
 	}
 
-	public async Task<bool> IsEnabledAsync(ITypeSafeFeatureFlag flag)
+	public async Task<bool> IsEnabledAsync(IApplicationFeatureFlag flag)
 	{
 		return await client.IsEnabledAsync(flag: flag, tenantId: tenantId, userId: userId, attributes: attributes);
 	}
 
-	public async Task<T> GetVariationAsync<T>(string flagKey, T defaultValue, bool enableOnCreate = false)
+	public async Task<T> GetVariationAsync<T>(IApplicationFeatureFlag flag, T defaultValue)
 	{
 		return await client.GetVariationAsync(
-			flagKey: flagKey,
+			flag: flag,
 			defaultValue: defaultValue, 
 			tenantId: tenantId, 
 			userId: userId,
-			attributes: attributes,
-			enableOnCreate: enableOnCreate); 
-	}
-
-	public async Task<T> GetVariationAsync<T>(ITypeSafeFeatureFlag flag, T defaultValue)
-	{
-		return await client.GetVariationAsync(flag: flag, defaultValue: defaultValue, tenantId: tenantId, userId: userId, attributes: attributes);
+			attributes: attributes); 
 	}
 }

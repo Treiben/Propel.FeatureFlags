@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Propel.FeatureFlags.Evaluation.ApplicationScope;
+using Propel.FeatureFlags.Evaluation.GlobalScope;
 
 namespace Propel.FeatureFlags.AspNetCore.Middleware;
 
 public class GlobalFlag
 {
-	public string FlagKey { get; set; } = string.Empty;
+	public string Key { get; set; } = string.Empty;
 	public int StatusCode { get; set; } = 404;
 	public object Response { get; set; } = new { error = "Feature not available" };
 }
@@ -15,8 +17,8 @@ public class FeatureFlagMiddlewareOptions
 	public bool EnableMaintenanceMode { get; set; } = true;
 	public string MaintenanceFlagKey { get; set; } = "maintenance-mode";
 	public object? MaintenanceResponse { get; set; }
-	public List<GlobalFlag> GlobalFlags { get; set; } = new();
-	public List<Func<HttpContext, Dictionary<string, object>>> AttributeExtractors { get; set; } = new();
+	public List<GlobalFlag> GlobalFlags { get; set; } = [];
+	public List<Func<HttpContext, Dictionary<string, object>>> AttributeExtractors { get; set; } = [];
 	public Func<HttpContext, string?>? TenantIdExtractor { get; set; }
 	public Func<HttpContext, string?>? UserIdExtractor { get; set; }
 }
@@ -24,17 +26,20 @@ public class FeatureFlagMiddlewareOptions
 public class FeatureFlagMiddleware
 {
 	private readonly RequestDelegate _next;
+	private readonly IGlobalFlagClient _globalFlags;
 	private readonly IFeatureFlagClient _featureFlags;
 	private readonly ILogger<FeatureFlagMiddleware> _logger;
 	private readonly FeatureFlagMiddlewareOptions _options;
 
 	public FeatureFlagMiddleware(
 		RequestDelegate next,
+		IGlobalFlagClient globalFlags,
 		IFeatureFlagClient featureFlags,
 		ILogger<FeatureFlagMiddleware> logger,
 		FeatureFlagMiddlewareOptions options)
 	{
 		_next = next;
+		_globalFlags = globalFlags;
 		_featureFlags = featureFlags;
 		_logger = logger;
 		_options = options;
@@ -74,19 +79,19 @@ public class FeatureFlagMiddleware
 		}
 
 		// Check global feature gates
-		foreach (var globalFlag in _options.GlobalFlags)
+		foreach (var flag in _options.GlobalFlags)
 		{
-			_logger.LogDebug("Checking global flag: {FlagKey}", globalFlag.FlagKey);
-			bool isEnabled = await _featureFlags.IsEnabledAsync(flagKey: globalFlag.FlagKey, tenantId: tenantId, userId: userId, attributes: attributes);
-			_logger.LogDebug("Global flag {FlagKey} status: {IsEnabled}", globalFlag.FlagKey, isEnabled);
+			_logger.LogDebug("Checking global flag: {FlagKey}", flag.Key);
+			bool isEnabled = await _globalFlags.IsEnabledAsync(flagKey: flag.Key, tenantId: tenantId, userId: userId, attributes: attributes);
+			_logger.LogDebug("Global flag {FlagKey} status: {IsEnabled}", flag.Key, isEnabled);
 
 			if (!isEnabled)
 			{
 				_logger.LogInformation("Global flag {FlagKey} is disabled, returning {StatusCode} response",
-					globalFlag.FlagKey, globalFlag.StatusCode);
-				context.Response.StatusCode = globalFlag.StatusCode;
+					flag.Key, flag.StatusCode);
+				context.Response.StatusCode = flag.StatusCode;
 				context.Response.ContentType = "application/json";
-				await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(globalFlag.Response));
+				await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(flag.Response));
 				return;
 			}
 		}
@@ -192,7 +197,7 @@ public class FeatureFlagMiddleware
 		}
 
 		_logger.LogDebug("Checking maintenance mode flag: {MaintenanceFlagKey}", _options.MaintenanceFlagKey);
-		bool isInMaintenance = await _featureFlags.IsEnabledAsync(flagKey: _options.MaintenanceFlagKey, tenantId: tenantId, userId: userId, attributes: attributes);
+		bool isInMaintenance = await _globalFlags.IsEnabledAsync(flagKey: _options.MaintenanceFlagKey, tenantId: tenantId, userId: userId, attributes: attributes);
 		_logger.LogDebug("Maintenance mode status: {IsInMaintenance}", isInMaintenance);
 
 		if (!isInMaintenance)

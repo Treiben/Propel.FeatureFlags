@@ -29,7 +29,7 @@ public class FeatureFlagMiddlewareOptionsBuilder
 	{
 		_options.GlobalFlags.Add(new GlobalFlag
 		{
-			FlagKey = flagKey,
+			Key = flagKey,
 			StatusCode = statusCode,
 			Response = response
 		});
