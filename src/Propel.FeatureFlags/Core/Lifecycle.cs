@@ -1,16 +1,37 @@
 ﻿namespace Propel.FeatureFlags.Core;
 
-public class Lifecycle(DateTime? expirationDate, bool isPermanent)
+public class Lifecycle
 {
-	public DateTime? ExpirationDate { get; } = NormalizeToUtc(expirationDate, isPermanent);
+	public DateTime? ExpirationDate { get; }
+	public bool IsPermanent { get; }
+	public Scope Scope { get; set; } = Scope.Application;
+	public string? ApplicationName { get; set; } = string.Empty;
+	public string? ApplicationVersion { get; set; } = string.Empty;
 
-	public bool IsPermanent { get; } = isPermanent;
+	public static Lifecycle DefaultLifecycle => new(isPermanent: false,expirationDate: DateTime.UtcNow.AddDays(30),  applicationName: "Propel.FeatureFlags");
 
-	public static Lifecycle DefaultLifecycle => new(DateTime.UtcNow.AddDays(30), false);
-
-	public static Lifecycle Permanent => new(null, true);
+	public static Lifecycle Permanent => new(isPermanent: true);
 
 	public bool CanBeDeleted => !IsPermanent && (ExpirationDate == null || ExpirationDate <= DateTime.UtcNow);
+
+	public Lifecycle(bool isPermanent, Scope scope = Scope.Application, DateTime? expirationDate = null, string? applicationName = null, string? applicationVersion = null)
+	{
+		if (scope == Scope.Global && isPermanent == false)
+		{
+			throw new ArgumentException("Global lifecycle must be permanent.");
+		}
+
+		if (scope == Scope.Application && string.IsNullOrWhiteSpace(applicationName))
+		{
+			throw new ArgumentException("Application scope requires a valid application name.");
+		}
+
+		ExpirationDate = NormalizeToUtc(expirationDate, isPermanent);
+		IsPermanent = isPermanent;
+		Scope = scope;
+		ApplicationName = applicationName;
+		ApplicationVersion = applicationVersion;
+	}
 
 	private static DateTime NormalizeToUtc(DateTime? dateTime, bool isPermanent)
 	{
@@ -30,4 +51,11 @@ public class Lifecycle(DateTime? expirationDate, bool isPermanent)
 		}
 		return dateTime.Value.ToUniversalTime();
 	}
+}
+
+public enum Scope
+{
+	Global,
+	Application,
+	Feature
 }

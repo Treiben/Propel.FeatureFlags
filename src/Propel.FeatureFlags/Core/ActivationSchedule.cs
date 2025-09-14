@@ -1,4 +1,6 @@
-﻿namespace Propel.FeatureFlags.Core;
+﻿using Propel.FeatureFlags.Helpers;
+
+namespace Propel.FeatureFlags.Core;
 
 public class ActivationSchedule
 {
@@ -7,8 +9,8 @@ public class ActivationSchedule
 
 	public ActivationSchedule(DateTime enableOn, DateTime? disableOn = null)
 	{
-		var enableOnUtc = DateTimeHelper.NormalizeToUtc(enableOn);
-		var disableOnUtc = DateTimeHelper.NormalizeToUtc(disableOn.HasValue == false || disableOn == DateTime.MinValue 
+		var enableOnUtc = DateTimeHelpers.NormalizeToUtc(enableOn);
+		var disableOnUtc = DateTimeHelpers.NormalizeToUtc(disableOn.HasValue == false || disableOn == DateTime.MinValue 
 											? DateTime.MaxValue : disableOn.Value);
 
 		if (disableOnUtc <= enableOnUtc)
@@ -31,7 +33,7 @@ public class ActivationSchedule
 			throw new ArgumentException("Scheduled enable date must be a valid date.");
 		}
 
-		if (DateTimeHelper.NormalizeToUtc(enableOn) <= DateTime.UtcNow)
+		if (DateTimeHelpers.NormalizeToUtc(enableOn) <= DateTime.UtcNow)
 		{
 			throw new ArgumentException("Scheduled enable date must be in the future.");
 		}

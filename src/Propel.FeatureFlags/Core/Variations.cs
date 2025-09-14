@@ -1,4 +1,6 @@
-﻿namespace Propel.FeatureFlags.Core;
+﻿using Propel.FeatureFlags.Helpers;
+
+namespace Propel.FeatureFlags.Core;
 
 public class Variations
 {
