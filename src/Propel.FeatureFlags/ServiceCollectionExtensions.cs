@@ -32,7 +32,7 @@ public static class ServiceCollectionExtensions
 					new UserRolloutEvaluator(),
 				])));
 
-		if (options.CacheConfiguration?.UseCache == true && string.IsNullOrEmpty(options.RedisConnectionString))
+		if (options.CacheOptions?.UseCache == true && string.IsNullOrEmpty(options.RedisConnectionString))
 			services.TryAddSingleton<IFeatureFlagCache, MemoryFeatureFlagCache>();
 
 		return services;

@@ -3,10 +3,10 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Infrastructure.Cache;
 
-public sealed class MemoryFeatureFlagCache(MemoryCache cache, CacheConfiguration cacheConfiguration) : IFeatureFlagCache
+public sealed class MemoryFeatureFlagCache(MemoryCache cache, CacheOptions cacheConfiguration) : IFeatureFlagCache
 {
 	private readonly MemoryCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-	private readonly CacheConfiguration _cacheConfiguration = cacheConfiguration ?? throw new ArgumentNullException(nameof(cacheConfiguration));
+	private readonly CacheOptions _cacheConfiguration = cacheConfiguration ?? throw new ArgumentNullException(nameof(cacheConfiguration));
 
 	public Task<FeatureFlag?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
@@ -18,7 +18,7 @@ public sealed class MemoryFeatureFlagCache(MemoryCache cache, CacheConfiguration
 	public Task SetAsync(CacheKey cacheKey, FeatureFlag flag, CancellationToken cancellationToken = default)
 	{
 		var flagKey = cacheKey.ComposeKey();
-		_cache.Set(flagKey, flag, _cacheConfiguration.Expiry);
+		_cache.Set(flagKey, flag, _cacheConfiguration.ExpiryInMinutes);
 		return Task.CompletedTask;
 	}
 
