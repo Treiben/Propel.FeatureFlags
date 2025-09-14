@@ -2,6 +2,7 @@
 using Npgsql;
 using NpgsqlTypes;
 using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Helpers;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.PostgresSql;
@@ -18,31 +19,26 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		_logger.LogDebug("PostgreSQL Feature Flag Repository initialized");
 	}
 
-	public async Task<FeatureFlag?> GetAsync(string key, CancellationToken cancellationToken = default)
+	public async Task<FeatureFlag?> GetAsync(string key, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default)
 	{
 		_logger.LogDebug("Getting feature flag with key: {Key}", key);
-		const string sql = @"
-                SELECT key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
-                       expiration_date, scheduled_enable_date, scheduled_disable_date,
-                       window_start_time, window_end_time, time_zone, window_days,
-                       user_percentage_enabled, targeting_rules, enabled_users, disabled_users,
-					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
-                       variations, default_variation, tags, is_permanent
-                FROM feature_flags 
-                WHERE key = @key";
+
+		var (whereClause, parameters) = BuildWhereClause(key, filter.Scope, filter.ApplicationName, filter.ApplicationVersion);
+
+		string sql = $@"SELECT * FROM feature_flags {whereClause}";
 
 		try
 		{
 			using var connection = new NpgsqlConnection(_connectionString);
 			using var command = new NpgsqlCommand(sql, connection);
-			command.Parameters.AddWithValue("key", key);
+			command.AddFilterParameters(parameters);
 
 			await connection.OpenAsync(cancellationToken);
 			using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
 			if (!await reader.ReadAsync(cancellationToken))
 			{
-				_logger.LogDebug("Feature flag with key {Key} not found", key);
+				_logger.LogDebug("Feature flag with key {Key} not found within {Application} scope", key, filter?.ApplicationName);
 				return null;
 			}
 
@@ -62,15 +58,8 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 	public async Task<List<FeatureFlag>> GetAllAsync(CancellationToken cancellationToken = default)
 	{
 		_logger.LogDebug("Retrieving all feature flags");
-		const string sql = @"
-                SELECT key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
-                       expiration_date, scheduled_enable_date, scheduled_disable_date,
-                       window_start_time, window_end_time, time_zone, window_days,
-                       user_percentage_enabled, targeting_rules, enabled_users, disabled_users,
-					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
-                       variations, default_variation, tags, is_permanent
-                FROM feature_flags 
-                ORDER BY name";
+
+		const string sql = @"SELECT * FROM feature_flags ORDER BY name";
 
 		try
 		{
@@ -108,20 +97,10 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		var (whereClause, parameters) = BuildFilterConditions(filter);
 
 		// Count query
-		var countSql = $"SELECT COUNT(*) FROM feature_flags{whereClause}";
+		var countSql = $"SELECT COUNT(*) FROM feature_flags {whereClause}";
 
 		// Data query with pagination
-		var dataSql = $@"
-                SELECT key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
-                       expiration_date, scheduled_enable_date, scheduled_disable_date,
-                       window_start_time, window_end_time, time_zone, window_days,
-                       user_percentage_enabled, targeting_rules, enabled_users, disabled_users,
-					   enabled_tenants, disabled_tenants, tenant_percentage_enabled,
-                       variations, default_variation, tags, is_permanent
-                FROM feature_flags
-                {whereClause}
-                ORDER BY name
-                LIMIT @pageSize OFFSET @offset";
+		var dataSql = $@"SELECT * FROM feature_flags {whereClause} ORDER BY name LIMIT @pageSize OFFSET @offset";
 
 		try
 		{
@@ -169,7 +148,16 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 	public async Task<FeatureFlag> CreateAsync(FeatureFlag flag, CancellationToken cancellationToken = default)
 	{
-		_logger.LogDebug("Creating feature flag with key: {Key}", flag.Key);
+		_logger.LogDebug("Creating feature flag with key: {Key} for application: {Application}", flag.Key, flag.Lifecycle.ApplicationName);
+
+		// Check for duplicate flag name within the same application
+		await ValidateUniqueFlagNamePerApplicationAsync(
+				key: flag.Key,
+				applicationName: flag.Lifecycle.ApplicationName,
+				applicationVersion: flag.Lifecycle.ApplicationVersion,
+				scope: flag.Lifecycle.Scope, 
+				cancellationToken);
+
 		const string sql = @"
                 INSERT INTO feature_flags (
                     key, name, description, evaluation_modes, created_at, updated_at, created_by, updated_by,
@@ -177,14 +165,16 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
                     window_start_time, window_end_time, time_zone, window_days,
                     user_percentage_enabled, targeting_rules, enabled_users, disabled_users,
 					enabled_tenants, disabled_tenants, tenant_percentage_enabled,
-                    variations, default_variation, tags, is_permanent
+                    variations, default_variation, tags, is_permanent,
+                    application_name, application_version, scope
                 ) VALUES (
                     @key, @name, @description, @evaluation_modes, @created_at, @updated_at, @created_by, @updated_by,
                     @expiration_date, @scheduled_enable_date, @scheduled_disable_date,
                     @window_start_time, @window_end_time, @time_zone, @window_days,
                     @user_percentage_enabled, @targeting_rules, @enabled_users, @disabled_users,
 					@enabled_tenants, @disabled_tenants, @tenant_percentage_enabled,
-                    @variations, @default_variation, @tags, @is_permanent
+                    @variations, @default_variation, @tags, @is_permanent,
+                    @application_name, @application_version, @scope
                 )";
 
 		try
@@ -196,12 +186,12 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			await connection.OpenAsync(cancellationToken);
 			await command.ExecuteNonQueryAsync(cancellationToken);
 
-			_logger.LogDebug("Successfully created feature flag: {Key}", flag.Key);
+			_logger.LogDebug("Successfully created feature flag: {Key} for application: {ApplicationName}", flag.Key, flag.Lifecycle.ApplicationName);
 			return flag;
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
 		{
-			_logger.LogError(ex, "Error creating feature flag with key {Key}", flag.Key);
+			_logger.LogError(ex, "Error creating feature flag with key {Key} for application {ApplicationName}", flag.Key, flag.Lifecycle.ApplicationName);
 			throw;
 		}
 	}
@@ -210,21 +200,26 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 	{
 		_logger.LogDebug("Updating feature flag with key: {Key}", flag.Key);
 
-		const string sql = @"
+		var (whereClause, parameters) = BuildWhereClause(
+									flag.Key,
+									flag.Lifecycle.Scope,
+									flag.Lifecycle.ApplicationName,
+									flag.Lifecycle.ApplicationVersion);
+		 string sql = $@"
                 UPDATE feature_flags SET 
                     name = @name, description = @description, evaluation_modes = @evaluation_modes, updated_at = @updated_at, updated_by = @updated_by,
                     expiration_date = @expiration_date, scheduled_enable_date = @scheduled_enable_date, scheduled_disable_date = @scheduled_disable_date,
                     window_start_time = @window_start_time, window_end_time = @window_end_time, time_zone = @time_zone, window_days = @window_days,
                     user_percentage_enabled = @user_percentage_enabled, targeting_rules = @targeting_rules, enabled_users = @enabled_users, disabled_users = @disabled_users,
 					enabled_tenants = @enabled_tenants, disabled_tenants = @disabled_tenants, tenant_percentage_enabled = @tenant_percentage_enabled,
-                    variations = @variations, default_variation = @default_variation, tags = @tags, is_permanent = @is_permanent
-                WHERE key = @key";
+                    variations = @variations, default_variation = @default_variation, tags = @tags, is_permanent = @is_permanent {whereClause}";
 
 		try
 		{
 			using var connection = new NpgsqlConnection(_connectionString);
 			using var command = new NpgsqlCommand(sql, connection);
 			command.AddParameters(flag);
+			command.AddFilterParameters(parameters);
 
 			await connection.OpenAsync(cancellationToken);
 			var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
@@ -244,33 +239,89 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		}
 	}
 
-	public async Task<bool> DeleteAsync(string key, CancellationToken cancellationToken = default)
+	public async Task<bool> DeleteAsync(FeatureFlag flag, CancellationToken cancellationToken = default)
 	{
-		_logger.LogDebug("Deleting feature flag with key: {Key}", key);
-		const string sql = "DELETE FROM feature_flags WHERE key = @key";
+		_logger.LogDebug("Deleting feature flag with key: {Key}", flag.Key);
+
+		var (whereClause, parameters) = BuildWhereClause(
+											flag.Key, 
+											flag.Lifecycle.Scope, 
+											flag.Lifecycle.ApplicationName,
+											flag.Lifecycle.ApplicationVersion);
+		string sql = $@"DELETE FROM feature_flags {whereClause}";
 
 		try
 		{
 			using var connection = new NpgsqlConnection(_connectionString);
 			using var command = new NpgsqlCommand(sql, connection);
-			command.Parameters.AddWithValue("key", key);
+			command.AddFilterParameters(parameters);
 
 			await connection.OpenAsync(cancellationToken);
 			var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
 			var deleted = rowsAffected > 0;
 
 			if (deleted)
-				_logger.LogDebug("Successfully deleted feature flag: {Key}", key);
+				_logger.LogDebug("Successfully deleted feature flag: {Key}", flag.Key);
 			else
-				_logger.LogDebug("Feature flag with key {Key} not found for deletion", key);
+				_logger.LogDebug("Feature flag with key {Key} not found for deletion", flag.Key);
 
 			return deleted;
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
 		{
-			_logger.LogError(ex, "Error deleting feature flag with key {Key}", key);
+			_logger.LogError(ex, "Error deleting feature flag with key {Key}", flag.Key);
 			throw;
 		}
+	}
+
+	private async Task ValidateUniqueFlagNamePerApplicationAsync(
+							string key, 
+							string? applicationName, 
+							string? applicationVersion, 
+							Scope scope, 
+							CancellationToken cancellationToken)
+	{
+		var (whereClause, parameters) = BuildWhereClause(key, scope, applicationName, applicationVersion);
+		string checkSql = @"SELECT COUNT(*) FROM feature_flags {whereClause}";
+
+		using var connection = new NpgsqlConnection(_connectionString);
+		using var command = new NpgsqlCommand(checkSql, connection);
+		command.AddFilterParameters(parameters);
+
+		await connection.OpenAsync(cancellationToken);
+		var count = Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken));
+
+		if (count > 0)
+		{
+			var message = "Feature flag with key {Key} already exists for application {ApplicationName}. Each application must have unique flag names.";
+			_logger.LogWarning(message, key, applicationName);
+			throw new InvalidOperationException(message);
+		}
+	}
+
+	private static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(string key, Scope scope, string? applicationName, string? applicationVersion)
+	{
+		var parameters = new Dictionary<string, object>
+		{
+			["key"] = key,
+			["scope"] = (int)scope
+		};
+
+		var whereClause = "WHERE key = @key AND (scope = 0 AND scope = @scope)";
+
+		// If application scope, filter by application name and version
+		if (scope == Scope.Application)
+		{
+			if (string.IsNullOrEmpty(applicationName))
+			{
+				throw new ArgumentException("Application name must be provided for application-scoped flags.", nameof(applicationName));
+			}
+			parameters["application_name"] = applicationName;
+			parameters["application_version"] = (object?)applicationVersion ?? DBNull.Value;
+			whereClause = "WHERE key = @key AND ((scope = 0 AND scope = @scope) OR (scope = 1 AND application_name = @application_name AND application_version = @application_version))";
+		}
+
+		return (whereClause, parameters);
 	}
 
 	private static (string whereClause, Dictionary<string, object> parameters) BuildFilterConditions(FeatureFlagFilter? filter)
@@ -339,6 +390,9 @@ public static class NpgsqlCommandExtensions
 		command.Parameters.AddWithValue("updated_by", (object?)flag.LastModified?.Actor ?? DBNull.Value);
 		command.Parameters.AddWithValue("expiration_date", (object?)flag.Lifecycle.ExpirationDate ?? DBNull.Value);
 		command.Parameters.AddWithValue("is_permanent", flag.Lifecycle.IsPermanent);
+		command.Parameters.AddWithValue("application_name", (object?) flag.Lifecycle.ApplicationName ?? DBNull.Value);
+		command.Parameters.AddWithValue("application_version", (object?) flag.Lifecycle.ApplicationVersion ?? DBNull.Value);
+		command.Parameters.AddWithValue("scope", (int)flag.Lifecycle.Scope);
 
 		if (flag.Schedule.EnableOn == DateTime.MinValue)
 			command.Parameters.AddWithValue("scheduled_enable_date", DBNull.Value);
@@ -443,8 +497,12 @@ public static class NpgsqlDataReaderExtensions
 
 		var lifecycle = new Lifecycle(
 				expirationDate: (await reader.GetDataAsync<DateTimeOffset?>("expiration_date"))?.UtcDateTime,
-				isPermanent: await reader.GetDataAsync<bool>("is_permanent")
+				isPermanent: await reader.GetDataAsync<bool>("is_permanent"),
+				scope: await reader.GetDataAsync<Scope>("scope"),
+				applicationName: await reader.GetDataAsync<string>("application_name"),
+				applicationVersion: await reader.GetDataAsync<string?>("application_version")
 			);
+
 		var created = new Audit(
 				timestamp: (await reader.GetDataAsync<DateTimeOffset>("created_at")).UtcDateTime,
 				actor: await reader.GetDataAsync<string>("created_by")

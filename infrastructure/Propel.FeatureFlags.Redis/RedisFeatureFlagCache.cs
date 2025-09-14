@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Propel.FeatureFlags.Cache;
 using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Helpers;
 using StackExchange.Redis;
 using System.Text.Json;
 
@@ -9,10 +10,10 @@ namespace Propel.FeatureFlags.Redis;
 public class RedisFeatureFlagCache(IConnectionMultiplexer redis, ILogger<RedisFeatureFlagCache> logger) : IFeatureFlagCache
 {
 	private readonly IDatabase _database = redis.GetDatabase();
-	private const string KEY_PREFIX = "ff:";
 
-	public async Task<FeatureFlag?> GetAsync(string key, CancellationToken cancellationToken = default)
+	public async Task<FeatureFlag?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
+		var key = cacheKey.ComposeKey();
 		logger.LogDebug("Getting feature flag {Key} from cache", key);
 		if (cancellationToken.IsCancellationRequested)
 		{
@@ -21,7 +22,7 @@ public class RedisFeatureFlagCache(IConnectionMultiplexer redis, ILogger<RedisFe
 
 		try
 		{
-			var value = await _database.StringGetAsync($"{KEY_PREFIX}{key}");
+			var value = await _database.StringGetAsync(key);
 			if (!value.HasValue)
 			{
 				logger.LogDebug("Feature flag {Key} not found in cache", key);
@@ -39,8 +40,9 @@ public class RedisFeatureFlagCache(IConnectionMultiplexer redis, ILogger<RedisFe
 		}
 	}
 
-	public async Task SetAsync(string key, FeatureFlag flag, TimeSpan? expiration = null, CancellationToken cancellationToken = default)
+	public async Task SetAsync(CacheKey cacheKey, FeatureFlag flag, TimeSpan? expiration = null, CancellationToken cancellationToken = default)
 	{
+		var key = cacheKey.ComposeKey();
 		logger.LogDebug("Setting feature flag {Key} in cache with expiration {Expiration}", key, expiration);
 		if (cancellationToken.IsCancellationRequested)
 		{
@@ -51,7 +53,7 @@ public class RedisFeatureFlagCache(IConnectionMultiplexer redis, ILogger<RedisFe
 		{
 			var value = JsonSerializer.Serialize(flag, JsonDefaults.JsonOptions);
 			logger.LogDebug("Serialized feature flag {Key} to JSON", key);
-			if (await _database.StringSetAsync($"{KEY_PREFIX}{key}", value, expiration))
+			if (await _database.StringSetAsync(key, value, expiration))
 			{
 				logger.LogDebug("Feature flag {Key} set in cache successfully", key);
 			}
@@ -66,8 +68,9 @@ public class RedisFeatureFlagCache(IConnectionMultiplexer redis, ILogger<RedisFe
 		}
 	}
 
-	public async Task RemoveAsync(string key, CancellationToken cancellationToken = default)
+	public async Task RemoveAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
+		var key = cacheKey.ComposeKey();
 		logger.LogDebug("Removing feature flag {Key} from cache", key);
 		if (cancellationToken.IsCancellationRequested)
 		{
@@ -76,7 +79,7 @@ public class RedisFeatureFlagCache(IConnectionMultiplexer redis, ILogger<RedisFe
 
 		try
 		{
-			if (await _database.KeyDeleteAsync($"{KEY_PREFIX}{key}"))
+			if (await _database.KeyDeleteAsync(key))
 				logger.LogDebug("Feature flag {Key} removed from cache successfully", key);
 			else
 				logger.LogWarning("Feature flag {Key} not found in cache", key);
@@ -99,7 +102,7 @@ public class RedisFeatureFlagCache(IConnectionMultiplexer redis, ILogger<RedisFe
 		{
 			var server = _database.Multiplexer.GetServer(_database.Multiplexer.GetEndPoints().First());
 			logger.LogDebug("Connected to Redis server {Server}", server.EndPoint);
-			await foreach (var key in server.KeysAsync(pattern: $"{KEY_PREFIX}*"))
+			await foreach (var key in server.KeysAsync(pattern: CacheKey.Pattern))
 			{
 				if (await _database.KeyDeleteAsync(key))
 					logger.LogDebug("Removed feature flag {Key} from cache", key);
