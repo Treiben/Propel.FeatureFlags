@@ -1,15 +1,15 @@
-﻿using Castle.Core.Internal;
+using Castle.Core.Internal;
 using Castle.DynamicProxy;
 using Propel.FeatureFlags.Evaluation.ApplicationScope;
 using System.Reflection;
 
 namespace Propel.FeatureFlags.Attributes
 {
-	public class FeatureFlagInterceptor : IInterceptor
+	public class FeatureFlagV2Interceptor : IInterceptor
 	{
 		private readonly IFeatureFlagClient _featureFlags;
 
-		public FeatureFlagInterceptor(IFeatureFlagClient featureFlags)
+		public FeatureFlagV2Interceptor(IFeatureFlagClient featureFlags)
 		{
 			_featureFlags = featureFlags;
 		}
@@ -21,10 +21,10 @@ namespace Propel.FeatureFlags.Attributes
 			method = invocation.InvocationTarget.GetType().
 			   GetMethod(method.Name);
 
-			var flagAttribute = method.GetAttribute<FeatureFlaggedAttribute>() ??
-							method.GetCustomAttribute<FeatureFlaggedAttribute>() ??
-							method.DeclaringType?.GetAttribute<FeatureFlaggedAttribute>() ??
-							method.DeclaringType?.GetCustomAttribute<FeatureFlaggedAttribute>();
+			var flagAttribute = method.GetAttribute<FeatureFlaggedV2Attribute>() ??
+							method.GetCustomAttribute<FeatureFlaggedV2Attribute>() ??
+							method.DeclaringType?.GetAttribute<FeatureFlaggedV2Attribute>() ??
+							method.DeclaringType?.GetCustomAttribute<FeatureFlaggedV2Attribute>();
 
 			if (flagAttribute == null)
 			{
@@ -44,12 +44,12 @@ namespace Propel.FeatureFlags.Attributes
 			}
 		}
 
-		private void InterceptAsync(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+		private void InterceptAsync(IInvocation invocation, FeatureFlaggedV2Attribute flagAttribute)
 		{
 			if (invocation.Method.ReturnType.IsGenericType)
 			{
 				var resultType = invocation.Method.ReturnType.GetGenericArguments()[0];
-				var method = typeof(FeatureFlagInterceptor).GetMethod(nameof(InterceptAsyncGeneric), BindingFlags.NonPublic | BindingFlags.Instance)!
+				var method = typeof(FeatureFlagV2Interceptor).GetMethod(nameof(InterceptAsyncGeneric), BindingFlags.NonPublic | BindingFlags.Instance)!
 					.MakeGenericMethod(resultType);
 				invocation.ReturnValue = method.Invoke(this, new object[] { invocation, flagAttribute });
 			}
@@ -59,9 +59,16 @@ namespace Propel.FeatureFlags.Attributes
 			}
 		}
 
-		private void Intercept(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+		private void Intercept(IInvocation invocation, FeatureFlaggedV2Attribute flagAttribute)
 		{
-			var isEnabled = _featureFlags.IsEnabledAsync(flagKey: flagAttribute.FlagKey).Result;
+			var featureFlag = GetFeatureFlagInstance(flagAttribute.FlagType);
+			if (featureFlag == null)
+			{
+				invocation.Proceed();
+				return;
+			}
+
+			var isEnabled = _featureFlags.IsEnabledAsync(flag: featureFlag).Result;
 
 			if (isEnabled)
 			{
@@ -80,9 +87,20 @@ namespace Propel.FeatureFlags.Attributes
 			}
 		}
 
-		private async Task InterceptAsyncVoid(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+		private async Task InterceptAsyncVoid(IInvocation invocation, FeatureFlaggedV2Attribute flagAttribute)
 		{
-			var isEnabled = await _featureFlags.IsEnabledAsync(flagKey: flagAttribute.FlagKey);
+			var featureFlag = GetFeatureFlagInstance(flagAttribute.FlagType);
+			if (featureFlag == null)
+			{
+				var result = invocation.Method.Invoke(invocation.InvocationTarget, invocation.Arguments);
+				if (result is Task task)
+				{
+					await task;
+				}
+				return;
+			}
+
+			var isEnabled = await _featureFlags.IsEnabledAsync(flag: featureFlag);
 
 			if (isEnabled)
 			{
@@ -106,9 +124,20 @@ namespace Propel.FeatureFlags.Attributes
 			}
 		}
 
-		private async Task<T> InterceptAsyncGeneric<T>(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
+		private async Task<T> InterceptAsyncGeneric<T>(IInvocation invocation, FeatureFlaggedV2Attribute flagAttribute)
 		{
-			var isEnabled = await _featureFlags.IsEnabledAsync(flagKey: flagAttribute.FlagKey);
+			var featureFlag = GetFeatureFlagInstance(flagAttribute.FlagType);
+			if (featureFlag == null)
+			{
+				var result = invocation.Method.Invoke(invocation.InvocationTarget, invocation.Arguments);
+				if (result is Task<T> task)
+				{
+					return await task;
+				}
+				return (T)result!;
+			}
+
+			var isEnabled = await _featureFlags.IsEnabledAsync(flag: featureFlag);
 
 			if (isEnabled)
 			{
@@ -134,6 +163,40 @@ namespace Propel.FeatureFlags.Attributes
 			}
 
 			return (T)GetDefaultValue(typeof(T))!;
+		}
+
+		private static IApplicationFeatureFlag? GetFeatureFlagInstance(Type flagType)
+		{
+			try
+			{
+				// Validate that the type implements IApplicationFeatureFlag
+				if (!typeof(IApplicationFeatureFlag).IsAssignableFrom(flagType))
+				{
+					return null;
+				}
+
+				// Look for a static Create method first
+				var createMethod = flagType.GetMethod("Create", BindingFlags.Public | BindingFlags.Static);
+				if (createMethod != null && typeof(IApplicationFeatureFlag).IsAssignableFrom(createMethod.ReturnType))
+				{
+					return (IApplicationFeatureFlag?)createMethod.Invoke(null, null);
+				}
+
+				// Fall back to parameterless constructor
+				var constructor = flagType.GetConstructor(Type.EmptyTypes);
+				if (constructor != null)
+				{
+					return (IApplicationFeatureFlag?)Activator.CreateInstance(flagType);
+				}
+
+				return null;
+			}
+			catch
+			{
+				// If we can't create the feature flag instance, return null
+				// This will cause the method to proceed normally
+				return null;
+			}
 		}
 
 		private static object? GetDefaultValue(Type type)
