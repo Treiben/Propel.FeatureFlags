@@ -1,4 +1,4 @@
-﻿using Propel.FeatureFlags.Evaluation.ApplicationScope;
+﻿using Propel.FeatureFlags.Services.ApplicationScope;
 
 namespace Propel.ClientApi.Services;
 

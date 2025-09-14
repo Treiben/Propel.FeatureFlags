@@ -1,6 +1,4 @@
-﻿using Propel.ClientApi.FeatureFlags;
-using Propel.FeatureFlags.AspNetCore.Extensions;
-using Propel.FeatureFlags.Core;
+﻿using Propel.FeatureFlags.AspNetCore.Extensions;
 
 namespace Propel.ClientApi.MinimalApiEndpoints;
 

@@ -3,9 +3,9 @@ using Propel.ClientApi.Services;
 using Propel.FeatureFlags;
 using Propel.FeatureFlags.AspNetCore.Middleware;
 using Propel.FeatureFlags.Attributes;
-using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.PostgresSql;
-using Propel.FeatureFlags.Redis;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.PostgresSql;
+using Propel.FeatureFlags.Infrastructure.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddLogging();
@@ -38,7 +38,7 @@ builder.Services.AddPostgresSqlFeatureFlags(postgresConnectionString);
 // 0. Add the Propel.FeatureFlags.Redis package
 // 1. Add the Redis connection string to appsettings.json
 // 2. Register the Redis cache
-if (featureFlagOptions.UseCache == true && !string.IsNullOrEmpty(featureFlagOptions.RedisConnectionString))
+if (featureFlagOptions.CacheOptions.UseCache == true && !string.IsNullOrEmpty(featureFlagOptions.RedisConnectionString))
 	builder.Services.AddRedisCache(featureFlagOptions.RedisConnectionString);
 // If featureFlagOptions.UseCache is true and Redis is not configured, then it will use in-memory caching by default
 // If you don't want any caching, set UseCache to false in appsettings.json

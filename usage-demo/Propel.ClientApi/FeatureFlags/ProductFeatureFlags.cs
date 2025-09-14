@@ -1,5 +1,5 @@
-using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Evaluation.ApplicationScope;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Services.ApplicationScope;
 
 namespace Propel.ClientApi.FeatureFlags;
 

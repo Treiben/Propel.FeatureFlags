@@ -24,18 +24,8 @@ public interface INotificationService
 
 public class NotificationService(ILogger<NotificationService> logger) : INotificationService
 {
-	[FeatureFlagged(flagKey: "new-email-service", fallbackMethod: nameof(SendEmailLegacyAsync))]
+	[FeatureFlagged(type: typeof(NewEmailServiceFeatureFlag), fallbackMethod: nameof(SendEmailLegacyAsync))]
 	public virtual async Task<string> SendEmailAsync(string userId, string subject, string body)
-	{
-		// New email service implementation
-		logger.LogInformation("Using new email service for user {UserId}", userId);
-		await Task.Delay(100);
-
-		return "Email sent using new service.";
-	}
-
-	[FeatureFlaggedV2(type: typeof(NewEmailServiceFeatureFlag), fallbackMethod: nameof(SendEmailLegacyAsync))]
-	public virtual async Task<string> SendEmailV2Async(string userId, string subject, string body)
 	{
 		// New email service implementation
 		logger.LogInformation("Using new email service for user {UserId}", userId);
