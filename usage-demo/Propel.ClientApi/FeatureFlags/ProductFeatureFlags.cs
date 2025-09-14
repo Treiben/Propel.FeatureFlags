@@ -1,4 +1,5 @@
 using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Evaluation.ApplicationScope;
 
 namespace Propel.ClientApi.FeatureFlags;
 
@@ -61,7 +62,7 @@ public class EnhancedCatalogUiFeatureFlag : TypeSafeFeatureFlag
 					{ "team", "frontend" },
 					{ "support-dependent", "true" }
 				}, 
-			isEnabledOnCreation: true)
+			defaultMode: EvaluationMode.Disabled)
 	{
 	}
 }

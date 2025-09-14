@@ -1,4 +1,5 @@
-﻿using Propel.FeatureFlags.Attributes;
+﻿using Propel.ClientApi.FeatureFlags;
+using Propel.FeatureFlags.Attributes;
 
 namespace Propel.ClientApi.MinimalApiEndpoints;
 
@@ -33,7 +34,17 @@ public class NotificationService(ILogger<NotificationService> logger) : INotific
 		return "Email sent using new service.";
 	}
 
-	
+	[FeatureFlaggedV2(type: typeof(NewEmailServiceFeatureFlag), fallbackMethod: nameof(SendEmailLegacyAsync))]
+	public virtual async Task<string> SendEmailV2Async(string userId, string subject, string body)
+	{
+		// New email service implementation
+		logger.LogInformation("Using new email service for user {UserId}", userId);
+		await Task.Delay(100);
+
+		return "Email sent using new service.";
+	}
+
+
 	public virtual async Task<string> SendEmailLegacyAsync(string userId, string subject, string body)
 	{
 		// Legacy email service implementation

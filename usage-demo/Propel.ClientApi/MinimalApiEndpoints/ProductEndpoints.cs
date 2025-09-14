@@ -18,26 +18,14 @@ public static class ProductEndpoints
 		/// a technical use case where we're testing a new product API version.
 		///</summary>
 
-		// Legacy string-based feature flag check (v1)
-		app.MapGet("/v1/products", async (HttpContext context) =>
-		{
-			// Simple feature flag check - controls which technical implementation to use
-			if (await context.IsFeatureFlagEnabledAsync("new-product-api"))
-			{
-				return Results.Ok(GetProductsV2()); // New technical implementation
-			}
-
-			return Results.Ok(GetProductsV1()); // Legacy technical implementation
-		});
-
-		// Type-safe feature flag evaluation (v2) - RECOMMENDED APPROACH
+		// Type-safe feature flag evaluation
 		// Provides compile-time safety, auto-completion, and better maintainability
 		// Uses strongly-typed feature flag definition with default values
-		app.MapGet("/v2/products", async (HttpContext context) =>
+		app.MapGet("/products", async (HttpContext context) =>
 		{
 			// Type-safe evaluation ensures the flag exists with proper defaults
 			// If flag doesn't exist in database, it will be auto-created with the configured defaults
-			if (await context.IsFeatureFlagEnabledAsync(ApplicationFeatureFlags.NewProductApiFeatureFlag))
+			if (await context.IsFeatureFlagEnabledAsync(FlagsConfig.NewProductApiFeatureFlag))
 			{
 				return Results.Ok(GetProductsV2()); // New technical implementation
 			}
@@ -64,22 +52,9 @@ public static class ProductEndpoints
 		/// appropriate for coordinating technical releases.
 		/// </summary>
 
-		// Legacy string-based feature flag check (v1)
-		app.MapGet("/v1/products/featured", async (HttpContext context) =>
+		app.MapGet("/products/featured", async (HttpContext context) =>
 		{
-			// Scheduled feature flag - automatically enables new technical features at set time
-			if (await context.IsFeatureFlagEnabledAsync("featured-products-launch"))
-			{
-				return Results.Ok(GetFeaturedProductsV2()); // New enhanced display
-			}
-
-			return Results.Ok(GetFeaturedProductsV1()); // Standard display
-		});
-
-		// Type-safe feature flag evaluation (v2) - RECOMMENDED APPROACH
-		app.MapGet("/v2/products/featured", async (HttpContext context) =>
-		{
-			if (await context.IsFeatureFlagEnabledAsync(ApplicationFeatureFlags.FeaturedProductsLaunchFeatureFlag))
+			if (await context.IsFeatureFlagEnabledAsync(FlagsConfig.FeaturedProductsLaunchFeatureFlag))
 			{
 				return Results.Ok(GetFeaturedProductsV2()); // New enhanced display
 			}
@@ -107,22 +82,9 @@ public static class ProductEndpoints
 		/// a valid technical consideration.
 		/// </summary>
 
-		// Legacy string-based feature flag check (v1)
-		app.MapGet("/v1/products/catalog", async (HttpContext context) =>
+		app.MapGet("/products/catalog", async (HttpContext context) =>
 		{
-			// Time window feature flag - enables enhanced features when support is available
-			if (await context.IsFeatureFlagEnabledAsync("enhanced-catalog-ui"))
-			{
-				return Results.Ok(GetEnhancedCatalogView()); // Enhanced UI with support-dependent features
-			}
-
-			return Results.Ok(GetStandardCatalogView()); // Standard UI that works without support
-		});
-
-		// Type-safe feature flag evaluation (v2) - RECOMMENDED APPROACH
-		app.MapGet("/v2/products/catalog", async (HttpContext context) =>
-		{
-			if (await context.IsFeatureFlagEnabledAsync(ApplicationFeatureFlags.EnhancedCatalogUiFeatureFlag))
+			if (await context.IsFeatureFlagEnabledAsync(FlagsConfig.EnhancedCatalogUiFeatureFlag))
 			{
 				return Results.Ok(GetEnhancedCatalogView()); // Enhanced UI with support-dependent features
 			}

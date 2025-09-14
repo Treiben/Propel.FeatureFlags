@@ -1,7 +1,12 @@
-﻿using Propel.FeatureFlags.Core;
+﻿using Propel.FeatureFlags.Evaluation.ApplicationScope;
 
 namespace Propel.ClientApi.FeatureFlags;
 
+// The flag created with default settings if it does not already exist in the database
+// in disabled state (Recommended).
+
+// Note: It is often safer to default to disabled so when the feature is deployed it can be enabled
+// on approved release schedule from management tools rather than immeditately,
 public class NewPaymentProcessorFeatureFlag : TypeSafeFeatureFlag
 {
 	public NewPaymentProcessorFeatureFlag()

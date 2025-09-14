@@ -118,13 +118,13 @@ public static class  AppExtensions
 					// Add global feature gates
 					options.GlobalFlags.Add(new GlobalFlag
 					{
-						FlagKey = "api-v2-enabled",
+						Key = "api-v2-enabled",
 						StatusCode = 410, // Gone
 						Response = new { error = "API v2 is no longer available, please upgrade to v3" }
 					});
 					options.GlobalFlags.Add(new GlobalFlag
 					{
-						FlagKey = "beta-features-enabled",
+						Key = "beta-features-enabled",
 						StatusCode = 403, // Forbidden
 						Response = new { error = "Beta features not available for your account" }
 					});

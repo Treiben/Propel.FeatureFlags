@@ -2,7 +2,7 @@
 
 namespace Propel.ClientApi;
 
-public class ApplicationFeatureFlags
+public class FlagsConfig
 {
 	public static readonly AdminPanelEnabledFeatureFlag AdminPanelEnabledFeatureFlag = new();
 

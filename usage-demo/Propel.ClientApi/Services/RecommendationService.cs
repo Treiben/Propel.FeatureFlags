@@ -1,4 +1,4 @@
-﻿using Propel.FeatureFlags;
+﻿using Propel.FeatureFlags.Evaluation.ApplicationScope;
 
 namespace Propel.ClientApi.Services;
 
@@ -21,7 +21,7 @@ public class RecommendationService(IFeatureFlagClient featureFlags, ILogger<Reco
 
 		// A/B test for recommendation algorithm
 		var algorithm = await featureFlags.GetVariationAsync(
-				flag: ApplicationFeatureFlags.RecommendationAlgorithmFeatureFlag,
+				flag: FlagsConfig.RecommendationAlgorithmFeatureFlag,
 				defaultValue: "collaborative-filtering", // default
 				userId: userId,
 				attributes: context

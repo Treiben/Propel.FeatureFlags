@@ -1,4 +1,5 @@
 ﻿using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Evaluation.ApplicationScope;
 
 namespace Propel.ClientApi.FeatureFlags;
 
@@ -17,7 +18,8 @@ public class RecommendationAlgorithmFeatureFlag : TypeSafeFeatureFlag
 				{ "variations", "ml,content-based,collaborative-filtering" },
 				{ "default", "collaborative-filtering" }
 			},
-			isEnabledOnCreation: true)
+			defaultMode: EvaluationMode.Enabled) // Flag will be created and immediately enabled if it does not already exist in the database (not recommended).
+												 // It is often safer to default to disabled so when the feature is deployed it can be enabled from management website.
 	{
 	}
 }

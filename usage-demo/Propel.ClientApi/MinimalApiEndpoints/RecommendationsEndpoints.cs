@@ -38,28 +38,16 @@ public static class RecommendationsEndpoints
 {
 	public static void MapRecommendationsEndpoints(this WebApplication app)
 	{
-		// Legacy string-based feature flag check (v1)
-		app.MapGet("/v1/recommendations/{userId}", async (string userId, HttpContext context) =>
-		{
-			// Get the algorithm variation - this is a TECHNICAL choice, not a business rule
-			var algorithmType = await context.FeatureFlags().GetVariationAsync("recommendation-algorithm", "collaborative-filtering");
-
-			return algorithmType switch
-			{
-				"machine-learning" => Results.Ok(GetMLRecommendations(userId)),
-				"content-based" => Results.Ok(GetContentBasedRecommendations(userId)),
-				_ => Results.Ok(GetCollaborativeRecommendations(userId))
-			};
-		});
-
-		// Type-safe feature flag evaluation (v2) - RECOMMENDED APPROACH
+		// Type-safe feature flag evaluation
 		// Provides compile-time safety, auto-completion, and better maintainability
 		// Uses strongly-typed feature flag definition with default values
-		app.MapGet("/v2/recommendations/{userId}", async (string userId, HttpContext context) =>
+		app.MapGet("/recommendations/{userId}", async (string userId, HttpContext context) =>
 		{
 			// Type-safe evaluation ensures the flag exists with proper defaults
 			// If flag doesn't exist in database, it will be auto-created with the configured defaults
-			var algorithmType = await context.FeatureFlags().GetVariationAsync("recommendation-algorithm", "collaborative-filtering");
+			var algorithmType = await context.FeatureFlags()
+				.GetVariationAsync(FlagsConfig.RecommendationAlgorithmFeatureFlag, 
+				"collaborative-filtering");
 
 			return algorithmType switch
 			{

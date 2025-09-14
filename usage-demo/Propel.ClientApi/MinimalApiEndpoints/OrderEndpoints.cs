@@ -44,28 +44,12 @@ public static class OrderEndpoints
 {
 	public static WebApplication MapOrderEndpoints(this WebApplication app)
 	{
-		// Legacy string-based feature flag check (v1)
-		app.MapPost("/v1/orders", async(CreateOrderRequest request, HttpContext context) =>
-		{
-			// Get variation for technical A/B testing - this controls HOW we process, not WHAT we process
-			var checkoutVersion = await context.GetFeatureFlagVariationAsync("checkout-version", "v1");
-			return checkoutVersion switch
-			{
-				"v2" => Results.Ok(ProcessOrderV2(request, context)), // New technical implementation
-				"v3" => Results.Ok(ProcessOrderV3(request, context)), // Experimental technical approach
-				_ => Results.Ok(ProcessOrderV1(request, context))     // Legacy proven implementation
-			};
-		})
-		.WithTags("Orders (Legacy)")
-		.WithSummary("Create order using feature flag variation")
-		.WithDescription("Legacy endpoint that uses string-based feature flags for A/B testing different processing implementations");
-
-		// Type-safe feature flag evaluation (v2) - RECOMMENDED APPROACH
-		app.MapPost("/v2/orders", async (CreateOrderRequest request, HttpContext context) =>
+		// Type-safe feature flag evaluation - RECOMMENDED APPROACH
+		app.MapPost("/orders", async (CreateOrderRequest request, HttpContext context) =>
 		{
 			// Type-safe feature flag evaluation with compile-time safety, auto-completion, and maintainability
 			var checkoutVersion = await context.GetFeatureFlagVariationAsync(
-				ApplicationFeatureFlags.CheckoutVersionFeatureFlag, "v1");
+				FlagsConfig.CheckoutVersionFeatureFlag, "v1");
 
 			return checkoutVersion switch
 			{

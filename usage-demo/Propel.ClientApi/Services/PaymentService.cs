@@ -1,5 +1,4 @@
-﻿using Propel.ClientApi.FeatureFlags;
-using Propel.FeatureFlags;
+﻿using Propel.FeatureFlags.Evaluation.ApplicationScope;
 
 namespace Propel.ClientApi.Services;
 
@@ -61,16 +60,13 @@ public class PaymentService(
 		// • Enable gradually based on customer risk profiles
 		//
 
-		if (await featureFlags.IsEnabledAsync(flagKey: "new-payment-processor", userId: request.CustomerId, attributes: context))
-		{
-			// Legacy string-based feature flag check (v1)
-			// Uses string key which is more error-prone and lacks compile-time safety
-		}
-
-		// Type-safe feature flag evaluation (v2) - RECOMMENDED APPROACH
+		// Type-safe feature flag evaluation
 		// Provides compile-time safety, auto-completion, and better maintainability
 		// Uses strongly-typed feature flag definition with default values
-		if (await featureFlags.IsEnabledAsync(ApplicationFeatureFlags.NewPaymentProcessorFeatureFlag, userId: request.CustomerId, attributes: context))
+		if (await featureFlags.IsEnabledAsync(
+				FlagsConfig.NewPaymentProcessorFeatureFlag,
+				userId: request.CustomerId,
+				attributes: context))
 		{
 			try
 			{

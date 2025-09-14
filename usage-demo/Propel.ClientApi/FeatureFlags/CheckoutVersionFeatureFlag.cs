@@ -1,4 +1,4 @@
-﻿using Propel.FeatureFlags.Core;
+﻿using Propel.FeatureFlags.Evaluation.ApplicationScope;
 
 namespace Propel.ClientApi.FeatureFlags;
 
@@ -6,6 +6,12 @@ namespace Propel.ClientApi.FeatureFlags;
 // Type-safe feature flag for controlling checkout processing variations.
 // Enables A/B testing of different technical implementations while maintaining
 // consistent business outcomes across all variations.
+
+// The flag created with default settings if it does not already exist in the database
+// in disabled state (Recommended).
+
+// Note: It is often safer to default to disabled so when the feature is deployed it can be enabled
+// on approved release schedule rather than immeditately,
 public class CheckoutVersionFeatureFlag : TypeSafeFeatureFlag
 {
 	public CheckoutVersionFeatureFlag() 
