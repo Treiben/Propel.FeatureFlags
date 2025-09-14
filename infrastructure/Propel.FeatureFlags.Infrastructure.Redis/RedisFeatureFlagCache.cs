@@ -11,11 +11,11 @@ namespace Propel.FeatureFlags.Infrastructure.Redis;
 
 public class RedisFeatureFlagCache(
 	IConnectionMultiplexer redis, 
-	CacheConfiguration cacheConfiguration, 
+	CacheOptions cacheConfiguration, 
 	ILogger<RedisFeatureFlagCache> logger) : IFeatureFlagCache
 {
 	private readonly IDatabase _database = redis.GetDatabase();
-	private readonly CacheConfiguration _cacheConfiguration = cacheConfiguration ?? throw new ArgumentNullException(nameof(cacheConfiguration));
+	private readonly CacheOptions _cacheConfiguration = cacheConfiguration ?? throw new ArgumentNullException(nameof(cacheConfiguration));
 
 
 	public async Task<FeatureFlag?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
@@ -50,7 +50,7 @@ public class RedisFeatureFlagCache(
 	public async Task SetAsync(CacheKey cacheKey, FeatureFlag flag, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
-		logger.LogDebug("Setting feature flag {Key} in cache with expiration {Expiration}", key, _cacheConfiguration.Expiry);
+		logger.LogDebug("Setting feature flag {Key} in cache with expiration {Expiration}", key, _cacheConfiguration.ExpiryInMinutes);
 		if (cancellationToken.IsCancellationRequested)
 		{
 			throw new OperationCanceledException(cancellationToken);
@@ -60,7 +60,7 @@ public class RedisFeatureFlagCache(
 		{
 			var value = JsonSerializer.Serialize(flag, JsonDefaults.JsonOptions);
 			logger.LogDebug("Serialized feature flag {Key} to JSON", key);
-			if (await _database.StringSetAsync(key, value, _cacheConfiguration.Expiry))
+			if (await _database.StringSetAsync(key, value, _cacheConfiguration.ExpiryInMinutes))
 			{
 				logger.LogDebug("Feature flag {Key} set in cache successfully", key);
 			}
