@@ -1,15 +1,22 @@
 ﻿using Microsoft.Extensions.Logging;
-using Propel.FeatureFlags.Cache;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Helpers;
+using Propel.FeatureFlags.Infrastructure.Cache;
+using Propel.FeatureFlags.Infrastructure.Cache;
 using StackExchange.Redis;
+using System.Net;
 using System.Text.Json;
 
-namespace Propel.FeatureFlags.Redis;
+namespace Propel.FeatureFlags.Infrastructure.Redis;
 
-public class RedisFeatureFlagCache(IConnectionMultiplexer redis, ILogger<RedisFeatureFlagCache> logger) : IFeatureFlagCache
+public class RedisFeatureFlagCache(
+	IConnectionMultiplexer redis, 
+	CacheConfiguration cacheConfiguration, 
+	ILogger<RedisFeatureFlagCache> logger) : IFeatureFlagCache
 {
 	private readonly IDatabase _database = redis.GetDatabase();
+	private readonly CacheConfiguration _cacheConfiguration = cacheConfiguration ?? throw new ArgumentNullException(nameof(cacheConfiguration));
+
 
 	public async Task<FeatureFlag?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
@@ -40,10 +47,10 @@ public class RedisFeatureFlagCache(IConnectionMultiplexer redis, ILogger<RedisFe
 		}
 	}
 
-	public async Task SetAsync(CacheKey cacheKey, FeatureFlag flag, TimeSpan? expiration = null, CancellationToken cancellationToken = default)
+	public async Task SetAsync(CacheKey cacheKey, FeatureFlag flag, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
-		logger.LogDebug("Setting feature flag {Key} in cache with expiration {Expiration}", key, expiration);
+		logger.LogDebug("Setting feature flag {Key} in cache with expiration {Expiration}", key, _cacheConfiguration.Expiry);
 		if (cancellationToken.IsCancellationRequested)
 		{
 			throw new OperationCanceledException(cancellationToken);
@@ -53,7 +60,7 @@ public class RedisFeatureFlagCache(IConnectionMultiplexer redis, ILogger<RedisFe
 		{
 			var value = JsonSerializer.Serialize(flag, JsonDefaults.JsonOptions);
 			logger.LogDebug("Serialized feature flag {Key} to JSON", key);
-			if (await _database.StringSetAsync(key, value, expiration))
+			if (await _database.StringSetAsync(key, value, _cacheConfiguration.Expiry))
 			{
 				logger.LogDebug("Feature flag {Key} set in cache successfully", key);
 			}
@@ -93,26 +100,78 @@ public class RedisFeatureFlagCache(IConnectionMultiplexer redis, ILogger<RedisFe
 	public async Task ClearAsync(CancellationToken cancellationToken = default)
 	{
 		logger.LogDebug("Clearing all feature flags from cache");
-		if (cancellationToken.IsCancellationRequested)
-		{
-			throw new OperationCanceledException(cancellationToken);
-		}
 
 		try
 		{
-			var server = _database.Multiplexer.GetServer(_database.Multiplexer.GetEndPoints().First());
-			logger.LogDebug("Connected to Redis server {Server}", server.EndPoint);
-			await foreach (var key in server.KeysAsync(pattern: CacheKey.Pattern))
+			var endpoints = _database.Multiplexer.GetEndPoints();
+			var tasks = new List<Task>();
+
+			// Handle multiple Redis nodes (cluster/sentinel scenarios)
+			foreach (var endpoint in endpoints)
 			{
-				if (await _database.KeyDeleteAsync(key))
-					logger.LogDebug("Removed feature flag {Key} from cache", key);
-				else
-					logger.LogWarning("Feature flag {Key} not found in cache", key);
+				tasks.Add(ClearFromServer(endpoint, cancellationToken));
 			}
+
+			await Task.WhenAll(tasks);
+			logger.LogDebug("Successfully cleared all feature flags from cache");
 		}
-		catch (Exception ex) when (ex is not OperationCanceledException)
+		catch (OperationCanceledException)
+		{
+			logger.LogInformation("Clear cache operation was cancelled");
+			throw;
+		}
+		catch (Exception ex)
 		{
 			logger.LogWarning(ex, "Failed to clear feature flag cache");
+			throw;
+		}
+	}
+
+	private async Task ClearFromServer(EndPoint endpoint, CancellationToken cancellationToken)
+	{
+		var server = _database.Multiplexer.GetServer(endpoint);
+
+		const int batchSize = 50; // Smaller batches for better performance
+		var keysToDelete = new List<RedisKey>();
+
+		// KeysAsync with pageSize uses SCAN internally - non-blocking
+		await foreach (var key in server.KeysAsync(
+			pattern: CacheKey.Pattern,
+			pageSize: batchSize))
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+
+			keysToDelete.Add(key);
+
+			// Delete in batches to avoid large single operations
+			if (keysToDelete.Count >= batchSize)
+			{
+				await DeleteBatch(keysToDelete, cancellationToken);
+				keysToDelete.Clear();
+			}
+		}
+
+		// Delete any remaining keys
+		if (keysToDelete.Count > 0)
+		{
+			await DeleteBatch(keysToDelete, cancellationToken);
+		}
+	}
+
+	private async Task DeleteBatch(List<RedisKey> keys, CancellationToken cancellationToken)
+	{
+		cancellationToken.ThrowIfCancellationRequested();
+
+		try
+		{
+			var deletedCount = await _database.KeyDeleteAsync(keys.ToArray());
+			logger.LogDebug("Deleted {Count} of {Total} feature flag keys from cache",
+				deletedCount, keys.Count);
+		}
+		catch (Exception ex)
+		{
+			logger.LogWarning(ex, "Failed to delete batch of {Count} keys", keys.Count);
+			// Continue processing other batches rather than failing completely
 		}
 	}
 }

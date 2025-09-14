@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection;
-using Propel.FeatureFlags.Cache;
+using Propel.FeatureFlags.Infrastructure.Cache;
 using StackExchange.Redis;
 
-namespace Propel.FeatureFlags.Redis;
+namespace Propel.FeatureFlags.Infrastructure.Redis;
 
 public static class ServiceCollectionExtensions
 {
