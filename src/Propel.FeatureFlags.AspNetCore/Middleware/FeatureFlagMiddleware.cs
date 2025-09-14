@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Propel.FeatureFlags.Evaluation.ApplicationScope;
-using Propel.FeatureFlags.Evaluation.GlobalScope;
+using Propel.FeatureFlags.Services.ApplicationScope;
+using Propel.FeatureFlags.Services.GlobalScope;
 
 namespace Propel.FeatureFlags.AspNetCore.Middleware;
 
@@ -196,14 +196,7 @@ public class FeatureFlagMiddleware
 			return false;
 		}
 
-		_logger.LogDebug("Checking maintenance mode flag: {MaintenanceFlagKey}", _options.MaintenanceFlagKey);
-		bool isInMaintenance = await _globalFlags.IsEnabledAsync(flagKey: _options.MaintenanceFlagKey, tenantId: tenantId, userId: userId, attributes: attributes);
-		_logger.LogDebug("Maintenance mode status: {IsInMaintenance}", isInMaintenance);
-
-		if (!isInMaintenance)
-			return false;
-		
-		return true;
-
+		return await _globalFlags.IsEnabledAsync(flagKey: _options.MaintenanceFlagKey,
+			tenantId: tenantId, userId: userId, attributes: attributes);
 	}
 }

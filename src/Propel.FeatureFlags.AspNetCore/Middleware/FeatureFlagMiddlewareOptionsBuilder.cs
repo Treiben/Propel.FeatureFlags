@@ -36,6 +36,12 @@ public class FeatureFlagMiddlewareOptionsBuilder
 		return this;
 	}
 
+	public FeatureFlagMiddlewareOptionsBuilder ExtractTenantIdFrom(Func<HttpContext, string?> extractor)
+	{
+		_options.TenantIdExtractor = extractor;
+		return this;
+	}
+
 	public FeatureFlagMiddlewareOptionsBuilder ExtractUserIdFrom(Func<HttpContext, string?> extractor)
 	{
 		_options.UserIdExtractor = extractor;
