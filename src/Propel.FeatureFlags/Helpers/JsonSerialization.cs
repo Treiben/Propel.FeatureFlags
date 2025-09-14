@@ -1,4 +1,4 @@
-﻿using Propel.FeatureFlags.Core;
+﻿using Propel.FeatureFlags.Domain;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 

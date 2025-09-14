@@ -1,11 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Propel.FeatureFlags.Cache;
-using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Evaluation;
-using Propel.FeatureFlags.Evaluation.ApplicationScope;
-using Propel.FeatureFlags.Evaluation.GlobalScope;
-using Propel.FeatureFlags.Evaluation.Strategies;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.Cache;
+using Propel.FeatureFlags.Infrastructure.Cache;
+using Propel.FeatureFlags.Services;
+using Propel.FeatureFlags.Services.ApplicationScope;
+using Propel.FeatureFlags.Services.Evaluation;
+using Propel.FeatureFlags.Services.GlobalScope;
 
 namespace Propel.FeatureFlags;
 
@@ -31,7 +32,7 @@ public static class ServiceCollectionExtensions
 					new UserRolloutEvaluator(),
 				])));
 
-		if (options.UseCache == true && string.IsNullOrEmpty(options.RedisConnectionString))
+		if (options.CacheConfiguration?.UseCache == true && string.IsNullOrEmpty(options.RedisConnectionString))
 			services.TryAddSingleton<IFeatureFlagCache, MemoryFeatureFlagCache>();
 
 		return services;
