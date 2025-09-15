@@ -10,7 +10,7 @@ public class FeatureFlag
 
 	public ActivationSchedule Schedule { get; set; } = ActivationSchedule.Unscheduled;
 	public OperationalWindow OperationalWindow { get; set; } = OperationalWindow.AlwaysOpen;
-	public RetentionPolicy Retention { get; set; } = RetentionPolicy.DefaultLifecycle;
+	public RetentionPolicy Retention { get; set; } = RetentionPolicy.DefaultRetention;
 
 	// Targeting
 	public List<ITargetingRule> TargetingRules { get; set; } = [];

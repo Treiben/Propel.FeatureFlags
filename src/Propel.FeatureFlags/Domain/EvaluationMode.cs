@@ -15,22 +15,22 @@ public enum EvaluationMode
 
 public class EvaluationModes
 {
-	public HashSet<EvaluationMode> Modes { get; private set; } = new() { EvaluationMode.Disabled };
+	public HashSet<EvaluationMode> Modes { get; } = [EvaluationMode.Disabled];
 
-	public EvaluationModes(EvaluationMode[]? modes = null)
+	public EvaluationModes(HashSet<EvaluationMode> modes)
 	{
-		if (modes == null || modes.Length == 0)
+		if (modes.Count == 0)
 		{
-			Modes = new HashSet<EvaluationMode> { EvaluationMode.Disabled };
+			Modes = [EvaluationMode.Disabled];
 		}
-		else
+
+		if (modes.Contains(EvaluationMode.Disabled) && modes.Count > 1)
 		{
-			Modes = new HashSet<EvaluationMode>();
-			foreach (var mode in modes)
-			{
-				AddMode(mode);
-			}
+			// If Disabled is present with other modes, remove all other modes
+			Modes = [EvaluationMode.Disabled];
 		}
+
+		Modes = modes;
 	}
 
 	public static EvaluationModes FlagIsDisabled => new([EvaluationMode.Disabled]);

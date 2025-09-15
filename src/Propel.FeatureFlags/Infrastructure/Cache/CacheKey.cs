@@ -43,6 +43,8 @@ public class CacheKey
 			sb.Append(":");
 		}
 		sb.Append(Key);
+		sb.Replace(".", "-");
+
 		return sb.ToString();
 	} 
 }
