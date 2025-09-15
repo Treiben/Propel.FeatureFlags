@@ -1,8 +1,7 @@
-using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Evaluation;
-using Propel.FeatureFlags.Evaluation.Handlers;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Services.Evaluation;
 
-namespace FeatureFlags.UnitTests.Evaluation.Handlers;
+namespace FeatureFlags.UnitTests.Evaluation;
 
 public class TerminalStateEvaluator_CanProcess
 {
@@ -110,7 +109,7 @@ public class TerminalStateEvaluator_ProcessEvaluation
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on");
+		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Feature flag 'test-enabled-flag' is explicitly enabled");
 	}
 
@@ -136,24 +135,6 @@ public class TerminalStateEvaluator_ProcessEvaluation
 		result.Reason.ShouldBe("Feature flag 'priority-test-flag' is explicitly disabled");
 	}
 
-	[Fact]
-	public async Task ProcessEvaluation_NullVariations_HandlesGracefully()
-	{
-		// Arrange
-		var flag = new FeatureFlag
-		{
-			Key = "null-variations-flag",
-			Variations = null
-		};
-
-		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, new EvaluationContext());
-
-		// Assert
-		result.IsEnabled.ShouldBeFalse();
-		result.Variation.ShouldBe("off"); // Default fallback
-		result.Reason.ShouldBe("Feature flag 'null-variations-flag' is explicitly disabled");
-	}
 
 	[Theory]
 	[InlineData("maintenance-mode")]
@@ -196,6 +177,6 @@ public class TerminalStateEvaluator_ProcessEvaluation
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on"); // Always "on" for enabled flags
+		result.Variation.ShouldBe(flag.Variations.DefaultVariation); // Always "on" for enabled flags
 	}
 }

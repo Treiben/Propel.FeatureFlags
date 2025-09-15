@@ -1,6 +1,6 @@
-using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Evaluation;
-using Propel.FeatureFlags.Evaluation.Handlers;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Services;
+using Propel.FeatureFlags.Services.Evaluation;
 
 namespace FeatureFlags.UnitTests.Evaluation;
 
@@ -156,19 +156,19 @@ public class FlagEvaluationManager_ProcessEvaluation_MultipleHandlers
 	public async Task If_AllHandlersReturnEnabled_ThenReturnsEnabledWithDefaultMessage()
 	{
 		// Arrange
-		var firstHandler = new Mock<IOrderedEvaluator>();
-		firstHandler.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.TenantRollout);
-		firstHandler.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
-		firstHandler.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
+		var firstEvaluator = new Mock<IOrderedEvaluator>();
+		firstEvaluator.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.TenantRollout);
+		firstEvaluator.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
+		firstEvaluator.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
 			.ReturnsAsync(new EvaluationResult(isEnabled: true, variation: "tenant-ok", reason: "Tenant allowed"));
 
-		var secondHandler = new Mock<IOrderedEvaluator>();
-		secondHandler.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.UserRollout);
-		secondHandler.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
-		secondHandler.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
+		var secondEvaluator = new Mock<IOrderedEvaluator>();
+		secondEvaluator.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.UserRollout);
+		secondEvaluator.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
+		secondEvaluator.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
 			.ReturnsAsync(new EvaluationResult(isEnabled: true, variation: "user-ok", reason: "User allowed"));
 
-		var manager = new FlagEvaluationManager(new HashSet<IOrderedEvaluator> { firstHandler.Object, secondHandler.Object });
+		var manager = new FlagEvaluationManager([firstEvaluator.Object, secondEvaluator.Object]);
 		var flag = new FeatureFlag 
 		{ 
 			Key = "test-flag",
@@ -183,12 +183,12 @@ public class FlagEvaluationManager_ProcessEvaluation_MultipleHandlers
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("all-passed");
+		result.Variation.ShouldBe("user-ok");
 		result.Reason.ShouldBe($"All [{flag.ActiveEvaluationModes}] conditions met for feature flag activation");
 
 		// Verify both handlers were called
-		firstHandler.Verify(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()), Times.Once);
-		secondHandler.Verify(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()), Times.Once);
+		firstEvaluator.Verify(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()), Times.Once);
+		secondEvaluator.Verify(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()), Times.Once);
 	}
 
 	[Fact]

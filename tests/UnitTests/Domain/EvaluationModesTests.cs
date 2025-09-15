@@ -1,6 +1,6 @@
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 
-namespace FeatureFlags.UnitTests.Core;
+namespace FeatureFlags.UnitTests.Domain;
 
 public class EvaluationModes_DisabledMutualExclusion
 {
@@ -74,7 +74,7 @@ public class EvaluationModes_AddRemoveOperations
 		modeSet.AddMode(EvaluationMode.TimeWindow);
 
 		// Assert
-		modeSet.Modes.Length.ShouldBe(3);
+		modeSet.Modes.Count.ShouldBe(3);
 		modeSet.Modes.ShouldContain(EvaluationMode.Enabled);
 		modeSet.Modes.ShouldContain(EvaluationMode.Scheduled);
 		modeSet.Modes.ShouldContain(EvaluationMode.TimeWindow);
@@ -274,7 +274,7 @@ public class EvaluationModes_ComplexScenarios
 		modeSet.RemoveMode(EvaluationMode.Scheduled);
 
 		// Assert
-		modeSet.Modes.Length.ShouldBe(2);
+		modeSet.Modes.Count.ShouldBe(2);
 		modeSet.Modes.ShouldContain(EvaluationMode.Enabled);
 		modeSet.Modes.ShouldContain(EvaluationMode.TimeWindow);
 		modeSet.Modes.ShouldNotContain(EvaluationMode.Scheduled);

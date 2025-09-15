@@ -1,6 +1,6 @@
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 
-namespace FeatureFlags.UnitTests.Core;
+namespace FeatureFlags.UnitTests.Domain;
 
 public class ActivationSchedule_CreateSchedule
 {

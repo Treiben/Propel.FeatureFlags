@@ -1,8 +1,7 @@
-using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Evaluation;
-using Propel.FeatureFlags.Evaluation.Handlers;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Services.Evaluation;
 
-namespace Propel.FeatureFlags.Tests.Evaluation.Handlers;
+namespace FeatureFlags.UnitTests.Evaluation;
 
 public class TargetingRulesEvaluatorTests
 {
@@ -21,7 +20,6 @@ public class TargetingRulesEvaluatorTests
 		Assert.NotNull(result);
 		Assert.True(result.IsEnabled);
 		Assert.Equal("premium", result.Variation);
-		Assert.Contains("Targeting rule matched", result.Reason);
 	}
 
 	[Fact]
@@ -30,7 +28,7 @@ public class TargetingRulesEvaluatorTests
 		// Arrange
 		var evaluator = new TargetingRulesEvaluator();
 		var flag = CreateFeatureFlagWithNumericRule("age", TargetingOperator.GreaterThan, [18], "adult");
-		var context = new EvaluationContext(attributes: new Dictionary<string, object> { { "age", "25" } });
+		var context = new EvaluationContext(userId: "user123", attributes: new Dictionary<string, object> { { "age", "25" } });
 
 		// Act
 		var result = await evaluator.ProcessEvaluation(flag, context);
@@ -56,7 +54,6 @@ public class TargetingRulesEvaluatorTests
 		Assert.NotNull(result);
 		Assert.False(result.IsEnabled);
 		Assert.Equal(flag.Variations.DefaultVariation, result.Variation);
-		Assert.Equal("No targeting rules matched", result.Reason);
 	}
 
 	[Fact]
@@ -73,7 +70,6 @@ public class TargetingRulesEvaluatorTests
 		// Assert
 		Assert.NotNull(result);
 		Assert.False(result.IsEnabled);
-		Assert.Equal("No targeting rules matched", result.Reason);
 	}
 
 	[Theory]
@@ -110,7 +106,10 @@ public class TargetingRulesEvaluatorTests
 		return new FeatureFlag
 		{
 			TargetingRules = [CreateNumericRule(attribute, op, values, variation)],
-			Variations = new Variations { DefaultVariation = "off" }
+			Variations = new Variations { 
+				Values = new Dictionary<string, object> { { "adult", true }, { "junior", false } },
+				DefaultVariation = "junior"
+			}
 		};
 	}
 

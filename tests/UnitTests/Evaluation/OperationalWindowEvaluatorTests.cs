@@ -1,8 +1,7 @@
-using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Evaluation;
-using Propel.FeatureFlags.Evaluation.Handlers;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Services.Evaluation;
 
-namespace FeatureFlags.UnitTests.Evaluation.Handlers;
+namespace FeatureFlags.UnitTests.Evaluation;
 
 public class OperationalWindowEvaluator_CanProcess
 {
@@ -66,7 +65,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on");
+		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Flag operational window is always open.");
 	}
 
@@ -77,7 +76,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var evaluationTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc); // Monday 12 PM
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = OperationalWindow.CreateWindow(
+			OperationalWindow = new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17)),
 			Variations = new Variations { DefaultVariation = "window-closed" }
 		};
@@ -88,7 +87,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on");
+		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Within time window");
 	}
 
@@ -99,7 +98,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var evaluationTime = new DateTime(2024, 1, 15, 20, 0, 0, DateTimeKind.Utc); // Monday 8 PM
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = OperationalWindow.CreateWindow(
+			OperationalWindow = new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17)),
 			Variations = new Variations { DefaultVariation = "window-closed" }
 		};
@@ -123,7 +122,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = OperationalWindow.CreateWindow(
+			OperationalWindow = new OperationalWindow(
 				TimeSpan.FromHours(22), TimeSpan.FromHours(6)), // 10 PM to 6 AM
 			Variations = new Variations { DefaultVariation = "maintenance-off" }
 		};
@@ -148,17 +147,14 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		// Arrange
 		var monday = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc); // Monday 12 PM
 		var saturday = new DateTime(2024, 1, 20, 12, 0, 0, DateTimeKind.Utc); // Saturday 12 PM
-		var weekdaysOnly = new List<DayOfWeek>
-		{
-			DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
-			DayOfWeek.Thursday, DayOfWeek.Friday
-		};
+		DayOfWeek[] weekdaysOnly = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
+			DayOfWeek.Thursday, DayOfWeek.Friday];
 
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = OperationalWindow.CreateWindow(
+			OperationalWindow = new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
-				allowedDays: weekdaysOnly),
+				daysActive: weekdaysOnly),
 			Variations = new Variations { DefaultVariation = "weekend-off" }
 		};
 
@@ -184,7 +180,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var evaluationTime = new DateTime(2024, 1, 15, 17, 0, 0, DateTimeKind.Utc); // 5 PM UTC
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = OperationalWindow.CreateWindow(
+			OperationalWindow = new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 				"Pacific Standard Time"), // Window is in PST
 			Variations = new Variations { DefaultVariation = "off" }
@@ -222,16 +218,13 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_BusinessHoursScenario_WorksCorrectly()
 	{
 		// Arrange - Business hours: 9 AM - 5 PM, weekdays only
-		var businessDays = new List<DayOfWeek>
-		{
-			DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
-			DayOfWeek.Thursday, DayOfWeek.Friday
-		};
+		DayOfWeek[] businessDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
+			DayOfWeek.Thursday, DayOfWeek.Friday];
 		var flag = new FeatureFlag
 		{
-			OperationalWindow = OperationalWindow.CreateWindow(
+			OperationalWindow = new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
-				allowedDays: businessDays),
+				daysActive: businessDays),
 			Variations = new Variations { DefaultVariation = "after-hours" }
 		};
 

@@ -1,6 +1,6 @@
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 
-namespace FeatureFlags.UnitTests.Core;
+namespace FeatureFlags.UnitTests.Domain;
 
 public class TargetingRuleFactory_CreaterTargetingRule
 {
@@ -11,7 +11,7 @@ public class TargetingRuleFactory_CreaterTargetingRule
         var values = new List<string> { "1.5", "2.0", "10" };
 
         // Act
-        var rule = TargetingRuleFactory.CreaterTargetingRule("age", TargetingOperator.GreaterThan, values, "premium");
+        var rule = TargetingRuleFactory.CreateTargetingRule("age", TargetingOperator.GreaterThan, values, "premium");
 
         // Assert
         rule.ShouldBeOfType<NumericTargetingRule>();
@@ -30,7 +30,7 @@ public class TargetingRuleFactory_CreaterTargetingRule
         var values = new List<string> { "1.5", "abc", "10" };
 
         // Act
-        var rule = TargetingRuleFactory.CreaterTargetingRule("category", TargetingOperator.In, values, "special");
+        var rule = TargetingRuleFactory.CreateTargetingRule("category", TargetingOperator.In, values, "special");
 
         // Assert
         rule.ShouldBeOfType<StringTargetingRule>();
@@ -49,7 +49,7 @@ public class TargetingRuleFactory_CreaterTargetingRule
         var values = new List<string> { "premium", "basic", "enterprise" };
 
         // Act
-        var rule = TargetingRuleFactory.CreaterTargetingRule("plan", TargetingOperator.Equals, values, "on");
+        var rule = TargetingRuleFactory.CreateTargetingRule("plan", TargetingOperator.Equals, values, "on");
 
         // Assert
         rule.ShouldBeOfType<StringTargetingRule>();
@@ -64,7 +64,7 @@ public class TargetingRuleFactory_CreaterTargetingRule
         var values = new List<string>();
 
         // Act
-        var rule = TargetingRuleFactory.CreaterTargetingRule("test", TargetingOperator.Equals, values, "default");
+        var rule = TargetingRuleFactory.CreateTargetingRule("test", TargetingOperator.Equals, values, "default");
 
         // Assert
         rule.ShouldBeOfType<StringTargetingRule>();
@@ -86,7 +86,7 @@ public class TargetingRuleFactory_CreaterTargetingRule
         var values = new List<string> { value };
 
         // Act
-        var rule = TargetingRuleFactory.CreaterTargetingRule("test", TargetingOperator.Equals, values, "on");
+        var rule = TargetingRuleFactory.CreateTargetingRule("test", TargetingOperator.Equals, values, "on");
 
         // Assert
         if (expectedRuleType == "NumericTargetingRule")
@@ -106,7 +106,7 @@ public class TargetingRuleFactory_CreaterTargetingRule
         var values = new List<string> { "1", "2", "100" };
 
         // Act
-        var rule = TargetingRuleFactory.CreaterTargetingRule("count", TargetingOperator.LessThan, values, "limited");
+        var rule = TargetingRuleFactory.CreateTargetingRule("count", TargetingOperator.LessThan, values, "limited");
 
         // Assert
         rule.ShouldBeOfType<NumericTargetingRule>();
@@ -121,7 +121,7 @@ public class TargetingRuleFactory_CreaterTargetingRule
         var values = new List<string> { "-1.5", "-10", "0" };
 
         // Act
-        var rule = TargetingRuleFactory.CreaterTargetingRule("balance", TargetingOperator.GreaterThan, values, "overdrawn");
+        var rule = TargetingRuleFactory.CreateTargetingRule("balance", TargetingOperator.GreaterThan, values, "overdrawn");
 
         // Assert
         rule.ShouldBeOfType<NumericTargetingRule>();

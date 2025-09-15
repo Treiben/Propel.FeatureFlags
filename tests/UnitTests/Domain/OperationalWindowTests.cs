@@ -1,7 +1,7 @@
-using Propel.FeatureFlags;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Helpers;
 
-namespace FeatureFlags.UnitTests.Core;
+namespace FeatureFlags.UnitTests.Domain;
 
 public class OperationalWindow_Validation
 {
@@ -16,8 +16,7 @@ public class OperationalWindow_Validation
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
-			OperationalWindow.CreateWindow(invalidStartTime, endTime));
-		exception.ParamName.ShouldBe("startTime");
+			new OperationalWindow(invalidStartTime, endTime));
 	}
 
 	[Theory]
@@ -31,8 +30,7 @@ public class OperationalWindow_Validation
 
 		// Act & Assert
 		var exception = Should.Throw<ArgumentException>(() =>
-			OperationalWindow.CreateWindow(startTime, invalidEndTime));
-		exception.ParamName.ShouldBe("endTime");
+			new OperationalWindow(startTime, invalidEndTime));
 	}
 
 	[Fact]
@@ -44,7 +42,7 @@ public class OperationalWindow_Validation
 
 		// Act & Assert
 		Should.Throw<ArgumentException>(() =>
-			OperationalWindow.CreateWindow(startTime, endTime, "Invalid/TimeZone"));
+			new OperationalWindow(startTime, endTime, "Invalid/TimeZone"));
 	}
 
 	[Theory]
@@ -54,7 +52,7 @@ public class OperationalWindow_Validation
 	public void CreateWindow_NullOrEmptyTimeZone_DefaultsToUtc(string? timeZone)
 	{
 		// Act
-		var window = OperationalWindow.CreateWindow(
+		var window = new OperationalWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17), timeZone);
 
 		// Assert
@@ -65,14 +63,11 @@ public class OperationalWindow_Validation
 	public void CreateWindow_DuplicateAllowedDays_RemovesDuplicates()
 	{
 		// Arrange
-		var duplicateDays = new List<DayOfWeek>
-		{
-			DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Monday
-		};
+		DayOfWeek[] duplicateDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Monday];
 
 		// Act
-		var window = OperationalWindow.CreateWindow(
-			TimeSpan.FromHours(9), TimeSpan.FromHours(17), allowedDays: duplicateDays);
+		var window = new OperationalWindow(
+			TimeSpan.FromHours(9), TimeSpan.FromHours(17), daysActive: duplicateDays);
 
 		// Assert
 		window.DaysActive.Length.ShouldBe(2);
@@ -104,7 +99,7 @@ public class OperationalWindow_IsActiveAt
 	public void IsActiveAt_WithinSameDayWindow_ReturnsTrue()
 	{
 		// Arrange
-		var window = OperationalWindow.CreateWindow(
+		var window = new OperationalWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17));
 		var evaluationTime = DateTime.UtcNow.Date.AddHours(12); // 12 PM
 
@@ -120,7 +115,7 @@ public class OperationalWindow_IsActiveAt
 	public void IsActiveAt_OutsideSameDayWindow_ReturnsFalse()
 	{
 		// Arrange
-		var window = OperationalWindow.CreateWindow(
+		var window = new OperationalWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17));
 		var evaluationTime = DateTime.UtcNow.Date.AddHours(20); // 8 PM
 
@@ -136,7 +131,7 @@ public class OperationalWindow_IsActiveAt
 	public void IsActiveAt_WithinOvernightWindow_ReturnsTrue()
 	{
 		// Arrange
-		var window = OperationalWindow.CreateWindow(
+		var window = new OperationalWindow(
 			TimeSpan.FromHours(22), TimeSpan.FromHours(6)); // 10 PM to 6 AM
 		var evaluationTime = DateTime.UtcNow.Date.AddHours(2); // 2 AM
 
@@ -152,7 +147,7 @@ public class OperationalWindow_IsActiveAt
 	public void IsActiveAt_OutsideOvernightWindow_ReturnsFalse()
 	{
 		// Arrange
-		var window = OperationalWindow.CreateWindow(
+		var window = new OperationalWindow(
 			TimeSpan.FromHours(22), TimeSpan.FromHours(6)); // 10 PM to 6 AM
 		var evaluationTime = DateTime.UtcNow.Date.AddHours(12); // 12 PM
 
@@ -168,9 +163,10 @@ public class OperationalWindow_IsActiveAt
 	public void IsActiveAt_AllowedDay_ReturnsTrue()
 	{
 		// Arrange
-		var window = OperationalWindow.CreateWindow(
-			TimeSpan.FromHours(9), TimeSpan.FromHours(17),
-			allowedDays: [DayOfWeek.Monday]);
+		var window = new OperationalWindow(
+			TimeSpan.FromHours(9), 
+			TimeSpan.FromHours(17),
+			daysActive: [DayOfWeek.Monday]);
 
 		// Create a Monday at 12 PM
 		var monday = new DateTime(2024, 1, 1, 12, 0, 0); // Jan 1, 2024 is Monday
@@ -187,9 +183,10 @@ public class OperationalWindow_IsActiveAt
 	public void IsActiveAt_DisallowedDay_ReturnsFalse()
 	{
 		// Arrange
-		var window = OperationalWindow.CreateWindow(
-			TimeSpan.FromHours(9), TimeSpan.FromHours(17),
-			allowedDays: [DayOfWeek.Monday]);
+		var window = new OperationalWindow(
+			TimeSpan.FromHours(9),
+			TimeSpan.FromHours(17),
+			daysActive: [DayOfWeek.Monday]);
 
 		// Create a Tuesday at 12 PM
 		var tuesday = new DateTime(2024, 1, 2, 12, 0, 0); // Jan 2, 2024 is Tuesday
@@ -206,7 +203,7 @@ public class OperationalWindow_IsActiveAt
 	public void IsActiveAt_InvalidTimeZone_ReturnsFalse()
 	{
 		// Arrange
-		var window = OperationalWindow.CreateWindow(
+		var window = new OperationalWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17));
 
 		// Act
@@ -221,7 +218,7 @@ public class OperationalWindow_IsActiveAt
 	public void IsActiveAt_ContextTimeZoneOverridesWindowTimeZone()
 	{
 		// Arrange
-		var window = OperationalWindow.CreateWindow(
+		var window = new OperationalWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 			"Pacific Standard Time");
 
@@ -248,7 +245,7 @@ public class OperationalWindow_TimeZoneHandling
 		foreach (var timeZone in validTimeZones)
 		{
 			// Act & Assert
-			var window = Should.NotThrow(() => OperationalWindow.CreateWindow(
+			var window = Should.NotThrow(() => new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17), timeZone));
 			window.TimeZone.ShouldBe(timeZone);
 		}
@@ -258,7 +255,7 @@ public class OperationalWindow_TimeZoneHandling
 	public void IsActiveAt_TimeZoneConversion_WorksCorrectly()
 	{
 		// Arrange - Window in Eastern Time
-		var window = OperationalWindow.CreateWindow(
+		var window = new OperationalWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 			"Eastern Standard Time");
 
@@ -280,7 +277,7 @@ public class OperationalWindow_EdgeCases
 	public void IsActiveAt_ExactStartTime_ReturnsTrue()
 	{
 		// Arrange
-		var window = OperationalWindow.CreateWindow(
+		var window = new OperationalWindow(
 			TimeSpan.FromHours(9).Add(TimeSpan.FromMinutes(30)),
 			TimeSpan.FromHours(17));
 		var evaluationTime = DateTime.UtcNow.Date.AddHours(9).AddMinutes(30);
@@ -297,7 +294,7 @@ public class OperationalWindow_EdgeCases
 	public void IsActiveAt_ExactEndTime_ReturnsTrue()
 	{
 		// Arrange
-		var window = OperationalWindow.CreateWindow(
+		var window = new OperationalWindow(
 			TimeSpan.FromHours(9),
 			TimeSpan.FromHours(17).Add(TimeSpan.FromMinutes(30)));
 		var evaluationTime = DateTime.UtcNow.Date.AddHours(17).AddMinutes(30);
@@ -314,7 +311,7 @@ public class OperationalWindow_EdgeCases
 	public void HasWindow_ZeroStartTime_ReturnsFalse()
 	{
 		// Arrange
-		var window = OperationalWindow.CreateWindow(
+		var window = new OperationalWindow(
 			TimeSpan.Zero, TimeSpan.FromHours(6));
 
 		// Act & Assert
@@ -325,7 +322,7 @@ public class OperationalWindow_EdgeCases
 	public void HasWindow_NonZeroTimes_ReturnsTrue()
 	{
 		// Arrange
-		var window = OperationalWindow.CreateWindow(
+		var window = new OperationalWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17));
 
 		// Act & Assert

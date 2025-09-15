@@ -1,11 +1,12 @@
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 
-namespace Propel.FeatureFlags.Tests.Core;
+namespace FeatureFlags.UnitTests.Domain;
 
 public class StringTargetingRuleTests
 {
 	[Theory]
-	[InlineData(TargetingOperator.Equals, "user123", new[] { "user123", "user456" }, true)]
+	[InlineData(TargetingOperator.In, "user123", new[] { "user123", "user456" }, true)]
+	[InlineData(TargetingOperator.Equals, "user123", new[] { "user123", "user456" }, false)]
 	[InlineData(TargetingOperator.Equals, "USER123", new[] { "user123" }, true)] // Case insensitive
 	[InlineData(TargetingOperator.Equals, "user789", new[] { "user123", "user456" }, false)]
 	[InlineData(TargetingOperator.NotEquals, "user789", new[] { "user123", "user456" }, true)]
@@ -16,7 +17,7 @@ public class StringTargetingRuleTests
 		var rule = new StringTargetingRule
 		{
 			Operator = op,
-			Values = ruleValues.ToList()
+			Values = [.. ruleValues]
 		};
 
 		// Act

@@ -1,8 +1,8 @@
-using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Evaluation;
-using Propel.FeatureFlags.Evaluation.Handlers;
+using Microsoft.AspNetCore.Mvc;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Services.Evaluation;
 
-namespace FeatureFlags.UnitTests.Evaluation.Handlers;
+namespace FeatureFlags.UnitTests.Evaluation;
 
 public class ActivationScheduleEvaluator_CanProcess
 {
@@ -66,7 +66,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on");
+		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Flag has no activation schedule and can be available immediately.");
 	}
 
@@ -111,7 +111,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on");
+		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Scheduled enable date reached");
 	}
 
@@ -134,7 +134,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on");
+		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Scheduled enable date reached");
 	}
 
@@ -158,7 +158,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on");
+		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Scheduled enable date reached");
 	}
 
@@ -181,7 +181,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
-		result.Variation.ShouldBe("scheduled-off");
+		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Scheduled disable date passed");
 	}
 
@@ -205,7 +205,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
-		result.Variation.ShouldBe("scheduled-off");
+		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Scheduled disable date passed");
 	}
 
@@ -247,18 +247,18 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var resultBefore = await _evaluator.ProcessEvaluation(flag,
 			new EvaluationContext(evaluationTime: launchDate.AddMinutes(-1)));
 		resultBefore.IsEnabled.ShouldBeFalse();
-		resultBefore.Variation.ShouldBe("feature-disabled");
+		resultBefore.Variation.ShouldBe(flag.Variations.DefaultVariation);
 
 		// Act & Assert - During active period
 		var resultDuring = await _evaluator.ProcessEvaluation(flag,
 			new EvaluationContext(evaluationTime: launchDate.AddDays(3)));
 		resultDuring.IsEnabled.ShouldBeTrue();
-		resultDuring.Variation.ShouldBe("on");
+		resultDuring.Variation.ShouldBe(flag.Variations.DefaultVariation);
 
 		// Act & Assert - After end
 		var resultAfter = await _evaluator.ProcessEvaluation(flag,
 			new EvaluationContext(evaluationTime: endDate.AddMinutes(1)));
 		resultAfter.IsEnabled.ShouldBeFalse();
-		resultAfter.Variation.ShouldBe("feature-disabled");
+		resultAfter.Variation.ShouldBe(flag.Variations.DefaultVariation);
 	}
 }

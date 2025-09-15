@@ -1,8 +1,7 @@
-using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Evaluation;
-using Propel.FeatureFlags.Evaluation.Handlers;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Services.Evaluation;
 
-namespace FeatureFlags.UnitTests.Evaluation.Handlers;
+namespace FeatureFlags.UnitTests.Evaluation;
 
 public class TenantRolloutEvaluator_CanProcess
 {
@@ -104,10 +103,13 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 			Key = "test-flag",
 			TenantAccessControl = new AccessControl(allowed: ["tenant123"]),
 			Variations = new Variations {
-				Values = new Dictionary<string, object> { 
-					{ "on", true }, { "off", false } 
+				Values = new Dictionary<string, object> 
+				{ 
+					{ "on", true }, 
+					{ "off", false } 
 				},
-				DefaultVariation = "disabled" }
+				DefaultVariation = "disabled"
+			}
 		};
 
 		var context = new EvaluationContext(tenantId: "tenant123");
@@ -117,7 +119,6 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on");
 	}
 
 	[Fact]

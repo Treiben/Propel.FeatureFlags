@@ -1,8 +1,7 @@
-﻿using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Evaluation;
-using Propel.FeatureFlags.Evaluation.Handlers;
+﻿using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Services.Evaluation;
 
-namespace FeatureFlags.UnitTests.Evaluation.Handlers;
+namespace FeatureFlags.UnitTests.Evaluation;
 
 public class UserRolloutEvaluatorTests
 {
@@ -143,6 +142,15 @@ public class UserRolloutEvaluatorTests
 		{
 			Key = "test-flag",
 			UserAccessControl = new AccessControl(rolloutPercentage: 100),
+			Variations = new Variations
+			{
+				Values = new Dictionary<string, object>
+				{
+					{ "enabled", true },
+					{ "restricted", false }
+				},
+				DefaultVariation = "restricted"
+			}
 		};
 		flag.Variations.DefaultVariation = "restricted";
 		var context = new EvaluationContext(userId: "any-user");
@@ -153,7 +161,7 @@ public class UserRolloutEvaluatorTests
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on");
+		result.Variation.ShouldBe("enabled");
 	}
 
 	[Fact]
@@ -200,8 +208,16 @@ public class UserRolloutEvaluatorTests
 			UserAccessControl = new AccessControl(
 				allowed: ["beta-tester"],
 				rolloutPercentage: 15),
+			Variations = new Variations
+			{
+				Values = new Dictionary<string, object> {
+					{ "stable-version", true },
+					{ "old-version", false }
+				},
+				DefaultVariation = "old-version"
+			}
 		};
-		flag.Variations.DefaultVariation = "stable-version";
+
 		// Act
 		var betaResult = await _evaluator.ProcessEvaluation(flag,
 			new EvaluationContext(userId: "beta-tester"));
@@ -210,7 +226,7 @@ public class UserRolloutEvaluatorTests
 
 		// Assert
 		betaResult.IsEnabled.ShouldBeTrue();
-		betaResult.Variation.ShouldBe("on");
+		betaResult.Variation.ShouldBe("stable-version");
 
 		regularResult.IsEnabled.ShouldBeOneOf(true, false);
 		if (regularResult.IsEnabled)
@@ -222,7 +238,7 @@ public class UserRolloutEvaluatorTests
 			regularResult.Reason.ShouldContain(@">= 15%");
 		}
 	}
-	
+
 	[Fact]
 	public async Task ProcessEvaluation_SimpleOnOffFlag_ReturnsOnVariation()
 	{
@@ -231,10 +247,10 @@ public class UserRolloutEvaluatorTests
 		{
 			Key = "simple-flag",
 			UserAccessControl = new AccessControl(allowed: ["user123"]),
-			Variations = new Variations 
-			{ 
+			Variations = new Variations
+			{
 				Values = new Dictionary<string, object> { { "on", true }, { "off", false } },
-				DefaultVariation = "off" 
+				DefaultVariation = "off"
 			}
 		};
 		var context = new EvaluationContext(userId: "user123");
@@ -256,15 +272,15 @@ public class UserRolloutEvaluatorTests
 		{
 			Key = "checkout-version",
 			UserAccessControl = new AccessControl(allowed: ["user123"]),
-			Variations = new Variations 
-			{ 
-				Values = new Dictionary<string, object> 
+			Variations = new Variations
+			{
+				Values = new Dictionary<string, object>
 				{
 					{ "v1", "version1" },
-					{ "v2", "version2" }, 
+					{ "v2", "version2" },
 					{ "v3", "version3" }
 				},
-				DefaultVariation = "v1" 
+				DefaultVariation = "v1"
 			}
 		};
 		var context = new EvaluationContext(userId: "user123");

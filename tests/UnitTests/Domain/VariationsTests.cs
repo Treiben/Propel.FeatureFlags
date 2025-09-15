@@ -1,6 +1,6 @@
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 
-namespace FeatureFlags.UnitTests.Core;
+namespace FeatureFlags.UnitTests.Domain;
 
 public class Variations_SelectVariationFor
 {
@@ -8,15 +8,7 @@ public class Variations_SelectVariationFor
 	public void SelectVariationFor_SimpleOnOffFlag_ReturnsOn()
 	{
 		// Arrange
-		var variations = new Variations
-		{
-			Values = new Dictionary<string, object>
-			{
-				{ "on", true },
-				{ "off", false }
-			},
-			DefaultVariation = "off"
-		};
+		var variations = Variations.OnOff;
 
 		// Act
 		var result = variations.SelectVariationFor("simple-flag", "user123");
