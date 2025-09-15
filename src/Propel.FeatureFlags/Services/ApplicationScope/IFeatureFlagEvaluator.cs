@@ -92,7 +92,7 @@ public sealed class FeatureFlagEvaluator(
 		FeatureFlag? flag = null;
 
 		// Try cache first
-		var cacheKey = new CacheKey(flagKey, [ApplicationName, ApplicationVersion]);
+		var cacheKey = new ApplicationCacheKey(flagKey, ApplicationName, ApplicationVersion);
 		if (cache != null)
 		{
 			flag = await cache.GetAsync(cacheKey, cancellationToken);
@@ -149,7 +149,7 @@ public sealed class FeatureFlagEvaluator(
 			if (cache != null)
 			{
 				// Create composite key for uniqueness per application
-				var cacheKey = new CacheKey(flagKey, [ApplicationName, ApplicationVersion]);
+				var cacheKey = new ApplicationCacheKey(flagKey, ApplicationName, ApplicationVersion);
 				await cache.SetAsync(cacheKey, createdFlag, cancellationToken);
 			}
 		}

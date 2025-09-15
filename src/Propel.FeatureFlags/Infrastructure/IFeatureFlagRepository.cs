@@ -96,3 +96,38 @@ public class DuplicatedFeatureFlagException : Exception
 		ApplicationVersion = applicationVersion;
 	}
 }
+
+public class FailedFlagCreationException : Exception
+{
+	public string Key { get; }
+
+	public Scope Scope { get; }
+
+	public string? ApplicationName { get; }
+
+	public string? ApplicationVersion { get; }
+
+	public FailedFlagCreationException(string message, Exception? innerException, 
+		string key, Scope scope, string? applicationName = null, string? applicationVersion = null)
+		: base(message, innerException)
+	{
+		Key = key;
+		Scope = scope;
+		ApplicationName = applicationName;
+		ApplicationVersion = applicationVersion;
+	}
+
+	public FailedFlagCreationException(
+		string message, 
+		string key,
+		Scope scope, 
+		string? applicationName = null,
+		string? applicationVersion = null)
+	: base(message)
+	{
+		Key = key;
+		Scope = scope;
+		ApplicationName = applicationName;
+		ApplicationVersion = applicationVersion;
+	}
+}

@@ -48,3 +48,19 @@ public class CacheKey
 		return sb.ToString();
 	} 
 }
+
+public class GlobalCacheKey(string key) : CacheKey(key, ["global"])
+{
+}
+
+public class ApplicationCacheKey : CacheKey
+{
+	public ApplicationCacheKey(string key, string applicationName, string? applicationVersion = null)
+		: base(key, applicationVersion == null ? ["app", applicationName] : ["app", applicationName, applicationVersion])
+	{
+		if (string.IsNullOrWhiteSpace(applicationName))
+		{
+			throw new ArgumentException("Application name cannot be null or empty.", nameof(applicationName));
+		}
+	}
+}

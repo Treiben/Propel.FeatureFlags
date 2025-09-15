@@ -31,7 +31,7 @@ public class GlobalFlagEvaluator(
 	private async Task<FeatureFlag?> GetFlagAsync(string flagKey, CancellationToken cancellationToken)
 	{
 		// Create composite key for uniqueness per application
-		var cacheKey = new CacheKey(flagKey, ["global"]);
+		var cacheKey = new GlobalCacheKey(flagKey);
 		// Try cache first
 		FeatureFlag? flag = null;
 		if (cache != null)
