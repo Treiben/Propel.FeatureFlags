@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
-using Propel.FeatureFlags;
-using Propel.FeatureFlags.Cache;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
@@ -72,7 +72,7 @@ public sealed class UpdateTargetingRulesHandler(
 			{
 				// Replace existing targeting rules with new ones
 				flag.TargetingRules = [.. request.TargetingRules.Select(dto => 
-							TargetingRuleFactory.CreaterTargetingRule(
+							TargetingRuleFactory.CreateTargetingRule(
 															dto.Attribute, 
 															dto.Operator, 
 															dto.Values,

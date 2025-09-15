@@ -1,6 +1,6 @@
 using FeatureFlags.IntegrationTests.Support;
 using Propel.FeatureFlags;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 
 namespace FeatureFlags.IntegrationTests.Postgres;
 
@@ -30,7 +30,7 @@ public class GetAsync_WhenFlagExists(PostgresRepoTestsFixture fixture) : IClassF
 		var flag = TestHelpers.CreateTestFlag("complex-flag", EvaluationMode.UserTargeted);
 		flag.TargetingRules =
 		[
-			TargetingRuleFactory.CreaterTargetingRule(
+			TargetingRuleFactory.CreateTargetingRule(
 				attribute: "region",
 				op: TargetingOperator.In,
 				values: ["US", "CA"],

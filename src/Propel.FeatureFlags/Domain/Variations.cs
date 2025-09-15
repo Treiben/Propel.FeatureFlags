@@ -11,8 +11,8 @@ public class Variations
 	{
 		Values = new Dictionary<string, object>
 		{
+			{ "on", true },
 			{ "off", false },
-			{ "on", true }
 		},
 		DefaultVariation = "off"
 	};

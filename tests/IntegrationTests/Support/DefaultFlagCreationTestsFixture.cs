@@ -1,9 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
 using Npgsql;
-using Propel.FeatureFlags.Evaluation;
+using Propel.FeatureFlags.Evaluation.ApplicationScope;
 using Propel.FeatureFlags.Evaluation.Handlers;
-using Propel.FeatureFlags.PostgresSql;
+using Propel.FeatureFlags.Infrastructure.PostgresSql;
 using Propel.FeatureFlags.Redis;
+using Propel.FeatureFlags.Services;
 using StackExchange.Redis;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
@@ -15,7 +16,7 @@ public class DefaultFlagCreationTestsFixture : IAsyncLifetime
 	private readonly PostgreSqlContainer _postgresContainer;
 	private readonly RedisContainer _redisContainer;
 
-	public FeatureFlagEvaluator Evaluator { get; private set; } = null!;
+	public IApplicationFeatureFlagEvaluator Evaluator { get; private set; } = null!;
 	public PostgreSQLFeatureFlagRepository Repository { get; private set; } = null!;
 	public RedisFeatureFlagCache Cache { get; private set; } = null!;
 	public IFlagEvaluationManager FlagEvaluationManager { get; private set; }
@@ -71,7 +72,7 @@ public class DefaultFlagCreationTestsFixture : IAsyncLifetime
 		]);
 
 		// Setup Evaluator
-		Evaluator = new FeatureFlagEvaluator(Repository, FlagEvaluationManager, Cache);
+		Evaluator = new IApplicationFeatureFlagEvaluator(Repository, FlagEvaluationManager, Cache);
 	}
 
 	public async Task DisposeAsync()

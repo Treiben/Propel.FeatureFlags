@@ -1,6 +1,5 @@
 using FlagsManagementApi.IntegrationTests.Support;
-using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.Evaluation;
+using Propel.FeatureFlags.Domain;
 
 namespace FlagsManagementApi.IntegrationTests.Handlers;
 
@@ -128,7 +127,7 @@ public class FlagEvaluationHandler_WithAttributes(FlagsManagementApiFixture fixt
 		flag.TargetingRules = 
 		[
 			TargetingRuleFactory
-			.CreaterTargetingRule(attribute: "region", 
+			.CreateTargetingRule(attribute: "region", 
 			op: TargetingOperator.In, 
 			values: ["US", "CA"], 
 			variation: "region-specific")

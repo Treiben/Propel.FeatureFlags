@@ -1,4 +1,4 @@
-﻿using Propel.FeatureFlags.Core;
+﻿using Propel.FeatureFlags.Domain;
 
 namespace FlagsManagementApi.IntegrationTests.Support;
 

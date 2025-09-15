@@ -1,7 +1,8 @@
 ﻿using FluentValidation;
-using Propel.FeatureFlags;
-using Propel.FeatureFlags.Cache;
 using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
@@ -89,7 +90,7 @@ public sealed class UpdateFlagHandler(
 		if (source.Tags != null)
 			dest.Tags = source.Tags;
 
-		dest.Lifecycle = new Lifecycle(isPermanent: source.IsPermanent, expirationDate: source.ExpirationDate);
+		dest.Retention = new RetentionPolicy(isPermanent: source.IsPermanent, expirationDate: source.ExpirationDate);
 	}
 }
 

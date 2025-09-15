@@ -1,5 +1,6 @@
 using FeatureFlags.IntegrationTests.Support;
 using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Evaluation;
 
 namespace FeatureFlags.IntegrationTests.Core.Evaluator;
@@ -77,7 +78,7 @@ public class Evaluate_WithUserTargetedFlag(EvaluatorTestsFixture fixture) : ICla
 		await fixture.ClearAllData();
 		var flag = TestHelpers.CreateTestFlag("targeted-flag", EvaluationMode.UserTargeted);
 		flag.TargetingRules = [
-			TargetingRuleFactory.CreaterTargetingRule(
+			TargetingRuleFactory.CreateTargetingRule(
 				"userId",
 				TargetingOperator.Equals,
 				["target-user"],
@@ -204,7 +205,7 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 		var flag = TestHelpers.CreateTestFlag("string-flag", EvaluationMode.UserTargeted);
 		
 		flag.TargetingRules = [
-			TargetingRuleFactory.CreaterTargetingRule(
+			TargetingRuleFactory.CreateTargetingRule(
 							attribute: "user-type",
 							op: TargetingOperator.Equals,
 							values: new List<string> { "dev-user", "test-user" },
@@ -237,7 +238,7 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 		await fixture.ClearAllData();
 		var flag = TestHelpers.CreateTestFlag("int-flag", EvaluationMode.UserTargeted);
 		flag.TargetingRules = [
-		TargetingRuleFactory.CreaterTargetingRule(
+		TargetingRuleFactory.CreateTargetingRule(
 								"userId",
 								TargetingOperator.Equals,
 								["test-user"],

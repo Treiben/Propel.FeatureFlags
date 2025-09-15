@@ -1,5 +1,5 @@
 using FlagsManagementApi.IntegrationTests.Support;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 
 namespace FlagsManagementApi.IntegrationTests.Handlers;
@@ -78,8 +78,8 @@ public class ToggleFlagHandler_DisableFlag(FlagsManagementApiFixture fixture) : 
 		updatedFlag.ShouldNotBeNull();
 		updatedFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Disabled]).ShouldBeTrue();
 		updatedFlag.UserAccessControl.RolloutPercentage.ShouldBe(0);
-		updatedFlag.Schedule.ShouldBe(Propel.FeatureFlags.Core.ActivationSchedule.Unscheduled);
-		updatedFlag.OperationalWindow.ShouldBe(Propel.FeatureFlags.Core.OperationalWindow.AlwaysOpen);
+		updatedFlag.Schedule.ShouldBe(Propel.FeatureFlags.Domain.ActivationSchedule.Unscheduled);
+		updatedFlag.OperationalWindow.ShouldBe(Propel.FeatureFlags.Domain.OperationalWindow.AlwaysOpen);
 	}
 
 	[Fact]

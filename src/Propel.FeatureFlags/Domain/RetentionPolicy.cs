@@ -8,7 +8,7 @@ public class RetentionPolicy
 	public string? ApplicationName { get; set; } = string.Empty;
 	public string? ApplicationVersion { get; set; } = string.Empty;
 
-	public static RetentionPolicy DefaultLifecycle => new(isPermanent: false,expirationDate: DateTime.UtcNow.AddDays(30),  applicationName: "Propel.FeatureFlags");
+	public static RetentionPolicy DefaultLifecycle => new(isPermanent: false, expirationDate: DateTime.UtcNow.AddDays(30),  applicationName: "Propel.FeatureFlags");
 
 	public static RetentionPolicy Permanent => new(isPermanent: true, DateTime.MaxValue.ToUniversalTime());
 

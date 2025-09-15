@@ -126,7 +126,7 @@ public class OperationalWindow
 
 	private static DayOfWeek[] ValidateAllowedDays(IEnumerable<DayOfWeek>? allowedDays)
 	{
-		if (allowedDays == null || allowedDays.Any())
+		if (allowedDays == null || !allowedDays.Any())
 		{
 			// Default to all days if none specified
 			return [DayOfWeek.Monday, 

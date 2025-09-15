@@ -26,7 +26,7 @@ public sealed class TargetingRulesEvaluator : OrderedEvaluatorBase
 		{
 			if (EvaluateTargetingRule(rule, context.Attributes))
 			{
-				return CreateEvaluationResult(flag, context, isActive: true,
+				return CreateEvaluationResult(flag, context, isActive: true, rule.Variation,
 					because: $"Targeting rule matched: {rule}");
 			}
 		}

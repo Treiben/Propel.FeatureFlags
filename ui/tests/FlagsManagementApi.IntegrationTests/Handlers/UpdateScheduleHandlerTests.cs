@@ -1,6 +1,6 @@
 using Azure;
 using FlagsManagementApi.IntegrationTests.Support;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 using Propel.FlagsManagement.Api.Endpoints;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 
@@ -84,7 +84,7 @@ public class UpdateScheduleHandler_RemoveSchedule(FlagsManagementApiFixture fixt
 		// Arrange
 		await fixture.ClearAllData();
 		var flag = TestHelpers.CreateTestFlag("scheduled-flag", EvaluationMode.Scheduled);
-		flag.Schedule = Propel.FeatureFlags.Core.ActivationSchedule.CreateSchedule(DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddDays(1));
+		flag.Schedule = Propel.FeatureFlags.Domain.ActivationSchedule.CreateSchedule(DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddDays(1));
 		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Scheduled);
 		await fixture.Repository.CreateAsync(flag);
 
@@ -103,7 +103,7 @@ public class UpdateScheduleHandler_RemoveSchedule(FlagsManagementApiFixture fixt
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("scheduled-flag");
 		updatedFlag.ShouldNotBeNull();
-		updatedFlag.Schedule.ShouldBe(Propel.FeatureFlags.Core.ActivationSchedule.Unscheduled);
+		updatedFlag.Schedule.ShouldBe(Propel.FeatureFlags.Domain.ActivationSchedule.Unscheduled);
 		updatedFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Scheduled]).ShouldBeFalse();
 	}
 
@@ -129,7 +129,7 @@ public class UpdateScheduleHandler_RemoveSchedule(FlagsManagementApiFixture fixt
 
 		var updatedFlag = await fixture.Repository.GetAsync("unscheduled-flag");
 		updatedFlag.ShouldNotBeNull();
-		updatedFlag.Schedule.ShouldBe(Propel.FeatureFlags.Core.ActivationSchedule.Unscheduled);
+		updatedFlag.Schedule.ShouldBe(Propel.FeatureFlags.Domain.ActivationSchedule.Unscheduled);
 	}
 }
 

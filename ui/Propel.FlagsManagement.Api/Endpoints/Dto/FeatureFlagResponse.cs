@@ -1,4 +1,5 @@
-﻿using Propel.FeatureFlags.Core;
+﻿using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Helpers;
 using System.Text.Json;
 
 namespace Propel.FlagsManagement.Api.Endpoints.Dto;
@@ -65,7 +66,7 @@ public record FeatureFlagResponse
 		Variations = flag.Variations;
 
 		Tags = flag.Tags;
-		IsPermanent = flag.Lifecycle.IsPermanent;
-		ExpirationDate = flag.Lifecycle.ExpirationDate;
+		IsPermanent = flag.Retention.IsPermanent;
+		ExpirationDate = flag.Retention.ExpirationDate;
 	}
 }

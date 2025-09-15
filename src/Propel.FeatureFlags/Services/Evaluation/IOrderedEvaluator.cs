@@ -20,11 +20,24 @@ public abstract class OrderedEvaluatorBase : IOrderedEvaluator
 		if (isActive)
 		{
 			var id = context.TenantId ?? context.UserId ?? "anonymous";
+
 			var selectedVariation = flag.Variations.SelectVariationFor(flag.Key, id)
 				?? flag.Variations.DefaultVariation;
 
 			return new EvaluationResult(isEnabled: true,
 				variation: selectedVariation, reason: because);
+		}
+
+		return new EvaluationResult(isEnabled: false,
+			variation: flag.Variations.DefaultVariation, reason: because);
+	}
+
+	public EvaluationResult CreateEvaluationResult(FeatureFlag flag, EvaluationContext context, bool isActive, string variation, string because)
+	{
+		if (isActive)
+		{
+			return new EvaluationResult(isEnabled: true,
+				variation: variation, reason: because);
 		}
 
 		return new EvaluationResult(isEnabled: false,

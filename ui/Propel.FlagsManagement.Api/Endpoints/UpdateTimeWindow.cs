@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
-using Propel.FeatureFlags;
-using Propel.FeatureFlags.Cache;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
@@ -66,13 +66,13 @@ public sealed class UpdateTimeWindowHandler(
 			if (request.RemoveTimeWindow)
 			{
 				flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.TimeWindow);
-				flag.OperationalWindow = FeatureFlags.Core.OperationalWindow.AlwaysOpen;
+				flag.OperationalWindow = FeatureFlags.Domain.OperationalWindow.AlwaysOpen;
 			}
 			else
 			{
 				flag.ActiveEvaluationModes.AddMode(EvaluationMode.TimeWindow);
 
-				flag.OperationalWindow = FeatureFlags.Core.OperationalWindow.CreateWindow(
+				flag.OperationalWindow = FeatureFlags.Domain.OperationalWindow.CreateWindow(
 					request.StartOn.ToTimeSpan(),
 					request.EndOn.ToTimeSpan(),
 					request.TimeZone,

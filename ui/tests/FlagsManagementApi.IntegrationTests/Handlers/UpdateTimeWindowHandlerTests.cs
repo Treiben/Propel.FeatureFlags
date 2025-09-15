@@ -1,5 +1,5 @@
 using FlagsManagementApi.IntegrationTests.Support;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 using Propel.FlagsManagement.Api.Endpoints;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 
@@ -118,7 +118,7 @@ public class UpdateTimeWindowHandler_RemoveWindow(FlagsManagementApiFixture fixt
 		// Arrange
 		await fixture.ClearAllData();
 		var flag = TestHelpers.CreateTestFlag("windowed-flag", EvaluationMode.TimeWindow);
-		flag.OperationalWindow = Propel.FeatureFlags.Core.OperationalWindow.CreateWindow(
+		flag.OperationalWindow = Propel.FeatureFlags.Domain.OperationalWindow.CreateWindow(
 			new TimeOnly(9, 0).ToTimeSpan(),
 			new TimeOnly(17, 0).ToTimeSpan(),
 			"UTC",
@@ -137,7 +137,7 @@ public class UpdateTimeWindowHandler_RemoveWindow(FlagsManagementApiFixture fixt
 
 		// Verify in repository
 		var updatedFlag = await fixture.Repository.GetAsync("windowed-flag");
-		updatedFlag.OperationalWindow.ShouldBe(Propel.FeatureFlags.Core.OperationalWindow.AlwaysOpen);
+		updatedFlag.OperationalWindow.ShouldBe(Propel.FeatureFlags.Domain.OperationalWindow.AlwaysOpen);
 		updatedFlag.ActiveEvaluationModes.ContainsModes([EvaluationMode.TimeWindow]).ShouldBeFalse();
 	}
 
@@ -159,7 +159,7 @@ public class UpdateTimeWindowHandler_RemoveWindow(FlagsManagementApiFixture fixt
 		okResult.Value.TimeWindow.ShouldBeNull();
 
 		var updatedFlag = await fixture.Repository.GetAsync("always-open-flag");
-		updatedFlag.OperationalWindow.ShouldBe(Propel.FeatureFlags.Core.OperationalWindow.AlwaysOpen);
+		updatedFlag.OperationalWindow.ShouldBe(Propel.FeatureFlags.Domain.OperationalWindow.AlwaysOpen);
 	}
 }
 

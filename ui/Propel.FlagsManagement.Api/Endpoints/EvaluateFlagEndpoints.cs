@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
 using Propel.FeatureFlags;
-using Propel.FeatureFlags.Evaluation;
+using Propel.FeatureFlags.Domain;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;

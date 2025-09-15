@@ -1,7 +1,8 @@
 ﻿using FluentValidation;
-using Propel.FeatureFlags;
-using Propel.FeatureFlags.Cache;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Helpers;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
@@ -60,15 +61,15 @@ public sealed class UpdateScheduleHandler(
 
 			if (request.RemoveSchedule)
 			{
-				flag.Schedule = FeatureFlags.Core.ActivationSchedule.Unscheduled;
+				flag.Schedule = FeatureFlags.Domain.ActivationSchedule.Unscheduled;
 				flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Scheduled);
 			}
 			else
 			{
 				flag.ActiveEvaluationModes.AddMode(EvaluationMode.Scheduled);
-				flag.Schedule = FeatureFlags.Core.ActivationSchedule.CreateSchedule(
-					DateTimeHelper.NormalizeToUtc(request.EnableOn)!.Value,
-					DateTimeHelper.NormalizeToUtc(request.DisableOn));
+				flag.Schedule = FeatureFlags.Domain.ActivationSchedule.CreateSchedule(
+					DateTimeHelpers.NormalizeToUtc(request.EnableOn)!.Value,
+					DateTimeHelpers.NormalizeToUtc(request.DisableOn));
 			}
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);

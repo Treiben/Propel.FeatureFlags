@@ -1,8 +1,9 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Propel.FeatureFlags;
-using Propel.FeatureFlags.Core;
-using Propel.FeatureFlags.PostgresSql;
-using Propel.FeatureFlags.Redis;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.PostgresSql;
+using Propel.FeatureFlags.Infrastructure.Redis;
 using Propel.FlagsManagement.Api;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 using Propel.FlagsManagement.Api.Healthchecks;

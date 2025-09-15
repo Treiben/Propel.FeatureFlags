@@ -3,8 +3,9 @@ using Npgsql;
 using Propel.FeatureFlags;
 using Propel.FeatureFlags.Evaluation;
 using Propel.FeatureFlags.Evaluation.Handlers;
-using Propel.FeatureFlags.PostgresSql;
+using Propel.FeatureFlags.Infrastructure.PostgresSql;
 using Propel.FeatureFlags.Redis;
+using Propel.FeatureFlags.Services.ApplicationScope;
 using StackExchange.Redis;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
@@ -65,7 +66,7 @@ public class ClientTestsFixture : IAsyncLifetime
 			new UserRolloutEvaluator(),
 		]);
 
-		var evaluator = new FeatureFlagEvaluator(Repository, evaluationManager, Cache);
+		var evaluator = new IApplicationFeatureFlagEvaluator(Repository, evaluationManager, Cache);
 		Client = new FeatureFlagClient(evaluator, "UTC");
 	}
 

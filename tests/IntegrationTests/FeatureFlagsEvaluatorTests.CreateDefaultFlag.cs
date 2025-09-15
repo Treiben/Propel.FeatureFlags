@@ -1,5 +1,5 @@
 using FeatureFlags.IntegrationTests.Support;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Evaluation;
 
 namespace FeatureFlags.IntegrationTests.Core.ClientWithDefaultFlags;

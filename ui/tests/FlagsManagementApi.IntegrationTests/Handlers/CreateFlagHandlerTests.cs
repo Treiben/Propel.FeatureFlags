@@ -1,5 +1,5 @@
 using FlagsManagementApi.IntegrationTests.Support;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 using Propel.FlagsManagement.Api.Endpoints;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 
@@ -118,7 +118,7 @@ public class CreateFlagHandler_WithLifecycle(FlagsManagementApiFixture fixture) 
 		createdResponse.Value.IsPermanent.ShouldBeTrue();
 
 		var createdFlag = await fixture.Repository.GetAsync("permanent-flag");
-		createdFlag.Lifecycle.IsPermanent.ShouldBeTrue();
+		createdFlag.Retention.IsPermanent.ShouldBeTrue();
 	}
 
 	[Fact]
@@ -142,7 +142,7 @@ public class CreateFlagHandler_WithLifecycle(FlagsManagementApiFixture fixture) 
 		createdResponse.Value.ExpirationDate.ShouldBe(expirationDate);
 
 		var createdFlag = await fixture.Repository.GetAsync("expiring-flag");
-		createdFlag.Lifecycle.ExpirationDate.Value.ShouldBeInRange(
+		createdFlag.Retention.ExpirationDate.Value.ShouldBeInRange(
 			expirationDate.AddTicks(-10),
 			expirationDate.AddTicks(10));
 	}

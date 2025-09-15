@@ -1,4 +1,5 @@
-﻿using Propel.FeatureFlags.Core;
+﻿using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Helpers;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 using System.Text.Json;
 
@@ -90,10 +91,10 @@ public class FeatureFlagResponseTests
 			Name = "Test Flag",
 			Description = "Test flag for unit tests",
 			ActiveEvaluationModes = new EvaluationModes([EvaluationMode.Enabled]),
-			Created = Propel.FeatureFlags.Core.Audit.FlagCreated("test-user"),
-			Schedule = Propel.FeatureFlags.Core.ActivationSchedule.Unscheduled,
-			OperationalWindow = Propel.FeatureFlags.Core.OperationalWindow.AlwaysOpen,
-			Lifecycle = Lifecycle.DefaultLifecycle,
+			Created = Propel.FeatureFlags.Domain.Audit.FlagCreated("test-user"),
+			Schedule = Propel.FeatureFlags.Domain.ActivationSchedule.Unscheduled,
+			OperationalWindow = Propel.FeatureFlags.Domain.OperationalWindow.AlwaysOpen,
+			Retention = RetentionPolicy.DefaultLifecycle,
 			UserAccessControl = AccessControl.Unrestricted,
 			TenantAccessControl = AccessControl.Unrestricted,
 			Variations = Variations.OnOff,

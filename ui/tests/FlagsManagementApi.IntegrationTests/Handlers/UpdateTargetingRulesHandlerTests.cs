@@ -1,5 +1,5 @@
 using FlagsManagementApi.IntegrationTests.Support;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 using Propel.FlagsManagement.Api.Endpoints;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 
@@ -94,7 +94,7 @@ public class UpdateTargetingRulesHandler_ReplaceExisting(FlagsManagementApiFixtu
 		await fixture.ClearAllData();
 		var flag = TestHelpers.CreateTestFlag("replace-rules-flag", EvaluationMode.TargetingRules);
 		flag.TargetingRules = [
-			TargetingRuleFactory.CreaterTargetingRule("oldAttribute", TargetingOperator.Equals, ["oldValue"], "old")
+			TargetingRuleFactory.CreateTargetingRule("oldAttribute", TargetingOperator.Equals, ["oldValue"], "old")
 		];
 		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TargetingRules);
 		await fixture.Repository.CreateAsync(flag);
@@ -127,7 +127,7 @@ public class UpdateTargetingRulesHandler_ReplaceExisting(FlagsManagementApiFixtu
 		await fixture.ClearAllData();
 		var flag = TestHelpers.CreateTestFlag("clear-rules-flag", EvaluationMode.TargetingRules);
 		flag.TargetingRules = [
-			TargetingRuleFactory.CreaterTargetingRule("existingRule", TargetingOperator.Equals, ["value"], "variation")
+			TargetingRuleFactory.CreateTargetingRule("existingRule", TargetingOperator.Equals, ["value"], "variation")
 		];
 		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TargetingRules);
 		await fixture.Repository.CreateAsync(flag);
@@ -156,8 +156,8 @@ public class UpdateTargetingRulesHandler_RemoveRules(FlagsManagementApiFixture f
 		await fixture.ClearAllData();
 		var flag = TestHelpers.CreateTestFlag("remove-rules-flag", EvaluationMode.TargetingRules);
 		flag.TargetingRules = [
-			TargetingRuleFactory.CreaterTargetingRule("userId", TargetingOperator.Equals, ["user123"], "premium"),
-			TargetingRuleFactory.CreaterTargetingRule("role", TargetingOperator.Contains, ["admin"], "admin")
+			TargetingRuleFactory.CreateTargetingRule("userId", TargetingOperator.Equals, ["user123"], "premium"),
+			TargetingRuleFactory.CreateTargetingRule("role", TargetingOperator.Contains, ["admin"], "admin")
 		];
 		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TargetingRules);
 		await fixture.Repository.CreateAsync(flag);

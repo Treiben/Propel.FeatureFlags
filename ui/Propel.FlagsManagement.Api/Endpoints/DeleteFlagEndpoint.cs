@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
-using Propel.FeatureFlags;
-using Propel.FeatureFlags.Cache;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;

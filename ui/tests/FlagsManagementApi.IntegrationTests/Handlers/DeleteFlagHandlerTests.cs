@@ -1,5 +1,6 @@
 using FlagsManagementApi.IntegrationTests.Support;
 using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 
 namespace FlagsManagementApi.IntegrationTests.Handlers;
 
@@ -90,7 +91,7 @@ public class DeleteFlagHandler_PermanentFlag(FlagsManagementApiFixture fixture) 
 		// Arrange
 		await fixture.ClearAllData();
 		var permanentFlag = TestHelpers.CreateTestFlag("permanent-flag", EvaluationMode.Enabled);
-		permanentFlag.Lifecycle = new Lifecycle(expirationDate: null, isPermanent: true);
+		permanentFlag.Retention = new RetentionPolicy(expirationDate: null, isPermanent: true);
 		await fixture.Repository.CreateAsync(permanentFlag);
 
 		// Act

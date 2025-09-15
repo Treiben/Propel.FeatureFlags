@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
-using Propel.FeatureFlags;
-using Propel.FeatureFlags.Cache;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
@@ -85,8 +85,8 @@ public sealed class ToggleFlagHandler(
 			flag.ActiveEvaluationModes.AddMode(evaluationMode);
 
 			// Reset scheduling, time window, and user/tenant access when manually toggling
-			flag.Schedule = FeatureFlags.Core.ActivationSchedule.Unscheduled;
-			flag.OperationalWindow = FeatureFlags.Core.OperationalWindow.AlwaysOpen;
+			flag.Schedule = FeatureFlags.Domain.ActivationSchedule.Unscheduled;
+			flag.OperationalWindow = FeatureFlags.Domain.OperationalWindow.AlwaysOpen;
 			flag.UserAccessControl = new AccessControl(rolloutPercentage: evaluationMode == EvaluationMode.Enabled ? 100 : 0);
 			flag.TenantAccessControl = new AccessControl(rolloutPercentage: evaluationMode == EvaluationMode.Enabled ? 100 : 0);
 

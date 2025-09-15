@@ -1,5 +1,6 @@
 using FeatureFlags.IntegrationTests.Support;
 using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 using StackExchange.Redis;
 
 namespace FeatureFlags.IntegrationTests;
@@ -40,13 +41,13 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		var flag = TestHelpers.CreateTestFlag("complex-flag", EvaluationMode.UserTargeted);
 		flag.TargetingRules =
 		[
-			TargetingRuleFactory.CreaterTargetingRule(
+			TargetingRuleFactory.CreateTargetingRule(
 				"region",
 				TargetingOperator.In,
 				["US", "CA", "UK"],
 				"region-specific"
 			),
-			TargetingRuleFactory.CreaterTargetingRule(
+			TargetingRuleFactory.CreateTargetingRule(
 				"age",
 				TargetingOperator.GreaterThan,
 				["18", "21"],
@@ -170,7 +171,7 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 			"America/New_York", 
 			[DayOfWeek.Monday, DayOfWeek.Friday]);
 
-		flag.Lifecycle = new Lifecycle(expirationDate: DateTime.UtcNow.AddDays(30), isPermanent: false);
+		flag.Retention = new RetentionPolicy(expirationDate: DateTime.UtcNow.AddDays(30), isPermanent: false);
 		flag.Schedule = schedule;
 		flag.OperationalWindow = operationalWindow;
 
@@ -182,7 +183,7 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 		// Assert
 		result.ShouldNotBeNull();
 		result.Lifecycle.ExpirationDate.ShouldNotBeNull();
-		result.Lifecycle.ExpirationDate.Value.ShouldBeInRange(flag.Lifecycle.ExpirationDate!.Value.AddSeconds(-1), flag.Lifecycle.ExpirationDate.Value.AddSeconds(1));
+		result.Lifecycle.ExpirationDate.Value.ShouldBeInRange(flag.Retention.ExpirationDate!.Value.AddSeconds(-1), flag.Retention.ExpirationDate.Value.AddSeconds(1));
 		result.Schedule.ShouldBeEquivalentTo(schedule);
 		result.OperationalWindow.ShouldBeEquivalentTo(operationalWindow);
 	}

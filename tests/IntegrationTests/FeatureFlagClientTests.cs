@@ -1,5 +1,6 @@
 using FeatureFlags.IntegrationTests.Support;
 using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 
 namespace FeatureFlags.IntegrationTests.Core.Client;
 
@@ -30,7 +31,7 @@ public class IsEnabledAsync_WithTargetedFlag(ClientTestsFixture fixture) : IClas
 		await fixture.ClearAllData();
 		var flag = TestHelpers.CreateTestFlag("client-targeted", EvaluationMode.UserTargeted);
 		flag.TargetingRules = [
-			TargetingRuleFactory.CreaterTargetingRule(
+			TargetingRuleFactory.CreateTargetingRule(
 				"region",
 				TargetingOperator.Equals,
 				["us-west"],
@@ -59,7 +60,7 @@ public class GetVariationAsync_WithStringVariation(ClientTestsFixture fixture) :
 		var flag = TestHelpers.CreateTestFlag("client-variation", EvaluationMode.TargetingRules);
 
 		flag.TargetingRules = [
-			TargetingRuleFactory.CreaterTargetingRule(
+			TargetingRuleFactory.CreateTargetingRule(
 								"userId",
 								TargetingOperator.Equals,
 								["premium-user"],

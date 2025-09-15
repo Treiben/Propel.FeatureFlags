@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Npgsql;
-using Propel.FeatureFlags.PostgresSql;
+using Propel.FeatureFlags.Infrastructure.PostgresSql;
 using Testcontainers.PostgreSql;
 
 namespace FeatureFlags.IntegrationTests.Support;

@@ -1,5 +1,5 @@
 ﻿using Npgsql;
-using Propel.FeatureFlags.Core;
+using Propel.FeatureFlags.Domain;
 
 namespace FeatureFlags.IntegrationTests.Support;
 
