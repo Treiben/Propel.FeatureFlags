@@ -126,7 +126,7 @@ CREATE TABLE feature_flags (
     expiration_date TIMESTAMP WITH TIME ZONE NOT NULL,
 	application_name VARCHAR(255) NOT NULL DEFAULT 'global',
 	application_version VARCHAR(100) NULL,
-	scope VARCHAR(50) NOT NULL DEFAULT 'global',
+	scope INT NOT NULL DEFAULT 0,
     
     -- Scheduling
     scheduled_enable_date TIMESTAMP WITH TIME ZONE NULL,

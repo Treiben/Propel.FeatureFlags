@@ -33,7 +33,7 @@ public static class FeatureFlagExtensions
 {
 	public static FlagKey ToFlagKey(this FeatureFlag flag)
 	{
-		if (flag == null) 
+		if (flag == null)
 			throw new ArgumentNullException(nameof(flag));
 		return new FlagKey(
 			key: flag.Key,
@@ -73,4 +73,26 @@ public interface IFeatureFlagRepository
 	Task<FeatureFlag> CreateAsync(FeatureFlag flag, CancellationToken cancellationToken = default);
 	Task<FeatureFlag> UpdateAsync(FeatureFlag flag, CancellationToken cancellationToken = default);
 	Task<bool> DeleteAsync(FeatureFlag flag, CancellationToken cancellationToken = default);
+}
+
+public class DuplicatedFeatureFlagException : Exception
+{
+	public string Key { get; }
+
+	public Scope Scope { get; }
+
+	public string? ApplicationName { get; }
+
+	public string? ApplicationVersion { get; }
+
+	public DuplicatedFeatureFlagException(string key,
+		Scope scope,
+		string? applicationName = null,
+		string? applicationVersion = null) : base("Cannot create a duplicated feature flag.")
+	{
+		Key = key;
+		Scope = scope;
+		ApplicationName = applicationName;
+		ApplicationVersion = applicationVersion;
+	}
 }

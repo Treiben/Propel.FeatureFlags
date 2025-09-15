@@ -288,7 +288,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		{
 			var message = "Feature flag with key '{Key}' already exists in scope '{Scope}' for application '{ApplicationName}'";
 			_logger.LogWarning(message, key.Key, key.Scope, key.ApplicationName);
-			throw new InvalidOperationException(string.Format(message, key.Key, key.Scope, key.ApplicationName));
+			throw new DuplicatedFeatureFlagException(key.Key, key.Scope, key.ApplicationName);
 		}
 	}
 
@@ -525,13 +525,13 @@ public static class NpgsqlDataReaderExtensions
 	{
 		// Load evaluation modes
 		var evaluationModes = await reader.DeserializeAsync<int[]>("evaluation_modes");
-		var evaluationModeSet = new EvaluationModes(evaluationModes?.Select(m => (EvaluationMode)m).ToArray());
+		var evaluationModeSet = new EvaluationModes([.. evaluationModes.Select(m => (EvaluationMode)m)]);
 
 		// Load retention policy
 		var retention = new RetentionPolicy(
 			isPermanent: await reader.GetFieldValueAsync<bool>("is_permanent"),
 			expirationDate: await reader.GetFieldValueOrDefaultAsync<DateTime?>("expiration_date") ?? DateTime.UtcNow.AddDays(30),
-			scope: await reader.GetFieldValueAsync<Scope>("scope"),
+			scope: (Scope)(await reader.GetFieldValueAsync<int>("scope")),
 			applicationName: await reader.GetFieldValueOrDefaultAsync<string?>("application_name"),
 			applicationVersion: await reader.GetFieldValueOrDefaultAsync<string?>("application_version")
 		);
