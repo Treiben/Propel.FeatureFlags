@@ -11,8 +11,7 @@ public class OperationalWindowEvaluator_CanProcess
 	public void CanProcess_FlagHasTimeWindowMode_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
-		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TimeWindow);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.TimeWindow]) };
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
@@ -22,9 +21,7 @@ public class OperationalWindowEvaluator_CanProcess
 	public void CanProcess_FlagHasMultipleModesIncludingTimeWindow_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
-		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TimeWindow);
-		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Scheduled);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.TimeWindow, EvaluationMode.Scheduled]) };
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
@@ -38,8 +35,7 @@ public class OperationalWindowEvaluator_CanProcess
 	public void CanProcess_FlagDoesNotHaveTimeWindowMode_ReturnsFalse(EvaluationMode mode)
 	{
 		// Arrange
-		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
-		flag.ActiveEvaluationModes.AddMode(mode);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes([mode]) };
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeFalse();

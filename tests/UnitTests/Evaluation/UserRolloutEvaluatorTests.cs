@@ -27,10 +27,9 @@ public class UserRolloutEvaluatorTests
 		// Arrange
 		var flag = new FeatureFlag
 		{
-			ActiveEvaluationModes = new EvaluationModes(),
+			ActiveEvaluationModes = new EvaluationModes([EvaluationMode.UserRolloutPercentage]),
 			UserAccessControl = new AccessControl(rolloutPercentage: 50)
 		};
-		flag.ActiveEvaluationModes.AddMode(EvaluationMode.UserRolloutPercentage);
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act & Assert
@@ -44,7 +43,6 @@ public class UserRolloutEvaluatorTests
 		var flag = new FeatureFlag
 		{
 			UserAccessControl = AccessControl.Unrestricted,
-			ActiveEvaluationModes = new EvaluationModes()
 		};
 		var context = new EvaluationContext(userId: "user123");
 

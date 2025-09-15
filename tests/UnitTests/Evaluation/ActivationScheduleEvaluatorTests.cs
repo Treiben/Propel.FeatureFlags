@@ -12,8 +12,7 @@ public class ActivationScheduleEvaluator_CanProcess
 	public void CanProcess_FlagHasScheduledMode_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
-		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Scheduled);
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.Scheduled]) };
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
@@ -23,10 +22,7 @@ public class ActivationScheduleEvaluator_CanProcess
 	public void CanProcess_FlagHasMultipleModesIncludingScheduled_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
-		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Scheduled);
-		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TimeWindow);
-
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.Scheduled, EvaluationMode.TimeWindow]) };
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
 	}
@@ -39,7 +35,7 @@ public class ActivationScheduleEvaluator_CanProcess
 	public void CanProcess_FlagDoesNotHaveScheduledMode_ReturnsFalse(EvaluationMode mode)
 	{
 		// Arrange
-		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes() };
+		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes([]) };
 		flag.ActiveEvaluationModes.AddMode(mode);
 
 		// Act & Assert

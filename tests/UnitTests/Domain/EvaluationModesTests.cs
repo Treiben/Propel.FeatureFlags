@@ -5,35 +5,10 @@ namespace FeatureFlags.UnitTests.Domain;
 public class EvaluationModes_DisabledMutualExclusion
 {
 	[Fact]
-	public void Constructor_DefaultsToDisabled()
-	{
-		// Act
-		var modeSet = new EvaluationModes();
-
-		// Assert
-		modeSet.Modes.ShouldBe(new[] { EvaluationMode.Disabled });
-	}
-
-	[Fact]
-	public void AddMode_NonDisabledToDisabled_ReplacesDisabledWithMode()
-	{
-		// Arrange
-		var modeSet = new EvaluationModes();
-
-		// Act
-		modeSet.AddMode(EvaluationMode.Enabled);
-
-		// Assert
-		modeSet.Modes.ShouldBe(new[] { EvaluationMode.Enabled });
-	}
-
-	[Fact]
 	public void AddMode_DisabledToMultipleModes_ReplacesAllWithDisabled()
 	{
 		// Arrange
-		var modeSet = new EvaluationModes();
-		modeSet.AddMode(EvaluationMode.Enabled);
-		modeSet.AddMode(EvaluationMode.Scheduled);
+		var modeSet = new EvaluationModes([EvaluationMode.Enabled, EvaluationMode.Scheduled]);
 
 		// Act
 		modeSet.AddMode(EvaluationMode.Disabled);
@@ -50,7 +25,7 @@ public class EvaluationModes_DisabledMutualExclusion
 	public void AddMode_AnyNonDisabledMode_RemovesDisabled(EvaluationMode mode)
 	{
 		// Arrange
-		var modeSet = new EvaluationModes();
+		var modeSet = new EvaluationModes([EvaluationMode.Disabled]);
 
 		// Act
 		modeSet.AddMode(mode);
@@ -66,12 +41,7 @@ public class EvaluationModes_AddRemoveOperations
 	public void AddMode_MultipleModes_KeepsAllNonDisabled()
 	{
 		// Arrange
-		var modeSet = new EvaluationModes();
-
-		// Act
-		modeSet.AddMode(EvaluationMode.Enabled);
-		modeSet.AddMode(EvaluationMode.Scheduled);
-		modeSet.AddMode(EvaluationMode.TimeWindow);
+		var modeSet = new EvaluationModes([EvaluationMode.Enabled, EvaluationMode.Scheduled, EvaluationMode.TimeWindow]);
 
 		// Assert
 		modeSet.Modes.Count.ShouldBe(3);
@@ -84,8 +54,7 @@ public class EvaluationModes_AddRemoveOperations
 	public void AddMode_ExistingMode_DoesNotDuplicate()
 	{
 		// Arrange
-		var modeSet = new EvaluationModes();
-		modeSet.AddMode(EvaluationMode.Enabled);
+		var modeSet = new EvaluationModes([EvaluationMode.Enabled]);
 
 		// Act
 		modeSet.AddMode(EvaluationMode.Enabled);
@@ -98,9 +67,7 @@ public class EvaluationModes_AddRemoveOperations
 	public void RemoveMode_ExistingMode_RemovesMode()
 	{
 		// Arrange
-		var modeSet = new EvaluationModes();
-		modeSet.AddMode(EvaluationMode.Enabled);
-		modeSet.AddMode(EvaluationMode.Scheduled);
+		var modeSet = new EvaluationModes([EvaluationMode.Enabled, EvaluationMode.Scheduled]);
 
 		// Act
 		modeSet.RemoveMode(EvaluationMode.Enabled);
@@ -113,8 +80,7 @@ public class EvaluationModes_AddRemoveOperations
 	public void RemoveMode_NonExistingMode_NoChange()
 	{
 		// Arrange
-		var modeSet = new EvaluationModes();
-		modeSet.AddMode(EvaluationMode.Enabled);
+		var modeSet = new EvaluationModes([EvaluationMode.Enabled]);
 
 		// Act
 		modeSet.RemoveMode(EvaluationMode.Scheduled);
@@ -127,8 +93,7 @@ public class EvaluationModes_AddRemoveOperations
 	public void RemoveMode_AllModes_DefaultsToDisabled()
 	{
 		// Arrange
-		var modeSet = new EvaluationModes();
-		modeSet.AddMode(EvaluationMode.Enabled);
+		var modeSet = new EvaluationModes([EvaluationMode.Enabled]);
 
 		// Act
 		modeSet.RemoveMode(EvaluationMode.Enabled);
@@ -144,10 +109,7 @@ public class EvaluationModes_ContainsModes
 	public void ContainsModes_AnyTrue_ReturnsTrueWhenAnyMatch()
 	{
 		// Arrange
-		var modeSet = new EvaluationModes();
-		modeSet.AddMode(EvaluationMode.Enabled);
-		modeSet.AddMode(EvaluationMode.Scheduled);
-
+		var modeSet = new EvaluationModes([EvaluationMode.Enabled, EvaluationMode.Scheduled]);
 		var modesToCheck = new[] { EvaluationMode.Enabled, EvaluationMode.TimeWindow };
 
 		// Act
@@ -161,9 +123,7 @@ public class EvaluationModes_ContainsModes
 	public void ContainsModes_AnyTrue_ReturnsFalseWhenNoneMatch()
 	{
 		// Arrange
-		var modeSet = new EvaluationModes();
-		modeSet.AddMode(EvaluationMode.Enabled);
-
+		var modeSet = new EvaluationModes([EvaluationMode.Enabled]);
 		var modesToCheck = new[] { EvaluationMode.TimeWindow, EvaluationMode.UserTargeted };
 
 		// Act
@@ -177,10 +137,7 @@ public class EvaluationModes_ContainsModes
 	public void ContainsModes_AnyFalse_ReturnsTrueWhenAllMatch()
 	{
 		// Arrange
-		var modeSet = new EvaluationModes();
-		modeSet.AddMode(EvaluationMode.Enabled);
-		modeSet.AddMode(EvaluationMode.Scheduled);
-
+		var modeSet = new EvaluationModes([EvaluationMode.Enabled, EvaluationMode.Scheduled]);
 		var modesToCheck = new[] { EvaluationMode.Enabled, EvaluationMode.Scheduled };
 
 		// Act
@@ -194,9 +151,7 @@ public class EvaluationModes_ContainsModes
 	public void ContainsModes_AnyFalse_ReturnsFalseWhenNotAllMatch()
 	{
 		// Arrange
-		var modeSet = new EvaluationModes();
-		modeSet.AddMode(EvaluationMode.Enabled);
-
+		var modeSet = new EvaluationModes([EvaluationMode.Enabled]);
 		var modesToCheck = new[] { EvaluationMode.Enabled, EvaluationMode.TimeWindow };
 
 		// Act
@@ -204,22 +159,6 @@ public class EvaluationModes_ContainsModes
 
 		// Assert
 		result.ShouldBeFalse();
-	}
-
-	[Fact]
-	public void ContainsModes_DefaultParameter_DefaultsToAnyTrue()
-	{
-		// Arrange
-		var modeSet = new EvaluationModes();
-		modeSet.AddMode(EvaluationMode.Enabled);
-
-		var modesToCheck = new[] { EvaluationMode.Enabled, EvaluationMode.TimeWindow };
-
-		// Act
-		var result = modeSet.ContainsModes(modesToCheck);
-
-		// Assert
-		result.ShouldBeTrue(); // Should default to any=true
 	}
 }
 
@@ -242,18 +181,17 @@ public class EvaluationModes_ComplexScenarios
 	public void ComplexScenario_DisabledToggling_BehavesCorrectly()
 	{
 		// Arrange
-		var modeSet = new EvaluationModes();
-
-		// Start with disabled
-		modeSet.Modes.ShouldBe(new[] { EvaluationMode.Disabled });
+		var modeSet = new EvaluationModes([]);
 
 		// Add multiple non-disabled modes
 		modeSet.AddMode(EvaluationMode.Enabled);
 		modeSet.AddMode(EvaluationMode.Scheduled);
+
 		modeSet.Modes.ShouldNotContain(EvaluationMode.Disabled);
 
 		// Add disabled (should clear all)
 		modeSet.AddMode(EvaluationMode.Disabled);
+
 		modeSet.Modes.ShouldBe(new[] { EvaluationMode.Disabled });
 
 		// Add non-disabled again
@@ -265,12 +203,9 @@ public class EvaluationModes_ComplexScenarios
 	public void ChainedOperations_WorksCorrectly()
 	{
 		// Arrange
-		var modeSet = new EvaluationModes();
+		var modeSet = new EvaluationModes([EvaluationMode.Enabled, EvaluationMode.Scheduled, EvaluationMode.TimeWindow]);
 
 		// Act
-		modeSet.AddMode(EvaluationMode.Enabled);
-		modeSet.AddMode(EvaluationMode.Scheduled);
-		modeSet.AddMode(EvaluationMode.TimeWindow);
 		modeSet.RemoveMode(EvaluationMode.Scheduled);
 
 		// Assert

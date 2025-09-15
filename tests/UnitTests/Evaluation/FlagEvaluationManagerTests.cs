@@ -71,7 +71,6 @@ public class FlagEvaluationManager_ProcessEvaluation_SingleHandler
 		var flag = new FeatureFlag 
 		{ 
 			Key = "test-flag",
-			ActiveEvaluationModes = new EvaluationModes(),
 			Variations = new Variations { DefaultVariation = "default" }
 		};
 		var context = new EvaluationContext();
@@ -98,7 +97,6 @@ public class FlagEvaluationManager_ProcessEvaluation_SingleHandler
 		var flag = new FeatureFlag 
 		{ 
 			Key = "test-flag",
-			ActiveEvaluationModes = new EvaluationModes(),
 			Variations = new Variations { DefaultVariation = "no-handlers" }
 		};
 		var context = new EvaluationContext();
@@ -134,7 +132,6 @@ public class FlagEvaluationManager_ProcessEvaluation_MultipleHandlers
 		var flag = new FeatureFlag 
 		{ 
 			Key = "test-flag",
-			ActiveEvaluationModes = new EvaluationModes(),
 			Variations = new Variations { DefaultVariation = "default" }
 		};
 		var context = new EvaluationContext();
@@ -172,7 +169,6 @@ public class FlagEvaluationManager_ProcessEvaluation_MultipleHandlers
 		var flag = new FeatureFlag 
 		{ 
 			Key = "test-flag",
-			ActiveEvaluationModes = new EvaluationModes(),
 			Variations = new Variations { DefaultVariation = "all-passed" }
 		};
 		var context = new EvaluationContext(tenantId: "tenant1", userId: "user1");
@@ -222,7 +218,6 @@ public class FlagEvaluationManager_ProcessEvaluation_MultipleHandlers
 		var flag = new FeatureFlag 
 		{ 
 			Key = "order-test-flag",
-			ActiveEvaluationModes = new EvaluationModes(),
 			Variations = new Variations { DefaultVariation = "ordered" }
 		};
 		var context = new EvaluationContext();
@@ -250,7 +245,6 @@ public class FlagEvaluationManager_ProcessEvaluation_EdgeCases
 		var flag = new FeatureFlag 
 		{ 
 			Key = "no-handlers-flag",
-			ActiveEvaluationModes = new EvaluationModes(),
 			Variations = new Variations { DefaultVariation = "no-evaluators" }
 		};
 		var context = new EvaluationContext();
@@ -282,7 +276,6 @@ public class FlagEvaluationManager_ProcessEvaluation_EdgeCases
 		var flag = new FeatureFlag 
 		{ 
 			Key = "null-result-flag",
-			ActiveEvaluationModes = new EvaluationModes(),
 			Variations = new Variations { DefaultVariation = "default" }
 		};
 		var context = new EvaluationContext();
@@ -315,7 +308,6 @@ public class FlagEvaluationManager_ProcessEvaluation_EdgeCases
 		var flag = new FeatureFlag 
 		{ 
 			Key = "faulty-flag",
-			ActiveEvaluationModes = new EvaluationModes(),
 			Variations = new Variations { DefaultVariation = "default" }
 		};
 		var context = new EvaluationContext();
@@ -348,7 +340,6 @@ public class FlagEvaluationManager_ProcessEvaluation_RealWorldScenarios
 		var flag = new FeatureFlag
 		{
 			Key = "realistic-test-flag",
-			ActiveEvaluationModes = new EvaluationModes(),
 			Variations = new Variations { DefaultVariation = "disabled-state" }
 		};
 		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Disabled);

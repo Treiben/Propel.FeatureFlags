@@ -27,10 +27,9 @@ public class TenantRolloutEvaluator_CanProcess
 		// Arrange
 		var flag = new FeatureFlag
 		{
-			ActiveEvaluationModes = new EvaluationModes(),
+			ActiveEvaluationModes = new EvaluationModes([EvaluationMode.TenantRolloutPercentage]),
 			TenantAccessControl = new AccessControl(rolloutPercentage: 95)
 		};
-		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TenantRolloutPercentage);
 		var context = new EvaluationContext(tenantId: "tenant123");
 
 		// Act & Assert
@@ -43,10 +42,9 @@ public class TenantRolloutEvaluator_CanProcess
 		// Arrange
 		var flag = new FeatureFlag
 		{
-			ActiveEvaluationModes = new EvaluationModes(),
+			ActiveEvaluationModes = new EvaluationModes([EvaluationMode.TenantRolloutPercentage]),
 			TenantAccessControl = AccessControl.Unrestricted // No restrictions
 		};
-		flag.ActiveEvaluationModes.AddMode(EvaluationMode.TenantRolloutPercentage);
 		var context = new EvaluationContext(tenantId: "tenant123");
 
 		// Act & Assert
@@ -59,7 +57,6 @@ public class TenantRolloutEvaluator_CanProcess
 		// Arrange
 		var flag = new FeatureFlag
 		{
-			ActiveEvaluationModes = new EvaluationModes(),
 			TenantAccessControl = new AccessControl(allowed: ["tenant123"])
 		};
 		var context = new EvaluationContext(userId: "user123"); // No tenant ID
