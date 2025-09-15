@@ -27,10 +27,10 @@ public static class DateTimeHelpers
 		return dateTime.Value.ToUniversalTime();
 	}
 
-	public static DateTime? NormalizeToUtc(DateTimeOffset? dateTimeOffset, DateTime replaceWith)
+	public static DateTime NormalizeToUtc(DateTimeOffset? dateTimeOffset, DateTime utcReplacmentDt)
 	{
 		if (!dateTimeOffset.HasValue)
-			return replaceWith.ToUniversalTime();
+			return utcReplacmentDt;
 
 		if (dateTimeOffset.Value == DateTimeOffset.MinValue)
 			return DateTime.MinValue.ToUniversalTime();

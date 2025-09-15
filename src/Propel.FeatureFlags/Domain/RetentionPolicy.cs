@@ -7,9 +7,9 @@ public class RetentionPolicy
 {
 	public DateTime ExpirationDate { get; }
 	public bool IsPermanent { get; }
-	public Scope Scope { get; set; } = Scope.Application;
-	public string? ApplicationName { get; set; } = string.Empty;
-	public string? ApplicationVersion { get; set; } = string.Empty;
+	public Scope Scope { get; } = Scope.Application;
+	public string? ApplicationName { get; } = string.Empty;
+	public string? ApplicationVersion { get; } = string.Empty;
 
 	public static RetentionPolicy ApplicationDefault => new(isPermanent: false,
 		expirationDate: DateTime.UtcNow.AddDays(30), 

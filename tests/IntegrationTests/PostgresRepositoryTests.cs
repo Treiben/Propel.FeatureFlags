@@ -374,7 +374,7 @@ public class UpdateAsync_WithExistingFlag(PostgresRepoTestsFixture fixture) : IC
 		var (flag, _) = TestHelpers.SetupTestCases("non-existent-update", EvaluationMode.Enabled);
 
 		// Act & Assert
-		await Should.ThrowAsync<InvalidOperationException>(() => fixture.Repository.UpdateAsync(flag));
+		await Should.ThrowAsync<FlagUpdateException>(() => fixture.Repository.UpdateAsync(flag));
 	}
 }
 
@@ -390,7 +390,8 @@ public class DeleteAsync_WhenFlagExists(PostgresRepoTestsFixture fixture) : ICla
 		var flagKey = flag.ToFlagKey();
 
 		// Act
-		var result = await fixture.Repository.DeleteAsync(flag);
+
+		var result = await fixture.Repository.DeleteAsync(flagKey);
 
 		// Assert
 		result.ShouldBeTrue();

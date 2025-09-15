@@ -92,9 +92,8 @@ public class DateTimeHelpers_NormalizeToUtc_DateTimeOffset
 		var result = DateTimeHelpers.NormalizeToUtc(utcOffset, _utcReplacement);
 
 		// Assert
-		result.ShouldNotBeNull();
-		result.Value.Kind.ShouldBe(DateTimeKind.Utc);
-		result.Value.ShouldBe(utcOffset.DateTime);
+		result.Kind.ShouldBe(DateTimeKind.Utc);
+		result.ShouldBe(utcOffset.DateTime);
 	}
 
 	[Fact]
@@ -107,9 +106,8 @@ public class DateTimeHelpers_NormalizeToUtc_DateTimeOffset
 		var result = DateTimeHelpers.NormalizeToUtc(localOffset, _utcReplacement);
 
 		// Assert
-		result.ShouldNotBeNull();
-		result.Value.Kind.ShouldBe(DateTimeKind.Utc);
-		result.Value.ShouldBe(localOffset.DateTime.ToUniversalTime());
+		result.Kind.ShouldBe(DateTimeKind.Utc);
+		result.ShouldBe(localOffset.DateTime.ToUniversalTime());
 	}
 
 	[Fact]
@@ -122,9 +120,8 @@ public class DateTimeHelpers_NormalizeToUtc_DateTimeOffset
 		var result = DateTimeHelpers.NormalizeToUtc(minValue, _utcReplacement);
 
 		// Assert
-		result.ShouldNotBeNull();
-		result.Value.Kind.ShouldBe(DateTimeKind.Utc);
-		result.Value.ShouldBe(DateTime.MinValue.ToUniversalTime());
+		result.Kind.ShouldBe(DateTimeKind.Utc);
+		result.ShouldBe(DateTime.MinValue.ToUniversalTime());
 	}
 
 	[Fact]
@@ -137,9 +134,8 @@ public class DateTimeHelpers_NormalizeToUtc_DateTimeOffset
 		var result = DateTimeHelpers.NormalizeToUtc(maxValue, _utcReplacement);
 
 		// Assert
-		result.ShouldNotBeNull();
-		result.Value.Kind.ShouldBe(DateTimeKind.Utc);
-		result.Value.ShouldBe(DateTime.MaxValue.ToUniversalTime());
+		result.Kind.ShouldBe(DateTimeKind.Utc);
+		result.ShouldBe(DateTime.MaxValue.ToUniversalTime());
 	}
 
 	[Fact]
@@ -150,11 +146,10 @@ public class DateTimeHelpers_NormalizeToUtc_DateTimeOffset
 		var localReplacement = new DateTime(2024, 6, 15, 10, 30, 0, DateTimeKind.Local);
 
 		// Act
-		var result = DateTimeHelpers.NormalizeToUtc(nullValue, localReplacement);
+		var result = DateTimeHelpers.NormalizeToUtc(nullValue, localReplacement.ToUniversalTime());
 
 		// Assert
-		result.ShouldNotBeNull();
-		result.Value.Kind.ShouldBe(DateTimeKind.Utc);
-		result.Value.ShouldBe(localReplacement.ToUniversalTime());
+		result.Kind.ShouldBe(DateTimeKind.Utc);
+		result.ShouldBe(localReplacement.ToUniversalTime());
 	}
 }

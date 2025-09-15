@@ -20,12 +20,12 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		_logger.LogDebug("PostgreSQL Feature Flag Repository initialized with connection pooling");
 	}
 
-	public async Task<FeatureFlag?> GetAsync(FlagKey key, CancellationToken cancellationToken = default)
+	public async Task<FeatureFlag?> GetAsync(FlagKey flagKey, CancellationToken cancellationToken = default)
 	{
 		_logger.LogDebug("Getting feature flag with key: {Key}, Scope: {Scope}, Application: {Application}",
-			key, key.Scope, key.ApplicationName);
+			flagKey, flagKey.Scope, flagKey.ApplicationName);
 
-		var (whereClause, parameters) = BuildWhereClause(key);
+		var (whereClause, parameters) = BuildWhereClause(flagKey);
 		var sql = $"SELECT * FROM feature_flags {whereClause}";
 
 		try
@@ -39,7 +39,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 			if (!await reader.ReadAsync(cancellationToken))
 			{
-				_logger.LogDebug("Feature flag with key {Key} not found within scope {Scope}", key, key.Scope);
+				_logger.LogDebug("Feature flag with key {Key} not found within scope {Scope}", flagKey, flagKey.Scope);
 				return null;
 			}
 
@@ -50,7 +50,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
 		{
-			_logger.LogError(ex, "Error retrieving feature flag with key {Key}", key);
+			_logger.LogError(ex, "Error retrieving feature flag with key {Key}", flagKey);
 			throw;
 		}
 	}
@@ -180,15 +180,22 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			command.AddParameters(flag);
 
 			await connection.OpenAsync(cancellationToken);
-			await command.ExecuteNonQueryAsync(cancellationToken);
+			var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
+
+			if (rowsAffected == 0)
+				throw new FlagInsertException("Failed to add a feature flag: inserted 0 records", 
+					flag.Key, flag.Retention.Scope, flag.Retention.ApplicationName, flag.Retention.ApplicationVersion);
 
 			_logger.LogDebug("Successfully created feature flag: {Key}", flag.Key);
 			return flag;
 		}
-		catch (Exception ex) when (ex is not OperationCanceledException)
+		catch (Exception ex) when (ex is not OperationCanceledException && ex is not FlagInsertException)
 		{
-			_logger.LogError(ex, "Error creating feature flag with key {Key}", flag.Key);
-			throw;
+			_logger.LogError(ex, "Error creating feature flag with key {Key} {Scope} {Application} {Version}", 
+				flag.Key, flag.Retention.Scope, flag.Retention.ApplicationName, flag.Retention.ApplicationVersion);
+
+			throw new FlagInsertException("Error creating feature flag", ex, 
+				flag.Key, flag.Retention.Scope, flag.Retention.ApplicationName, flag.Retention.ApplicationVersion);
 		}
 	}
 
@@ -196,7 +203,8 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 	{
 		_logger.LogDebug("Updating feature flag with key: {Key}", flag.Key);
 
-		var (whereClause, parameters) = BuildWhereClause(flag.ToFlagKey());
+		var flagKey = flag.ToFlagKey();
+		var (whereClause, parameters) = BuildWhereClause(flagKey);
 
 		var sql = $@"
             UPDATE feature_flags SET 
@@ -226,26 +234,27 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 			if (rowsAffected == 0)
 			{
-				var message = $"Feature flag '{flag.Key}' not found";
-				_logger.LogWarning(message);
-				throw new InvalidOperationException(message);
+				throw new FlagUpdateException("Flag not found: updated 0 records", 
+					flagKey.Key, flagKey.Scope, flagKey.ApplicationName, flagKey.ApplicationVersion);
 			}
 
 			_logger.LogDebug("Successfully updated feature flag: {Key}", flag.Key);
 			return flag;
 		}
-		catch (Exception ex) when (ex is not OperationCanceledException)
+		catch (Exception ex) when (ex is not OperationCanceledException && ex is not FlagUpdateException)
 		{
-			_logger.LogError(ex, "Error updating feature flag with key {Key}", flag.Key);
-			throw;
+			_logger.LogError(ex, "Error updating feature flag with key {Key} {Scope} {Application} {Version}",
+				flagKey.Key, flagKey.Scope, flagKey.ApplicationName, flagKey.ApplicationVersion);
+
+			throw new FlagUpdateException("Error updating feature flag", ex, flagKey.Key, flagKey.Scope, flagKey.ApplicationName, flagKey.ApplicationVersion);
 		}
 	}
 
-	public async Task<bool> DeleteAsync(FeatureFlag flag, CancellationToken cancellationToken = default)
+	public async Task<bool> DeleteAsync(FlagKey flagKey, CancellationToken cancellationToken = default)
 	{
-		_logger.LogDebug("Deleting feature flag with key: {Key}", flag.Key);
+		_logger.LogDebug("Deleting feature flag with key: {Key}", flagKey.Key);
 
-		var (whereClause, parameters) = BuildWhereClause(flag.ToFlagKey());
+		var (whereClause, parameters) = BuildWhereClause(flagKey);
 		var sql = $"DELETE FROM feature_flags {whereClause}";
 
 		try
@@ -259,22 +268,23 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			var deleted = rowsAffected > 0;
 
 			if (deleted)
-				_logger.LogDebug("Successfully deleted feature flag: {Key}", flag.Key);
+				_logger.LogDebug("Successfully deleted feature flag: {Key}", flagKey.Key);
 			else
-				_logger.LogDebug("Feature flag with key {Key} not found for deletion", flag.Key);
+				_logger.LogWarning("Feature flag with key {Key} not found for deletion", flagKey.Key);
 
 			return deleted;
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
 		{
-			_logger.LogError(ex, "Error deleting feature flag with key {Key}", flag.Key);
+			_logger.LogError(ex, "Error deleting feature flag with key {Key} {Scope} {Application} {Version}",
+				flagKey.Key, flagKey.Scope, flagKey.ApplicationName, flagKey.ApplicationVersion);
 			throw;
 		}
 	}
 
-	private async Task ValidateUniqueFlagAsync(FlagKey key, CancellationToken cancellationToken)
+	private async Task ValidateUniqueFlagAsync(FlagKey flagKey, CancellationToken cancellationToken)
 	{
-		var (whereClause, parameters) = BuildWhereClause(key);
+		var (whereClause, parameters) = BuildWhereClause(flagKey);
 		var sql = $"SELECT COUNT(*) FROM feature_flags {whereClause}";
 
 		using var connection = new NpgsqlConnection(_connectionString);
@@ -287,35 +297,35 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		if (count > 0)
 		{
 			var message = "Feature flag with key '{Key}' already exists in scope '{Scope}' for application '{ApplicationName}'";
-			_logger.LogWarning(message, key.Key, key.Scope, key.ApplicationName);
-			throw new DuplicatedFeatureFlagException(key.Key, key.Scope, key.ApplicationName);
+			_logger.LogWarning(message, flagKey.Key, flagKey.Scope, flagKey.ApplicationName);
+			throw new DuplicatedFeatureFlagException(flagKey.Key, flagKey.Scope, flagKey.ApplicationName);
 		}
 	}
 
-	private static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(FlagKey key)
+	private static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(FlagKey flagKey)
 	{
 		var parameters = new Dictionary<string, object>
 		{
-			["key"] = key.Key,
-			["scope"] = (int)key.Scope
+			["key"] = flagKey.Key,
+			["scope"] = (int)flagKey.Scope
 		};
 
-		if (key.Scope == Scope.Global)
+		if (flagKey.Scope == Scope.Global)
 		{
 			return ("WHERE key = @key AND scope = @scope", parameters);
 		}
 
 		// Application or Feature scope
-		if (string.IsNullOrEmpty(key.ApplicationName))
+		if (string.IsNullOrEmpty(flagKey.ApplicationName))
 		{
-			throw new ArgumentException("Application name required for application-scoped flags.", nameof(key.ApplicationName));
+			throw new ArgumentException("Application name required for application-scoped flags.", nameof(flagKey.ApplicationName));
 		}
 
-		parameters["application_name"] = key.ApplicationName;
+		parameters["application_name"] = flagKey.ApplicationName;
 
-		if (!string.IsNullOrEmpty(key.ApplicationVersion))
+		if (!string.IsNullOrEmpty(flagKey.ApplicationVersion))
 		{
-			parameters["application_version"] = key.ApplicationVersion;
+			parameters["application_version"] = flagKey.ApplicationVersion;
 			return ("WHERE key = @key AND scope = @scope AND application_name = @application_name AND application_version = @application_version", parameters);
 		}
 		else

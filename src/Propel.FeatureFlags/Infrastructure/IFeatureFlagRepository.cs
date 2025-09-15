@@ -67,12 +67,12 @@ public class PagedResult<T>
 
 public interface IFeatureFlagRepository
 {
-	Task<FeatureFlag?> GetAsync(FlagKey key, CancellationToken cancellationToken = default);
+	Task<FeatureFlag?> GetAsync(FlagKey flagKey, CancellationToken cancellationToken = default);
 	Task<List<FeatureFlag>> GetAllAsync(CancellationToken cancellationToken = default);
 	Task<PagedResult<FeatureFlag>> GetPagedAsync(int page, int pageSize, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default);
 	Task<FeatureFlag> CreateAsync(FeatureFlag flag, CancellationToken cancellationToken = default);
 	Task<FeatureFlag> UpdateAsync(FeatureFlag flag, CancellationToken cancellationToken = default);
-	Task<bool> DeleteAsync(FeatureFlag flag, CancellationToken cancellationToken = default);
+	Task<bool> DeleteAsync(FlagKey flagKey, CancellationToken cancellationToken = default);
 }
 
 public class DuplicatedFeatureFlagException : Exception
@@ -97,7 +97,7 @@ public class DuplicatedFeatureFlagException : Exception
 	}
 }
 
-public class FailedFlagCreationException : Exception
+public class FlagInsertException : Exception
 {
 	public string Key { get; }
 
@@ -107,7 +107,7 @@ public class FailedFlagCreationException : Exception
 
 	public string? ApplicationVersion { get; }
 
-	public FailedFlagCreationException(string message, Exception? innerException, 
+	public FlagInsertException(string message, Exception? innerException, 
 		string key, Scope scope, string? applicationName = null, string? applicationVersion = null)
 		: base(message, innerException)
 	{
@@ -117,10 +117,40 @@ public class FailedFlagCreationException : Exception
 		ApplicationVersion = applicationVersion;
 	}
 
-	public FailedFlagCreationException(
+	public FlagInsertException(
 		string message, 
 		string key,
 		Scope scope, 
+		string? applicationName = null,
+		string? applicationVersion = null)
+	: base(message)
+	{
+		Key = key;
+		Scope = scope;
+		ApplicationName = applicationName;
+		ApplicationVersion = applicationVersion;
+	}
+}
+
+public class FlagUpdateException : Exception
+{
+	public string Key { get; }
+	public Scope Scope { get; }
+	public string? ApplicationName { get; }
+	public string? ApplicationVersion { get; }
+	public FlagUpdateException(string message, Exception? innerException,
+		string key, Scope scope, string? applicationName = null, string? applicationVersion = null)
+		: base(message, innerException)
+	{
+		Key = key;
+		Scope = scope;
+		ApplicationName = applicationName;
+		ApplicationVersion = applicationVersion;
+	}
+	public FlagUpdateException(
+		string message,
+		string key,
+		Scope scope,
 		string? applicationName = null,
 		string? applicationVersion = null)
 	: base(message)
