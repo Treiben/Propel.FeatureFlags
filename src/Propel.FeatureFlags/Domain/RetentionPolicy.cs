@@ -11,7 +11,10 @@ public class RetentionPolicy
 	public string? ApplicationName { get; set; } = string.Empty;
 	public string? ApplicationVersion { get; set; } = string.Empty;
 
-	public static RetentionPolicy DefaultRetention => new(isPermanent: false, expirationDate: DateTime.UtcNow.AddDays(30),  applicationName: ApplicationInfo.Name);
+	public static RetentionPolicy DefaultRetention => new(isPermanent: false,
+		expirationDate: DateTime.UtcNow.AddDays(30), 
+		applicationName: ApplicationInfo.Name,
+		applicationVersion: ApplicationInfo.Version);
 
 	public static RetentionPolicy Permanent => new(isPermanent: true, DateTime.MaxValue.ToUniversalTime());
 

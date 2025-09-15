@@ -11,10 +11,10 @@ public class Evaluate_WithEnabledFlag(EvaluatorTestsFixture fixture) : IClassFix
 		// Arrange
 		await fixture.ClearAllData();
 		var flag = TestHelpers.CreateTestFlag("enabled-test", EvaluationMode.Enabled);
-		await fixture.Repository.CreateAsync(flag);
+		var created = await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "user123");
-		var applicationFlag = TestHelpers.CreateApplicationFlag("enabled-test", EvaluationMode.Enabled);
+		var applicationFlag = TestHelpers.CreateApplicationFlag(flag.Key, EvaluationMode.Enabled);
 
 		// Act
 		var result = await fixture.Evaluator.Evaluate(applicationFlag, context);
@@ -170,7 +170,7 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 		flag.TargetingRules = [
 			TargetingRuleFactory.CreateTargetingRule(
 							attribute: "user-type",
-							op: TargetingOperator.Equals,
+							op: TargetingOperator.In,
 							values: new List<string> { "dev-user", "test-user" },
 							variation: "string-variant"
 						)
@@ -183,7 +183,8 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 						}
 		};
 		await fixture.Repository.CreateAsync(flag);
-		var applicationFlag = TestHelpers.CreateApplicationFlag("string-flag", EvaluationMode.Enabled);
+
+		var applicationFlag = TestHelpers.CreateApplicationFlag(flag.Key, EvaluationMode.Enabled);
 
 		var context = new EvaluationContext(attributes: new Dictionary<string, object> { { "user-type", "test-user" } },
 			userId: "dev-user");
