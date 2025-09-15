@@ -25,15 +25,15 @@ public sealed class FeatureFlagEvaluator(
 
 	public async Task<EvaluationResult?> Evaluate(IApplicationFeatureFlag applicationFlag, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
-		var flag = await GetFlagAsync(applicationFlag.Key, context, cancellationToken);
+		var flag = await GetFlagAsync(applicationFlag.Key, cancellationToken);
 		if (flag == null)
 		{
 			// Auto-create flag in disabled state for deployment scenarios
-			await CreateDefaultFlagAsync(applicationFlag, context, cancellationToken);
+			await CreateDefaultFlagAsync(applicationFlag, cancellationToken);
 			return new EvaluationResult
 			(
-				isEnabled: false,
-				reason: "Flag not found, created default disabled flag"
+				isEnabled: applicationFlag.DefaultMode == EvaluationMode.Enabled,
+				reason: $"A new flag created in the database with specified mode {applicationFlag.DefaultMode}"
 			);
 		}
 
@@ -45,11 +45,11 @@ public sealed class FeatureFlagEvaluator(
 		try
 		{
 			// Get flag once and reuse for both evaluation and variation lookup
-			var flag = await GetFlagAsync(applicationFlag.Key, context, cancellationToken);
+			var flag = await GetFlagAsync(applicationFlag.Key, cancellationToken);
 			if (flag == null)
 			{
 				// Auto-create and return default
-				await CreateDefaultFlagAsync(applicationFlag, context, cancellationToken);
+				await CreateDefaultFlagAsync(applicationFlag, cancellationToken);
 				return defaultValue;
 			}
 
@@ -87,7 +87,7 @@ public sealed class FeatureFlagEvaluator(
 		}
 	}
 
-	private async Task<FeatureFlag?> GetFlagAsync(string flagKey, EvaluationContext context, CancellationToken cancellationToken)
+	private async Task<FeatureFlag?> GetFlagAsync(string flagKey, CancellationToken cancellationToken)
 	{
 		FeatureFlag? flag = null;
 
@@ -118,7 +118,7 @@ public sealed class FeatureFlagEvaluator(
 		return flag;
 	}
 
-	private async Task CreateDefaultFlagAsync(IApplicationFeatureFlag applicationFlag, EvaluationContext context, CancellationToken cancellationToken)
+	private async Task CreateDefaultFlagAsync(IApplicationFeatureFlag applicationFlag, CancellationToken cancellationToken)
 	{
 		var flagKey = applicationFlag.Key;
 		var defaultFlag = new FeatureFlag

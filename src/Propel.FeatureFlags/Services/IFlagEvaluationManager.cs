@@ -36,6 +36,10 @@ public sealed class FlagEvaluationManager : IFlagEvaluationManager
 
 		if (result != default)
 		{
+			if (processingHandlers.Count == 1)
+				return result;
+
+			// If multiple handlers processed, and final result is enabled, provide a combined reason
 			var reason = $"All [{flag.ActiveEvaluationModes}] conditions met for feature flag activation";
 			return new EvaluationResult(isEnabled: true, variation: result.Variation, reason: reason);
 		}

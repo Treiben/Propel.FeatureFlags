@@ -2,7 +2,6 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
-using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FeatureFlags.Services;
 using Propel.FeatureFlags.Services.ApplicationScope;
 using Propel.FeatureFlags.Services.Evaluation;
