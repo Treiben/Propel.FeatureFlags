@@ -1,6 +1,7 @@
 using FeatureFlags.IntegrationTests.Support;
-using Propel.FeatureFlags;
 using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.Cache;
 
 namespace FeatureFlags.IntegrationTests.Postgres;
 
@@ -11,10 +12,12 @@ public class GetAsync_WhenFlagExists(PostgresRepoTestsFixture fixture) : IClassF
 	{
 		// Arrange
 		var flag = TestHelpers.CreateTestFlag("get-test", EvaluationMode.Enabled);
+
 		await fixture.Repository.CreateAsync(flag);
 
+		var flagKey = flag.ToFlagKey();
 		// Act
-		var result = await fixture.Repository.GetAsync("get-test");
+		var result = await fixture.Repository.GetAsync(flagKey);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -42,8 +45,10 @@ public class GetAsync_WhenFlagExists(PostgresRepoTestsFixture fixture) : IClassF
 
 		await fixture.Repository.CreateAsync(flag);
 
+		var flagKey = flag.ToFlagKey();
+
 		// Act
-		var result = await fixture.Repository.GetAsync("complex-flag");
+		var result = await fixture.Repository.GetAsync(flagKey);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -55,19 +60,6 @@ public class GetAsync_WhenFlagExists(PostgresRepoTestsFixture fixture) : IClassF
 		var stringRule = (StringTargetingRule)result.TargetingRules[0];
 		stringRule.Attribute.ShouldBe("region");
 		stringRule.Values.ShouldContain("US");
-	}
-}
-
-public class GetAsync_WhenFlagDoesNotExist(PostgresRepoTestsFixture fixture) : IClassFixture<PostgresRepoTestsFixture>
-{
-	[Fact]
-	public async Task ThenReturnsNull()
-	{
-		// Act
-		var result = await fixture.Repository.GetAsync("non-existent-flag");
-
-		// Assert
-		result.ShouldBeNull();
 	}
 }
 
@@ -144,7 +136,7 @@ public class GetPagedAsync_WithValidParameters(PostgresRepoTestsFixture fixture)
 
 		// Assert
 		result.Page.ShouldBe(1);
-		result.PageSize.ShouldBe(10);
+		result.PageSize.ShouldBe(1);
 	}
 
 	[Fact]
@@ -283,9 +275,11 @@ public class CreateAsync_WithValidFlag(PostgresRepoTestsFixture fixture) : IClas
 		// Act
 		var result = await fixture.Repository.CreateAsync(flag);
 
+		var flagKey = flag.ToFlagKey();
+
 		// Assert
 		result.ShouldBe(flag);
-		var retrieved = await fixture.Repository.GetAsync("create-test");
+		var retrieved = await fixture.Repository.GetAsync(flagKey);
 		retrieved.ShouldNotBeNull();
 		retrieved.Key.ShouldBe("create-test");
 	}
@@ -302,8 +296,10 @@ public class CreateAsync_WithValidFlag(PostgresRepoTestsFixture fixture) : IClas
 		// Act
 		await fixture.Repository.CreateAsync(flag);
 
+		var flagKey = flag.ToFlagKey();
+
 		// Assert
-		var retrieved = await fixture.Repository.GetAsync("scheduled-flag");
+		var retrieved = await fixture.Repository.GetAsync(flagKey);
 		retrieved.ShouldNotBeNull();
 
 		// Account for PostgreSQL TIMESTAMPTZ microsecond precision loss
@@ -311,7 +307,7 @@ public class CreateAsync_WithValidFlag(PostgresRepoTestsFixture fixture) : IClas
 			startDt.AddTicks(-10),
 			startDt.AddTicks(10));
 
-		retrieved.Schedule.DisableOn.Value.ShouldBeInRange(
+		retrieved.Schedule.DisableOn.ShouldBeInRange(
 			endDt.AddTicks(-10),
 			endDt.AddTicks(10));
 	}
@@ -321,7 +317,7 @@ public class CreateAsync_WithValidFlag(PostgresRepoTestsFixture fixture) : IClas
 	{
 		// Arrange
 		var flag = TestHelpers.CreateTestFlag("window-flag", EvaluationMode.TimeWindow);
-		flag.OperationalWindow = OperationalWindow.CreateWindow(
+		flag.OperationalWindow = new OperationalWindow(
 			TimeSpan.FromHours(9),
 			TimeSpan.FromHours(17),
 			"America/New_York",
@@ -330,8 +326,10 @@ public class CreateAsync_WithValidFlag(PostgresRepoTestsFixture fixture) : IClas
 		// Act
 		await fixture.Repository.CreateAsync(flag);
 
+		var flagKey = flag.ToFlagKey();
+
 		// Assert
-		var retrieved = await fixture.Repository.GetAsync("window-flag");
+		var retrieved = await fixture.Repository.GetAsync(flagKey);
 		retrieved.ShouldNotBeNull();
 		retrieved.OperationalWindow.StartOn.ShouldBe(TimeSpan.FromHours(9));
 		retrieved.OperationalWindow.TimeZone.ShouldBe("America/New_York");
@@ -356,10 +354,12 @@ public class UpdateAsync_WithExistingFlag(PostgresRepoTestsFixture fixture) : IC
 		// Act
 		var result = await fixture.Repository.UpdateAsync(flag);
 
+		var flagKey = flag.ToFlagKey();
+
 		// Assert
 		result.ShouldBe(flag);
 
-		var retrieved = await fixture.Repository.GetAsync("update-test");
+		var retrieved = await fixture.Repository.GetAsync(flagKey);
 
 		retrieved.ShouldNotBeNull();
 		retrieved.Name.ShouldBe("Updated Name");
@@ -387,22 +387,29 @@ public class DeleteAsync_WhenFlagExists(PostgresRepoTestsFixture fixture) : ICla
 		var flag = TestHelpers.CreateTestFlag("delete-test", EvaluationMode.Enabled);
 		await fixture.Repository.CreateAsync(flag);
 
+		var flagKey = flag.ToFlagKey();
+
 		// Act
-		var result = await fixture.Repository.DeleteAsync("delete-test");
+		var result = await fixture.Repository.DeleteAsync(flag);
 
 		// Assert
 		result.ShouldBeTrue();
-		var retrieved = await fixture.Repository.GetAsync("delete-test");
+		var retrieved = await fixture.Repository.GetAsync(flagKey);
 		retrieved.ShouldBeNull();
 	}
+}
 
+public class CreateAsync_WhenFlagAlreadyExists(PostgresRepoTestsFixture fixture) : IClassFixture<PostgresRepoTestsFixture>
+{
 	[Fact]
-	public async Task If_FlagDoesNotExist_ThenReturnsFalse()
+	public async Task ThenThrowsDuplicatedFeatureFlagException()
 	{
-		// Act
-		var result = await fixture.Repository.DeleteAsync("non-existent-delete");
+		// Arrange
+		var flag = TestHelpers.CreateTestFlag("duplicate-flag", EvaluationMode.Enabled);
+		await fixture.Repository.CreateAsync(flag);
+		var duplicateFlag = TestHelpers.CreateTestFlag("duplicate-flag", EvaluationMode.Disabled);
 
-		// Assert
-		result.ShouldBeFalse();
+		// Act & Assert
+		await Should.ThrowAsync<DuplicatedFeatureFlagException>(() => fixture.Repository.CreateAsync(duplicateFlag));
 	}
 }

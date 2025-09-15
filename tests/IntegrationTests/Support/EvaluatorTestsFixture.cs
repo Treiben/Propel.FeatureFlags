@@ -1,10 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
 using Npgsql;
-using Propel.FeatureFlags.Evaluation;
-using Propel.FeatureFlags.Evaluation.ApplicationScope;
-using Propel.FeatureFlags.Evaluation.Handlers;
+using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FeatureFlags.Infrastructure.PostgresSql;
-using Propel.FeatureFlags.Redis;
+using Propel.FeatureFlags.Infrastructure.Redis;
+using Propel.FeatureFlags.Services;
+using Propel.FeatureFlags.Services.ApplicationScope;
+using Propel.FeatureFlags.Services.Evaluation;
 using StackExchange.Redis;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
@@ -16,7 +17,7 @@ public class EvaluatorTestsFixture : IAsyncLifetime
 	private readonly PostgreSqlContainer _postgresContainer;
 	private readonly RedisContainer _redisContainer;
 
-	public IApplicationFeatureFlagEvaluator Evaluator { get; private set; } = null!;
+	public IFeatureFlagEvaluator Evaluator { get; private set; } = null!;
 	public PostgreSQLFeatureFlagRepository Repository { get; private set; } = null!;
 	public RedisFeatureFlagCache Cache { get; private set; } = null!;
 
@@ -54,7 +55,11 @@ public class EvaluatorTestsFixture : IAsyncLifetime
 
 		var redisConnectionString = _redisContainer.GetConnectionString();
 		_redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
-		Cache = new RedisFeatureFlagCache(_redisConnection, _cacheLogger);
+		var cacheOptions = new CacheOptions
+		{
+			ExpiryInMinutes = TimeSpan.FromMinutes(1)
+		};
+		Cache = new RedisFeatureFlagCache(_redisConnection, cacheOptions, _cacheLogger);
 
 		var evaluationManager = new FlagEvaluationManager([
 			new ActivationScheduleEvaluator(),
@@ -65,7 +70,7 @@ public class EvaluatorTestsFixture : IAsyncLifetime
 			new UserRolloutEvaluator(),
 		]);
 
-		Evaluator = new IApplicationFeatureFlagEvaluator(Repository, evaluationManager, Cache);
+		Evaluator = new FeatureFlagEvaluator(Repository, evaluationManager, Cache);
 	}
 
 	public async Task DisposeAsync()

@@ -1,8 +1,23 @@
 ﻿using Npgsql;
 using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.Cache;
+using Propel.FeatureFlags.Services.ApplicationScope;
 
 namespace FeatureFlags.IntegrationTests.Support;
 
+public class TestApplicationFeatureFlag : TypeSafeFeatureFlag
+{
+    public TestApplicationFeatureFlag(
+        string key,
+        string? name = null,
+        string? description = null,
+        Dictionary<string, string>? tags = null,
+        EvaluationMode defaultMode = EvaluationMode.Disabled)
+        : base(key, name, description, tags, defaultMode)
+    {
+    }
+}
 public static class TestHelpers
 {
 	private static readonly string _createTableSchema = GetCreateSchemaScript();
@@ -26,6 +41,28 @@ public static class TestHelpers
 		};
 	}
 
+    public static CacheKey CreateCacheKey(string key)
+    {
+		var applicationName = ApplicationInfo.Name;
+		var applicationVersion = ApplicationInfo.Version;
+
+		return new CacheKey(key, [applicationName, applicationVersion]);
+	}
+
+    public static CacheKey CreateGlobalCacheKey(string key)
+    {
+        return new CacheKey(key, ["global"]);
+	}
+
+	public static IApplicationFeatureFlag CreateApplicationFlag(string key, EvaluationMode evaluationMode)
+    {
+        return new TestApplicationFeatureFlag(
+            key: key,
+            name: $"App Flag {key}",
+            description: "Application flag for integration tests",
+            defaultMode: evaluationMode);
+	}
+
 	private static string GetCreateSchemaScript()
 	{
 		return @"
@@ -47,9 +84,12 @@ CREATE TABLE feature_flags (
     created_by VARCHAR(255) NOT NULL,
     updated_by VARCHAR(255) NULL,
     
-    -- Lifecycle
+    -- Retention
     is_permanent BOOLEAN NOT NULL DEFAULT FALSE,
     expiration_date TIMESTAMP WITH TIME ZONE NOT NULL,
+	application_name VARCHAR(255) NOT NULL DEFAULT 'global',
+	application_version VARCHAR(100) NULL,
+	scope INT NOT NULL DEFAULT 0,
     
     -- Scheduling
     scheduled_enable_date TIMESTAMP WITH TIME ZONE NULL,

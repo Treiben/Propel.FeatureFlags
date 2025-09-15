@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
-using Propel.FeatureFlags.Redis;
+using Propel.FeatureFlags.Infrastructure.Cache;
+using Propel.FeatureFlags.Infrastructure.Redis;
 using StackExchange.Redis;
 using Testcontainers.Redis;
 
@@ -31,7 +32,11 @@ public class RedisTestsFixture : IAsyncLifetime
 		_connectionMultiplexer = await ConnectionMultiplexer.ConnectAsync(connectionString);
 
 		// Initialize cache
-		Cache = new RedisFeatureFlagCache(_connectionMultiplexer, _logger);
+		var cacheOptions = new CacheOptions
+		{
+			ExpiryInMinutes = TimeSpan.FromMinutes(1)
+		};
+		Cache = new RedisFeatureFlagCache(_connectionMultiplexer, cacheOptions, _logger);
 	}
 
 	public async Task DisposeAsync()
