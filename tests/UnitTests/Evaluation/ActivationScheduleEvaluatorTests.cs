@@ -79,7 +79,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			Schedule = new ActivationSchedule(enableDate),
+			Schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime()),
 			Variations = new Variations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -101,7 +101,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			Schedule = new ActivationSchedule(enableDate),
+			Schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime()),
 			Variations = new Variations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: enableDate);
@@ -124,7 +124,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			Schedule = new ActivationSchedule(enableDate),
+			Schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime()),
 			Variations = new Variations { DefaultVariation = "scheduled-off" }
 		};
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -217,7 +217,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		var flag = new FeatureFlag
 		{
-			Schedule = new ActivationSchedule(enableDate),
+			Schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime()),
 			Variations = new Variations { DefaultVariation = "off" }
 		};
 		var context = new EvaluationContext(evaluationTime: null);

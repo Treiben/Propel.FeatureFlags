@@ -5,13 +5,12 @@ namespace Propel.FeatureFlags.Domain;
 public class ActivationSchedule
 {
 	public DateTime EnableOn { get; }
-	public DateTime? DisableOn { get; }
+	public DateTime DisableOn { get; }
 
-	public ActivationSchedule(DateTime enableOn, DateTime? disableOn = null)
+	public ActivationSchedule(DateTime enableOn, DateTime disableOn)
 	{
-		var enableOnUtc = DateTimeHelpers.NormalizeToUtc(enableOn);
-		var disableOnUtc = DateTimeHelpers.NormalizeToUtc(disableOn.HasValue == false || disableOn == DateTime.MinValue 
-											? DateTime.MaxValue : disableOn.Value);
+		var enableOnUtc = DateTimeHelpers.NormalizeToUtc(enableOn, utcReplacementDt: DateTime.MinValue);
+		var disableOnUtc = DateTimeHelpers.NormalizeToUtc(disableOn, utcReplacementDt: DateTime.MaxValue);
 
 		if (disableOnUtc <= enableOnUtc)
 		{
@@ -25,20 +24,17 @@ public class ActivationSchedule
 	public static ActivationSchedule Unscheduled => new(DateTime.MinValue, DateTime.MaxValue);
 
 	// This method is used to create new flag schedules in valid state
-	public static ActivationSchedule CreateSchedule(DateTime enableOn, DateTime? disableOn = null)
+	public static ActivationSchedule CreateSchedule(DateTime? enableOn, DateTime? disableOn = null)
 	{
-
-		if (enableOn <= DateTime.MinValue)
-		{
-			throw new ArgumentException("Scheduled enable date must be a valid date.");
-		}
-
-		if (DateTimeHelpers.NormalizeToUtc(enableOn) <= DateTime.UtcNow)
+		var enableOnUtc = DateTimeHelpers.NormalizeToUtc(enableOn, utcReplacementDt: DateTime.MinValue);
+		if (enableOnUtc <= DateTime.UtcNow)
 		{
 			throw new ArgumentException("Scheduled enable date must be in the future.");
 		}
 
-		return new ActivationSchedule(enableOn, disableOn);
+		var disableOnUtc = DateTimeHelpers.NormalizeToUtc(disableOn, utcReplacementDt: DateTime.MaxValue);
+
+		return new ActivationSchedule(enableOnUtc, disableOnUtc);
 	}
 
 	public bool HasSchedule()
@@ -54,7 +50,7 @@ public class ActivationSchedule
 			return (false, "No active schedule set");
 		}
 
-		var utcEvaluationTime = evaluationTime.ToUniversalTime();
+		var utcEvaluationTime = DateTimeHelpers.NormalizeToUtc(evaluationTime, utcReplacementDt: DateTime.UtcNow);
 
 		// If the current time is before the enable date, the flag is not enabled
 		if (utcEvaluationTime < EnableOn)

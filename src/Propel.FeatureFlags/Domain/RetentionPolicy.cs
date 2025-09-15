@@ -1,4 +1,6 @@
-﻿namespace Propel.FeatureFlags.Domain;
+﻿using Propel.FeatureFlags.Helpers;
+
+namespace Propel.FeatureFlags.Domain;
 
 public class RetentionPolicy
 {
@@ -30,30 +32,11 @@ public class RetentionPolicy
 			throw new ArgumentException("Application scope requires a valid application name.");
 		}
 
-		ExpirationDate = NormalizeToUtc(expirationDate, isPermanent);
+		ExpirationDate = isPermanent ? DateTime.MaxValue.ToUniversalTime() : DateTimeHelpers.NormalizeToUtc(expirationDate, DateTime.UtcNow.AddDays(30));
 		IsPermanent = isPermanent;
 		Scope = scope;
 		ApplicationName = applicationName;
 		ApplicationVersion = applicationVersion;
-	}
-
-	public static DateTime NormalizeToUtc(DateTime? dateTime, bool isPermanent)
-	{
-		if (isPermanent)
-		{
-			return DateTime.MaxValue.ToUniversalTime();
-		}
-
-		if (dateTime == null)
-		{
-			return DateTime.UtcNow.AddDays(30);
-		}
-
-		if (dateTime.Value.Kind == DateTimeKind.Utc)
-		{
-			return dateTime.Value;
-		}
-		return dateTime.Value.ToUniversalTime();
 	}
 }
 

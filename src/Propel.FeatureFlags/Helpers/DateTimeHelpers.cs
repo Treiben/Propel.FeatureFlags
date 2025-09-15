@@ -2,19 +2,41 @@
 
 public static class DateTimeHelpers
 {
-	public static DateTime NormalizeToUtc(DateTime dateTime)
+	public static DateTime NormalizeToUtc(DateTime? dateTime, DateTime utcReplacementDt)
 	{
-		if (dateTime.Kind == DateTimeKind.Utc)
+		if (!dateTime.HasValue) 
+			return utcReplacementDt;
+
+		if (dateTime.Value == DateTime.MinValue)
+			return DateTime.MinValue.ToUniversalTime();
+
+		if (dateTime.Value == DateTime.MinValue.ToUniversalTime())
+			return dateTime.Value;
+
+		if (dateTime.Value == DateTime.MaxValue)
+			return DateTime.MaxValue.ToUniversalTime();
+
+		if (dateTime.Value == DateTime.MaxValue.ToUniversalTime())
+			return dateTime.Value;
+
+		if (dateTime.Value.Kind == DateTimeKind.Utc)
 		{
-			return dateTime;
+			return dateTime.Value;
 		}
-		return dateTime.ToUniversalTime();
+
+		return dateTime.Value.ToUniversalTime();
 	}
 
-	public static DateTime? NormalizeToUtc(DateTimeOffset? dateTimeOffset)
+	public static DateTime? NormalizeToUtc(DateTimeOffset? dateTimeOffset, DateTime replaceWith)
 	{
-		if (!dateTimeOffset.HasValue || dateTimeOffset.Value == DateTimeOffset.MinValue || dateTimeOffset.Value == DateTimeOffset.MaxValue)
-			return null;
+		if (!dateTimeOffset.HasValue)
+			return replaceWith.ToUniversalTime();
+
+		if (dateTimeOffset.Value == DateTimeOffset.MinValue)
+			return DateTime.MinValue.ToUniversalTime();
+
+		if (dateTimeOffset.Value == DateTimeOffset.MaxValue)
+			return DateTime.MaxValue.ToUniversalTime();
 
 		var dateTime = dateTimeOffset!.Value.DateTime;
 		if (dateTimeOffset!.Value.Offset == TimeSpan.Zero)

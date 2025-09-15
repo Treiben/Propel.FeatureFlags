@@ -2,20 +2,20 @@ using Propel.FeatureFlags.Domain;
 
 namespace FeatureFlags.UnitTests.Domain;
 
-public class Lifecycle_Constructor
+public class RetentionPolicy_Constructor
 {
 	[Fact]
 	public void If_PermanentFlag_ThenSetsMaxDateAndPermanent()
 	{
 		// Act
-		var lifecycle = new RetentionPolicy(
+		var retention = new RetentionPolicy(
 			expirationDate:DateTime.UtcNow.AddDays(10), 
 			applicationName: "TestApp",
 			isPermanent: true);
 
 		// Assert
-		lifecycle.IsPermanent.ShouldBeTrue();
-		lifecycle.ExpirationDate.ShouldBe(DateTime.MaxValue.ToUniversalTime());
+		retention.IsPermanent.ShouldBeTrue();
+		retention.ExpirationDate.ShouldBe(DateTime.MaxValue.ToUniversalTime());
 	}
 
 	[Fact]
@@ -25,11 +25,11 @@ public class Lifecycle_Constructor
 		var localDateTime = new DateTime(2025, 12, 31, 23, 59, 59, DateTimeKind.Local);
 
 		// Act
-		var lifecycle = new RetentionPolicy(expirationDate: localDateTime, applicationName: "TestApp", isPermanent: false);
+		var retention = new RetentionPolicy(expirationDate: localDateTime, applicationName: "TestApp", isPermanent: false);
 
 		// Assert
-		lifecycle.ExpirationDate.ShouldBe(localDateTime.ToUniversalTime());
-		lifecycle.IsPermanent.ShouldBeFalse();
+		retention.ExpirationDate.ShouldBe(localDateTime.ToUniversalTime());
+		retention.IsPermanent.ShouldBeFalse();
 	}
 
 	[Fact]
@@ -39,10 +39,10 @@ public class Lifecycle_Constructor
 		var utcDateTime = new DateTime(2025, 12, 31, 23, 59, 59, DateTimeKind.Utc);
 
 		// Act
-		var lifecycle = new RetentionPolicy(expirationDate: utcDateTime, applicationName: "TestApp", isPermanent: false);
+		var retention = new RetentionPolicy(expirationDate: utcDateTime, applicationName: "TestApp", isPermanent: false);
 
 		// Assert
-		lifecycle.ExpirationDate.ShouldBe(utcDateTime);
-		lifecycle.IsPermanent.ShouldBeFalse();
+		retention.ExpirationDate.ShouldBe(utcDateTime);
+		retention.IsPermanent.ShouldBeFalse();
 	}
 }

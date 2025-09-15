@@ -117,7 +117,7 @@ public class ActivationSchedule_IsActiveAt
 	{
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-1);
-		var schedule = new ActivationSchedule(enableDate);
+		var schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime());
 		var evaluationTime = DateTime.UtcNow.AddHours(-2); // Before enable
 
 		// Act
@@ -133,7 +133,7 @@ public class ActivationSchedule_IsActiveAt
 	{
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-1);
-		var schedule = new ActivationSchedule(enableDate);
+		var schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime());
 
 		// Act
 		var (isActive, reason) = schedule.IsActiveAt(enableDate);
@@ -148,7 +148,7 @@ public class ActivationSchedule_IsActiveAt
 	{
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-2);
-		var schedule = new ActivationSchedule(enableDate);
+		var schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime());
 		var evaluationTime = DateTime.UtcNow;
 
 		// Act
@@ -244,7 +244,7 @@ public class ActivationSchedule_HasSchedule
 	{
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddDays(-1);
-		var schedule = new ActivationSchedule(enableDate);
+		var schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime());
 
 		// Act & Assert
 		schedule.HasSchedule().ShouldBeTrue();

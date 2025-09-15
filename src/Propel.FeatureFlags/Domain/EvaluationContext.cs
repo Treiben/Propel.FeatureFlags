@@ -14,7 +14,7 @@ public class EvaluationContext
 		TenantId = tenantId;
 		UserId = userId;
 		Attributes = attributes ?? [];
-		EvaluationTime = evaluationTime == null ? DateTime.UtcNow : DateTimeHelpers.NormalizeToUtc(evaluationTime!);
+		EvaluationTime = DateTimeHelpers.NormalizeToUtc(dateTime: evaluationTime, utcReplacementDt: DateTime.UtcNow);
 		TimeZone = timeZone;
 	}
 

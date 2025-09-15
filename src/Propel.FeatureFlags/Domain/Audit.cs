@@ -1,4 +1,6 @@
-﻿namespace Propel.FeatureFlags.Domain;
+﻿using Propel.FeatureFlags.Helpers;
+
+namespace Propel.FeatureFlags.Domain;
 
 public class Audit
 {
@@ -8,15 +10,15 @@ public class Audit
 	// This method is used to create new audit records in valid state
 	public Audit(DateTime timestamp, string actor)
 	{
-		var utcChangedAt = NormalizeToUtc(timestamp);
+		var utcChangedAt = DateTimeHelpers.NormalizeToUtc(dateTime: timestamp, utcReplacementDt: DateTime.UtcNow);
 
 		// Validate creation timestamp
-		if (utcChangedAt.HasValue == false || utcChangedAt > DateTime.UtcNow.AddMinutes(1))
+		if (utcChangedAt > DateTime.UtcNow.AddMinutes(1))
 		{
 			throw new ArgumentException("Change timestamp must be a valid past or current time.", nameof(timestamp));
 		}
 
-		Timestamp = utcChangedAt!.Value;
+		Timestamp = utcChangedAt;
 		Actor = ValidateAndNormalizeUser(actor);
 	}
 
@@ -47,18 +49,6 @@ public class Audit
 		}
 
 		return normalizedUser;
-	}
-
-	private static DateTime? NormalizeToUtc(DateTime? dateTime)
-	{
-		if (!dateTime.HasValue || dateTime.Value == DateTime.MinValue || dateTime.Value == DateTime.MaxValue)
-			return null;
-
-		if (dateTime!.Value.Kind == DateTimeKind.Utc)
-		{
-			return dateTime;
-		}
-		return dateTime.Value.ToUniversalTime();
 	}
 
 }
