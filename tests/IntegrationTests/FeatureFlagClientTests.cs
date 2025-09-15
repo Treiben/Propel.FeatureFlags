@@ -10,10 +10,10 @@ public class IsEnabledAsync_WithEnabledFlag(ClientTestsFixture fixture) : IClass
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateApplicationFlag("client-enabled", EvaluationMode.Enabled);
+		var (_, appFlag) = TestHelpers.SetupTestCases("client-enabled", EvaluationMode.Enabled, EvaluationMode.Enabled);
 
 		// Act
-		var result = await fixture.Client.IsEnabledAsync(flag, userId: "user123");
+		var result = await fixture.Client.IsEnabledAsync(appFlag, userId: "user123");
 
 		// Assert
 		result.ShouldBeTrue();
@@ -39,7 +39,7 @@ public class IsEnabledAsync_WithTargetedFlag(ClientTestsFixture fixture) : IClas
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("client-targeted", EvaluationMode.UserTargeted);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("client-targeted", EvaluationMode.UserTargeted);
 		flag.TargetingRules = [
 			TargetingRuleFactory.CreateTargetingRule(
 				"region",
@@ -50,10 +50,8 @@ public class IsEnabledAsync_WithTargetedFlag(ClientTestsFixture fixture) : IClas
 		];
 		await fixture.Repository.CreateAsync(flag);
 
-		var applicationFlag = TestHelpers.CreateApplicationFlag("client-targeted", EvaluationMode.Enabled);
-
 		// Act
-		var result = await fixture.Client.IsEnabledAsync(applicationFlag, 
+		var result = await fixture.Client.IsEnabledAsync(appFlag, 
 			userId: "user123", 
 			attributes: new Dictionary<string, object> { { "region", "us-west" } });
 
@@ -69,12 +67,12 @@ public class GetVariationAsync_WithStringVariation(ClientTestsFixture fixture) :
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("client-variation", EvaluationMode.TargetingRules);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("client-variation", EvaluationMode.TargetingRules);
 
 		flag.TargetingRules = [
 			TargetingRuleFactory.CreateTargetingRule(
-								"userId",
-								TargetingOperator.Equals,
+								"subscription_level",
+								TargetingOperator.In,
 								["premium-user"],
 								"premium-config"
 							)
@@ -88,11 +86,10 @@ public class GetVariationAsync_WithStringVariation(ClientTestsFixture fixture) :
 		};
 		await fixture.Repository.CreateAsync(flag);
 
-		var applicationFlag = TestHelpers.CreateApplicationFlag("client-variation", EvaluationMode.Disabled);
 		// Act
-
-		var result = await fixture.Client.GetVariationAsync(applicationFlag, "default",
-			attributes: new Dictionary<string, object> { { "userId", "premium-user" } });
+		var result = await fixture.Client.GetVariationAsync(appFlag, "default",
+			userId: "user123",
+			attributes: new Dictionary<string, object> { { "subscription_level", "premium-user" } });
 
 		// Assert
 		result.ShouldBe("premium-dashboard");
@@ -106,13 +103,11 @@ public class GetVariationAsync_WithDisabledFlag(ClientTestsFixture fixture) : IC
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("client-disabled", EvaluationMode.Disabled);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("client-disabled", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
 
-		var applicationFlag = TestHelpers.CreateApplicationFlag("client-disabled", EvaluationMode.Disabled);
-
 		// Act
-		var result = await fixture.Client.GetVariationAsync(applicationFlag, "fallback-value", userId: "user123");
+		var result = await fixture.Client.GetVariationAsync(appFlag, "fallback-value", userId: "user123");
 
 		// Assert
 		result.ShouldBe("fallback-value");
@@ -126,13 +121,12 @@ public class EvaluateAsync_WithTimeWindowFlag(ClientTestsFixture fixture) : ICla
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("client-window", EvaluationMode.TimeWindow);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("client-window", EvaluationMode.TimeWindow);
 		flag.OperationalWindow = OperationalWindow.AlwaysOpen;
 		await fixture.Repository.CreateAsync(flag);
 
-		var applicationFlag = TestHelpers.CreateApplicationFlag("client-window", EvaluationMode.Disabled);
 		// Act
-		var result = await fixture.Client.EvaluateAsync(applicationFlag, tenantId: "tenant123");
+		var result = await fixture.Client.EvaluateAsync(appFlag, tenantId: "tenant123");
 
 		// Assert
 		result.ShouldNotBeNull();

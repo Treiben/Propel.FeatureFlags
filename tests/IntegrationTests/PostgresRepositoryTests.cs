@@ -1,7 +1,6 @@
 using FeatureFlags.IntegrationTests.Support;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.Cache;
 
 namespace FeatureFlags.IntegrationTests.Postgres;
 
@@ -11,7 +10,7 @@ public class GetAsync_WhenFlagExists(PostgresRepoTestsFixture fixture) : IClassF
 	public async Task ThenReturnsFlag()
 	{
 		// Arrange
-		var flag = TestHelpers.CreateTestFlag("get-test", EvaluationMode.Enabled);
+		var (flag, _) = TestHelpers.SetupTestCases("get-test", EvaluationMode.Enabled);
 
 		await fixture.Repository.CreateAsync(flag);
 
@@ -30,7 +29,7 @@ public class GetAsync_WhenFlagExists(PostgresRepoTestsFixture fixture) : IClassF
 	public async Task If_FlagWithComplexData_ThenDeserializesCorrectly()
 	{
 		// Arrange
-		var flag = TestHelpers.CreateTestFlag("complex-flag", EvaluationMode.UserTargeted);
+		var (flag, _) = TestHelpers.SetupTestCases("complex-flag", EvaluationMode.UserTargeted);
 		flag.TargetingRules =
 		[
 			TargetingRuleFactory.CreateTargetingRule(
@@ -70,9 +69,9 @@ public class GetAllAsync_WithMultipleFlags(PostgresRepoTestsFixture fixture) : I
 	public async Task ThenReturnsAllFlagsOrderedByName()
 	{
 		// Arrange
-		var flag1 = TestHelpers.CreateTestFlag("z-flag", EvaluationMode.Enabled);
+		var (flag1, _) = TestHelpers.SetupTestCases("z-flag", EvaluationMode.Enabled);
 		flag1.Name = "Z Flag";
-		var flag2 = TestHelpers.CreateTestFlag("a-flag", EvaluationMode.Disabled);
+		var (flag2, _) = TestHelpers.SetupTestCases("a-flag", EvaluationMode.Disabled);
 		flag2.Name = "A Flag";
 
 		await fixture.Repository.CreateAsync(flag1);
@@ -112,7 +111,7 @@ public class GetPagedAsync_WithValidParameters(PostgresRepoTestsFixture fixture)
 		await fixture.ClearAllFlags();
 		for (int i = 1; i <= 5; i++)
 		{
-			var flag = TestHelpers.CreateTestFlag($"page-flag-{i:00}", EvaluationMode.Enabled);
+			var (flag, _) = TestHelpers.SetupTestCases($"page-flag-{i:00}", EvaluationMode.Enabled);
 			flag.Name = $"Page Flag {i:00}";
 			await fixture.Repository.CreateAsync(flag);
 		}
@@ -157,8 +156,8 @@ public class GetPagedAsync_WithFilter(PostgresRepoTestsFixture fixture) : IClass
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var enabledFlag = TestHelpers.CreateTestFlag("enabled-flag", EvaluationMode.Enabled);
-		var disabledFlag = TestHelpers.CreateTestFlag("disabled-flag", EvaluationMode.Disabled);
+		var (enabledFlag, _) = TestHelpers.SetupTestCases("enabled-flag", EvaluationMode.Enabled);
+		var (disabledFlag, _) = TestHelpers.SetupTestCases("disabled-flag", EvaluationMode.Disabled);
 		
 		await fixture.Repository.CreateAsync(enabledFlag);
 		await fixture.Repository.CreateAsync(disabledFlag);
@@ -179,9 +178,10 @@ public class GetPagedAsync_WithFilter(PostgresRepoTestsFixture fixture) : IClass
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag1 = TestHelpers.CreateTestFlag("tag-flag-1", EvaluationMode.Enabled);
+		var (flag1, _) = TestHelpers.SetupTestCases("tag-flag-1", EvaluationMode.Enabled);
 		flag1.Tags = new Dictionary<string, string> { { "team", "backend" } };
-		var flag2 = TestHelpers.CreateTestFlag("tag-flag-2", EvaluationMode.Enabled);
+
+		var (flag2, _) = TestHelpers.SetupTestCases("tag-flag-2", EvaluationMode.Enabled);
 		flag2.Tags = new Dictionary<string, string> { { "team", "frontend" } };
 
 		await fixture.Repository.CreateAsync(flag1);
@@ -207,7 +207,7 @@ public class GetPagedAsync_WithFilter(PostgresRepoTestsFixture fixture) : IClass
 		await fixture.ClearAllFlags();
 		
 		// Create flag with all specified modes
-		var multiModeFlag = TestHelpers.CreateTestFlag("multi-mode-flag", EvaluationMode.Disabled);
+		var (multiModeFlag, _) = TestHelpers.SetupTestCases("multi-mode-flag", EvaluationMode.Disabled);
 		multiModeFlag.ActiveEvaluationModes.AddMode(EvaluationMode.Scheduled);
 		multiModeFlag.ActiveEvaluationModes.AddMode(EvaluationMode.TimeWindow);
 		multiModeFlag.ActiveEvaluationModes.AddMode(EvaluationMode.UserTargeted);
@@ -215,12 +215,12 @@ public class GetPagedAsync_WithFilter(PostgresRepoTestsFixture fixture) : IClass
 		multiModeFlag.ActiveEvaluationModes.AddMode(EvaluationMode.TenantRolloutPercentage);
 
 		// Create flag with only some modes
-		var partialModeFlag = TestHelpers.CreateTestFlag("partial-mode-flag", EvaluationMode.Disabled);
+		var (partialModeFlag, _) = TestHelpers.SetupTestCases("partial-mode-flag", EvaluationMode.Disabled);
 		partialModeFlag.ActiveEvaluationModes.AddMode(EvaluationMode.Scheduled);
 		partialModeFlag.ActiveEvaluationModes.AddMode(EvaluationMode.UserTargeted);
 
 		// Create flag with different modes
-		var otherModeFlag = TestHelpers.CreateTestFlag("other-mode-flag", EvaluationMode.Enabled);
+		var (otherModeFlag, _) = TestHelpers.SetupTestCases("other-mode-flag", EvaluationMode.Enabled);
 
 		await fixture.Repository.CreateAsync(multiModeFlag);
 		await fixture.Repository.CreateAsync(partialModeFlag);
@@ -270,7 +270,7 @@ public class CreateAsync_WithValidFlag(PostgresRepoTestsFixture fixture) : IClas
 	public async Task ThenCreatesFlag()
 	{
 		// Arrange
-		var flag = TestHelpers.CreateTestFlag("create-test", EvaluationMode.Enabled);
+		var (flag, _) = TestHelpers.SetupTestCases("create-test", EvaluationMode.Enabled);
 
 		// Act
 		var result = await fixture.Repository.CreateAsync(flag);
@@ -288,7 +288,7 @@ public class CreateAsync_WithValidFlag(PostgresRepoTestsFixture fixture) : IClas
 	public async Task If_FlagWithSchedule_ThenCreatesCorrectly()
 	{
 		// Arrange
-		var flag = TestHelpers.CreateTestFlag("scheduled-flag", EvaluationMode.Scheduled);
+		var (flag, _) = TestHelpers.SetupTestCases("scheduled-flag", EvaluationMode.Scheduled);
 		DateTime startDt = DateTime.UtcNow.AddDays(1);
 		DateTime endDt = DateTime.UtcNow.AddDays(7);
 		flag.Schedule = ActivationSchedule.CreateSchedule(startDt, endDt);
@@ -316,7 +316,7 @@ public class CreateAsync_WithValidFlag(PostgresRepoTestsFixture fixture) : IClas
 	public async Task If_FlagWithOperationalWindow_ThenCreatesCorrectly()
 	{
 		// Arrange
-		var flag = TestHelpers.CreateTestFlag("window-flag", EvaluationMode.TimeWindow);
+		var (flag, _) = TestHelpers.SetupTestCases("window-flag", EvaluationMode.TimeWindow);
 		flag.OperationalWindow = new OperationalWindow(
 			TimeSpan.FromHours(9),
 			TimeSpan.FromHours(17),
@@ -343,7 +343,7 @@ public class UpdateAsync_WithExistingFlag(PostgresRepoTestsFixture fixture) : IC
 	public async Task ThenUpdatesFlag()
 	{
 		// Arrange
-		var flag = TestHelpers.CreateTestFlag("update-test", EvaluationMode.Enabled);
+		var (flag, _) = TestHelpers.SetupTestCases("update-test", EvaluationMode.Enabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		flag.Name = "Updated Name";
@@ -371,7 +371,7 @@ public class UpdateAsync_WithExistingFlag(PostgresRepoTestsFixture fixture) : IC
 	public async Task If_FlagDoesNotExist_ThenThrowsInvalidOperationException()
 	{
 		// Arrange
-		var flag = TestHelpers.CreateTestFlag("non-existent-update", EvaluationMode.Enabled);
+		var (flag, _) = TestHelpers.SetupTestCases("non-existent-update", EvaluationMode.Enabled);
 
 		// Act & Assert
 		await Should.ThrowAsync<InvalidOperationException>(() => fixture.Repository.UpdateAsync(flag));
@@ -384,7 +384,7 @@ public class DeleteAsync_WhenFlagExists(PostgresRepoTestsFixture fixture) : ICla
 	public async Task ThenDeletesFlagAndReturnsTrue()
 	{
 		// Arrange
-		var flag = TestHelpers.CreateTestFlag("delete-test", EvaluationMode.Enabled);
+		var (flag, _) = TestHelpers.SetupTestCases("delete-test", EvaluationMode.Enabled);
 		await fixture.Repository.CreateAsync(flag);
 
 		var flagKey = flag.ToFlagKey();
@@ -405,9 +405,9 @@ public class CreateAsync_WhenFlagAlreadyExists(PostgresRepoTestsFixture fixture)
 	public async Task ThenThrowsDuplicatedFeatureFlagException()
 	{
 		// Arrange
-		var flag = TestHelpers.CreateTestFlag("duplicate-flag", EvaluationMode.Enabled);
+		var (flag, _) = TestHelpers.SetupTestCases("duplicate-flag", EvaluationMode.Enabled);
 		await fixture.Repository.CreateAsync(flag);
-		var duplicateFlag = TestHelpers.CreateTestFlag("duplicate-flag", EvaluationMode.Disabled);
+		var (duplicateFlag, _) = TestHelpers.SetupTestCases("duplicate-flag", EvaluationMode.Disabled);
 
 		// Act & Assert
 		await Should.ThrowAsync<DuplicatedFeatureFlagException>(() => fixture.Repository.CreateAsync(duplicateFlag));

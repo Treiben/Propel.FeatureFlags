@@ -10,14 +10,13 @@ public class Evaluate_WithEnabledFlag(EvaluatorTestsFixture fixture) : IClassFix
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("enabled-test", EvaluationMode.Enabled);
-		var created = await fixture.Repository.CreateAsync(flag);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("enabled-test", EvaluationMode.Enabled);
+		_ = await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "user123");
-		var applicationFlag = TestHelpers.CreateApplicationFlag(flag.Key, EvaluationMode.Enabled);
 
 		// Act
-		var result = await fixture.Evaluator.Evaluate(applicationFlag, context);
+		var result = await fixture.Evaluator.Evaluate(appFlag, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -34,7 +33,7 @@ public class Evaluate_WithUserTargetedFlag(EvaluatorTestsFixture fixture) : ICla
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("targeted-flag", EvaluationMode.UserTargeted);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("targeted-flag", EvaluationMode.UserTargeted);
 		flag.TargetingRules = [
 			TargetingRuleFactory.CreateTargetingRule(
 				"userId",
@@ -44,12 +43,11 @@ public class Evaluate_WithUserTargetedFlag(EvaluatorTestsFixture fixture) : ICla
 			),
 		];
 		await fixture.Repository.CreateAsync(flag);
-		var applicationFlag = TestHelpers.CreateApplicationFlag("targeted-flag", EvaluationMode.Enabled);
 
 		var context = new EvaluationContext(userId: "current-user");
 
 		// Act
-		var result = await fixture.Evaluator.Evaluate(applicationFlag, context);
+		var result = await fixture.Evaluator.Evaluate(appFlag, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -65,17 +63,17 @@ public class Evaluate_WithUserRolloutFlag(EvaluatorTestsFixture fixture) : IClas
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("rollout-flag", EvaluationMode.UserRolloutPercentage);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("rollout-flag", EvaluationMode.UserRolloutPercentage);
 		flag.UserAccessControl = new AccessControl(
 			allowed: ["allowed-user"],
 			rolloutPercentage: 0);
+
 		await fixture.Repository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "allowed-user");
-		var applicationFlag = TestHelpers.CreateApplicationFlag("rollout-flag", EvaluationMode.Enabled);
 
 		// Act
-		var result = await fixture.Evaluator.Evaluate(applicationFlag, context);
+		var result = await fixture.Evaluator.Evaluate(appFlag, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -88,17 +86,17 @@ public class Evaluate_WithUserRolloutFlag(EvaluatorTestsFixture fixture) : IClas
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("rollout-flag", EvaluationMode.UserRolloutPercentage);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("rollout-flag", EvaluationMode.UserRolloutPercentage);
 		flag.UserAccessControl = new AccessControl(
 			blocked: ["blocked-user"],
 			rolloutPercentage: 100);
+
 		await fixture.Repository.CreateAsync(flag);
-		var applicationFlag = TestHelpers.CreateApplicationFlag("rollout-flag", EvaluationMode.Enabled);
 
 		var context = new EvaluationContext(userId: "blocked-user");
 
 		// Act
-		var result = await fixture.Evaluator.Evaluate(applicationFlag, context);
+		var result = await fixture.Evaluator.Evaluate(appFlag, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -114,18 +112,18 @@ public class Evaluate_WithTimeWindowFlag(EvaluatorTestsFixture fixture) : IClass
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("window-flag", EvaluationMode.TimeWindow);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("window-flag", EvaluationMode.TimeWindow);
 		flag.OperationalWindow = new OperationalWindow(
 			TimeSpan.FromHours(9),
 			TimeSpan.FromHours(17));
+
 		await fixture.Repository.CreateAsync(flag);
-		var applicationFlag = TestHelpers.CreateApplicationFlag("window-flag", EvaluationMode.Enabled);
 
 		var evaluationTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc);
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
 		// Act
-		var result = await fixture.Evaluator.Evaluate(applicationFlag, context);
+		var result = await fixture.Evaluator.Evaluate(appFlag, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -138,18 +136,18 @@ public class Evaluate_WithTimeWindowFlag(EvaluatorTestsFixture fixture) : IClass
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("window-flag", EvaluationMode.TimeWindow);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("window-flag", EvaluationMode.TimeWindow);
 		flag.OperationalWindow = new OperationalWindow(
 			TimeSpan.FromHours(9),
 			TimeSpan.FromHours(17));
+
 		await fixture.Repository.CreateAsync(flag);
-		var applicationFlag = TestHelpers.CreateApplicationFlag("window-flag", EvaluationMode.Enabled);
 
 		var evaluationTime = new DateTime(2024, 1, 15, 20, 0, 0, DateTimeKind.Utc);
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
 		// Act
-		var result = await fixture.Evaluator.Evaluate(applicationFlag, context);
+		var result = await fixture.Evaluator.Evaluate(appFlag, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -165,13 +163,13 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("string-flag", EvaluationMode.UserTargeted);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("string-flag", EvaluationMode.UserTargeted);
 		
 		flag.TargetingRules = [
 			TargetingRuleFactory.CreateTargetingRule(
 							attribute: "user-type",
 							op: TargetingOperator.In,
-							values: new List<string> { "dev-user", "test-user" },
+							values: ["dev-user", "test-user"],
 							variation: "string-variant"
 						)
 		];
@@ -184,13 +182,11 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 		};
 		await fixture.Repository.CreateAsync(flag);
 
-		var applicationFlag = TestHelpers.CreateApplicationFlag(flag.Key, EvaluationMode.Enabled);
-
 		var context = new EvaluationContext(attributes: new Dictionary<string, object> { { "user-type", "test-user" } },
 			userId: "dev-user");
 
 		// Act
-		var result = await fixture.Evaluator.GetVariation(applicationFlag, "default", context);
+		var result = await fixture.Evaluator.GetVariation(appFlag, "default", context);
 
 		// Assert
 		result.ShouldBe("Hello World");
@@ -201,7 +197,7 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("int-flag", EvaluationMode.UserTargeted);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("int-flag", EvaluationMode.UserTargeted);
 		flag.TargetingRules = [
 		TargetingRuleFactory.CreateTargetingRule(
 								"userId",
@@ -218,7 +214,6 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 						}
 		};
 		await fixture.Repository.CreateAsync(flag);
-		var applicationFlag = TestHelpers.CreateApplicationFlag("int-flag", EvaluationMode.Enabled);
 
 		var context = new EvaluationContext(
 			userId: "test-user",
@@ -226,7 +221,7 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 		);
 
 		// Act
-		var result = await fixture.Evaluator.GetVariation(applicationFlag, 0, context);
+		var result = await fixture.Evaluator.GetVariation(appFlag, 0, context);
 
 		// Assert
 		result.ShouldBe(42);
@@ -237,14 +232,13 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("disabled-variation", EvaluationMode.Disabled);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("disabled-variation", EvaluationMode.Disabled);
 		await fixture.Repository.CreateAsync(flag);
-		var applicationFlag = TestHelpers.CreateApplicationFlag("disabled-variation", EvaluationMode.Enabled);
 
 		var context = new EvaluationContext(userId: "test-user");
 
 		// Act
-		var result = await fixture.Evaluator.GetVariation(applicationFlag, "default-value", context);
+		var result = await fixture.Evaluator.GetVariation(appFlag, "default-value", context);
 
 		// Assert
 		result.ShouldBe("default-value");

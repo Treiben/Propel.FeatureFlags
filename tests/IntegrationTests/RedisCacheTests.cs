@@ -22,7 +22,7 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		// Arrange
 		await fixture.ClearAllFlags();
 
-		var flag = TestHelpers.CreateTestFlag("cache-test", EvaluationMode.Enabled);
+		var (flag, _) = TestHelpers.SetupTestCases("cache-test", EvaluationMode.Enabled);
 		var cacheKey = TestHelpers.CreateCacheKey(flag.Key);
 
 		// Act
@@ -40,7 +40,7 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("complex-flag", EvaluationMode.UserTargeted);
+		var (flag, _) = TestHelpers.SetupTestCases("complex-flag", EvaluationMode.UserTargeted);
 		flag.TargetingRules =
 		[
 			TargetingRuleFactory.CreateTargetingRule(
@@ -98,7 +98,7 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("expiring-flag", EvaluationMode.Enabled);
+		var (flag, _) = TestHelpers.SetupTestCases("expiring-flag", EvaluationMode.Enabled);
 		var cacheKey = TestHelpers.CreateCacheKey(flag.Key);
 
 		// Act
@@ -112,14 +112,14 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var originalFlag = TestHelpers.CreateTestFlag("update-flag", EvaluationMode.Disabled);
+		var (originalFlag, _) = TestHelpers.SetupTestCases("update-flag", EvaluationMode.Disabled);
 		var currentApplicationName = ApplicationInfo.Name;
 		var currentApplicationVersion = ApplicationInfo.Version;
 
 		var cacheKey = new CacheKey("update-flag", [currentApplicationName, currentApplicationVersion]);
 		await fixture.Cache.SetAsync(cacheKey, originalFlag);
 
-		var updatedFlag = TestHelpers.CreateTestFlag("update-flag", EvaluationMode.Enabled);
+		var (updatedFlag, _) = TestHelpers.SetupTestCases("update-flag", EvaluationMode.Enabled);
 		updatedFlag.Name = "Updated Name";
 		updatedFlag.Description = "Updated Description";
 
@@ -142,7 +142,7 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("get-test", EvaluationMode.Enabled);
+		var (flag, _) = TestHelpers.SetupTestCases("get-test", EvaluationMode.Enabled);
 		var cacheKey = TestHelpers.CreateCacheKey(flag.Key);
 
 		await fixture.Cache.SetAsync(cacheKey, flag);
@@ -162,7 +162,7 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("time-flag", EvaluationMode.TimeWindow);
+		var (flag, _) = TestHelpers.SetupTestCases("time-flag", EvaluationMode.TimeWindow);
 
 		var schedule = ActivationSchedule.CreateSchedule(
 			DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddDays(7));
@@ -197,7 +197,7 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("percentage-flag", EvaluationMode.UserRolloutPercentage);
+		var (flag, _) = TestHelpers.SetupTestCases("percentage-flag", EvaluationMode.UserRolloutPercentage);
 		flag.UserAccessControl = new AccessControl(rolloutPercentage: 75);
 		var cacheKey = TestHelpers.CreateCacheKey(flag.Key);
 
@@ -221,9 +221,6 @@ public class GetAsync_WhenFlagDoesNotExist(RedisTestsFixture fixture) : IClassFi
 		await fixture.ClearAllFlags();
 
 		// Act
-		var currentApplicationName = ApplicationInfo.Name;
-		var currentApplicationVersion = ApplicationInfo.Version;
-
 		var cacheKey = TestHelpers.CreateCacheKey("not-existent-flag");
 		var result = await fixture.Cache.GetAsync(cacheKey);
 
@@ -239,7 +236,7 @@ public class RemoveAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixtu
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag = TestHelpers.CreateTestFlag("remove-test", EvaluationMode.Enabled);
+		var (flag, _) = TestHelpers.SetupTestCases("remove-test", EvaluationMode.Enabled);
 		var cacheKey = TestHelpers.CreateCacheKey(flag.Key);
 
 		await fixture.Cache.SetAsync(cacheKey, flag);
@@ -264,9 +261,9 @@ public class ClearAsync_WithMultipleFlags(RedisTestsFixture fixture) : IClassFix
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var flag1 = TestHelpers.CreateTestFlag("flag-1", EvaluationMode.Enabled);
-		var flag2 = TestHelpers.CreateTestFlag("flag-2", EvaluationMode.Disabled);
-		var flag3 = TestHelpers.CreateTestFlag("flag-3", EvaluationMode.UserRolloutPercentage);
+		var (flag1, _) = TestHelpers.SetupTestCases("flag-1", EvaluationMode.Enabled);
+		var (flag2, _) = TestHelpers.SetupTestCases("flag-2", EvaluationMode.Disabled);
+		var (flag3, _) = TestHelpers.SetupTestCases("flag-3", EvaluationMode.UserRolloutPercentage);
 
 
 		var cacheKey1 = TestHelpers.CreateCacheKey(flag1.Key);
@@ -308,7 +305,7 @@ public class ClearAsync_WithMultipleFlags(RedisTestsFixture fixture) : IClassFix
 		await fixture.ClearAllFlags();
 		
 		// Set a feature flag
-		var flag = TestHelpers.CreateTestFlag("test-flag", EvaluationMode.Enabled);
+		var (flag, _) = TestHelpers.SetupTestCases("test-flag", EvaluationMode.Enabled);
 		var cacheKey = TestHelpers.CreateCacheKey(flag.Key);
 		await fixture.Cache.SetAsync(cacheKey, flag);
 

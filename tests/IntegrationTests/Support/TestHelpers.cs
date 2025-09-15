@@ -6,17 +6,13 @@ using Propel.FeatureFlags.Services.ApplicationScope;
 
 namespace FeatureFlags.IntegrationTests.Support;
 
-public class TestApplicationFeatureFlag : TypeSafeFeatureFlag
+public class TestApplicationFeatureFlag(
+	string key,
+	string? name = null,
+	string? description = null,
+	Dictionary<string, string>? tags = null,
+	EvaluationMode defaultMode = EvaluationMode.Disabled) : TypeSafeFeatureFlag(key, name, description, tags, defaultMode)
 {
-    public TestApplicationFeatureFlag(
-        string key,
-        string? name = null,
-        string? description = null,
-        Dictionary<string, string>? tags = null,
-        EvaluationMode defaultMode = EvaluationMode.Disabled)
-        : base(key, name, description, tags, defaultMode)
-    {
-    }
 }
 public static class TestHelpers
 {
@@ -29,16 +25,25 @@ public static class TestHelpers
 		await command.ExecuteNonQueryAsync();
 	}
 
-	public static FeatureFlag CreateTestFlag(string key, EvaluationMode evaluationMode)
+	public static (FeatureFlag, IApplicationFeatureFlag) SetupTestCases(string key, 
+        EvaluationMode ffMode, EvaluationMode afMode = EvaluationMode.Disabled)
 	{
-		return new FeatureFlag
+		var ff = new FeatureFlag
 		{
 			Key = key,
 			Name = $"Test Flag {key}",
 			Description = "Test flag for integration tests",
-			ActiveEvaluationModes = new EvaluationModes([evaluationMode]),
+			ActiveEvaluationModes = new EvaluationModes([ffMode]),
 			Created = new Audit(timestamp: DateTime.UtcNow, actor: "integration-test"),
 		};
+
+        var af = new TestApplicationFeatureFlag(
+			key: key,
+			name: $"App Flag {key}",
+			description: "Application flag for integration tests",
+			defaultMode: afMode);
+
+        return (ff, af);
 	}
 
     public static CacheKey CreateCacheKey(string key)
@@ -52,15 +57,6 @@ public static class TestHelpers
     public static CacheKey CreateGlobalCacheKey(string key)
     {
         return new CacheKey(key, ["global"]);
-	}
-
-	public static IApplicationFeatureFlag CreateApplicationFlag(string key, EvaluationMode evaluationMode)
-    {
-        return new TestApplicationFeatureFlag(
-            key: key,
-            name: $"App Flag {key}",
-            description: "Application flag for integration tests",
-            defaultMode: evaluationMode);
 	}
 
 	private static string GetCreateSchemaScript()
