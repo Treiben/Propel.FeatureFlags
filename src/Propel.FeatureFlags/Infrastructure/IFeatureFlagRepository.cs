@@ -2,7 +2,49 @@
 
 namespace Propel.FeatureFlags.Infrastructure;
 
-public record FeatureFlagFilter
+public class FlagKey
+{
+	public string Key { get; }
+	public string? ApplicationName { get; }
+	public string? ApplicationVersion { get; }
+	public Scope Scope { get; }
+
+	public FlagKey(string key, Scope scope, string? applicationName = null, string? applicationVersion = null)
+	{
+		if (string.IsNullOrWhiteSpace(key))
+		{
+			throw new ArgumentException("Feature flag key cannot be null or empty.", nameof(key));
+		}
+
+		if (scope == Scope.Application && string.IsNullOrWhiteSpace(applicationName))
+		{
+			throw new ArgumentException("Application name must be provided when scope is Application.", nameof(applicationName));
+		}
+
+		Key = key.Trim();
+		Scope = scope;
+
+		ApplicationName = string.IsNullOrWhiteSpace(applicationName) ? null : applicationName!.Trim();
+		ApplicationVersion = string.IsNullOrWhiteSpace(applicationVersion) ? null : applicationVersion!.Trim();
+	}
+}
+
+public static class FeatureFlagExtensions
+{
+	public static FlagKey ToFlagKey(this FeatureFlag flag)
+	{
+		if (flag == null) 
+			throw new ArgumentNullException(nameof(flag));
+		return new FlagKey(
+			key: flag.Key,
+			scope: flag.Retention.Scope,
+			applicationName: flag.Retention.ApplicationName,
+			applicationVersion: flag.Retention.ApplicationVersion
+		);
+	}
+}
+
+public class FeatureFlagFilter
 {
 	public Dictionary<string, string>? Tags { get; set; }
 	public EvaluationMode[]? EvaluationModes { get; set; }
@@ -10,9 +52,9 @@ public record FeatureFlagFilter
 	public string ApplicationName { get; set; } = string.Empty;
 	public string? ApplicationVersion { get; set; }
 	public Scope? Scope { get; set; }
-	}
+}
 
-public record PagedResult<T>
+public class PagedResult<T>
 {
 	public List<T> Items { get; set; } = [];
 	public int TotalCount { get; set; }
@@ -25,7 +67,7 @@ public record PagedResult<T>
 
 public interface IFeatureFlagRepository
 {
-	Task<FeatureFlag?> GetAsync(string key, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default);
+	Task<FeatureFlag?> GetAsync(FlagKey key, CancellationToken cancellationToken = default);
 	Task<List<FeatureFlag>> GetAllAsync(CancellationToken cancellationToken = default);
 	Task<PagedResult<FeatureFlag>> GetPagedAsync(int page, int pageSize, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default);
 	Task<FeatureFlag> CreateAsync(FeatureFlag flag, CancellationToken cancellationToken = default);

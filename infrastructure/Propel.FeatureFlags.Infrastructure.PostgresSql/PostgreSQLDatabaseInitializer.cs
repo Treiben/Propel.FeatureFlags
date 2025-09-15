@@ -182,6 +182,19 @@ CREATE INDEX IF NOT EXISTS idx_feature_flags_enabled_users ON feature_flags USIN
 CREATE INDEX IF NOT EXISTS idx_feature_flags_enabled_tenants ON feature_flags USING GIN (enabled_tenants);
 CREATE INDEX IF NOT EXISTS idx_feature_flags_disabled_tenants ON feature_flags USING GIN (disabled_tenants);
 
+-- Add indexes for read operation optimization (application_name, application_version, scope)
+CREATE INDEX IF NOT EXISTS idx_feature_flags_application_name ON feature_flags (application_name);
+CREATE INDEX IF NOT EXISTS idx_feature_flags_application_version ON feature_flags (application_version);
+CREATE INDEX IF NOT EXISTS idx_feature_flags_scope ON feature_flags (scope);
+
+-- Composite indexes for common query patterns from BuildWhereClause method
+CREATE INDEX IF NOT EXISTS idx_feature_flags_key_scope ON feature_flags (key, scope);
+CREATE INDEX IF NOT EXISTS idx_feature_flags_key_scope_app ON feature_flags (key, scope, application_name);
+CREATE INDEX IF NOT EXISTS idx_feature_flags_key_scope_app_version ON feature_flags (key, scope, application_name, application_version);
+
+-- Composite index for filtering operations from BuildFilterConditions method
+CREATE INDEX IF NOT EXISTS idx_feature_flags_scope_app_name ON feature_flags (scope, application_name);
+
 -- Create indexes for feature_flag_audit table
 CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_flag_key ON feature_flag_audit (flag_key);
 CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_changed_at ON feature_flag_audit (changed_at);

@@ -20,12 +20,12 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		_logger.LogDebug("PostgreSQL Feature Flag Repository initialized with connection pooling");
 	}
 
-	public async Task<FeatureFlag?> GetAsync(string key, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default)
+	public async Task<FeatureFlag?> GetAsync(FlagKey key, CancellationToken cancellationToken = default)
 	{
 		_logger.LogDebug("Getting feature flag with key: {Key}, Scope: {Scope}, Application: {Application}",
-			key, filter?.Scope, filter?.ApplicationName);
+			key, key.Scope, key.ApplicationName);
 
-		var (whereClause, parameters) = BuildWhereClause(key, filter?.Scope ?? Scope.Application, filter?.ApplicationName, filter?.ApplicationVersion);
+		var (whereClause, parameters) = BuildWhereClause(key);
 		var sql = $"SELECT * FROM feature_flags {whereClause}";
 
 		try
@@ -39,7 +39,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 			if (!await reader.ReadAsync(cancellationToken))
 			{
-				_logger.LogDebug("Feature flag with key {Key} not found within scope {Scope}", key, filter?.Scope);
+				_logger.LogDebug("Feature flag with key {Key} not found within scope {Scope}", key, key.Scope);
 				return null;
 			}
 
@@ -152,7 +152,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 			flag.Key, flag.Retention.ApplicationName);
 
 		// Validate uniqueness
-		await ValidateUniqueFlagAsync(flag.Key, flag.Retention.Scope, flag.Retention.ApplicationName, flag.Retention.ApplicationVersion, cancellationToken);
+		await ValidateUniqueFlagAsync(flag.ToFlagKey(), cancellationToken);
 
 		const string sql = @"
             INSERT INTO feature_flags (
@@ -196,7 +196,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 	{
 		_logger.LogDebug("Updating feature flag with key: {Key}", flag.Key);
 
-		var (whereClause, parameters) = BuildWhereClause(flag.Key, flag.Retention.Scope, flag.Retention.ApplicationName, flag.Retention.ApplicationVersion);
+		var (whereClause, parameters) = BuildWhereClause(flag.ToFlagKey());
 
 		var sql = $@"
             UPDATE feature_flags SET 
@@ -245,7 +245,7 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 	{
 		_logger.LogDebug("Deleting feature flag with key: {Key}", flag.Key);
 
-		var (whereClause, parameters) = BuildWhereClause(flag.Key, flag.Retention.Scope, flag.Retention.ApplicationName, flag.Retention.ApplicationVersion);
+		var (whereClause, parameters) = BuildWhereClause(flag.ToFlagKey());
 		var sql = $"DELETE FROM feature_flags {whereClause}";
 
 		try
@@ -272,9 +272,9 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 		}
 	}
 
-	private async Task ValidateUniqueFlagAsync(string key, Scope scope, string? applicationName, string? applicationVersion, CancellationToken cancellationToken)
+	private async Task ValidateUniqueFlagAsync(FlagKey key, CancellationToken cancellationToken)
 	{
-		var (whereClause, parameters) = BuildWhereClause(key, scope, applicationName, applicationVersion);
+		var (whereClause, parameters) = BuildWhereClause(key);
 		var sql = $"SELECT COUNT(*) FROM feature_flags {whereClause}";
 
 		using var connection = new NpgsqlConnection(_connectionString);
@@ -286,37 +286,36 @@ public class PostgreSQLFeatureFlagRepository : IFeatureFlagRepository
 
 		if (count > 0)
 		{
-			var message = $"Feature flag with key '{key}' already exists in scope '{scope}' for application '{applicationName}'";
-			_logger.LogWarning(message);
-			throw new InvalidOperationException(message);
+			var message = "Feature flag with key '{Key}' already exists in scope '{Scope}' for application '{ApplicationName}'";
+			_logger.LogWarning(message, key.Key, key.Scope, key.ApplicationName);
+			throw new InvalidOperationException(string.Format(message, key.Key, key.Scope, key.ApplicationName));
 		}
 	}
 
-	private static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(
-		string key, Scope scope, string? applicationName, string? applicationVersion)
+	private static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(FlagKey key)
 	{
 		var parameters = new Dictionary<string, object>
 		{
-			["key"] = key,
-			["scope"] = (int)scope
+			["key"] = key.Key,
+			["scope"] = (int)key.Scope
 		};
 
-		if (scope == Scope.Global)
+		if (key.Scope == Scope.Global)
 		{
 			return ("WHERE key = @key AND scope = @scope", parameters);
 		}
 
 		// Application or Feature scope
-		if (string.IsNullOrEmpty(applicationName))
+		if (string.IsNullOrEmpty(key.ApplicationName))
 		{
-			throw new ArgumentException("Application name required for application-scoped flags.", nameof(applicationName));
+			throw new ArgumentException("Application name required for application-scoped flags.", nameof(key.ApplicationName));
 		}
 
-		parameters["application_name"] = applicationName;
+		parameters["application_name"] = key.ApplicationName;
 
-		if (!string.IsNullOrEmpty(applicationVersion))
+		if (!string.IsNullOrEmpty(key.ApplicationVersion))
 		{
-			parameters["application_version"] = applicationVersion;
+			parameters["application_version"] = key.ApplicationVersion;
 			return ("WHERE key = @key AND scope = @scope AND application_name = @application_name AND application_version = @application_version", parameters);
 		}
 		else

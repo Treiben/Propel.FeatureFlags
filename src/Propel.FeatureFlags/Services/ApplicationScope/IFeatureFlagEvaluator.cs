@@ -2,7 +2,6 @@
 using Propel.FeatureFlags.Helpers;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
-using Propel.FeatureFlags.Services;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.Services.ApplicationScope;
@@ -102,12 +101,12 @@ public sealed class FeatureFlagEvaluator(
 		// If not in cache, get from repository
 		if (flag == null)
 		{
-			flag = await _repository.GetAsync(flagKey, new FeatureFlagFilter
-			{
-				Scope = Scope.Application,
-				ApplicationName = ApplicationName,
-				ApplicationVersion = ApplicationVersion
-			}, cancellationToken);
+			flag = await _repository.GetAsync(new FlagKey(
+				key: flagKey,
+				scope: Scope.Application,
+				applicationName: ApplicationName,
+				applicationVersion: ApplicationVersion
+			), cancellationToken);
 			
 			// Cache for future requests if found
 			if (flag != null && cache != null)

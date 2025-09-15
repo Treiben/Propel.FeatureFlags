@@ -42,9 +42,10 @@ public class GlobalFlagEvaluator(
 		// If not in cache, get from repository
 		if (flag == null)
 		{
-			flag = await _repository.GetAsync(flagKey, new FeatureFlagFilter {
-				Scope = Scope.Global
-			}, cancellationToken);
+			flag = await _repository.GetAsync(new FlagKey(
+					key: flagKey,
+					scope: Scope.Global
+				), cancellationToken);
 
 			// Cache for future requests if found
 			if (flag != null && cache != null)
