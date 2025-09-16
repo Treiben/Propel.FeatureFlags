@@ -5,23 +5,23 @@ namespace Propel.FeatureFlags.Services.Evaluation;
 public interface IOrderedEvaluator
 {
 	EvaluationOrder EvaluationOrder { get; }
-	bool CanProcess(FeatureFlag flag, EvaluationContext context);
-	Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context);
+	bool CanProcess(EvaluationCriteria flag, EvaluationContext context);
+	Task<EvaluationResult?> ProcessEvaluation(EvaluationCriteria flag, EvaluationContext context);
 }
 
 public abstract class OrderedEvaluatorBase : IOrderedEvaluator
 {
 	public abstract EvaluationOrder EvaluationOrder { get; }
-	public abstract bool CanProcess(FeatureFlag flag, EvaluationContext context);
-	public abstract Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context);
+	public abstract bool CanProcess(EvaluationCriteria flag, EvaluationContext context);
+	public abstract Task<EvaluationResult?> ProcessEvaluation(EvaluationCriteria flag, EvaluationContext context);
 
-	public EvaluationResult CreateEvaluationResult(FeatureFlag flag, EvaluationContext context, bool isActive, string because)
+	public EvaluationResult CreateEvaluationResult(EvaluationCriteria flag, EvaluationContext context, bool isActive, string because)
 	{
 		if (isActive)
 		{
 			var id = context.TenantId ?? context.UserId ?? "anonymous";
 
-			var selectedVariation = flag.Variations.SelectVariationFor(flag.Key, id)
+			var selectedVariation = flag.Variations.SelectVariationFor(flag.FlagKey, id)
 				?? flag.Variations.DefaultVariation;
 
 			return new EvaluationResult(isEnabled: true,
@@ -32,7 +32,7 @@ public abstract class OrderedEvaluatorBase : IOrderedEvaluator
 			variation: flag.Variations.DefaultVariation, reason: because);
 	}
 
-	public EvaluationResult CreateEvaluationResult(FeatureFlag flag, EvaluationContext context, bool isActive, string variation, string because)
+	public EvaluationResult CreateEvaluationResult(EvaluationCriteria flag, EvaluationContext context, bool isActive, string variation, string because)
 	{
 		if (isActive)
 		{

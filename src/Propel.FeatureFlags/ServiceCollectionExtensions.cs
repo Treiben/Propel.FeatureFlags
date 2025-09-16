@@ -6,6 +6,7 @@ using Propel.FeatureFlags.Services;
 using Propel.FeatureFlags.Services.ApplicationScope;
 using Propel.FeatureFlags.Services.Evaluation;
 using Propel.FeatureFlags.Services.GlobalScope;
+using System.Reflection;
 
 namespace Propel.FeatureFlags;
 
@@ -34,7 +35,27 @@ public static class ServiceCollectionExtensions
 		if (options.CacheOptions?.UseCache == true && string.IsNullOrEmpty(options.RedisConnectionString))
 			services.TryAddSingleton<IFeatureFlagCache, MemoryFeatureFlagCache>();
 
+		services.RegisterFlagsInDatabase();
+
 		return services;
 	}
 
+	private static IServiceCollection RegisterFlagsInDatabase(this IServiceCollection services)
+	{
+		var currentAssembly = Assembly.GetExecutingAssembly();
+
+		var allFlags = currentAssembly
+			.GetTypes()
+			.Where(t => typeof(IRegisteredFeatureFlag).IsAssignableFrom(t)
+					&& !t.IsInterface
+					&& !t.IsAbstract);
+
+		foreach (var flag in allFlags)
+		{
+			var sliceInstance = (IRegisteredFeatureFlag)Activator.CreateInstance(flag)!;
+			services.AddSingleton(typeof(IRegisteredFeatureFlag), flag);
+		}
+
+		return services;
+	}
 }

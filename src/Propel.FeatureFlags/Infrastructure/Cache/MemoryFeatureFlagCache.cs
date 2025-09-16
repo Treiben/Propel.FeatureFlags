@@ -8,14 +8,14 @@ public sealed class MemoryFeatureFlagCache(MemoryCache cache, CacheOptions cache
 	private readonly MemoryCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
 	private readonly CacheOptions _cacheConfiguration = cacheConfiguration ?? throw new ArgumentNullException(nameof(cacheConfiguration));
 
-	public Task<FeatureFlag?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
+	public Task<EvaluationCriteria?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
 		var flagKey = cacheKey.ComposeKey();
-		_cache.TryGetValue(flagKey, out FeatureFlag? flag);
+		_cache.TryGetValue(flagKey, out EvaluationCriteria? flag);
 		return Task.FromResult(flag);
 	}
 
-	public Task SetAsync(CacheKey cacheKey, FeatureFlag flag, CancellationToken cancellationToken = default)
+	public Task SetAsync(CacheKey cacheKey, EvaluationCriteria flag, CancellationToken cancellationToken = default)
 	{
 		var flagKey = cacheKey.ComposeKey();
 		_cache.Set(flagKey, flag, _cacheConfiguration.ExpiryInMinutes);

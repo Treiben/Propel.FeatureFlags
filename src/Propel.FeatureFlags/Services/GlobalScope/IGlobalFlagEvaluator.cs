@@ -10,50 +10,50 @@ public interface IGlobalFlagEvaluator
 }
 
 public class GlobalFlagEvaluator(
-	IFeatureFlagRepository repository,
+	IFlagEvaluationRepository repository,
 	IFlagEvaluationManager evaluationManager,
 	IFeatureFlagCache? cache = null) : IGlobalFlagEvaluator
 {
-	private readonly IFeatureFlagRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+	private readonly IFlagEvaluationRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
 	private readonly IFlagEvaluationManager _evaluationManager = evaluationManager ?? throw new ArgumentNullException(nameof(evaluationManager));
 
 	public async Task<EvaluationResult?> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
-		var flag = await GetFlagAsync(flagKey, cancellationToken);
-		if (flag == null)
+		var flagData = await GetFlagAsync(flagKey, cancellationToken);
+		if (flagData == null)
 		{
 			throw new Exception("The global feature flag is not found. Please create the flag in the system before evaluating it or remove reference to it.");
 		}
 
-		return await _evaluationManager.ProcessEvaluation(flag, context);
+		return await _evaluationManager.ProcessEvaluation(flagData, context);
 	}
 
-	private async Task<FeatureFlag?> GetFlagAsync(string flagKey, CancellationToken cancellationToken)
+	private async Task<EvaluationCriteria?> GetFlagAsync(string flagKey, CancellationToken cancellationToken)
 	{
 		// Create composite key for uniqueness per application
 		var cacheKey = new GlobalCacheKey(flagKey);
 		// Try cache first
-		FeatureFlag? flag = null;
+		EvaluationCriteria? flagData = null;
 		if (cache != null)
 		{
-			flag = await cache.GetAsync(cacheKey, cancellationToken);
+			flagData = await cache.GetAsync(cacheKey, cancellationToken);
 		}
 
 		// If not in cache, get from repository
-		if (flag == null)
+		if (flagData == null)
 		{
-			flag = await _repository.GetAsync(new FlagKey(
+			flagData = await _repository.GetAsync(new FlagKey(
 					key: flagKey,
 					scope: Scope.Global
 				), cancellationToken);
 
 			// Cache for future requests if found
-			if (flag != null && cache != null)
+			if (flagData != null && cache != null)
 			{
-				await cache.SetAsync(cacheKey, flag, cancellationToken);
+				await cache.SetAsync(cacheKey, flagData, cancellationToken);
 			}
 		}
 
-		return flag;
+		return flagData;
 	}
 }

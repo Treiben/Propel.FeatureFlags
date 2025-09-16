@@ -1,8 +1,11 @@
 ﻿namespace Propel.FeatureFlags.Domain;
 
+/// <summary>
+/// Full flag definition including targeting rules, variations, and metadata
+/// </summary>
 public class FeatureFlag
 {
-	public string Key { get; set; } = string.Empty;
+	public FlagKey Key { get; set; } 
 	public string Name { get; set; } = string.Empty;
 	public string Description { get; set; } = string.Empty;
 
@@ -23,16 +26,17 @@ public class FeatureFlag
 
 	// Metadata
 	public Dictionary<string, string> Tags { get; set; } = [];
-	public Audit Created { get; set; } = Audit.FlagCreated();
-	public Audit? LastModified { get; set; } = default;
+	public AuditTrail Created { get; set; } = AuditTrail.FlagCreated();
+	public AuditTrail? LastModified { get; set; } = default;
 
-	public static FeatureFlag Create(string key, string name, string description)
+	public static FeatureFlag Create(FlagKey key, string name, string description)
 	{
 		var flag = new FeatureFlag
 		{
 			Key = key ?? throw new ArgumentNullException(nameof(key)),
 			Name = name ?? throw new ArgumentNullException(nameof(name)),
-			Description = description ?? string.Empty
+			Description = description ?? string.Empty,
+			Retention = key.Scope == Scope.Global ? RetentionPolicy.Global : RetentionPolicy.ApplicationDefault
 		};
 
 		return flag;

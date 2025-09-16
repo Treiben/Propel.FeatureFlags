@@ -1,8 +1,12 @@
-﻿using Propel.FeatureFlags.Domain;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.Cache;
+using System.Reflection;
 
 namespace Propel.FeatureFlags.Services.ApplicationScope;
 
-public interface IApplicationFeatureFlag
+public interface IRegisteredFeatureFlag
 {
 	/// <summary>
 	/// Unique identifier for this feature flag across all environments
@@ -30,7 +34,7 @@ public interface IApplicationFeatureFlag
 	EvaluationMode DefaultMode { get; }
 }
 
-public abstract class TypeSafeFeatureFlag : IApplicationFeatureFlag
+public abstract class RegisteredFeatureFlag : IRegisteredFeatureFlag
 {
 	public string Key { get; }
 	public string? Name { get; }
@@ -38,7 +42,7 @@ public abstract class TypeSafeFeatureFlag : IApplicationFeatureFlag
 	public Dictionary<string, string>? Tags { get; }
 	public EvaluationMode DefaultMode { get; }
 
-	public TypeSafeFeatureFlag(
+	public RegisteredFeatureFlag(
 			string key,
 			string? name = null,
 			string? description = null,
@@ -60,5 +64,32 @@ public abstract class TypeSafeFeatureFlag : IApplicationFeatureFlag
 		Description = string.IsNullOrWhiteSpace(description) ? "No description provided" : description!.Trim();
 		Tags = tags;
 		DefaultMode = defaultMode;
+	}
+}
+
+public static class RegisteredFeatureFlagExtensions
+{
+	//Ensure feature flags in database
+	public static async Task EnsureFeatureFlagsInDatabaseAsync(this IRegisteredFeatureFlag flag, IFlagEvaluationRepository repository, CancellationToken cancellationToken = default)
+	{
+		var defaultFlag = FeatureFlag.Create(
+			key: new FlagKey(flag.Key, Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version),
+			name: flag.Name ?? flag.Key,
+			description: flag.Description ?? $"Auto-created flag for {flag.Key} in application {ApplicationInfo.Name}");
+
+		if (flag.DefaultMode == EvaluationMode.Enabled)
+		{
+			defaultFlag.ActiveEvaluationModes.AddMode(EvaluationMode.Enabled);
+		}
+
+		try
+		{
+			// Save to repository and return the created flag (repository may set additional properties)
+			await repository.CreateAsync(defaultFlag);
+		}
+		catch (Exception ex)
+		{
+			throw new Exception("Unable to ensure feature flag from the application. You can use a management tool option to create this flag in the database.");
+		}
 	}
 }

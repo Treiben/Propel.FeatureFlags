@@ -6,12 +6,12 @@ public sealed class TargetingRulesEvaluator : OrderedEvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.CustomTargeting;
 
-	public override bool CanProcess(FeatureFlag flag, EvaluationContext context)
+	public override bool CanProcess(EvaluationCriteria flag, EvaluationContext context)
 	{
 		return flag.TargetingRules != null && flag.TargetingRules.Count > 0;
 	}
 
-	public override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
+	public override async Task<EvaluationResult?> ProcessEvaluation(EvaluationCriteria flag, EvaluationContext context)
 	{
 		var id = context.TenantId ?? context.UserId;
 		if (string.IsNullOrWhiteSpace(id))

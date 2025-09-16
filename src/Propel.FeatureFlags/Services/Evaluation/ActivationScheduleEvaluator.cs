@@ -6,12 +6,12 @@ public sealed class ActivationScheduleEvaluator: OrderedEvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.ActivationSchedule;
 
-	public override bool CanProcess(FeatureFlag flag, EvaluationContext context)
+	public override bool CanProcess(EvaluationCriteria flag, EvaluationContext context)
 	{
 		return flag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Scheduled]);
 	}
 
-	public override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
+	public override async Task<EvaluationResult?> ProcessEvaluation(EvaluationCriteria flag, EvaluationContext context)
 	{
 		if (flag.Schedule.HasSchedule() == false)
 		{

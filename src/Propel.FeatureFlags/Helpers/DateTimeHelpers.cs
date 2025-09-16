@@ -4,7 +4,7 @@ public static class DateTimeHelpers
 {
 	public static DateTime NormalizeToUtc(DateTime? dateTime, DateTime utcReplacementDt)
 	{
-		if (!dateTime.HasValue) 
+		if (!dateTime.HasValue)
 			return utcReplacementDt;
 
 		if (dateTime.Value == DateTime.MinValue)
@@ -27,10 +27,10 @@ public static class DateTimeHelpers
 		return dateTime.Value.ToUniversalTime();
 	}
 
-	public static DateTime NormalizeToUtc(DateTimeOffset? dateTimeOffset, DateTime utcReplacmentDt)
+	public static DateTime NormalizeToUtc(DateTimeOffset? dateTimeOffset, DateTime utcReplacementDt)
 	{
 		if (!dateTimeOffset.HasValue)
-			return utcReplacmentDt;
+			return utcReplacementDt;
 
 		if (dateTimeOffset.Value == DateTimeOffset.MinValue)
 			return DateTime.MinValue.ToUniversalTime();

@@ -8,28 +8,28 @@ namespace Propel.FeatureFlags.Services.ApplicationScope;
 
 public interface IFeatureFlagEvaluator
 {
-	Task<EvaluationResult?> Evaluate(IApplicationFeatureFlag flag, EvaluationContext context, CancellationToken cancellationToken = default);
-	Task<T> GetVariation<T>(IApplicationFeatureFlag flag, T defaultValue, EvaluationContext context, CancellationToken cancellationToken = default);
+	Task<EvaluationResult?> Evaluate(IRegisteredFeatureFlag flag, EvaluationContext context, CancellationToken cancellationToken = default);
+	Task<T> GetVariation<T>(IRegisteredFeatureFlag flag, T defaultValue, EvaluationContext context, CancellationToken cancellationToken = default);
 }
 
 public sealed class FeatureFlagEvaluator(
-	IFeatureFlagRepository repository,
+	IFlagEvaluationRepository repository,
 	IFlagEvaluationManager evaluationManager,
 	IFeatureFlagCache? cache = null) : IFeatureFlagEvaluator
 {
-	private readonly IFeatureFlagRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+	private readonly IFlagEvaluationRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
 	private readonly IFlagEvaluationManager _evaluationManager = evaluationManager ?? throw new ArgumentNullException(nameof(evaluationManager));
 
 	private string ApplicationName => ApplicationInfo.Name;
 	private string ApplicationVersion => ApplicationInfo.Version;
 
-	public async Task<EvaluationResult?> Evaluate(IApplicationFeatureFlag applicationFlag, EvaluationContext context, CancellationToken cancellationToken = default)
+	public async Task<EvaluationResult?> Evaluate(IRegisteredFeatureFlag applicationFlag, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
-		var flag = await GetFlagAsync(applicationFlag.Key, cancellationToken);
-		if (flag == null)
+		var flagData = await GetEvaluationCriteriaAsync(applicationFlag.Key, cancellationToken);
+		if (flagData == null)
 		{
 			// Auto-create flag in disabled state for deployment scenarios
-			await CreateDefaultFlagAsync(applicationFlag, cancellationToken);
+			await RegisterNewFlagAsync(applicationFlag, cancellationToken);
 			return new EvaluationResult
 			(
 				isEnabled: applicationFlag.DefaultMode == EvaluationMode.Enabled,
@@ -37,31 +37,31 @@ public sealed class FeatureFlagEvaluator(
 			);
 		}
 
-		return await _evaluationManager.ProcessEvaluation(flag, context);
+		return await _evaluationManager.ProcessEvaluation(flagData, context);
 	}
 
-	public async Task<T> GetVariation<T>(IApplicationFeatureFlag applicationFlag, T defaultValue, EvaluationContext context, CancellationToken cancellationToken = default)
+	public async Task<T> GetVariation<T>(IRegisteredFeatureFlag applicationFlag, T defaultValue, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
 		try
 		{
 			// Get flag once and reuse for both evaluation and variation lookup
-			var flag = await GetFlagAsync(applicationFlag.Key, cancellationToken);
-			if (flag == null)
+			var flagData = await GetEvaluationCriteriaAsync(applicationFlag.Key, cancellationToken);
+			if (flagData == null)
 			{
 				// Auto-create and return default
-				await CreateDefaultFlagAsync(applicationFlag, cancellationToken);
+				await RegisterNewFlagAsync(applicationFlag, cancellationToken);
 				return defaultValue;
 			}
 
 			// Evaluate using the already-fetched flag
-			var result = await _evaluationManager.ProcessEvaluation(flag, context);
+			var result = await _evaluationManager.ProcessEvaluation(flagData, context);
 			if (result?.IsEnabled == false)
 			{
 				return defaultValue;
 			}
 
 			// Use the same flag instance for variation lookup
-			if (flag.Variations.Values.TryGetValue(result!.Variation, out var variationValue))
+			if (flagData.Variations.Values.TryGetValue(result!.Variation, out var variationValue))
 			{
 				if (variationValue is JsonElement jsonElement)
 				{
@@ -87,21 +87,21 @@ public sealed class FeatureFlagEvaluator(
 		}
 	}
 
-	private async Task<FeatureFlag?> GetFlagAsync(string flagKey, CancellationToken cancellationToken)
+	private async Task<EvaluationCriteria?> GetEvaluationCriteriaAsync(string flagKey, CancellationToken cancellationToken)
 	{
-		FeatureFlag? flag = null;
+		EvaluationCriteria? flagData = null;
 
 		// Try cache first
 		var cacheKey = new ApplicationCacheKey(flagKey, ApplicationName, ApplicationVersion);
 		if (cache != null)
 		{
-			flag = await cache.GetAsync(cacheKey, cancellationToken);
+			flagData = await cache.GetAsync(cacheKey, cancellationToken);
 		}
 
 		// If not in cache, get from repository
-		if (flag == null)
+		if (flagData == null)
 		{
-			flag = await _repository.GetAsync(new FlagKey(
+			flagData = await _repository.GetAsync(new FlagKey(
 				key: flagKey,
 				scope: Scope.Application,
 				applicationName: ApplicationName,
@@ -109,32 +109,22 @@ public sealed class FeatureFlagEvaluator(
 			), cancellationToken);
 			
 			// Cache for future requests if found
-			if (flag != null && cache != null)
+			if (flagData != null && cache != null)
 			{
-				await cache.SetAsync(cacheKey, flag, cancellationToken);
+				await cache.SetAsync(cacheKey, flagData, cancellationToken);
 			}
 		}
 
-		return flag;
+		return flagData;
 	}
 
-	private async Task CreateDefaultFlagAsync(IApplicationFeatureFlag applicationFlag, CancellationToken cancellationToken)
+	private async Task RegisterNewFlagAsync(IRegisteredFeatureFlag applicationFlag, CancellationToken cancellationToken)
 	{
-		var flagKey = applicationFlag.Key;
-		var defaultFlag = new FeatureFlag
-		{
-			Key = flagKey,
-			Name = applicationFlag.Name ?? flagKey, // Keep original name for display purposes
-			Description = applicationFlag.Description ?? $"Auto-created flag for {flagKey} in application {ApplicationName}",
-			Retention = new RetentionPolicy
-			(
-				isPermanent: false,
-				expirationDate: DateTime.UtcNow.AddDays(30),
-				scope: Scope.Application,
-				applicationName: ApplicationName,
-				applicationVersion: ApplicationVersion
-			),
-		};
+		var flagKey = new FlagKey(applicationFlag.Key, scope: Scope.Application, applicationName: ApplicationName, applicationVersion: ApplicationVersion);
+		var defaultFlag = FeatureFlag.Create(
+			key: flagKey, 
+			name: applicationFlag.Name ?? applicationFlag.Key, 
+			description: applicationFlag.Description ?? $"Auto-created flag for {applicationFlag.Key} in application {ApplicationName}");
 
 		if (applicationFlag.DefaultMode == EvaluationMode.Enabled)
 		{
@@ -144,13 +134,17 @@ public sealed class FeatureFlagEvaluator(
 		try
 		{
 			// Save to repository and return the created flag (repository may set additional properties)
-			var createdFlag = await _repository.CreateAsync(defaultFlag, cancellationToken);
+			await _repository.CreateAsync(defaultFlag, cancellationToken);
 			// Cache for future requests
 			if (cache != null)
 			{
 				// Create composite key for uniqueness per application
-				var cacheKey = new ApplicationCacheKey(flagKey, ApplicationName, ApplicationVersion);
-				await cache.SetAsync(cacheKey, createdFlag, cancellationToken);
+				var cacheKey = new ApplicationCacheKey(applicationFlag.Key, ApplicationName, ApplicationVersion);
+				await cache.SetAsync(cacheKey, new EvaluationCriteria
+				{
+					FlagKey = applicationFlag.Key,
+					ActiveEvaluationModes = defaultFlag.ActiveEvaluationModes,
+				}, cancellationToken);
 			}
 		}
 		catch (Exception ex)

@@ -6,12 +6,12 @@ public sealed class OperationalWindowEvaluator : OrderedEvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.OperationalWindow;
 
-	public override bool CanProcess(FeatureFlag flag, EvaluationContext context)
+	public override bool CanProcess(EvaluationCriteria flag, EvaluationContext context)
 	{
 		return flag.ActiveEvaluationModes.ContainsModes([EvaluationMode.TimeWindow]);
 	}
 
-	public override async Task<EvaluationResult?> ProcessEvaluation(FeatureFlag flag, EvaluationContext context)
+	public override async Task<EvaluationResult?> ProcessEvaluation(EvaluationCriteria flag, EvaluationContext context)
 	{
 		if (flag.OperationalWindow == OperationalWindow.AlwaysOpen)
 		{
