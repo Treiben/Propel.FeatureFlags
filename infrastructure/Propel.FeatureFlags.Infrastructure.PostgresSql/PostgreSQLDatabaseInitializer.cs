@@ -114,16 +114,12 @@ CREATE TABLE feature_flags (
 
 	-- Evaluation modes
     evaluation_modes JSONB NOT NULL DEFAULT '[]',
-
-	-- Audit fields
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NULL,
-    created_by VARCHAR(255) NOT NULL,
-    updated_by VARCHAR(255) NULL,
     
     -- Retention and expiration
     is_permanent BOOLEAN NOT NULL DEFAULT FALSE,
     expiration_date TIMESTAMP WITH TIME ZONE NOT NULL,
+
+	-- Flag uniquness scope
 	application_name VARCHAR(255) NOT NULL DEFAULT 'global',
 	application_version VARCHAR(100) NULL,
 	scope INT NOT NULL DEFAULT 0,
@@ -144,12 +140,12 @@ CREATE TABLE feature_flags (
 	-- User-level controls
     enabled_users JSONB NOT NULL DEFAULT '[]',
     disabled_users JSONB NOT NULL DEFAULT '[]',
-    user_percentage_enabled INTEGER NOT NULL DEFAULT 0 CHECK (user_percentage_enabled >= 0 AND user_percentage_enabled <= 100),
+    user_percentage_enabled INTEGER NOT NULL DEFAULT 100 CHECK (user_percentage_enabled >= 0 AND user_percentage_enabled <= 100),
 
     -- Tenant-level controls
     enabled_tenants JSONB NOT NULL DEFAULT '[]',
     disabled_tenants JSONB NOT NULL DEFAULT '[]',
-    tenant_percentage_enabled INTEGER NOT NULL DEFAULT 0 CHECK (tenant_percentage_enabled >= 0 AND tenant_percentage_enabled <= 100),
+    tenant_percentage_enabled INTEGER NOT NULL DEFAULT 100 CHECK (tenant_percentage_enabled >= 0 AND tenant_percentage_enabled <= 100),
     
     -- Variations
     variations JSONB NOT NULL DEFAULT '{}',
@@ -162,19 +158,17 @@ CREATE TABLE feature_flags (
 -- Create the feature_flag_audit table
 CREATE TABLE feature_flag_audit (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    flag_key VARCHAR(255) NOT NULL,
-    action VARCHAR(50) NOT NULL,
-    changed_by VARCHAR(255) NOT NULL,
-    changed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    old_values JSONB NULL,
-    new_values JSONB NULL,
-    reason TEXT NULL
+	flag_key VARCHAR(255) NOT NULL,
+	application_name VARCHAR(255) NOT NULL DEFAULT 'global',
+	application_version VARCHAR(100) NULL,
+	action VARCHAR(50) NOT NULL,
+	actor VARCHAR(255) NOT NULL,
+	timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+	reason TEXT NULL
 );
 
 -- Create indexes for feature_flags table
 CREATE INDEX IF NOT EXISTS ix_feature_flags_evaluation_modes ON feature_flags USING GIN(evaluation_modes);
-CREATE INDEX IF NOT EXISTS idx_feature_flags_created_at ON feature_flags (created_at);
-CREATE INDEX IF NOT EXISTS idx_feature_flags_updated_at ON feature_flags (updated_at);
 CREATE INDEX IF NOT EXISTS idx_feature_flags_expiration_date ON feature_flags (expiration_date) WHERE expiration_date IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_feature_flags_scheduled_enable ON feature_flags (scheduled_enable_date) WHERE scheduled_enable_date IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_feature_flags_tags ON feature_flags USING GIN (tags);
@@ -197,24 +191,6 @@ CREATE INDEX IF NOT EXISTS idx_feature_flags_scope_app_name ON feature_flags (sc
 
 -- Create indexes for feature_flag_audit table
 CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_flag_key ON feature_flag_audit (flag_key);
-CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_changed_at ON feature_flag_audit (changed_at);
-CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_changed_by ON feature_flag_audit (changed_by);
-
--- Function to automatically update the updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Trigger to automatically update updated_at
-DROP TRIGGER IF EXISTS update_feature_flags_updated_at ON feature_flags;
-CREATE TRIGGER update_feature_flags_updated_at 
-    BEFORE UPDATE ON feature_flags 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
 ";
 	}
 }

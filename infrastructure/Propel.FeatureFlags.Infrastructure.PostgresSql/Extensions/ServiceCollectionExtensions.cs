@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
-namespace Propel.FeatureFlags.Infrastructure.PostgresSql;
+namespace Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
 
 public static class ServiceCollectionExtensions
 {
@@ -22,10 +22,15 @@ public static class ServiceCollectionExtensions
 
 		var configuredConnectionString = builder.ToString();
 
-		services.AddSingleton<IFeatureFlagRepository>(sp =>
-			new PostgreSQLFeatureFlagRepository(
+		services.AddSingleton<IFlagManagementRepository>(sp =>
+			new FlagManagementRepository(
 				configuredConnectionString,
-				sp.GetRequiredService<ILogger<PostgreSQLFeatureFlagRepository>>()));
+				sp.GetRequiredService<ILogger<FlagManagementRepository>>()));
+
+		services.AddSingleton<IFlagEvaluationRepository>(sp =>
+			new FlagEvaluationRepository(
+				configuredConnectionString,
+				sp.GetRequiredService<ILogger<FlagEvaluationRepository>>()));
 
 		services.AddSingleton(sp =>
 			new PostgreSQLDatabaseInitializer(

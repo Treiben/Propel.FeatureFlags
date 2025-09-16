@@ -2,7 +2,6 @@
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Helpers;
 using Propel.FeatureFlags.Infrastructure.Cache;
-using Propel.FeatureFlags.Infrastructure.Cache;
 using StackExchange.Redis;
 using System.Net;
 using System.Text.Json;
@@ -18,7 +17,7 @@ public class RedisFeatureFlagCache(
 	private readonly CacheOptions _cacheConfiguration = cacheConfiguration ?? throw new ArgumentNullException(nameof(cacheConfiguration));
 
 
-	public async Task<FeatureFlag?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
+	public async Task<EvaluationCriteria?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
 		logger.LogDebug("Getting feature flag {Key} from cache", key);
@@ -36,8 +35,8 @@ public class RedisFeatureFlagCache(
 				return null;
 			}
 
-			var flag = JsonSerializer.Deserialize<FeatureFlag>(value!, JsonDefaults.JsonOptions);
-			logger.LogDebug("Feature flag {Key} retrieved from cache", flag?.Key);
+			var flag = JsonSerializer.Deserialize<EvaluationCriteria>(value!, JsonDefaults.JsonOptions);
+			logger.LogDebug("Feature flag {Key} retrieved from cache", flag?.FlagKey);
 			return flag;
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
@@ -47,7 +46,7 @@ public class RedisFeatureFlagCache(
 		}
 	}
 
-	public async Task SetAsync(CacheKey cacheKey, FeatureFlag flag, CancellationToken cancellationToken = default)
+	public async Task SetAsync(CacheKey cacheKey, EvaluationCriteria flag, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
 		logger.LogDebug("Setting feature flag {Key} in cache with expiration {Expiration}", key, _cacheConfiguration.ExpiryInMinutes);
