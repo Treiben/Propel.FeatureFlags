@@ -11,20 +11,20 @@ public class OperationalWindowEvaluator_CanProcess
 	public void CanProcess_FlagHasTimeWindowMode_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.TimeWindow]) };
+		var criteria = new EvaluationCriteria { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.TimeWindow]) };
 
 		// Act & Assert
-		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
+		_evaluator.CanProcess(criteria, new EvaluationContext()).ShouldBeTrue();
 	}
 
 	[Fact]
 	public void CanProcess_FlagHasMultipleModesIncludingTimeWindow_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.TimeWindow, EvaluationMode.Scheduled]) };
+		var criteria = new EvaluationCriteria { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.TimeWindow, EvaluationMode.Scheduled]) };
 
 		// Act & Assert
-		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
+		_evaluator.CanProcess(criteria, new EvaluationContext()).ShouldBeTrue();
 	}
 
 	[Theory]
@@ -35,10 +35,10 @@ public class OperationalWindowEvaluator_CanProcess
 	public void CanProcess_FlagDoesNotHaveTimeWindowMode_ReturnsFalse(EvaluationMode mode)
 	{
 		// Arrange
-		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes([mode]) };
+		var criteria = new EvaluationCriteria { ActiveEvaluationModes = new EvaluationModes([mode]) };
 
 		// Act & Assert
-		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeFalse();
+		_evaluator.CanProcess(criteria, new EvaluationContext()).ShouldBeFalse();
 	}
 }
 
@@ -50,18 +50,18 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_AlwaysOpen_ReturnsEnabled()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			OperationalWindow = OperationalWindow.AlwaysOpen,
 			Variations = new Variations { DefaultVariation = "off" }
 		};
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, new EvaluationContext());
+		var result = await _evaluator.ProcessEvaluation(criteria, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
+		result.Variation.ShouldBe(criteria.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Flag operational window is always open.");
 	}
 
@@ -70,7 +70,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	{
 		// Arrange
 		var evaluationTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc); // Monday 12 PM
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			OperationalWindow = new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17)),
@@ -78,12 +78,12 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		};
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag,
+		var result = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: evaluationTime));
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
+		result.Variation.ShouldBe(criteria.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Within time window");
 	}
 
@@ -92,7 +92,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	{
 		// Arrange
 		var evaluationTime = new DateTime(2024, 1, 15, 20, 0, 0, DateTimeKind.Utc); // Monday 8 PM
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			OperationalWindow = new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17)),
@@ -100,7 +100,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		};
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag,
+		var result = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: evaluationTime));
 
 		// Assert
@@ -116,7 +116,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var nightTime = new DateTime(2024, 1, 15, 2, 0, 0, DateTimeKind.Utc); // Monday 2 AM
 		var dayTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc); // Monday 12 PM
 
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			OperationalWindow = new OperationalWindow(
 				TimeSpan.FromHours(22), TimeSpan.FromHours(6)), // 10 PM to 6 AM
@@ -124,9 +124,9 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		};
 
 		// Act
-		var resultNight = await _evaluator.ProcessEvaluation(flag,
+		var resultNight = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: nightTime));
-		var resultDay = await _evaluator.ProcessEvaluation(flag,
+		var resultDay = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: dayTime));
 
 		// Assert
@@ -146,7 +146,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		DayOfWeek[] weekdaysOnly = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
 			DayOfWeek.Thursday, DayOfWeek.Friday];
 
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			OperationalWindow = new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
@@ -155,9 +155,9 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		};
 
 		// Act
-		var resultMonday = await _evaluator.ProcessEvaluation(flag,
+		var resultMonday = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: monday));
-		var resultSaturday = await _evaluator.ProcessEvaluation(flag,
+		var resultSaturday = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: saturday));
 
 		// Assert
@@ -174,7 +174,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	{
 		// Arrange
 		var evaluationTime = new DateTime(2024, 1, 15, 17, 0, 0, DateTimeKind.Utc); // 5 PM UTC
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			OperationalWindow = new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
@@ -183,7 +183,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		};
 
 		// Act - Use Eastern time context (5 PM UTC = 12 PM EST, within window)
-		var result = await _evaluator.ProcessEvaluation(flag,
+		var result = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: evaluationTime, timeZone: "Eastern Standard Time"));
 
 		// Assert
@@ -195,14 +195,14 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_NoEvaluationTimeProvided_UsesCurrentTime()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			OperationalWindow = OperationalWindow.AlwaysOpen,
 			Variations = new Variations { DefaultVariation = "off" }
 		};
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag,
+		var result = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: null));
 
 		// Assert
@@ -216,7 +216,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		// Arrange - Business hours: 9 AM - 5 PM, weekdays only
 		DayOfWeek[] businessDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
 			DayOfWeek.Thursday, DayOfWeek.Friday];
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			OperationalWindow = new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
@@ -225,19 +225,19 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		};
 
 		// Act & Assert - During business hours (Wednesday 2 PM)
-		var businessResult = await _evaluator.ProcessEvaluation(flag,
+		var businessResult = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: new DateTime(2024, 1, 17, 14, 0, 0, DateTimeKind.Utc)));
 		businessResult.IsEnabled.ShouldBeTrue();
 		businessResult.Reason.ShouldBe("Within time window");
 
 		// Act & Assert - After hours (Wednesday 8 PM)
-		var afterResult = await _evaluator.ProcessEvaluation(flag,
+		var afterResult = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: new DateTime(2024, 1, 17, 20, 0, 0, DateTimeKind.Utc)));
 		afterResult.IsEnabled.ShouldBeFalse();
 		afterResult.Reason.ShouldBe("Outside time window");
 
 		// Act & Assert - Weekend (Saturday 2 PM)
-		var weekendResult = await _evaluator.ProcessEvaluation(flag,
+		var weekendResult = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: new DateTime(2024, 1, 20, 14, 0, 0, DateTimeKind.Utc)));
 		weekendResult.IsEnabled.ShouldBeFalse();
 		weekendResult.Reason.ShouldBe("Outside allowed days");

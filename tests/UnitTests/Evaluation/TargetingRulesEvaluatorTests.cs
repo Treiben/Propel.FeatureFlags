@@ -10,11 +10,11 @@ public class TargetingRulesEvaluatorTests
 	{
 		// Arrange
 		var evaluator = new TargetingRulesEvaluator();
-		var flag = CreateFeatureFlagWithStringRule("userId", TargetingOperator.Equals, ["user123"], "premium");
+		var criteria = CreateCriteriaWithStringRule("userId", TargetingOperator.Equals, ["user123"], "premium");
 		var context = new EvaluationContext(userId: "user123", attributes: new Dictionary<string, object> { { "userId", "user123" } });
 
 		// Act
-		var result = await evaluator.ProcessEvaluation(flag, context);
+		var result = await evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		Assert.NotNull(result);
@@ -27,11 +27,11 @@ public class TargetingRulesEvaluatorTests
 	{
 		// Arrange
 		var evaluator = new TargetingRulesEvaluator();
-		var flag = CreateFeatureFlagWithNumericRule("age", TargetingOperator.GreaterThan, [18], "adult");
+		var criteria = CreateCriteriaWithNumericRule("age", TargetingOperator.GreaterThan, [18], "adult");
 		var context = new EvaluationContext(userId: "user123", attributes: new Dictionary<string, object> { { "age", "25" } });
 
 		// Act
-		var result = await evaluator.ProcessEvaluation(flag, context);
+		var result = await evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		Assert.NotNull(result);
@@ -44,16 +44,16 @@ public class TargetingRulesEvaluatorTests
 	{
 		// Arrange
 		var evaluator = new TargetingRulesEvaluator();
-		var flag = CreateFeatureFlagWithStringRule("userId", TargetingOperator.Equals, ["user123"], "premium");
+		var criteria = CreateCriteriaWithStringRule("userId", TargetingOperator.Equals, ["user123"], "premium");
 		var context = new EvaluationContext(attributes: new Dictionary<string, object> { { "userId", "user456" } });
 
 		// Act
-		var result = await evaluator.ProcessEvaluation(flag, context);
+		var result = await evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		Assert.NotNull(result);
 		Assert.False(result.IsEnabled);
-		Assert.Equal(flag.Variations.DefaultVariation, result.Variation);
+		Assert.Equal(criteria.Variations.DefaultVariation, result.Variation);
 	}
 
 	[Fact]
@@ -61,11 +61,11 @@ public class TargetingRulesEvaluatorTests
 	{
 		// Arrange
 		var evaluator = new TargetingRulesEvaluator();
-		var flag = CreateFeatureFlagWithStringRule("userId", TargetingOperator.Equals, ["user123"], "premium");
+		var criteria = CreateCriteriaWithStringRule("userId", TargetingOperator.Equals, ["user123"], "premium");
 		var context = new EvaluationContext(attributes: new Dictionary<string, object> { { "tenantId", "tenant1" } });
 
 		// Act
-		var result = await evaluator.ProcessEvaluation(flag, context);
+		var result = await evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		Assert.NotNull(result);
@@ -79,31 +79,31 @@ public class TargetingRulesEvaluatorTests
 	{
 		// Arrange
 		var evaluator = new TargetingRulesEvaluator();
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			TargetingRules = hasRules ? [CreateStringRule("userId", TargetingOperator.Equals, ["user123"], "on")] : []
 		};
 		var context = new EvaluationContext();
 
 		// Act
-		var result = evaluator.CanProcess(flag, context);
+		var result = evaluator.CanProcess(criteria, context);
 
 		// Assert
 		Assert.Equal(expected, result);
 	}
 
-	private static FeatureFlag CreateFeatureFlagWithStringRule(string attribute, TargetingOperator op, List<string> values, string variation)
+	private static EvaluationCriteria CreateCriteriaWithStringRule(string attribute, TargetingOperator op, List<string> values, string variation)
 	{
-		return new FeatureFlag
+		return new EvaluationCriteria
 		{
 			TargetingRules = [CreateStringRule(attribute, op, values, variation)],
 			Variations = new Variations { DefaultVariation = "off" }
 		};
 	}
 
-	private static FeatureFlag CreateFeatureFlagWithNumericRule(string attribute, TargetingOperator op, List<double> values, string variation)
+	private static EvaluationCriteria CreateCriteriaWithNumericRule(string attribute, TargetingOperator op, List<double> values, string variation)
 	{
-		return new FeatureFlag
+		return new EvaluationCriteria
 		{
 			TargetingRules = [CreateNumericRule(attribute, op, values, variation)],
 			Variations = new Variations { 

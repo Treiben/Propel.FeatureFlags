@@ -11,21 +11,21 @@ public class TenantRolloutEvaluator_CanProcess
 	public void CanProcess_TenantExplicitlyManaged_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			TenantAccessControl = new AccessControl(allowed: ["tenant123"])
 		};
 		var context = new EvaluationContext(tenantId: "tenant123");
 
 		// Act & Assert
-		_evaluator.CanProcess(flag, context).ShouldBeTrue();
+		_evaluator.CanProcess(criteria, context).ShouldBeTrue();
 	}
 
 	[Fact]
 	public void CanProcess_TenantRolloutModeWithRestrictions_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			ActiveEvaluationModes = new EvaluationModes([EvaluationMode.TenantRolloutPercentage]),
 			TenantAccessControl = new AccessControl(rolloutPercentage: 95)
@@ -33,14 +33,14 @@ public class TenantRolloutEvaluator_CanProcess
 		var context = new EvaluationContext(tenantId: "tenant123");
 
 		// Act & Assert
-		_evaluator.CanProcess(flag, context).ShouldBeTrue();
+		_evaluator.CanProcess(criteria, context).ShouldBeTrue();
 	}
 
 	[Fact]
 	public void CanProcess_TenantRolloutModeButNoRestrictions_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			ActiveEvaluationModes = new EvaluationModes([EvaluationMode.TenantRolloutPercentage]),
 			TenantAccessControl = AccessControl.Unrestricted // No restrictions
@@ -48,21 +48,21 @@ public class TenantRolloutEvaluator_CanProcess
 		var context = new EvaluationContext(tenantId: "tenant123");
 
 		// Act & Assert
-		_evaluator.CanProcess(flag, context).ShouldBeTrue();
+		_evaluator.CanProcess(criteria, context).ShouldBeTrue();
 	}
 
 	[Fact]
 	public void CanProcess_NoTenantIdAndNoTenantMode_ButRestrictedAccess_ShouldReturnTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			TenantAccessControl = new AccessControl(allowed: ["tenant123"])
 		};
 		var context = new EvaluationContext(userId: "user123"); // No tenant ID
 
 		// Act & Assert
-		_evaluator.CanProcess(flag, context).ShouldBeTrue();
+		_evaluator.CanProcess(criteria, context).ShouldBeTrue();
 	}
 }
 
@@ -77,9 +77,9 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_InvalidTenantId_ThrowsInvalidOperationException(string? tenantId)
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "test-flag",
+			FlagKey = "test-flag",
 			TenantAccessControl = new AccessControl(rolloutPercentage: 50),
 			Variations = new Variations { DefaultVariation = "off" }
 		};
@@ -87,7 +87,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 
 		// Act & Assert
 		var exception = await Should.ThrowAsync<InvalidOperationException>(
-			() => _evaluator.ProcessEvaluation(flag, context));
+			() => _evaluator.ProcessEvaluation(criteria, context));
 		exception.Message.ShouldBe("Tenant ID is required for percentage rollout evaluation.");
 	}
 
@@ -95,9 +95,9 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_TenantExplicitlyAllowed_ReturnsEnabled()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "test-flag",
+			FlagKey = "test-flag",
 			TenantAccessControl = new AccessControl(allowed: ["tenant123"]),
 			Variations = new Variations {
 				Values = new Dictionary<string, object> 
@@ -112,7 +112,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(tenantId: "tenant123");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
@@ -122,9 +122,9 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_TenantExplicitlyBlocked_ReturnsDisabled()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "test-flag",
+			FlagKey = "test-flag",
 			TenantAccessControl = new AccessControl(
 				blocked: ["tenant123"],
 				rolloutPercentage: 100), // Even with 100% rollout, blocked takes precedence
@@ -133,7 +133,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(tenantId: "tenant123");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -144,16 +144,16 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_ZeroPercentRollout_ReturnsDisabled()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "zero-rollout-flag",
+			FlagKey = "zero-rollout-flag",
 			TenantAccessControl = new AccessControl(rolloutPercentage: 0),
 			Variations = new Variations { DefaultVariation = "zero-rollout" }
 		};
 		var context = new EvaluationContext(tenantId: "any-tenant");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -164,17 +164,17 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_PartialRollout_UsesConsistentHashing()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "partial-rollout-flag",
+			FlagKey = "partial-rollout-flag",
 			TenantAccessControl = new AccessControl(rolloutPercentage: 50),
 		};
-		flag.Variations.DefaultVariation = "not-in-rollout";
+		criteria.Variations.DefaultVariation = "not-in-rollout";
 		var context = new EvaluationContext(tenantId: "consistent-tenant");
 
 		// Act - Multiple evaluations should be consistent
-		var result1 = await _evaluator.ProcessEvaluation(flag, context);
-		var result2 = await _evaluator.ProcessEvaluation(flag, context);
+		var result1 = await _evaluator.ProcessEvaluation(criteria, context);
+		var result2 = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result1.IsEnabled.ShouldBe(result2.IsEnabled);
@@ -196,24 +196,24 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_DifferentFlags_MayHaveDifferentResults()
 	{
 		// Arrange
-		var flag1 = new FeatureFlag
+		var criteria1 = new EvaluationCriteria
 		{
-			Key = "flag-one",
+			FlagKey = "flag-one",
 			TenantAccessControl = new AccessControl(rolloutPercentage: 50),
 		};
-		flag1.Variations.DefaultVariation = "flag1-off";
-		var flag2 = new FeatureFlag
+		criteria1.Variations.DefaultVariation = "flag1-off";
+		var criteria2 = new EvaluationCriteria
 		{
-			Key = "flag-two",
+			FlagKey = "flag-two",
 			TenantAccessControl = new AccessControl(rolloutPercentage: 50),
 		};
-		flag2.Variations.DefaultVariation = "flag2-off";
+		criteria2.Variations.DefaultVariation = "flag2-off";
 
 		var context = new EvaluationContext(tenantId: "consistent-tenant");
 
 		// Act
-		var result1 = await _evaluator.ProcessEvaluation(flag1, context);
-		var result2 = await _evaluator.ProcessEvaluation(flag2, context);
+		var result1 = await _evaluator.ProcessEvaluation(criteria1, context);
+		var result2 = await _evaluator.ProcessEvaluation(criteria2, context);
 
 		// Assert - Results may differ due to different flag keys in hash
 		result1.IsEnabled.ShouldBeOneOf(true, false);
@@ -243,23 +243,23 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_EnterpriseScenario_WorksCorrectly()
 	{
 		// Arrange - Premium customers get early access, gradual rollout to others
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "enterprise-feature",
+			FlagKey = "enterprise-feature",
 			TenantAccessControl = new AccessControl(
 				allowed: ["premium-corp"],
 				rolloutPercentage: 25),
 		};
-		flag.Variations.DefaultVariation = "standard-feature";
+		criteria.Variations.DefaultVariation = "standard-feature";
 
 		// Act & Assert - Premium customer gets access
-		var premiumResult = await _evaluator.ProcessEvaluation(flag,
+		var premiumResult = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(tenantId: "premium-corp"));
 		premiumResult.IsEnabled.ShouldBeTrue();
 		premiumResult.Variation.ShouldBe("on");
 
 		// Act & Assert - Regular tenant may or may not get access
-		var regularResult = await _evaluator.ProcessEvaluation(flag,
+		var regularResult = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(tenantId: "regular-tenant"));
 		regularResult.IsEnabled.ShouldBeOneOf(true, false);
 
@@ -279,9 +279,9 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_SimpleOnOffFlag_ReturnsOnVariation()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "simple-tenant-flag",
+			FlagKey = "simple-tenant-flag",
 			TenantAccessControl = new AccessControl(allowed: ["tenant123"]),
 			Variations = new Variations 
 			{ 
@@ -292,7 +292,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(tenantId: "tenant123");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
@@ -303,9 +303,9 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_MultipleVariations_ReturnsConsistentVariationSelection()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "database-engine",
+			FlagKey = "database-engine",
 			TenantAccessControl = new AccessControl(allowed: ["acme-corp"], rolloutPercentage: 100),
 			Variations = new Variations 
 			{ 
@@ -321,8 +321,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(tenantId: "acme-corp");
 
 		// Act - Multiple calls should return same variation
-		var result1 = await _evaluator.ProcessEvaluation(flag, context);
-		var result2 = await _evaluator.ProcessEvaluation(flag, context);
+		var result1 = await _evaluator.ProcessEvaluation(criteria, context);
+		var result2 = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result1.IsEnabled.ShouldBeTrue();

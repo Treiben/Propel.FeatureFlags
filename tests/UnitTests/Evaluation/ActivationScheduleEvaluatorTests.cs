@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Services.Evaluation;
 
@@ -12,17 +11,17 @@ public class ActivationScheduleEvaluator_CanProcess
 	public void CanProcess_FlagHasScheduledMode_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.Scheduled]) };
+		var criteria = new EvaluationCriteria { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.Scheduled]) };
 
 		// Act & Assert
-		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
+		_evaluator.CanProcess(criteria, new EvaluationContext()).ShouldBeTrue();
 	}
 
 	[Fact]
 	public void CanProcess_FlagHasMultipleModesIncludingScheduled_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.Scheduled, EvaluationMode.TimeWindow]) };
+		var flag = new EvaluationCriteria { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.Scheduled, EvaluationMode.TimeWindow]) };
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
 	}
@@ -35,11 +34,11 @@ public class ActivationScheduleEvaluator_CanProcess
 	public void CanProcess_FlagDoesNotHaveScheduledMode_ReturnsFalse(EvaluationMode mode)
 	{
 		// Arrange
-		var flag = new FeatureFlag { ActiveEvaluationModes = new EvaluationModes([]) };
-		flag.ActiveEvaluationModes.AddMode(mode);
+		var criteria = new EvaluationCriteria { ActiveEvaluationModes = new EvaluationModes([]) };
+		criteria.ActiveEvaluationModes.AddMode(mode);
 
 		// Act & Assert
-		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeFalse();
+		_evaluator.CanProcess(criteria, new EvaluationContext()).ShouldBeFalse();
 	}
 }
 
@@ -51,18 +50,18 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_NoSchedule_EnablesImmediately()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			Schedule = ActivationSchedule.Unscheduled,
 			Variations = new Variations { DefaultVariation = "off" }
 		};
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, new EvaluationContext());
+		var result = await _evaluator.ProcessEvaluation(criteria, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
+		result.Variation.ShouldBe(criteria.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Flag has no activation schedule and can be available immediately.");
 	}
 
@@ -73,7 +72,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var evaluationTime = new DateTime(2024, 1, 10, 12, 0, 0, DateTimeKind.Utc);
 		var enableDate = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
 
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			Schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime()),
 			Variations = new Variations { DefaultVariation = "scheduled-off" }
@@ -81,7 +80,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -95,7 +94,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		// Arrange
 		var enableDate = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
 
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			Schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime()),
 			Variations = new Variations { DefaultVariation = "scheduled-off" }
@@ -103,11 +102,11 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: enableDate);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
+		result.Variation.ShouldBe(criteria.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Scheduled enable date reached");
 	}
 
@@ -118,7 +117,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var evaluationTime = new DateTime(2024, 1, 20, 12, 0, 0, DateTimeKind.Utc);
 		var enableDate = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
 
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			Schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime()),
 			Variations = new Variations { DefaultVariation = "scheduled-off" }
@@ -126,11 +125,11 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
+		result.Variation.ShouldBe(criteria.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Scheduled enable date reached");
 	}
 
@@ -142,7 +141,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var enableDate = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
 		var disableDate = new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc);
 
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			Schedule = new ActivationSchedule(enableDate, disableDate),
 			Variations = new Variations { DefaultVariation = "scheduled-off" }
@@ -150,11 +149,11 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
+		result.Variation.ShouldBe(criteria.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Scheduled enable date reached");
 	}
 
@@ -165,7 +164,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var enableDate = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
 		var disableDate = new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc);
 
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			Schedule = new ActivationSchedule(enableDate, disableDate),
 			Variations = new Variations { DefaultVariation = "scheduled-off" }
@@ -173,11 +172,11 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: disableDate);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
-		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
+		result.Variation.ShouldBe(criteria.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Scheduled disable date passed");
 	}
 
@@ -189,7 +188,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var enableDate = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
 		var disableDate = new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc);
 
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			Schedule = new ActivationSchedule(enableDate, disableDate),
 			Variations = new Variations { DefaultVariation = "scheduled-off" }
@@ -197,11 +196,11 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
-		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
+		result.Variation.ShouldBe(criteria.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Scheduled disable date passed");
 	}
 
@@ -211,7 +210,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-1); // 1 hour ago
 
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			Schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime()),
 			Variations = new Variations { DefaultVariation = "off" }
@@ -219,7 +218,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: null);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
@@ -233,28 +232,28 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var launchDate = new DateTime(2024, 1, 15, 9, 0, 0, DateTimeKind.Utc);
 		var endDate = new DateTime(2024, 1, 22, 9, 0, 0, DateTimeKind.Utc);
 
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			Schedule = new ActivationSchedule(launchDate, endDate),
 			Variations = new Variations { DefaultVariation = "feature-disabled" }
 		};
 
 		// Act & Assert - Before launch
-		var resultBefore = await _evaluator.ProcessEvaluation(flag,
+		var resultBefore = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: launchDate.AddMinutes(-1)));
 		resultBefore.IsEnabled.ShouldBeFalse();
-		resultBefore.Variation.ShouldBe(flag.Variations.DefaultVariation);
+		resultBefore.Variation.ShouldBe(criteria.Variations.DefaultVariation);
 
 		// Act & Assert - During active period
-		var resultDuring = await _evaluator.ProcessEvaluation(flag,
+		var resultDuring = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: launchDate.AddDays(3)));
 		resultDuring.IsEnabled.ShouldBeTrue();
-		resultDuring.Variation.ShouldBe(flag.Variations.DefaultVariation);
+		resultDuring.Variation.ShouldBe(criteria.Variations.DefaultVariation);
 
 		// Act & Assert - After end
-		var resultAfter = await _evaluator.ProcessEvaluation(flag,
+		var resultAfter = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(evaluationTime: endDate.AddMinutes(1)));
 		resultAfter.IsEnabled.ShouldBeFalse();
-		resultAfter.Variation.ShouldBe(flag.Variations.DefaultVariation);
+		resultAfter.Variation.ShouldBe(criteria.Variations.DefaultVariation);
 	}
 }

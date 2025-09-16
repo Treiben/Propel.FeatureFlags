@@ -63,20 +63,20 @@ public class FlagEvaluationManager_ProcessEvaluation_SingleHandler
 		// Arrange
 		var mockHandler = new Mock<IOrderedEvaluator>();
 		mockHandler.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.Terminal);
-		mockHandler.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
-		mockHandler.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
+		mockHandler.Setup(x => x.CanProcess(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>())).Returns(true);
+		mockHandler.Setup(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()))
 			.ReturnsAsync(new EvaluationResult(isEnabled: false, variation: "disabled", reason: "Handler disabled"));
 
 		var manager = new FlagEvaluationManager(new HashSet<IOrderedEvaluator> { mockHandler.Object });
-		var flag = new FeatureFlag 
+		var criteria = new EvaluationCriteria
 		{ 
-			Key = "test-flag",
+			FlagKey = "test-flag",
 			Variations = new Variations { DefaultVariation = "default" }
 		};
 		var context = new EvaluationContext();
 
 		// Act
-		var result = await manager.ProcessEvaluation(flag, context);
+		var result = await manager.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -91,24 +91,24 @@ public class FlagEvaluationManager_ProcessEvaluation_SingleHandler
 		// Arrange
 		var mockHandler = new Mock<IOrderedEvaluator>();
 		mockHandler.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.Terminal);
-		mockHandler.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(false);
+		mockHandler.Setup(x => x.CanProcess(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>())).Returns(false);
 
 		var manager = new FlagEvaluationManager(new HashSet<IOrderedEvaluator> { mockHandler.Object });
-		var flag = new FeatureFlag 
+		var criteria = new EvaluationCriteria 
 		{ 
-			Key = "test-flag",
+			FlagKey = "test-flag",
 			Variations = new Variations { DefaultVariation = "no-handlers" }
 		};
 		var context = new EvaluationContext();
 
 		// Act
-		var result = await manager.ProcessEvaluation(flag, context);
+		var result = await manager.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.ShouldBeNull();
 		
 		// Verify ProcessEvaluation was never called since CanProcess returned false
-		mockHandler.Verify(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()), Times.Never);
+		mockHandler.Verify(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()), Times.Never);
 	}
 }
 
@@ -120,24 +120,24 @@ public class FlagEvaluationManager_ProcessEvaluation_MultipleHandlers
 		// Arrange
 		var firstHandler = new Mock<IOrderedEvaluator>();
 		firstHandler.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.TenantRollout);
-		firstHandler.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
-		firstHandler.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
+		firstHandler.Setup(x => x.CanProcess(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>())).Returns(true);
+		firstHandler.Setup(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()))
 			.ReturnsAsync(new EvaluationResult(isEnabled: false, variation: "blocked", reason: "First handler blocked"));
 
 		var secondHandler = new Mock<IOrderedEvaluator>();
 		secondHandler.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.UserRollout);
-		secondHandler.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
+		secondHandler.Setup(x => x.CanProcess(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>())).Returns(true);
 
 		var manager = new FlagEvaluationManager(new HashSet<IOrderedEvaluator> { firstHandler.Object, secondHandler.Object });
-		var flag = new FeatureFlag 
-		{ 
-			Key = "test-flag",
+		var criteria = new EvaluationCriteria 
+		{
+			FlagKey = "test-flag",
 			Variations = new Variations { DefaultVariation = "default" }
 		};
 		var context = new EvaluationContext();
 
 		// Act
-		var result = await manager.ProcessEvaluation(flag, context);
+		var result = await manager.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -146,7 +146,7 @@ public class FlagEvaluationManager_ProcessEvaluation_MultipleHandlers
 		result.Reason.ShouldBe("First handler blocked");
 
 		// Verify second handler was never called
-		secondHandler.Verify(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()), Times.Never);
+		secondHandler.Verify(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()), Times.Never);
 	}
 
 	[Fact]
@@ -155,36 +155,36 @@ public class FlagEvaluationManager_ProcessEvaluation_MultipleHandlers
 		// Arrange
 		var firstEvaluator = new Mock<IOrderedEvaluator>();
 		firstEvaluator.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.TenantRollout);
-		firstEvaluator.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
-		firstEvaluator.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
+		firstEvaluator.Setup(x => x.CanProcess(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>())).Returns(true);
+		firstEvaluator.Setup(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()))
 			.ReturnsAsync(new EvaluationResult(isEnabled: true, variation: "tenant-ok", reason: "Tenant allowed"));
 
 		var secondEvaluator = new Mock<IOrderedEvaluator>();
 		secondEvaluator.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.UserRollout);
-		secondEvaluator.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
-		secondEvaluator.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
+		secondEvaluator.Setup(x => x.CanProcess(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>())).Returns(true);
+		secondEvaluator.Setup(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()))
 			.ReturnsAsync(new EvaluationResult(isEnabled: true, variation: "user-ok", reason: "User allowed"));
 
 		var manager = new FlagEvaluationManager([firstEvaluator.Object, secondEvaluator.Object]);
-		var flag = new FeatureFlag 
-		{ 
-			Key = "test-flag",
+		var criteria = new EvaluationCriteria
+		{
+			FlagKey = "test-flag",
 			Variations = new Variations { DefaultVariation = "all-passed" }
 		};
 		var context = new EvaluationContext(tenantId: "tenant1", userId: "user1");
 
 		// Act
-		var result = await manager.ProcessEvaluation(flag, context);
+		var result = await manager.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeTrue();
 		result.Variation.ShouldBe("user-ok");
-		result.Reason.ShouldBe($"All [{flag.ActiveEvaluationModes}] conditions met for feature flag activation");
+		result.Reason.ShouldBe($"All [{criteria.ActiveEvaluationModes}] conditions met for feature flag activation");
 
 		// Verify both handlers were called
-		firstEvaluator.Verify(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()), Times.Once);
-		secondEvaluator.Verify(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()), Times.Once);
+		firstEvaluator.Verify(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()), Times.Once);
+		secondEvaluator.Verify(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()), Times.Once);
 	}
 
 	[Fact]
@@ -195,35 +195,35 @@ public class FlagEvaluationManager_ProcessEvaluation_MultipleHandlers
 		
 		var terminalHandler = new Mock<IOrderedEvaluator>();
 		terminalHandler.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.Terminal);
-		terminalHandler.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
-		terminalHandler.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
+		terminalHandler.Setup(x => x.CanProcess(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>())).Returns(true);
+		terminalHandler.Setup(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()))
 			.Callback(() => evaluationOrder.Add(EvaluationOrder.Terminal))
 			.ReturnsAsync(new EvaluationResult(isEnabled: true, variation: "terminal", reason: "Terminal"));
 
 		var tenantHandler = new Mock<IOrderedEvaluator>();
 		tenantHandler.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.TenantRollout);
-		tenantHandler.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
-		tenantHandler.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
+		tenantHandler.Setup(x => x.CanProcess(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>())).Returns(true);
+		tenantHandler.Setup(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()))
 			.Callback(() => evaluationOrder.Add(EvaluationOrder.TenantRollout))
 			.ReturnsAsync(new EvaluationResult(isEnabled: true, variation: "tenant", reason: "Tenant"));
 
 		var userHandler = new Mock<IOrderedEvaluator>();
 		userHandler.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.UserRollout);
-		userHandler.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
-		userHandler.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
+		userHandler.Setup(x => x.CanProcess(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>())).Returns(true);
+		userHandler.Setup(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()))
 			.Callback(() => evaluationOrder.Add(EvaluationOrder.UserRollout))
 			.ReturnsAsync(new EvaluationResult(isEnabled: true, variation: "user", reason: "User"));
 
 		var manager = new FlagEvaluationManager(new HashSet<IOrderedEvaluator> { terminalHandler.Object, tenantHandler.Object, userHandler.Object });
-		var flag = new FeatureFlag 
-		{ 
-			Key = "order-test-flag",
+		var criteria = new EvaluationCriteria 
+		{
+			FlagKey = "order-test-flag",
 			Variations = new Variations { DefaultVariation = "ordered" }
 		};
 		var context = new EvaluationContext();
 
 		// Act
-		await manager.ProcessEvaluation(flag, context);
+		await manager.ProcessEvaluation(criteria, context);
 
 		// Assert - Should be processed in ascending order of EvaluationOrder enum values
 		evaluationOrder.ShouldBe(new[] 
@@ -242,15 +242,15 @@ public class FlagEvaluationManager_ProcessEvaluation_EdgeCases
 	{
 		// Arrange
 		var manager = new FlagEvaluationManager(new HashSet<IOrderedEvaluator>());
-		var flag = new FeatureFlag 
-		{ 
-			Key = "no-handlers-flag",
+		var criteria = new EvaluationCriteria 
+		{
+			FlagKey = "no-handlers-flag",
 			Variations = new Variations { DefaultVariation = "no-evaluators" }
 		};
 		var context = new EvaluationContext();
 
 		// Act
-		var result = await manager.ProcessEvaluation(flag, context);
+		var result = await manager.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.ShouldBeNull();
@@ -262,26 +262,26 @@ public class FlagEvaluationManager_ProcessEvaluation_EdgeCases
 		// Arrange
 		var firstHandler = new Mock<IOrderedEvaluator>();
 		firstHandler.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.TenantRollout);
-		firstHandler.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
-		firstHandler.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
+		firstHandler.Setup(x => x.CanProcess(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>())).Returns(true);
+		firstHandler.Setup(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()))
 			.ReturnsAsync((EvaluationResult?)null);
 
 		var secondHandler = new Mock<IOrderedEvaluator>();
 		secondHandler.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.UserRollout);
-		secondHandler.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
-		secondHandler.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
+		secondHandler.Setup(x => x.CanProcess(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>())).Returns(true);
+		secondHandler.Setup(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()))
 			.ReturnsAsync(new EvaluationResult(isEnabled: false, variation: "blocked", reason: "Second handler blocked"));
 
 		var manager = new FlagEvaluationManager([firstHandler.Object, secondHandler.Object]);
-		var flag = new FeatureFlag 
-		{ 
-			Key = "null-result-flag",
+		var criteria = new EvaluationCriteria 
+		{
+			FlagKey = "null-result-flag",
 			Variations = new Variations { DefaultVariation = "default" }
 		};
 		var context = new EvaluationContext();
 
 		// Act
-		var result = await manager.ProcessEvaluation(flag, context);
+		var result = await manager.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -290,8 +290,8 @@ public class FlagEvaluationManager_ProcessEvaluation_EdgeCases
 		result.Reason.ShouldBe("Second handler blocked");
 
 		// Verify both handlers were called
-		firstHandler.Verify(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()), Times.Once);
-		secondHandler.Verify(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()), Times.Once);
+		firstHandler.Verify(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()), Times.Once);
+		secondHandler.Verify(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()), Times.Once);
 	}
 
 	[Fact]
@@ -300,20 +300,20 @@ public class FlagEvaluationManager_ProcessEvaluation_EdgeCases
 		// Arrange
 		var faultyHandler = new Mock<IOrderedEvaluator>();
 		faultyHandler.Setup(x => x.EvaluationOrder).Returns(EvaluationOrder.Terminal);
-		faultyHandler.Setup(x => x.CanProcess(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>())).Returns(true);
-		faultyHandler.Setup(x => x.ProcessEvaluation(It.IsAny<FeatureFlag>(), It.IsAny<EvaluationContext>()))
+		faultyHandler.Setup(x => x.CanProcess(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>())).Returns(true);
+		faultyHandler.Setup(x => x.ProcessEvaluation(It.IsAny<EvaluationCriteria>(), It.IsAny<EvaluationContext>()))
 			.ThrowsAsync(new InvalidOperationException("Handler failed"));
 
 		var manager = new FlagEvaluationManager(new HashSet<IOrderedEvaluator> { faultyHandler.Object });
-		var flag = new FeatureFlag 
-		{ 
-			Key = "faulty-flag",
+		var criteria = new EvaluationCriteria 
+		{
+			FlagKey = "faulty-flag",
 			Variations = new Variations { DefaultVariation = "default" }
 		};
 		var context = new EvaluationContext();
 
 		// Act & Assert
-		var exception = await Should.ThrowAsync<InvalidOperationException>(() => manager.ProcessEvaluation(flag, context));
+		var exception = await Should.ThrowAsync<InvalidOperationException>(() => manager.ProcessEvaluation(criteria, context));
 		exception.Message.ShouldBe("Handler failed");
 	}
 }
@@ -337,17 +337,17 @@ public class FlagEvaluationManager_ProcessEvaluation_RealWorldScenarios
 		var manager = new FlagEvaluationManager(handlers);
 		
 		// Create a flag that will be processed by TerminalStateEvaluator (disabled flag)
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "realistic-test-flag",
+			FlagKey = "realistic-test-flag",
 			Variations = new Variations { DefaultVariation = "disabled-state" }
 		};
-		flag.ActiveEvaluationModes.AddMode(EvaluationMode.Disabled);
+		criteria.ActiveEvaluationModes.AddMode(EvaluationMode.Disabled);
 		
 		var context = new EvaluationContext(userId: "test-user", tenantId: "test-tenant");
 
 		// Act
-		var result = await manager.ProcessEvaluation(flag, context);
+		var result = await manager.ProcessEvaluation(criteria, context);
 
 		// Assert - Should be disabled by TerminalStateEvaluator
 		result.ShouldNotBeNull();

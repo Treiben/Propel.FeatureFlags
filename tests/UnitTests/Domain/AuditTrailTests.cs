@@ -12,25 +12,25 @@ public class FlagAuditRecord_Constructor
 		var createdBy = "test-user";
 
 		// Act
-		var created = new Audit(timestamp: createdAt, actor: createdBy);
+		var created = new AuditTrail(timestamp: createdAt, actor: createdBy);
 
 		// Assert
 		created.Timestamp.ShouldBe(createdAt.ToUniversalTime());
 		created.Actor.ShouldBe(createdBy);
 
 		// Arrange and Act - UTC time
-		created = new Audit(timestamp: createdAt.ToUniversalTime(), actor: createdBy);
+		created = new AuditTrail(timestamp: createdAt.ToUniversalTime(), actor: createdBy);
 		// Assert
 		created.Timestamp.ShouldBe(createdAt.ToUniversalTime());
 
 		// Arrange and Act - FlagCreated static method
-		created = Audit.FlagCreated();
+		created = AuditTrail.FlagCreated();
 		// Assert
 		created.Timestamp.ShouldBeLessThanOrEqualTo(DateTime.UtcNow);
 		created.Actor.ShouldBe("system");
 
 		// Arrange and Assert - expected to throw exception because timestamp is in the future
-		Should.Throw<ArgumentException>(() => new Audit(timestamp: DateTime.Now.AddDays(1), actor: " another-user "));
+		Should.Throw<ArgumentException>(() => new AuditTrail(timestamp: DateTime.Now.AddDays(1), actor: " another-user "));
 
 		
 	}

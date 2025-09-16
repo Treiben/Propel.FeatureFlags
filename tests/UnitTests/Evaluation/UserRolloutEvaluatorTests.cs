@@ -11,21 +11,21 @@ public class UserRolloutEvaluatorTests
 	public void CanProcess_WhenUserExplicitlyManaged_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			UserAccessControl = new AccessControl(allowed: ["user123"])
 		};
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act & Assert
-		_evaluator.CanProcess(flag, context).ShouldBeTrue();
+		_evaluator.CanProcess(criteria, context).ShouldBeTrue();
 	}
 
 	[Fact]
 	public void CanProcess_WhenPercentageRolloutWithRestrictions_ReturnsTrue()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			ActiveEvaluationModes = new EvaluationModes([EvaluationMode.UserRolloutPercentage]),
 			UserAccessControl = new AccessControl(rolloutPercentage: 50)
@@ -33,30 +33,30 @@ public class UserRolloutEvaluatorTests
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act & Assert
-		_evaluator.CanProcess(flag, context).ShouldBeTrue();
+		_evaluator.CanProcess(criteria, context).ShouldBeTrue();
 	}
 
 	[Fact]
 	public void CanProcess_WhenNoUserManagementOrRestrictions_ReturnsFalse()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
 			UserAccessControl = AccessControl.Unrestricted,
 		};
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act & Assert
-		_evaluator.CanProcess(flag, context).ShouldBeFalse();
+		_evaluator.CanProcess(criteria, context).ShouldBeFalse();
 	}
 
 	[Fact]
 	public async Task ProcessEvaluation_WhenNoUserId_ThrowsInvalidOperationException()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "test-flag",
+			FlagKey = "test-flag",
 			UserAccessControl = new AccessControl(rolloutPercentage: 50),
 			Variations = new Variations { DefaultVariation = "off" }
 		};
@@ -64,23 +64,23 @@ public class UserRolloutEvaluatorTests
 
 		// Act & Assert
 		var exception = await Should.ThrowAsync<InvalidOperationException>(
-			() => _evaluator.ProcessEvaluation(flag, context));
+			() => _evaluator.ProcessEvaluation(criteria, context));
 	}
 
 	[Fact]
 	public async Task ProcessEvaluation_WhenUserExplicitlyAllowed_ReturnsEnabled()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "test-flag",
+			FlagKey = "test-flag",
 			UserAccessControl = new AccessControl(allowed: ["user123"]),
 		};
 
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -92,9 +92,9 @@ public class UserRolloutEvaluatorTests
 	public async Task ProcessEvaluation_WhenUserExplicitlyBlocked_ReturnsDisabled()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "test-flag",
+			FlagKey = "test-flag",
 			UserAccessControl = new AccessControl(
 				blocked: ["user123"],
 				rolloutPercentage: 100), // Blocked overrides rollout
@@ -103,7 +103,7 @@ public class UserRolloutEvaluatorTests
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -115,16 +115,16 @@ public class UserRolloutEvaluatorTests
 	public async Task ProcessEvaluation_WhenZeroPercentRollout_ReturnsDisabled()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "test-flag",
+			FlagKey = "test-flag",
 			UserAccessControl = new AccessControl(rolloutPercentage: 0),
 			Variations = new Variations { DefaultVariation = "restricted" }
 		};
 		var context = new EvaluationContext(userId: "any-user");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -136,9 +136,9 @@ public class UserRolloutEvaluatorTests
 	public async Task ProcessEvaluation_WhenHundredPercentRollout_ReturnsEnabled()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "test-flag",
+			FlagKey = "test-flag",
 			UserAccessControl = new AccessControl(rolloutPercentage: 100),
 			Variations = new Variations
 			{
@@ -150,11 +150,11 @@ public class UserRolloutEvaluatorTests
 				DefaultVariation = "restricted"
 			}
 		};
-		flag.Variations.DefaultVariation = "restricted";
+		criteria.Variations.DefaultVariation = "restricted";
 		var context = new EvaluationContext(userId: "any-user");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -166,17 +166,17 @@ public class UserRolloutEvaluatorTests
 	public async Task ProcessEvaluation_WhenPartialRollout_IsConsistent()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "test-flag",
+			FlagKey = "test-flag",
 			UserAccessControl = new AccessControl(rolloutPercentage: 50),
 			Variations = new Variations { DefaultVariation = "not-in-rollout" }
 		};
 		var context = new EvaluationContext(userId: "consistent-user");
 
 		// Act - Multiple evaluations should be consistent
-		var result1 = await _evaluator.ProcessEvaluation(flag, context);
-		var result2 = await _evaluator.ProcessEvaluation(flag, context);
+		var result1 = await _evaluator.ProcessEvaluation(criteria, context);
+		var result2 = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result1.ShouldNotBeNull();
@@ -200,9 +200,9 @@ public class UserRolloutEvaluatorTests
 	public async Task ProcessEvaluation_BetaRolloutScenario_WorksCorrectly()
 	{
 		// Arrange - Beta testers get early access, plus gradual rollout
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "beta-feature",
+			FlagKey = "beta-feature",
 			UserAccessControl = new AccessControl(
 				allowed: ["beta-tester"],
 				rolloutPercentage: 15),
@@ -217,9 +217,9 @@ public class UserRolloutEvaluatorTests
 		};
 
 		// Act
-		var betaResult = await _evaluator.ProcessEvaluation(flag,
+		var betaResult = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(userId: "beta-tester"));
-		var regularResult = await _evaluator.ProcessEvaluation(flag,
+		var regularResult = await _evaluator.ProcessEvaluation(criteria,
 			new EvaluationContext(userId: "regular-user"));
 
 		// Assert
@@ -241,9 +241,9 @@ public class UserRolloutEvaluatorTests
 	public async Task ProcessEvaluation_SimpleOnOffFlag_ReturnsOnVariation()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "simple-flag",
+			FlagKey = "simple-flag",
 			UserAccessControl = new AccessControl(allowed: ["user123"]),
 			Variations = new Variations
 			{
@@ -254,7 +254,7 @@ public class UserRolloutEvaluatorTests
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -266,9 +266,9 @@ public class UserRolloutEvaluatorTests
 	public async Task ProcessEvaluation_MultipleVariations_ReturnsConsistentVariationSelection()
 	{
 		// Arrange
-		var flag = new FeatureFlag
+		var criteria = new EvaluationCriteria
 		{
-			Key = "checkout-version",
+			FlagKey = "checkout-version",
 			UserAccessControl = new AccessControl(allowed: ["user123"]),
 			Variations = new Variations
 			{
@@ -284,8 +284,8 @@ public class UserRolloutEvaluatorTests
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act - Multiple calls should return same variation
-		var result1 = await _evaluator.ProcessEvaluation(flag, context);
-		var result2 = await _evaluator.ProcessEvaluation(flag, context);
+		var result1 = await _evaluator.ProcessEvaluation(criteria, context);
+		var result2 = await _evaluator.ProcessEvaluation(criteria, context);
 
 		// Assert
 		result1.ShouldNotBeNull();
