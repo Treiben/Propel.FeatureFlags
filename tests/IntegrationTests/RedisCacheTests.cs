@@ -23,15 +23,19 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		await fixture.ClearAllFlags();
 
 		var (flag, _) = TestHelpers.SetupTestCases("cache-test", EvaluationMode.Enabled);
-		var cacheKey = TestHelpers.CreateCacheKey(flag.Key);
+		var cacheKey = TestHelpers.CreateCacheKey(flag.Key.Key);
 
 		// Act
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, new EvaluationCriteria
+		{
+			FlagKey = flag.Key.Key,
+			ActiveEvaluationModes = flag.ActiveEvaluationModes,
+		});
 
 		// Assert
 		var retrieved = await fixture.Cache.GetAsync(cacheKey);
 		retrieved.ShouldNotBeNull();
-		retrieved.Key.ShouldBe("cache-test");
+		retrieved.FlagKey.ShouldBe("cache-test");
 		retrieved.ActiveEvaluationModes.ContainsModes([EvaluationMode.Enabled]).ShouldBeTrue();
 	}
 
@@ -73,13 +77,19 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		var cacheKey = TestHelpers.CreateCacheKey("complex-flag");
 
 		// Act
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, new EvaluationCriteria
+		{
+			FlagKey = flag.Key.Key,
+			ActiveEvaluationModes = flag.ActiveEvaluationModes,
+			TargetingRules = flag.TargetingRules,
+			UserAccessControl = flag.UserAccessControl,
+			Variations = flag.Variations
+		});
 
 		// Assert
 		var retrieved = await fixture.Cache.GetAsync(cacheKey);
 
 		retrieved.ShouldNotBeNull();
-		retrieved.Tags.ShouldContainKeyAndValue("team", "platform");
 
 		retrieved.TargetingRules.ShouldBeOfType<List<ITargetingRule>>();
 		retrieved.TargetingRules.Count.ShouldBe(2);
@@ -99,10 +109,14 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		// Arrange
 		await fixture.ClearAllFlags();
 		var (flag, _) = TestHelpers.SetupTestCases("expiring-flag", EvaluationMode.Enabled);
-		var cacheKey = TestHelpers.CreateCacheKey(flag.Key);
+		var cacheKey = TestHelpers.CreateCacheKey(flag.Key.Key);
 
 		// Act
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, new EvaluationCriteria
+		{
+			FlagKey = flag.Key.Key,
+			ActiveEvaluationModes = flag.ActiveEvaluationModes,
+		});
 		var retrieved = await fixture.Cache.GetAsync(cacheKey);
 		retrieved.ShouldNotBeNull();
 	}
@@ -117,21 +131,23 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		var currentApplicationVersion = ApplicationInfo.Version;
 
 		var cacheKey = new CacheKey("update-flag", [currentApplicationName, currentApplicationVersion]);
-		await fixture.Cache.SetAsync(cacheKey, originalFlag);
+		await fixture.Cache.SetAsync(cacheKey, new EvaluationCriteria
+			{
+				FlagKey = originalFlag.Key.Key,
+				ActiveEvaluationModes = originalFlag.ActiveEvaluationModes,
+			});
 
 		var (updatedFlag, _) = TestHelpers.SetupTestCases("update-flag", EvaluationMode.Enabled);
 		updatedFlag.Name = "Updated Name";
 		updatedFlag.Description = "Updated Description";
 
 		// Act
-		await fixture.Cache.SetAsync(cacheKey, updatedFlag);
+		await fixture.Cache.SetAsync(cacheKey, new EvaluationCriteria { FlagKey = updatedFlag.Key.Key, ActiveEvaluationModes = updatedFlag.ActiveEvaluationModes });
 
 		// Assert
 		var retrieved = await fixture.Cache.GetAsync(cacheKey);
 		retrieved.ShouldNotBeNull();
 		retrieved.ActiveEvaluationModes.ContainsModes([EvaluationMode.Enabled]).ShouldBeTrue();
-		retrieved.Name.ShouldBe("Updated Name");
-		retrieved.Description.ShouldBe("Updated Description");
 	}
 }
 
@@ -143,18 +159,17 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 		// Arrange
 		await fixture.ClearAllFlags();
 		var (flag, _) = TestHelpers.SetupTestCases("get-test", EvaluationMode.Enabled);
-		var cacheKey = TestHelpers.CreateCacheKey(flag.Key);
+		var cacheKey = TestHelpers.CreateCacheKey(flag.Key.Key);
 
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, new EvaluationCriteria { FlagKey = flag.Key.Key, ActiveEvaluationModes = flag.ActiveEvaluationModes });
 
 		// Act
 		var result = await fixture.Cache.GetAsync(cacheKey);
 
 		// Assert
 		result.ShouldNotBeNull();
-		result.Key.ShouldBe("get-test");
+		result.FlagKey.ShouldBe("get-test");
 		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.Enabled]).ShouldBeTrue();
-		result.Name.ShouldBe(flag.Name);
 	}
 
 	[Fact]
@@ -172,16 +187,17 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 			"America/New_York", 
 			[DayOfWeek.Monday, DayOfWeek.Friday]);
 
-		flag.Retention = new RetentionPolicy(
-			expirationDate: DateTime.UtcNow.AddDays(30),
-			isPermanent: true,
-			scope: Scope.Global);
 		flag.Schedule = schedule;
 		flag.OperationalWindow = operationalWindow;
 
-		var cacheKey = TestHelpers.CreateGlobalCacheKey(flag.Key);
+		var cacheKey = TestHelpers.CreateGlobalCacheKey(flag.Key.Key);
 
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, new EvaluationCriteria { 
+			FlagKey = flag.Key.Key,
+			ActiveEvaluationModes = flag.ActiveEvaluationModes,
+			Schedule = flag.Schedule,
+			OperationalWindow = flag.OperationalWindow
+		});
 
 		// Act
 		var result = await fixture.Cache.GetAsync(cacheKey);
@@ -199,9 +215,14 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 		await fixture.ClearAllFlags();
 		var (flag, _) = TestHelpers.SetupTestCases("percentage-flag", EvaluationMode.UserRolloutPercentage);
 		flag.UserAccessControl = new AccessControl(rolloutPercentage: 75);
-		var cacheKey = TestHelpers.CreateCacheKey(flag.Key);
+		var cacheKey = TestHelpers.CreateCacheKey(flag.Key.Key);
 
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, new EvaluationCriteria
+		{
+			FlagKey = flag.Key.Key,
+			ActiveEvaluationModes = flag.ActiveEvaluationModes,
+			UserAccessControl = flag.UserAccessControl
+		});
 
 		// Act
 		var result = await fixture.Cache.GetAsync(cacheKey);
@@ -237,9 +258,9 @@ public class RemoveAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixtu
 		// Arrange
 		await fixture.ClearAllFlags();
 		var (flag, _) = TestHelpers.SetupTestCases("remove-test", EvaluationMode.Enabled);
-		var cacheKey = TestHelpers.CreateCacheKey(flag.Key);
+		var cacheKey = TestHelpers.CreateCacheKey(flag.Key.Key);
 
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, new EvaluationCriteria { FlagKey = flag.Key.Key, ActiveEvaluationModes = flag.ActiveEvaluationModes });
 
 		// Verify it exists first
 		var beforeRemove = await fixture.Cache.GetAsync(cacheKey);
@@ -266,13 +287,13 @@ public class ClearAsync_WithMultipleFlags(RedisTestsFixture fixture) : IClassFix
 		var (flag3, _) = TestHelpers.SetupTestCases("flag-3", EvaluationMode.UserRolloutPercentage);
 
 
-		var cacheKey1 = TestHelpers.CreateCacheKey(flag1.Key);
-		var cacheKey2 = TestHelpers.CreateCacheKey(flag2.Key);
-		var cacheKey3 = TestHelpers.CreateCacheKey(flag3.Key);
+		var cacheKey1 = TestHelpers.CreateCacheKey(flag1.Key.Key);
+		var cacheKey2 = TestHelpers.CreateCacheKey(flag2.Key.Key);
+		var cacheKey3 = TestHelpers.CreateCacheKey(flag3.Key.Key);
 
-		await fixture.Cache.SetAsync(cacheKey1, flag1);
-		await fixture.Cache.SetAsync(cacheKey2, flag2);
-		await fixture.Cache.SetAsync(cacheKey3, flag3);
+		await fixture.Cache.SetAsync(cacheKey1, new EvaluationCriteria { FlagKey = flag1.Key.Key, ActiveEvaluationModes = flag1.ActiveEvaluationModes });
+		await fixture.Cache.SetAsync(cacheKey2, new EvaluationCriteria { FlagKey = flag2.Key.Key, ActiveEvaluationModes = flag2.ActiveEvaluationModes });
+		await fixture.Cache.SetAsync(cacheKey3, new EvaluationCriteria { FlagKey = flag3.Key.Key, ActiveEvaluationModes = flag3.ActiveEvaluationModes });
 
 		// Verify they exist
 		(await fixture.Cache.GetAsync(cacheKey1)).ShouldNotBeNull();
@@ -306,8 +327,8 @@ public class ClearAsync_WithMultipleFlags(RedisTestsFixture fixture) : IClassFix
 		
 		// Set a feature flag
 		var (flag, _) = TestHelpers.SetupTestCases("test-flag", EvaluationMode.Enabled);
-		var cacheKey = TestHelpers.CreateCacheKey(flag.Key);
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		var cacheKey = TestHelpers.CreateCacheKey(flag.Key.Key);
+		await fixture.Cache.SetAsync(cacheKey, new EvaluationCriteria { FlagKey = flag.Key.Key, ActiveEvaluationModes = flag.ActiveEvaluationModes });
 
 		// Set a non-feature flag key directly in Redis
 		var database = fixture.GetDatabase();

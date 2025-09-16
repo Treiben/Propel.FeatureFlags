@@ -1,16 +1,16 @@
 using FeatureFlags.IntegrationTests.Support;
 using Propel.FeatureFlags.Domain;
 
-namespace FeatureFlags.IntegrationTests.Core.Client;
+namespace FeatureFlags.IntegrationTests.Client;
 
-public class IsEnabledAsync_WithEnabledFlag(ClientTestsFixture fixture) : IClassFixture<ClientTestsFixture>
+public class IsEnabledAsync_WithEnabledFlag(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {
 	[Fact]
 	public async Task If_FlagDoesNotExist_CreateItDuringEvaluation()
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (_, appFlag) = TestHelpers.SetupTestCases("client-enabled", EvaluationMode.Enabled, EvaluationMode.Enabled);
+		var (flag, appFlag) = TestHelpers.SetupTestCases("client-enabled", EvaluationMode.Enabled, EvaluationMode.Enabled);
 
 		// Act
 		var result = await fixture.Client.IsEnabledAsync(appFlag, userId: "user123");
@@ -21,18 +21,15 @@ public class IsEnabledAsync_WithEnabledFlag(ClientTestsFixture fixture) : IClass
 		// Verify the flag was created in the repository
 
 		//A Arrange
-		var storedFlag = await fixture.Repository.GetAllAsync();
-
-		// Act
-		var outflag = storedFlag.FirstOrDefault(f => f.Key == "client-enabled");
+		var storedFlag = await fixture.EvaluationRepository.GetAsync(flag.Key);
 
 		// Assert	
-		outflag.ShouldNotBeNull();
-		outflag.ActiveEvaluationModes.Modes.ShouldContain(EvaluationMode.Enabled);
+		storedFlag.ShouldNotBeNull();
+		storedFlag.ActiveEvaluationModes.Modes.ShouldContain(EvaluationMode.Enabled);
 	}
 }
 
-public class IsEnabledAsync_WithTargetedFlag(ClientTestsFixture fixture) : IClassFixture<ClientTestsFixture>
+public class IsEnabledAsync_WithTargetedFlag(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {
 	[Fact]
 	public async Task If_UserTargeted_ThenReturnsTrue()
@@ -48,7 +45,7 @@ public class IsEnabledAsync_WithTargetedFlag(ClientTestsFixture fixture) : IClas
 				"regional-feature"
 			)
 		];
-		await fixture.Repository.CreateAsync(flag);
+		await fixture.ManagementRepository.CreateAsync(flag);
 
 		// Act
 		var result = await fixture.Client.IsEnabledAsync(appFlag, 
@@ -60,7 +57,7 @@ public class IsEnabledAsync_WithTargetedFlag(ClientTestsFixture fixture) : IClas
 	}
 }
 
-public class GetVariationAsync_WithStringVariation(ClientTestsFixture fixture) : IClassFixture<ClientTestsFixture>
+public class GetVariationAsync_WithStringVariation(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {
 	[Fact]
 	public async Task ThenReturnsVariationValue()
@@ -84,7 +81,7 @@ public class GetVariationAsync_WithStringVariation(ClientTestsFixture fixture) :
 								{ "premium-config", "premium-dashboard" }
 							}
 		};
-		await fixture.Repository.CreateAsync(flag);
+		await fixture.ManagementRepository.CreateAsync(flag);
 
 		// Act
 		var result = await fixture.Client.GetVariationAsync(appFlag, "default",
@@ -96,7 +93,7 @@ public class GetVariationAsync_WithStringVariation(ClientTestsFixture fixture) :
 	}
 }
 
-public class GetVariationAsync_WithDisabledFlag(ClientTestsFixture fixture) : IClassFixture<ClientTestsFixture>
+public class GetVariationAsync_WithDisabledFlag(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {
 	[Fact]
 	public async Task ThenReturnsDefaultValue()
@@ -104,7 +101,8 @@ public class GetVariationAsync_WithDisabledFlag(ClientTestsFixture fixture) : IC
 		// Arrange
 		await fixture.ClearAllData();
 		var (flag, appFlag) = TestHelpers.SetupTestCases("client-disabled", EvaluationMode.Disabled);
-		await fixture.Repository.CreateAsync(flag);
+
+		await fixture.ManagementRepository.CreateAsync(flag);
 
 		// Act
 		var result = await fixture.Client.GetVariationAsync(appFlag, "fallback-value", userId: "user123");
@@ -114,7 +112,7 @@ public class GetVariationAsync_WithDisabledFlag(ClientTestsFixture fixture) : IC
 	}
 }
 
-public class EvaluateAsync_WithTimeWindowFlag(ClientTestsFixture fixture) : IClassFixture<ClientTestsFixture>
+public class EvaluateAsync_WithTimeWindowFlag(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {
 	[Fact]
 	public async Task If_WithinWindow_ThenReturnsEnabledResult()
@@ -123,7 +121,8 @@ public class EvaluateAsync_WithTimeWindowFlag(ClientTestsFixture fixture) : ICla
 		await fixture.ClearAllData();
 		var (flag, appFlag) = TestHelpers.SetupTestCases("client-window", EvaluationMode.TimeWindow);
 		flag.OperationalWindow = OperationalWindow.AlwaysOpen;
-		await fixture.Repository.CreateAsync(flag);
+
+		await fixture.ManagementRepository.CreateAsync(flag);
 
 		// Act
 		var result = await fixture.Client.EvaluateAsync(appFlag, tenantId: "tenant123");

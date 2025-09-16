@@ -12,20 +12,20 @@ using Testcontainers.Redis;
 
 namespace FeatureFlags.IntegrationTests.Support;
 
-public class ClientTestsFixture : IAsyncLifetime
+public class FlagEvaluationTestsFixture : IAsyncLifetime
 {
 	private readonly PostgreSqlContainer _postgresContainer;
 	private readonly RedisContainer _redisContainer;
 
+	public IFeatureFlagEvaluator Evaluator { get; private set; } = null!;
 	public IFeatureFlagClient Client { get; private set; } = null!;
-	public PostgreSQLFeatureFlagRepository Repository { get; private set; } = null!;
+	public FlagEvaluationRepository EvaluationRepository { get; private set; } = null!;
+	public FlagManagementRepository ManagementRepository { get; private set; } = null!;
 	public RedisFeatureFlagCache Cache { get; private set; } = null!;
 
 	private ConnectionMultiplexer _redisConnection = null!;
-	private readonly ILogger<PostgreSQLFeatureFlagRepository> _repositoryLogger;
-	private readonly ILogger<RedisFeatureFlagCache> _cacheLogger;
 
-	public ClientTestsFixture()
+	public FlagEvaluationTestsFixture()
 	{
 		_postgresContainer = new PostgreSqlBuilder()
 			.WithImage("postgres:15-alpine")
@@ -39,9 +39,6 @@ public class ClientTestsFixture : IAsyncLifetime
 			.WithImage("redis:7-alpine")
 			.WithPortBinding(6379, true)
 			.Build();
-
-		_repositoryLogger = new Mock<ILogger<PostgreSQLFeatureFlagRepository>>().Object;
-		_cacheLogger = new Mock<ILogger<RedisFeatureFlagCache>>().Object;
 	}
 
 	public async Task InitializeAsync()
@@ -49,9 +46,15 @@ public class ClientTestsFixture : IAsyncLifetime
 		await _postgresContainer.StartAsync();
 		await _redisContainer.StartAsync();
 
-		var postgresConnectionString = _postgresContainer.GetConnectionString();
-		await TestHelpers.CreatePostgresTables(postgresConnectionString);
-		Repository = new PostgreSQLFeatureFlagRepository(postgresConnectionString, _repositoryLogger);
+		var connectionString = _postgresContainer.GetConnectionString();
+
+		var dbInitializer = new PostgreSQLDatabaseInitializer(connectionString, new Mock<ILogger<PostgreSQLDatabaseInitializer>>().Object);
+		var initialized = await dbInitializer.InitializeAsync();
+		if (!initialized)
+			throw new InvalidOperationException("Failed to initialize PostgreSQL database for feature flags");
+
+		EvaluationRepository = new FlagEvaluationRepository(connectionString, new Mock<ILogger<FlagEvaluationRepository>>().Object);
+		ManagementRepository = new FlagManagementRepository(connectionString, new Mock<ILogger<FlagManagementRepository>>().Object);
 
 		var redisConnectionString = _redisContainer.GetConnectionString();
 		_redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
@@ -61,7 +64,7 @@ public class ClientTestsFixture : IAsyncLifetime
 			ExpiryInMinutes = TimeSpan.FromMinutes(1)
 		};
 
-		Cache = new RedisFeatureFlagCache(_redisConnection, cacheOptions, _cacheLogger);
+		Cache = new RedisFeatureFlagCache(_redisConnection, cacheOptions, new Mock<ILogger<RedisFeatureFlagCache>>().Object);
 
 		var evaluationManager = new FlagEvaluationManager([
 			new ActivationScheduleEvaluator(),
@@ -72,8 +75,8 @@ public class ClientTestsFixture : IAsyncLifetime
 			new UserRolloutEvaluator(),
 		]);
 
-		var evaluator = new FeatureFlagEvaluator(Repository, evaluationManager, Cache);
-		Client = new FeatureFlagClient(evaluator, "UTC");
+		Evaluator = new FeatureFlagEvaluator(EvaluationRepository, evaluationManager, Cache);
+		Client = new FeatureFlagClient(Evaluator, "UTC");
 	}
 
 	public async Task DisposeAsync()

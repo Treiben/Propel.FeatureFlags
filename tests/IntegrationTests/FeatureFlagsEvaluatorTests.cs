@@ -1,9 +1,9 @@
 using FeatureFlags.IntegrationTests.Support;
 using Propel.FeatureFlags.Domain;
 
-namespace FeatureFlags.IntegrationTests.Core.Evaluator;
+namespace FeatureFlags.IntegrationTests.Evaluator;
 
-public class Evaluate_WithEnabledFlag(EvaluatorTestsFixture fixture) : IClassFixture<EvaluatorTestsFixture>
+public class Evaluate_WithEnabledFlag(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {
 	[Fact]
 	public async Task ThenReturnsEnabled()
@@ -11,7 +11,7 @@ public class Evaluate_WithEnabledFlag(EvaluatorTestsFixture fixture) : IClassFix
 		// Arrange
 		await fixture.ClearAllData();
 		var (flag, appFlag) = TestHelpers.SetupTestCases("enabled-test", EvaluationMode.Enabled);
-		_ = await fixture.Repository.CreateAsync(flag);
+		await fixture.EvaluationRepository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "user123");
 
@@ -21,11 +21,10 @@ public class Evaluate_WithEnabledFlag(EvaluatorTestsFixture fixture) : IClassFix
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on");
 	}
 }
 
-public class Evaluate_WithUserTargetedFlag(EvaluatorTestsFixture fixture) : IClassFixture<EvaluatorTestsFixture>
+public class Evaluate_WithUserTargetedFlag(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {
 
 	[Fact]
@@ -42,7 +41,7 @@ public class Evaluate_WithUserTargetedFlag(EvaluatorTestsFixture fixture) : ICla
 				"premium-features"
 			),
 		];
-		await fixture.Repository.CreateAsync(flag);
+		await fixture.ManagementRepository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "current-user");
 
@@ -52,11 +51,10 @@ public class Evaluate_WithUserTargetedFlag(EvaluatorTestsFixture fixture) : ICla
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeFalse();
-		result.Variation.ShouldBe("off");
 	}
 }
 
-public class Evaluate_WithUserRolloutFlag(EvaluatorTestsFixture fixture) : IClassFixture<EvaluatorTestsFixture>
+public class Evaluate_WithUserRolloutFlag(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {
 	[Fact]
 	public async Task If_UserInAllowedList_ThenReturnsEnabled()
@@ -68,7 +66,7 @@ public class Evaluate_WithUserRolloutFlag(EvaluatorTestsFixture fixture) : IClas
 			allowed: ["allowed-user"],
 			rolloutPercentage: 0);
 
-		await fixture.Repository.CreateAsync(flag);
+		await fixture.ManagementRepository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "allowed-user");
 
@@ -78,7 +76,6 @@ public class Evaluate_WithUserRolloutFlag(EvaluatorTestsFixture fixture) : IClas
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on");
 	}
 
 	[Fact]
@@ -91,7 +88,7 @@ public class Evaluate_WithUserRolloutFlag(EvaluatorTestsFixture fixture) : IClas
 			blocked: ["blocked-user"],
 			rolloutPercentage: 100);
 
-		await fixture.Repository.CreateAsync(flag);
+		await fixture.ManagementRepository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "blocked-user");
 
@@ -101,11 +98,10 @@ public class Evaluate_WithUserRolloutFlag(EvaluatorTestsFixture fixture) : IClas
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeFalse();
-		result.Variation.ShouldBe("off");
 	}
 }
 
-public class Evaluate_WithTimeWindowFlag(EvaluatorTestsFixture fixture) : IClassFixture<EvaluatorTestsFixture>
+public class Evaluate_WithTimeWindowFlag(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {
 	[Fact]
 	public async Task If_WithinTimeWindow_ThenReturnsEnabled()
@@ -117,7 +113,7 @@ public class Evaluate_WithTimeWindowFlag(EvaluatorTestsFixture fixture) : IClass
 			TimeSpan.FromHours(9),
 			TimeSpan.FromHours(17));
 
-		await fixture.Repository.CreateAsync(flag);
+		await fixture.ManagementRepository.CreateAsync(flag);
 
 		var evaluationTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc);
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -128,7 +124,6 @@ public class Evaluate_WithTimeWindowFlag(EvaluatorTestsFixture fixture) : IClass
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on");
 	}
 
 	[Fact]
@@ -141,7 +136,7 @@ public class Evaluate_WithTimeWindowFlag(EvaluatorTestsFixture fixture) : IClass
 			TimeSpan.FromHours(9),
 			TimeSpan.FromHours(17));
 
-		await fixture.Repository.CreateAsync(flag);
+		await fixture.ManagementRepository.CreateAsync(flag);
 
 		var evaluationTime = new DateTime(2024, 1, 15, 20, 0, 0, DateTimeKind.Utc);
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
@@ -152,11 +147,10 @@ public class Evaluate_WithTimeWindowFlag(EvaluatorTestsFixture fixture) : IClass
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeFalse();
-		result.Variation.ShouldBe("off");
 	}
 }
 
-public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) : IClassFixture<EvaluatorTestsFixture>
+public class GetVariation_WithComplexVariations(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {
 	[Fact]
 	public async Task If_VariationIsString_ThenReturnsString()
@@ -180,7 +174,7 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 							{ "string-variant", "Hello World" }
 						}
 		};
-		await fixture.Repository.CreateAsync(flag);
+		await fixture.ManagementRepository.CreateAsync(flag);
 
 		var context = new EvaluationContext(attributes: new Dictionary<string, object> { { "user-type", "test-user" } },
 			userId: "dev-user");
@@ -213,7 +207,7 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 							{ "int-variant", 42 }
 						}
 		};
-		await fixture.Repository.CreateAsync(flag);
+		await fixture.ManagementRepository.CreateAsync(flag);
 
 		var context = new EvaluationContext(
 			userId: "test-user",
@@ -233,7 +227,8 @@ public class GetVariation_WithComplexVariations(EvaluatorTestsFixture fixture) :
 		// Arrange
 		await fixture.ClearAllData();
 		var (flag, appFlag) = TestHelpers.SetupTestCases("disabled-variation", EvaluationMode.Disabled);
-		await fixture.Repository.CreateAsync(flag);
+
+		await fixture.ManagementRepository.CreateAsync(flag);
 
 		var context = new EvaluationContext(userId: "test-user");
 

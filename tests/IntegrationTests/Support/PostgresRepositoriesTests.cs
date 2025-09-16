@@ -5,13 +5,13 @@ using Testcontainers.PostgreSql;
 
 namespace FeatureFlags.IntegrationTests.Support;
 
-public class PostgresRepoTestsFixture : IAsyncLifetime
+public class PostgresRepositoriesTests : IAsyncLifetime
 {
 	private readonly PostgreSqlContainer _container;
-	public PostgreSQLFeatureFlagRepository Repository { get; private set; } = null!;
-	private readonly ILogger<PostgreSQLFeatureFlagRepository> _logger;
+	public FlagEvaluationRepository EvaluationRepository { get; private set; } = null!;
+	public FlagManagementRepository ManagementRepository { get; private set; } = null!;
 
-	public PostgresRepoTestsFixture()
+	public PostgresRepositoriesTests()
 	{
 		_container = new PostgreSqlBuilder()
 			.WithImage("postgres:15-alpine")
@@ -20,19 +20,21 @@ public class PostgresRepoTestsFixture : IAsyncLifetime
 			.WithPassword("test_password")
 			.WithPortBinding(5432, true)
 			.Build();
-
-		_logger = new Mock<ILogger<PostgreSQLFeatureFlagRepository>>().Object;
 	}
 
 	public async Task InitializeAsync()
 	{
 		await _container.StartAsync();
+
 		var connectionString = _container.GetConnectionString();
 
-		Repository = new PostgreSQLFeatureFlagRepository(connectionString, _logger);
+		var dbInitializer = new PostgreSQLDatabaseInitializer(connectionString, new Mock<ILogger<PostgreSQLDatabaseInitializer>>().Object);
+		var initialized = await dbInitializer.InitializeAsync();
+		if (!initialized)
+			throw new InvalidOperationException("Failed to initialize PostgreSQL database for feature flags");
 
-		// Create the feature_flags table
-		await TestHelpers.CreatePostgresTables(connectionString);
+		EvaluationRepository = new FlagEvaluationRepository(connectionString, new Mock<ILogger<FlagEvaluationRepository>>().Object);
+		ManagementRepository = new FlagManagementRepository(connectionString, new Mock<ILogger<FlagManagementRepository>>().Object);
 	}
 
 	public async Task DisposeAsync()
@@ -40,7 +42,7 @@ public class PostgresRepoTestsFixture : IAsyncLifetime
 		await _container.DisposeAsync();
 	}
 
-	public async Task ClearAllFlags()
+	public async Task ClearAllData()
 	{
 		var connectionString = _container.GetConnectionString();
 		using var connection = new NpgsqlConnection(connectionString);
