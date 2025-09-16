@@ -165,28 +165,28 @@ public class FeatureFlagInterceptor : IInterceptor
 		return (T)GetDefaultValue(typeof(T))!;
 	}
 
-	private static IApplicationFeatureFlag? GetFeatureFlagInstance(Type flagType)
+	private static IRegisteredFeatureFlag? GetFeatureFlagInstance(Type flagType)
 	{
 		try
 		{
 			// Validate that the type implements IApplicationFeatureFlag
-			if (!typeof(IApplicationFeatureFlag).IsAssignableFrom(flagType))
+			if (!typeof(IRegisteredFeatureFlag).IsAssignableFrom(flagType))
 			{
 				return null;
 			}
 
 			// Look for a static Create method first
 			var createMethod = flagType.GetMethod("Create", BindingFlags.Public | BindingFlags.Static);
-			if (createMethod != null && typeof(IApplicationFeatureFlag).IsAssignableFrom(createMethod.ReturnType))
+			if (createMethod != null && typeof(IRegisteredFeatureFlag).IsAssignableFrom(createMethod.ReturnType))
 			{
-				return (IApplicationFeatureFlag?)createMethod.Invoke(null, null);
+				return (IRegisteredFeatureFlag?)createMethod.Invoke(null, null);
 			}
 
 			// Fall back to parameterless constructor
 			var constructor = flagType.GetConstructor(Type.EmptyTypes);
 			if (constructor != null)
 			{
-				return (IApplicationFeatureFlag?)Activator.CreateInstance(flagType);
+				return (IRegisteredFeatureFlag?)Activator.CreateInstance(flagType);
 			}
 
 			return null;

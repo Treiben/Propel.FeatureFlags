@@ -13,7 +13,7 @@ public sealed class HttpFeatureFlagInterceptor(IHttpContextAccessor httpContextA
 
 	// Caching for performance
 	private static readonly ConcurrentDictionary<MethodInfo, FeatureFlaggedAttribute?> _attributeCache = new();
-	private static readonly ConcurrentDictionary<Type, IApplicationFeatureFlag?> _flagInstanceCache = new();
+	private static readonly ConcurrentDictionary<Type, IRegisteredFeatureFlag?> _flagInstanceCache = new();
 
 	public void Intercept(IInvocation invocation)
 	{
@@ -188,28 +188,28 @@ public sealed class HttpFeatureFlagInterceptor(IHttpContextAccessor httpContextA
 		});
 	}
 
-	private static IApplicationFeatureFlag? GetFeatureFlagInstance(Type flagType)
+	private static IRegisteredFeatureFlag? GetFeatureFlagInstance(Type flagType)
 	{
 		return _flagInstanceCache.GetOrAdd(flagType, type =>
 		{
 			try
 			{
 				// Validate that the type implements IApplicationFeatureFlag
-				if (!typeof(IApplicationFeatureFlag).IsAssignableFrom(type))
+				if (!typeof(IRegisteredFeatureFlag).IsAssignableFrom(type))
 					return null;
 
 				// Look for a static Create method first
 				var createMethod = type.GetMethod("Create", BindingFlags.Public | BindingFlags.Static);
-				if (createMethod != null && typeof(IApplicationFeatureFlag).IsAssignableFrom(createMethod.ReturnType))
+				if (createMethod != null && typeof(IRegisteredFeatureFlag).IsAssignableFrom(createMethod.ReturnType))
 				{
-					return (IApplicationFeatureFlag?)createMethod.Invoke(null, null);
+					return (IRegisteredFeatureFlag?)createMethod.Invoke(null, null);
 				}
 
 				// Fall back to parameterless constructor
 				var constructor = type.GetConstructor(Type.EmptyTypes);
 				if (constructor != null)
 				{
-					return (IApplicationFeatureFlag?)Activator.CreateInstance(type);
+					return (IRegisteredFeatureFlag?)Activator.CreateInstance(type);
 				}
 
 				return null;
@@ -221,7 +221,7 @@ public sealed class HttpFeatureFlagInterceptor(IHttpContextAccessor httpContextA
 		});
 	}
 
-	private async Task<bool> IsEnabledAsync(IApplicationFeatureFlag flag)
+	private async Task<bool> IsEnabledAsync(IRegisteredFeatureFlag flag)
 	{
 		var context = _httpContextAccessor.HttpContext;
 		if (context == null)
