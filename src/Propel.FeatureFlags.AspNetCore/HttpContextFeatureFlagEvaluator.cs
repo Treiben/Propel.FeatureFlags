@@ -8,7 +8,7 @@ public class HttpContextFeatureFlagEvaluator(
 	string? userId,
 	Dictionary<string, object> attributes)
 {
-	public async Task<bool> IsEnabledAsync(IApplicationFeatureFlag flag)
+	public async Task<bool> IsEnabledAsync(IRegisteredFeatureFlag flag)
 	{
 		return await client.IsEnabledAsync(
 			flag: flag, 
@@ -17,7 +17,7 @@ public class HttpContextFeatureFlagEvaluator(
 			attributes: attributes);
 	}
 
-	public async Task<T> GetVariationAsync<T>(IApplicationFeatureFlag flag, T defaultValue)
+	public async Task<T> GetVariationAsync<T>(IRegisteredFeatureFlag flag, T defaultValue)
 	{
 		return await client.GetVariationAsync(
 			flag: flag,
