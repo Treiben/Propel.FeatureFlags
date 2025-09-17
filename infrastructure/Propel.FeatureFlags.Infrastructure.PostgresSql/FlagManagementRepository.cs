@@ -190,7 +190,7 @@ public class FlagManagementRepository : IFlagManagementRepository
 					flag.Key.Key, flag.Key.Scope, flag.Key.ApplicationName, flag.Key.ApplicationVersion);
 			}
 
-			await AddAuditTrail(flag.Key, "flag created", flag.Created, connection, cancellationToken);
+			await FlagAuditHelpers.AddAuditTrail(flag.Key, "flag created", flag.Created, connection, cancellationToken);
 
 			_logger.LogDebug("Successfully created feature flag: {Key}", flag.Key);
 			return flag;
@@ -252,7 +252,7 @@ public class FlagManagementRepository : IFlagManagementRepository
 					flag.Key.Key, flag.Key.Scope, flag.Key.ApplicationName, flag.Key.ApplicationVersion);
 			}
 
-			await AddAuditTrail(flag.Key, "flag modified", flag.LastModified, connection, cancellationToken);
+			await FlagAuditHelpers.AddAuditTrail(flag.Key, "flag modified", flag.LastModified, connection, cancellationToken);
 
 			_logger.LogDebug("Successfully updated feature flag: {Key}", flag.Key);
 			return flag;
@@ -285,7 +285,7 @@ public class FlagManagementRepository : IFlagManagementRepository
 
 			if (deleted)
 			{
-				await AddAuditTrail(flagKey, "flag deleted", new AuditTrail(DateTime.UtcNow, actor, reason), connection, cancellationToken);
+				await FlagAuditHelpers.AddAuditTrail(flagKey, "flag deleted", new AuditTrail(DateTime.UtcNow, actor, reason), connection, cancellationToken);
 			} 
 			else
 				_logger.LogWarning("Feature flag with key {Key} not found for deletion", flagKey.Key);
@@ -298,28 +298,6 @@ public class FlagManagementRepository : IFlagManagementRepository
 				flagKey.Key, flagKey.Scope, flagKey.ApplicationName, flagKey.ApplicationVersion);
 			throw;
 		}
-	}
-
-	private async Task AddAuditTrail(FlagKey flagKey,
-									string action,
-									AuditTrail? lastModified,
-									NpgsqlConnection connection,
-									CancellationToken cancellationToken)
-	{
-		const string sql = @"-- Audit log entry
-					INSERT INTO feature_flag_audit (
-						flag_key, application_name, application_version, action, actor, timestamp, reason
-					) VALUES (
-						@key, @application_name, @application_version, @action, @actor, @timestamp, @reason
-					);";
-
-		using var command = new NpgsqlCommand(sql, connection);
-		command.AddAuditParameters(flagKey,
-			action: action,
-			actor: lastModified?.Actor ?? "anonymous",
-			reason: lastModified?.Reason ?? "not specified");
-
-		await command.ExecuteNonQueryAsync(cancellationToken);
 	}
 
 	private const string sqlSelectColumns = @"
@@ -366,7 +344,7 @@ public class FlagManagementRepository : IFlagManagementRepository
 				WHERE action = 'flag created'
 				ORDER BY flag_key, application_name, COALESCE(application_version, ''), timestamp ASC
 			) created_audit ON ff.key = created_audit.flag_key 
-				AND ff.application_name = created_audit.application_name 
+				AND COALESCE(ff.application_name, '') = COALESCE(created_audit.application_name, '')
 				AND COALESCE(ff.application_version, '') = COALESCE(created_audit.application_version, '')
 			LEFT JOIN (
 				SELECT DISTINCT ON (flag_key, application_name, COALESCE(application_version, ''))
@@ -375,6 +353,6 @@ public class FlagManagementRepository : IFlagManagementRepository
 				WHERE action = 'flag modified'
 				ORDER BY flag_key, application_name, COALESCE(application_version, ''), timestamp DESC
 			) modified_audit ON ff.key = modified_audit.flag_key 
-				AND ff.application_name = modified_audit.application_name 
+				AND COALESCE(ff.application_name, '') = COALESCE(modified_audit.application_name, '') 
 				AND COALESCE(ff.application_version, '') = COALESCE(modified_audit.application_version, '')";
 }

@@ -120,7 +120,7 @@ CREATE TABLE feature_flags (
     expiration_date TIMESTAMP WITH TIME ZONE NOT NULL,
 
 	-- Flag uniquness scope
-	application_name VARCHAR(255) NOT NULL DEFAULT 'global',
+	application_name VARCHAR(255) NULL,
 	application_version VARCHAR(100) NULL,
 	scope INT NOT NULL DEFAULT 0,
     
@@ -159,7 +159,7 @@ CREATE TABLE feature_flags (
 CREATE TABLE feature_flag_audit (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 	flag_key VARCHAR(255) NOT NULL,
-	application_name VARCHAR(255) NOT NULL DEFAULT 'global',
+	application_name VARCHAR(255) NULL DEFAULT 'global',
 	application_version VARCHAR(100) NULL,
 	action VARCHAR(50) NOT NULL,
 	actor VARCHAR(255) NOT NULL,

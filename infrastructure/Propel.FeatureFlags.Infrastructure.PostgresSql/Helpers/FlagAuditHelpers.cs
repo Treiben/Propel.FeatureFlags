@@ -19,15 +19,22 @@ public static class FlagAuditHelpers
 						@key, @application_name, @application_version, @action, @actor, @timestamp, @reason
 					);";
 
-		using var command = new NpgsqlCommand(sql, connection);
-		command.AddAuditParameters(flagKey,
-			action: action,
-			actor: lastModified?.Actor ?? "anonymous",
-			reason: lastModified?.Reason ?? "not specified");
+		try
+		{
+			using var command = new NpgsqlCommand(sql, connection);
+			command.AddAuditParameters(flagKey,
+				action: action,
+				actor: lastModified?.Actor ?? "anonymous",
+				reason: lastModified?.Reason ?? "not specified");
 
-		if (connection.State != System.Data.ConnectionState.Open)
-			await connection.OpenAsync(cancellationToken);
-		await command.ExecuteNonQueryAsync(cancellationToken);
+			if (connection.State != System.Data.ConnectionState.Open)
+				await connection.OpenAsync(cancellationToken);
+			await command.ExecuteNonQueryAsync(cancellationToken);
+		}
+		catch
+		{
+			//no biggie - just log it
+		}
 	}
 
 	public static async Task<bool> FlagAlreadyCreated(FlagKey flagKey, NpgsqlConnection connection, CancellationToken cancellationToken)
