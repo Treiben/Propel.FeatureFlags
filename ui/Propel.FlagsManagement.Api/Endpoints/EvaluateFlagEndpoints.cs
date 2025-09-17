@@ -1,16 +1,11 @@
 ﻿using FluentValidation;
-using Propel.FeatureFlags;
+using Microsoft.AspNetCore.Mvc;
 using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Services;
+using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
-
-public record EvaluateFeatureFlagsRequest
-{
-	public string[] Keys { get; set; } = [];
-	public string? UserId { get; set; }
-	public Dictionary<string, object>? Attributes { get; set; }
-}
 
 public sealed class EvaluateFlagEndpoints : IEndpoint
 {
@@ -19,97 +14,91 @@ public sealed class EvaluateFlagEndpoints : IEndpoint
 		epRoutBuilder.MapGet("/api/feature-flags/evaluate/{key}",
 			async (
 				string key,
+				[FromHeader(Name = "X-Scope")] string scope,
+				[FromHeader(Name = "X-Application-Name")] string? applicationName,
+				[FromHeader(Name = "X-Application-Version")] string? applicationVersion,
+				string? tenantId,
 				string? userId,
 				string? kvAttributes,
-				FlagEvaluationHandler evaluationHandler) =>
+				FlagEvaluationHandler evaluationHandler,
+				CancellationToken cancellationToken) =>
 			{
-				if (string.IsNullOrWhiteSpace(key))
-				{
-					return HttpProblemFactory.BadRequest("Feature flag key cannot be empty or null");
-				}
-
-				return await evaluationHandler.HandleAsync(keys: [key], userId: userId, kvAttributes: kvAttributes);
+				return await evaluationHandler.HandleAsync(
+					key,
+					new FlagRequestHeaders(scope, applicationName, applicationVersion),
+					tenantId,
+					userId,
+					kvAttributes,
+					attributes: null,
+					cancellationToken);
 			})
 			.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
 			.WithName("EvaluateFeatureFlag")
 			.WithTags("Feature Flags", "Evaluations", "Management Api")
 			.Produces<EvaluationResult>();
-
-		epRoutBuilder.MapPost("/api/feature-flags/evaluate",
-			async (
-				EvaluateFeatureFlagsRequest request,
-				FlagEvaluationHandler evaluationHandler) =>
-			{
-				return await evaluationHandler.HandleAsync(keys: request.Keys, userId: request.UserId, attributes: request.Attributes);
-			})
-			.AddEndpointFilter<ValidationFilter<EvaluateMultipleRequestValidator>>()
-			.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
-			.WithName("EvaluateMultipleFeatureFlags")
-			.WithTags("Feature Flags", "Evaluations", "Management Api")
-			.Produces<Dictionary<string, EvaluationResult>>()
-			.ProducesValidationProblem();
 	}
 }
 
 public sealed class FlagEvaluationHandler(
-	IFeatureFlagClient client,
+	IFlagEvaluationManager evaluationManager,
+	IFlagResolverService flagResolver,
 	ILogger<FlagEvaluationHandler> logger)
 {
-	public async Task<IResult> HandleAsync(string[] keys, 
-		string? userId, 
-		string? kvAttributes = null, 
-		Dictionary<string, object>? attributes = null)
+	public async Task<IResult> HandleAsync(
+		string key,
+		FlagRequestHeaders headers,
+		string? tenantId,
+		string? userId,
+		string? kvAttributes = null,
+		Dictionary<string, object>? attributes = null,
+		CancellationToken cancellationToken = default)
 	{
-		// Validate and parse attributes
-		var attributeDict = attributes;
-		if (attributeDict == null && !string.IsNullOrEmpty(kvAttributes))
-		{
-			if (!SerializationHelpers.TryDeserialize(kvAttributes, out Dictionary<string, object>? deserializedAttributes))
-			{
-				return HttpProblemFactory.BadRequest(
-					"Invalid Attributes Format",
-					"The attributes parameter must be a valid JSON object. Example: {\"country\":\"US\",\"plan\":\"premium\"}",
-					logger);
-			}
-			attributeDict = deserializedAttributes ?? [];
-		}
+		var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
+		if (!isValid) return result;
 
 		try
 		{
-			var results = new Dictionary<string, EvaluationResult>();
-			foreach (var key in keys)
+			// Validate and parse attributes
+			var attributeDict = attributes;
+			if (attributeDict == null && !string.IsNullOrEmpty(kvAttributes))
 			{
-				var result = await client.EvaluateAsync(flagKey: key, userId: userId, attributes: attributeDict);
-				if (result != null)
+				if (!SerializationHelpers.TryDeserialize(kvAttributes, out Dictionary<string, object>? deserializedAttributes))
 				{
-					results[key] = result;
-					logger.LogDebug("Feature flag {Key} evaluated for user {UserId} with result {IsEnabled}", key, userId ?? "anonymous", result.IsEnabled);
+					return HttpProblemFactory.BadRequest(
+						"Invalid Attributes Format",
+						"The attributes parameter must be a valid JSON object. Example: {\"country\":\"US\",\"plan\":\"premium\"}",
+						logger);
 				}
-				else
-				{
-					logger.LogWarning("Feature flag {Key} failed to produce result during evaluation for user {UserId}", key, userId ?? "anonymous");
-				}
+				attributeDict = deserializedAttributes ?? [];
 			}
 
-			return Results.Ok(results);
+			var context = new EvaluationContext(
+					tenantId: tenantId,
+					userId: userId,
+					attributes: attributeDict,
+					timeZone: "UTC");
 
+			var evaluationResult = await evaluationManager.ProcessEvaluation(new EvaluationCriteria
+			{
+				FlagKey = flag!.Key.Key,
+				ActiveEvaluationModes = flag.ActiveEvaluationModes,
+				TargetingRules = flag.TargetingRules,
+				TenantAccessControl = flag.TenantAccessControl,
+				UserAccessControl = flag.UserAccessControl,
+				Schedule = flag.Schedule,
+				OperationalWindow = flag.OperationalWindow,
+				Variations = flag.Variations,
+			}, context);
+
+			return Results.Ok(evaluationResult);
 		}
 		catch (ArgumentException ex)
 		{
-			return HttpProblemFactory.BadRequest(ex.Message, logger);
+			return HttpProblemFactory.BadRequest("Invalid argument", ex.Message, logger);
 		}
 		catch (Exception ex)
 		{
 			return HttpProblemFactory.InternalServerError(ex, logger);
 		}
-	}
-}
-
-public sealed class EvaluateMultipleRequestValidator : AbstractValidator<EvaluateFeatureFlagsRequest>
-{
-	public EvaluateMultipleRequestValidator()
-	{
-		RuleFor(c => c.Keys).NotEmpty()
-			.WithMessage("FlagKeys must be provided.");
 	}
 }

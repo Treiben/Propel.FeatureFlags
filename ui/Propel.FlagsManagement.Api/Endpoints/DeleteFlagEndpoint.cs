@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.Cache;
+using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
@@ -11,61 +12,54 @@ public sealed class DeleteFlagEndpoint : IEndpoint
 	{
 		app.MapDelete("/api/feature-flags/{key}",
 			async (string key,
+					string? reason,
+					[FromHeader(Name = "X-Scope")] string scope,
+					[FromHeader(Name = "X-Application-Name")] string? applicationName,
+					[FromHeader(Name = "X-Application-Version")] string? applicationVersion,
 					DeleteFlagHandler deleteFlagHandler,
 					CancellationToken cancellationToken) =>
-		{
-			return await deleteFlagHandler.HandleAsync(key, cancellationToken);
-		})
+			{
+				return await deleteFlagHandler.HandleAsync(key, new FlagRequestHeaders(scope, applicationName, applicationVersion), reason, cancellationToken);
+			})
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("DeleteFeatureFlag")
 		.WithTags("Feature Flags", "CRUD Operations", "Delete", "Management Api")
-		.Produces(StatusCodes.Status204NoContent);
+		.Produces(StatusCodes.Status204NoContent)
+		.Produces(StatusCodes.Status400BadRequest)
+		.Produces(StatusCodes.Status404NotFound);
 	}
 }
 
 public sealed class DeleteFlagHandler(
-	IFeatureFlagRepository repository,
-	ICurrentUserService userService,
-	ILogger<DeleteFlagHandler> logger,
-	IFeatureFlagCache? cache = null)
+	IFlagManagementRepository repository,
+	IFlagResolverService flagResolver,
+	ICacheInvalidationService cacheInvalidationService,
+	ICurrentUserService currentUserService,
+	ILogger<DeleteFlagHandler> logger)
 {
-	public async Task<IResult> HandleAsync(string key, CancellationToken cancellationToken)
+	public async Task<IResult> HandleAsync(string key, FlagRequestHeaders headers, string? reason, CancellationToken cancellationToken)
 	{
-		// Validate key parameter
-		if (string.IsNullOrWhiteSpace(key))
-		{
-			return HttpProblemFactory.BadRequest("Feature flag key cannot be empty or null", logger);
-		}
-
 		try
 		{
-			var existingFlag = await repository.GetAsync(key, cancellationToken);
-			if (existingFlag == null)
-			{
-				return HttpProblemFactory.NotFound("Feature flag", key, logger);
-			}
+			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
+			if (!isValid) return result;
 
-			if (existingFlag.Lifecycle.IsPermanent)
+			if (flag!.Retention.IsPermanent)
 			{
 				return HttpProblemFactory.BadRequest(
-					"Cannot Delete Permanent Flag", 
-					$"The feature flag '{key}' is marked as permanent and cannot be deleted. Remove the permanent flag first if deletion is required.", 
+					"Cannot Delete Permanent Flag",
+					$"The feature flag '{key}' is marked as permanent and cannot be deleted. Remove the permanent flag first if deletion is required.",
 					logger);
 			}
 
-			var deleteResult = await repository.DeleteAsync(key, cancellationToken);
-			if (!deleteResult)
-			{
-				return HttpProblemFactory.InternalServerError(
-					detail: "Failed to delete the feature flag from the repository", 
-					logger: logger);
-			}
+			var deleteResult = await repository.DeleteAsync(flag.Key, currentUserService.UserName, reason ?? "Not specified", cancellationToken);
 
-			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
+			await cacheInvalidationService.InvalidateFlagAsync(flag.Key, cancellationToken);
 
-			logger.LogInformation("Feature flag {Key} deleted successfully by {User}", 
-				key, userService.UserName);
-			
+
+			logger.LogInformation("Feature flag {Key} deleted successfully by {User} for key {Key}",
+				key, currentUserService.UserName, flag.Key);
+
 			return Results.NoContent();
 		}
 		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)

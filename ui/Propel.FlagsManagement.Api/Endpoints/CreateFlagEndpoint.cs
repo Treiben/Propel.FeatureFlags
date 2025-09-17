@@ -1,5 +1,4 @@
 ﻿using FluentValidation;
-using Propel.FeatureFlags.Core;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
@@ -7,14 +6,15 @@ using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
 
-public record CreateFeatureFlagRequest
+// Assertions:
+// The api is allowed to create only global feature flags for now (no application specific flags).
+// The global feature flags are created with a RetentionPolicy thas is permanent by default and has not expiration date.
+public record CreateGlobalFeatureFlagRequest
 {
 	public string Key { get; set; } = string.Empty;
 	public string Name { get; set; } = string.Empty;
 	public string? Description { get; set; }
 	public Dictionary<string, string>? Tags { get; set; }
-	public bool IsPermanent { get; set; } = false;
-	public DateTime? ExpirationDate { get; set; }
 }
 
 public sealed class CreateFlagEndpoint : IEndpoint
@@ -23,13 +23,13 @@ public sealed class CreateFlagEndpoint : IEndpoint
 	{
 
 		app.MapPost("/api/feature-flags",
-			async (CreateFeatureFlagRequest request,
-					CreateFlagHandler createFlagHandler,
+			async (CreateGlobalFeatureFlagRequest request,
+					CreateGlobalFlagHandler createFlagHandler,
 					CancellationToken cancellationToken) =>
 		{
 			return await createFlagHandler.HandleAsync(request, cancellationToken);
 		})
-		.AddEndpointFilter<ValidationFilter<CreateFeatureFlagRequest>>()
+		.AddEndpointFilter<ValidationFilter<CreateGlobalFeatureFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("CreateFeatureFlag")
 		.WithTags("Feature Flags", "CRUD Operations", "Create", "Management Api")
@@ -37,60 +37,49 @@ public sealed class CreateFlagEndpoint : IEndpoint
 	}
 }
 
-public sealed class CreateFlagHandler(
-		IFeatureFlagRepository repository,
+public sealed class CreateGlobalFlagHandler(
+		IFlagManagementRepository repository,
 		ICurrentUserService currentUserService,
-		ILogger<CreateFlagHandler> logger)
+		ILogger<CreateGlobalFlagHandler> logger)
 {
-	public async Task<IResult> HandleAsync(CreateFeatureFlagRequest request, CancellationToken cancellationToken)
+	public async Task<IResult> HandleAsync(CreateGlobalFeatureFlagRequest request, CancellationToken cancellationToken)
 	{
 		try
 		{
-			var existingFlag = await repository.GetAsync(request.Key, cancellationToken);
-			if (existingFlag != null)
-			{
-				return HttpProblemFactory.Conflict($"A feature flag with the key '{request.Key}' already exists. Please use a different key or update the existing flag.",
-					logger);
-			}
+			var flagKey = new FlagKey(request.Key, Scope.Global);
+			var globalFlag = FeatureFlag.Create(key: flagKey,
+				name: request.Name,
+				description: request.Description ?? string.Empty);
 
-			var flag = CreateFlag(request, currentUserService.UserName!);
-
-			var createdFlag = await repository.CreateAsync(flag, cancellationToken);
+			globalFlag.Retention = RetentionPolicy.Global;
+			globalFlag.Tags = request.Tags ?? [];
+			globalFlag.Created = AuditTrail.FlagCreated(currentUserService.UserName!);
 
 			logger.LogInformation("Feature flag {Key} created successfully by {User}",
-				flag.Key, currentUserService.UserName);
+				globalFlag.Key, currentUserService.UserName);
 
-			return Results.Created($"/api/flags/{flag.Key}", new FeatureFlagResponse(createdFlag));
+			var flag = await repository.CreateAsync(globalFlag, cancellationToken);
+
+			return Results.Created($"/api/flags/{globalFlag.Key.Key}", new FeatureFlagResponse(globalFlag));
 		}
 		catch (ArgumentException ex)
 		{
 			return HttpProblemFactory.BadRequest(ex.Message, logger);
 		}
-		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+		catch (DuplicatedFeatureFlagException ex)
 		{
-			return HttpProblemFactory.ClientClosedRequest(logger);
+			return HttpProblemFactory.Conflict(
+				$"A feature flag with the key '{request.Key}' already exists. Please use a different key or update the existing flag.", 
+				logger);
 		}
 		catch (Exception ex)
 		{
 			return HttpProblemFactory.InternalServerError(ex, logger);
 		}
 	}
-
-	private static FeatureFlag CreateFlag(CreateFeatureFlagRequest source, string createdBy)
-	{
-		return new FeatureFlag
-		{
-			Key = source.Key,
-			Name = source.Name,
-			Description = source.Description ?? string.Empty,
-			Tags = source.Tags ?? [],
-			Created = FeatureFlags.Domain.Audit.FlagCreated(createdBy),
-			Retention = new RetentionPolicy(isPermanent: source.IsPermanent, expirationDate: source.ExpirationDate)
-		};
-	}
 }
 
-public sealed class CreateFlagRequestValidator : AbstractValidator<CreateFeatureFlagRequest>
+public sealed class CreateFlagRequestValidator : AbstractValidator<CreateGlobalFeatureFlagRequest>
 {
 	public CreateFlagRequestValidator()
 	{
@@ -116,10 +105,5 @@ public sealed class CreateFlagRequestValidator : AbstractValidator<CreateFeature
 			.MaximumLength(1000)
 			.When(c => !string.IsNullOrEmpty(c.Description))
 			.WithMessage("Feature flag description cannot exceed 1000 characters");
-
-		RuleFor(c => c.ExpirationDate)
-			.GreaterThan(DateTime.UtcNow)
-			.When(c => c.ExpirationDate.HasValue)
-			.WithMessage("Expiration date must be in the future");
 	}
 }

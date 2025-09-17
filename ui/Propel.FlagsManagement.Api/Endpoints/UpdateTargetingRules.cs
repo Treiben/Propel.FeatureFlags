@@ -1,15 +1,15 @@
 ﻿using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
 
-public record UpdateTargetingRulesRequest(List<TargetingRuleDto>? TargetingRules, bool RemoveTargetingRules);
+public record UpdateTargetingRulesRequest(List<TargetingRuleRequest>? TargetingRules, bool RemoveTargetingRules);
 
-public record TargetingRuleDto(string Attribute, TargetingOperator Operator, List<string> Values, string Variation);
+public record TargetingRuleRequest(string Attribute, TargetingOperator Operator, List<string> Values, string Variation);
 
 public sealed class UpdateTargetingRulesEndpoint : IEndpoint
 {
@@ -18,11 +18,14 @@ public sealed class UpdateTargetingRulesEndpoint : IEndpoint
 		epRoutBuilder.MapPost("/api/feature-flags/{key}/targeting-rules",
 			async (
 				string key,
+				[FromHeader(Name = "X-Scope")] string scope,
+				[FromHeader(Name = "X-Application-Name")] string? applicationName,
+				[FromHeader(Name = "X-Application-Version")] string? applicationVersion,
 				UpdateTargetingRulesRequest request,
-				UpdateTargetingRulesHandler targetingRulesHandler,
+				UpdateTargetingRulesHandler handler,
 				CancellationToken cancellationToken) =>
 			{
-				return await targetingRulesHandler.HandleAsync(key, request, cancellationToken);
+				return await handler.HandleAsync(key, new FlagRequestHeaders(scope, applicationName, applicationVersion), request, cancellationToken);
 			})
 			.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 			.AddEndpointFilter<ValidationFilter<UpdateTargetingRulesRequest>>()
@@ -34,30 +37,25 @@ public sealed class UpdateTargetingRulesEndpoint : IEndpoint
 }
 
 public sealed class UpdateTargetingRulesHandler(
-		IFeatureFlagRepository repository,
+		IFlagManagementRepository repository,
 		ICurrentUserService currentUserService,
-		ILogger<UpdateTargetingRulesHandler> logger,
-		IFeatureFlagCache? cache = null)
+		IFlagResolverService flagResolver,
+		ICacheInvalidationService cacheInvalidationService,
+		ILogger<UpdateTargetingRulesHandler> logger)
 {
-	public async Task<IResult> HandleAsync(string key, UpdateTargetingRulesRequest request,
+	public async Task<IResult> HandleAsync(
+		string key,
+		FlagRequestHeaders headers,
+		UpdateTargetingRulesRequest request,
 		CancellationToken cancellationToken)
 	{
-		// Validate key parameter
-		if (string.IsNullOrWhiteSpace(key))
-		{
-			return HttpProblemFactory.BadRequest("Feature flag key cannot be empty or null", logger);
-		}
-
 		try
 		{
-			var flag = await repository.GetAsync(key, cancellationToken);
-			if (flag == null)
-			{
-				return HttpProblemFactory.NotFound("Feature flag", key, logger);
-			}
+			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
 
-			// Update audit record
-			flag.LastModified = new FeatureFlags.Core.Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
+			if (!isValid) return result;
+
+			flag!.UpdateAuditTrail(currentUserService.UserName!);
 
 			// Remove enabled mode as we're configuring specific targeting
 			flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Enabled);
@@ -90,7 +88,7 @@ public sealed class UpdateTargetingRulesHandler(
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
 
-			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
+			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Key, cancellationToken);
 
 			logger.LogInformation("Feature flag {Key} targeting rules updated by {User}",
 				key, currentUserService.UserName);
@@ -100,10 +98,6 @@ public sealed class UpdateTargetingRulesHandler(
 		catch (ArgumentException ex)
 		{
 			return HttpProblemFactory.BadRequest(ex.Message, logger);
-		}
-		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
-		{
-			return HttpProblemFactory.ClientClosedRequest(logger);
 		}
 		catch (Exception ex)
 		{
@@ -134,7 +128,7 @@ public sealed class UpdateTargetingRulesRequestValidator : AbstractValidator<Upd
 	}
 }
 
-public sealed class TargetingRuleDtoValidator : AbstractValidator<TargetingRuleDto>
+public sealed class TargetingRuleDtoValidator : AbstractValidator<TargetingRuleRequest>
 {
 	public TargetingRuleDtoValidator()
 	{

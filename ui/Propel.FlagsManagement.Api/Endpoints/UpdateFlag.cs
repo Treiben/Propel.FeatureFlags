@@ -1,14 +1,14 @@
 ﻿using FluentValidation;
-using Propel.FeatureFlags.Core;
+using Microsoft.AspNetCore.Mvc;
 using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Helpers;
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
 namespace Propel.FlagsManagement.Api.Endpoints;
 
-public record UpdateFlagRequest(string? Name, string? Description, Dictionary<string, string>? Tags, bool IsPermanent, DateTime? ExpirationDate);
+public record UpdateFlagRequest(string? Name, string? Description, Dictionary<string, string>? Tags, bool IsPermanent, DateTimeOffset? ExpirationDate);
 
 public sealed class UpdateFlagEndpoint : IEndpoint
 {
@@ -16,12 +16,15 @@ public sealed class UpdateFlagEndpoint : IEndpoint
 	{
 		app.MapPut("/api/feature-flags/{key}",
 			async (string key,
-					UpdateFlagRequest request,
-					UpdateFlagHandler handler,
-					CancellationToken cancellationToken) =>
-		{
-			return await handler.HandleAsync(key, request, cancellationToken);
-		})
+				[FromHeader(Name = "X-Scope")] string scope,
+				[FromHeader(Name = "X-Application-Name")] string? applicationName,
+				[FromHeader(Name = "X-Application-Version")] string? applicationVersion,
+				UpdateFlagRequest request,
+				UpdateFlagHandler handler,
+				CancellationToken cancellationToken) =>
+			{
+				return await handler.HandleAsync(key, new FlagRequestHeaders(scope, applicationName, applicationVersion), request, cancellationToken);
+			})
 		.AddEndpointFilter<ValidationFilter<UpdateFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("UpdateFeatureFlag")
@@ -32,43 +35,36 @@ public sealed class UpdateFlagEndpoint : IEndpoint
 }
 
 public sealed class UpdateFlagHandler(
-		IFeatureFlagRepository repository,
-		ICurrentUserService userService,
-		ILogger<UpdateFlagHandler> logger,
-		IFeatureFlagCache? cache = null)
+		IFlagManagementRepository repository,
+		ICurrentUserService currentUserService,
+		IFlagResolverService flagResolver,
+		ICacheInvalidationService cacheInvalidationService,
+		ILogger<UpdateFlagHandler> logger)
 {
-	public async Task<IResult> HandleAsync(string key, UpdateFlagRequest request, CancellationToken cancellationToken)
+	public async Task<IResult> HandleAsync(string key,
+		FlagRequestHeaders headers,
+		UpdateFlagRequest request,
+		CancellationToken cancellationToken)
 	{
-		// Validate key parameter
-		if (string.IsNullOrWhiteSpace(key))
-		{
-			return HttpProblemFactory.BadRequest("Feature flag key cannot be empty or null", logger);
-		}
 
 		try
-		{
-			var existingFlag = await repository.GetAsync(key);
-			if (existingFlag == null)
-			{
-				return HttpProblemFactory.NotFound("Feature flag", key, logger);
-			}
+		{	
+			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
+			if (!isValid) return result;
 
-			ModifyFlagFromRequest(request, existingFlag, userService.UserName!);
+			ModifyFlagFromRequest(request, flag!);
+			flag!.UpdateAuditTrail(currentUserService.UserName!);
 
-			var updatedFlag = await repository.UpdateAsync(existingFlag, cancellationToken);
+			var updatedFlag = await repository.UpdateAsync(flag!, cancellationToken);
 
-			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
+			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Key, cancellationToken);
 
-			logger.LogInformation("Feature flag {Key} updated by {User}", key, userService.UserName);
+			logger.LogInformation("Feature flag {Key} updated by {User}", key, currentUserService.UserName);
 			return Results.Ok(new FeatureFlagResponse(updatedFlag));
 		}
 		catch (ArgumentException ex)
 		{
-			return HttpProblemFactory.BadRequest(ex.Message, logger);
-		}
-		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
-		{
-			return HttpProblemFactory.ClientClosedRequest(logger);
+			return HttpProblemFactory.BadRequest("Invalid argument", ex.Message, logger);
 		}
 		catch (Exception ex)
 		{
@@ -76,7 +72,7 @@ public sealed class UpdateFlagHandler(
 		}
 	}
 
-	public static void ModifyFlagFromRequest(UpdateFlagRequest source, FeatureFlag dest, string username)
+	public static void ModifyFlagFromRequest(UpdateFlagRequest source, FeatureFlag dest)
 	{
 		// Update only non-null properties from the request
 		if (source.Name != null)
@@ -85,12 +81,12 @@ public sealed class UpdateFlagHandler(
 		if (source.Description != null)
 			dest.Description = source.Description;
 
-		dest.LastModified = new FeatureFlags.Core.Audit(timestamp: DateTime.UtcNow, actor: username);
-
 		if (source.Tags != null)
 			dest.Tags = source.Tags;
 
-		dest.Retention = new RetentionPolicy(isPermanent: source.IsPermanent, expirationDate: source.ExpirationDate);
+		dest.Retention = new RetentionPolicy(
+				isPermanent: source.IsPermanent,
+				expirationDate: DateTimeHelpers.NormalizeToUtc(source.ExpirationDate, dest.Retention.ExpirationDate));
 	}
 }
 

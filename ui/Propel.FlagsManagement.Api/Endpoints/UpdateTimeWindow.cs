@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
@@ -21,11 +21,14 @@ public sealed class UpdateTimeWindowEndpoint : IEndpoint
 		epRoutBuilder.MapPost("/api/feature-flags/{key}/time-window",
 			async (
 				string key,
+				[FromHeader(Name = "X-Scope")] string scope,
+				[FromHeader(Name = "X-Application-Name")] string? applicationName,
+				[FromHeader(Name = "X-Application-Version")] string? applicationVersion,
 				UpdateTimeWindowRequest request,
-				UpdateTimeWindowHandler timeWindowFlagHandler,
+				UpdateTimeWindowHandler handler,
 				CancellationToken cancellationToken) =>
 		{
-			return await timeWindowFlagHandler.HandleAsync(key, request, cancellationToken);
+			return await handler.HandleAsync(key, new FlagRequestHeaders(scope, applicationName, applicationVersion), request, cancellationToken);
 		})
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.AddEndpointFilter<ValidationFilter<UpdateTimeWindowRequest>>()
@@ -37,51 +40,47 @@ public sealed class UpdateTimeWindowEndpoint : IEndpoint
 }
 
 public sealed class UpdateTimeWindowHandler(
-		IFeatureFlagRepository repository,
+		IFlagManagementRepository repository,
 		ICurrentUserService currentUserService,
-		ILogger<UpdateTimeWindowHandler> logger,
-		IFeatureFlagCache? cache = null)
+		IFlagResolverService flagResolver,
+		ICacheInvalidationService cacheInvalidationService,
+		ILogger<UpdateTimeWindowHandler> logger)
 {
-	public async Task<IResult> HandleAsync(string key, UpdateTimeWindowRequest request,
+	public async Task<IResult> HandleAsync(
+		string key,
+		FlagRequestHeaders headers,
+		UpdateTimeWindowRequest request,
 		CancellationToken cancellationToken)
 	{
-		if (string.IsNullOrWhiteSpace(key))
-		{
-			return HttpProblemFactory.BadRequest("Feature flag key cannot be empty or null", logger);
-		}
-
 		try
 		{
-			var flag = await repository.GetAsync(key, cancellationToken);
-			if (flag == null)
-			{
-				return HttpProblemFactory.NotFound("Feature flag", key, logger);
-			}
+			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
+
+			if (!isValid) return result;
 
 			// Update flag for time window
-			flag.LastModified = new FeatureFlags.Core.Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
-
+			flag!.UpdateAuditTrail(currentUserService.UserName!);
 			flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Enabled);
 
 			if (request.RemoveTimeWindow)
 			{
 				flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.TimeWindow);
-				flag.OperationalWindow = FeatureFlags.Domain.OperationalWindow.AlwaysOpen;
+				flag.OperationalWindow = OperationalWindow.AlwaysOpen;
 			}
 			else
 			{
 				flag.ActiveEvaluationModes.AddMode(EvaluationMode.TimeWindow);
 
-				flag.OperationalWindow = FeatureFlags.Domain.OperationalWindow.CreateWindow(
+				flag.OperationalWindow = new OperationalWindow(
 					request.StartOn.ToTimeSpan(),
 					request.EndOn.ToTimeSpan(),
 					request.TimeZone,
-					request.DaysActive);
+					[.. request.DaysActive]);
 			}
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
 
-			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
+			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Key, cancellationToken);
 
 			logger.LogInformation("Feature flag {Key} time window updated by {User}",
 				key, currentUserService.UserName);
@@ -91,10 +90,6 @@ public sealed class UpdateTimeWindowHandler(
 		catch (ArgumentException ex)
 		{
 			return HttpProblemFactory.BadRequest(ex.Message, logger);
-		}
-		catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
-		{
-			return HttpProblemFactory.ClientClosedRequest(logger);
 		}
 		catch (Exception ex)
 		{

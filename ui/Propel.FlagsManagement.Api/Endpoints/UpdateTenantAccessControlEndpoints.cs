@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FlagsManagement.Api.Endpoints.Dto;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 
@@ -16,11 +16,14 @@ public sealed class UpdateTenantAccessControlEndpoints : IEndpoint
 		epRoutBuilder.MapPost("/api/feature-flags/{key}/tenants",
 			async (
 				string key,
+				[FromHeader(Name = "X-Scope")] string scope,
+				[FromHeader(Name = "X-Application-Name")] string? applicationName,
+				[FromHeader(Name = "X-Application-Version")] string? applicationVersion,
 				ManageTenantAccessRequest request,
-				ManageTenantAccessHandler accessHandler,
+				ManageTenantAccessHandler handler,
 				CancellationToken cancellationToken) =>
 			{
-				return await accessHandler.HandleAsync(key, request, cancellationToken);
+				return await handler.HandleAsync(key, new FlagRequestHeaders(scope, applicationName, applicationVersion), request, cancellationToken);
 			})
 			.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 			.AddEndpointFilter<ValidationFilter<ManageTenantAccessRequest>>()
@@ -32,29 +35,25 @@ public sealed class UpdateTenantAccessControlEndpoints : IEndpoint
 }
 
 public sealed class ManageTenantAccessHandler(
-		IFeatureFlagRepository repository,
+		IFlagManagementRepository repository,
 		ICurrentUserService currentUserService,
-		ILogger<ManageTenantAccessHandler> logger,
-		IFeatureFlagCache? cache = null)
+		IFlagResolverService flagResolver,
+		ICacheInvalidationService cacheInvalidationService,
+		ILogger<ManageTenantAccessHandler> logger)
 {
-	public async Task<IResult> HandleAsync(string key, ManageTenantAccessRequest request,
+	public async Task<IResult> HandleAsync(
+		string key,
+		FlagRequestHeaders headers,
+		ManageTenantAccessRequest request,
 		CancellationToken cancellationToken)
 	{
-		// Validate key parameter
-		if (string.IsNullOrWhiteSpace(key))
-		{
-			return HttpProblemFactory.BadRequest("Feature flag key cannot be empty or null", logger);
-		}
-
 		try
 		{
-			var flag = await repository.GetAsync(key, cancellationToken);
-			if (flag == null)
-			{
-				return HttpProblemFactory.NotFound("Feature flag", key, logger);
-			}
+			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
 
-			flag.LastModified = new FeatureFlags.Core.Audit(timestamp: DateTime.UtcNow, actor: currentUserService.UserName!);
+			if (!isValid) return result;
+
+			flag!.UpdateAuditTrail(currentUserService.UserName!);
 
 			flag.ActiveEvaluationModes.RemoveMode(EvaluationMode.Enabled);
 
@@ -85,7 +84,7 @@ public sealed class ManageTenantAccessHandler(
 
 			var updatedFlag = await repository.UpdateAsync(flag, cancellationToken);
 
-			if (cache != null) await cache.RemoveAsync(key, cancellationToken);
+			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Key, cancellationToken);
 
 			logger.LogInformation("Feature flag {Key} tenant rollout percentage set to {Percentage}% by {User})",
 				key, request.Percentage, currentUserService.UserName);

@@ -1,9 +1,6 @@
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Propel.FeatureFlags;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.PostgresSql;
-using Propel.FeatureFlags.Infrastructure.Redis;
+using Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
 using Propel.FlagsManagement.Api;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 using Propel.FlagsManagement.Api.Healthchecks;
@@ -63,44 +60,12 @@ builder.Services.AddAuthorizationBuilder()
 	})
 	.AddFallbackPolicy("RequiresReadRights", AuthorizationPolicies.HasReadActionPolicy);
 
-// Configure feature flags
-var featureFlagOptions = builder.Configuration.GetSection("PropelFeatureFlags").Get<FeatureFlagConfigurationOptions>() ?? new();
-builder.Services.AddFeatureFlags(featureFlagOptions);
-builder.Services.AddPostgresSqlFeatureFlags(featureFlagOptions.SqlConnectionString!);
-builder.Services.AddRedisCache(featureFlagOptions.RedisConnectionString!);
-
 // Configure flags management api services
-builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
-builder.Services.AddValidators();
-builder.Services.AddHandlers();
-builder.Services.RegisterApplicationEndpoints();
-
-// Add health checks with proper fallback handling
-var healthChecksBuilder = builder.Services.AddHealthChecks();
-
-// Add liveness check (always available)
-healthChecksBuilder.AddCheck("self", () => HealthCheckResult.Healthy("Application is running"), tags: ["liveness"]);
-
-// Add PostgreSQL health check only if connection string is available
-if (!string.IsNullOrEmpty(featureFlagOptions.SqlConnectionString))
-{
-	healthChecksBuilder.AddNpgSql(
-		connectionString: featureFlagOptions.SqlConnectionString,
-		healthQuery: "SELECT 1;",
-		name: "postgres",
-		failureStatus: HealthStatus.Unhealthy,
-		tags: ["database", "postgres", "readiness"]);
-}
-
-// Add Redis health check only if connection string is available
-if (!string.IsNullOrEmpty(featureFlagOptions.RedisConnectionString))
-{
-	healthChecksBuilder.AddRedis(
-		redisConnectionString: featureFlagOptions.RedisConnectionString,
-		name: "redis",
-		failureStatus: HealthStatus.Degraded,
-		tags: ["cache", "redis", "readiness"]);
-}
+var options = builder.Configuration.GetSection("PropelFeatureFlags").Get<FeatureFlagConfigurationOptions>() ?? new();
+builder.Services
+	.RegisterPropelFeatureFlagServices(options)
+	.RegisterPropelManagementApServicesi()
+	.AddPropelHealthchecks(options.SqlConnectionString!, options.RedisConnectionString!);
 
 var app = builder.Build();
 
