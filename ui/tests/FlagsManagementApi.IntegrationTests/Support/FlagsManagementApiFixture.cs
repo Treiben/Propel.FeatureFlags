@@ -25,6 +25,10 @@ public class FlagsManagementApiFixture : IAsyncLifetime
 
 	public IFeatureFlagCache? Cache { get; private set; }
 
+	public ICacheInvalidationService? CacheInvalidationService { get; private set; }
+
+	public IFlagResolverService? FlagResolverService { get; private set; }
+
 	public Mock<ICurrentUserService> MockCurrentUserService { get; private set; } = null!;
 
 	public FlagsManagementApiFixture()
@@ -84,6 +88,8 @@ public class FlagsManagementApiFixture : IAsyncLifetime
 		// Get infrastructure services
 		ManagementRepository = _serviceProvider.GetRequiredService<IFlagManagementRepository>();
 		Cache = _serviceProvider.GetService<IFeatureFlagCache>();
+		CacheInvalidationService = _serviceProvider.GetService<ICacheInvalidationService>();
+		FlagResolverService = _serviceProvider.GetService<IFlagResolverService>();
 	}
 
 	public T GetHandler<T>() where T : class
