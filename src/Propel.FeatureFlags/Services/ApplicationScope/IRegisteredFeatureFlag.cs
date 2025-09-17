@@ -70,7 +70,9 @@ public abstract class RegisteredFeatureFlag : IRegisteredFeatureFlag
 public static class RegisteredFeatureFlagExtensions
 {
 	//Ensure feature flags in database
-	public static async Task EnsureFeatureFlagsInDatabaseAsync(this IRegisteredFeatureFlag flag, IFlagEvaluationRepository repository, CancellationToken cancellationToken = default)
+	public static async Task EnsureFeatureFlagsInDatabaseAsync(this IRegisteredFeatureFlag flag, 
+		IFlagEvaluationRepository repository, 
+		CancellationToken cancellationToken = default)
 	{
 		var defaultFlag = FeatureFlag.Create(
 			key: new FlagKey(flag.Key, Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version),
@@ -84,7 +86,7 @@ public static class RegisteredFeatureFlagExtensions
 
 		try
 		{
-			// Save to repository and return the created flag (repository may set additional properties)
+			// Save to repository (if flag already exists, this will do nothing)
 			await repository.CreateAsync(defaultFlag);
 		}
 		catch (Exception ex)

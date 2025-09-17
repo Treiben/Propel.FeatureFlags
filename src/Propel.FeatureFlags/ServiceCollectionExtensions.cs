@@ -12,9 +12,12 @@ namespace Propel.FeatureFlags;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddFeatureFlags(this IServiceCollection services, FeatureFlagConfigurationOptions options)
+	public static IServiceCollection AddFeatureFlagServices(this IServiceCollection services, FeatureFlagConfigurationOptions options)
 	{
 		// Register core services
+		services.AddSingleton<CacheOptions>(options.CacheOptions ?? new CacheOptions { UseCache = false });
+		services.AddSingleton<FeatureFlagConfigurationOptions>(options);
+
 		services.AddSingleton<IFeatureFlagEvaluator, FeatureFlagEvaluator>();
 		services.AddSingleton<IFeatureFlagClient, FeatureFlagClient>();
 
@@ -35,12 +38,10 @@ public static class ServiceCollectionExtensions
 		if (options.CacheOptions?.UseCache == true && string.IsNullOrEmpty(options.RedisConnectionString))
 			services.TryAddSingleton<IFeatureFlagCache, MemoryFeatureFlagCache>();
 
-		services.RegisterFlagsInDatabase();
-
 		return services;
 	}
 
-	private static IServiceCollection RegisterFlagsInDatabase(this IServiceCollection services)
+	public static IServiceCollection RegisterFlagsInDatabase(this IServiceCollection services)
 	{
 		var currentAssembly = Assembly.GetExecutingAssembly();
 
