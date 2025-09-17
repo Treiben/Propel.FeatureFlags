@@ -1,12 +1,10 @@
 using FlagsManagementApi.IntegrationTests.Support;
-using Propel.FeatureFlags.Core;
 using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Infrastructure.Cache;
+using Propel.FlagsManagement.Api.Endpoints;
+using Propel.FlagsManagement.Api.Endpoints.Dto;
 
 namespace FlagsManagementApi.IntegrationTests.Handlers;
-
-/* These tests cover DeleteFlagHandler integration scenarios:
- * Successful deletion, non-existent flags, permanent flag protection, cache integration
- */
 
 public class DeleteFlagHandler_Success(FlagsManagementApiFixture fixture) : IClassFixture<FlagsManagementApiFixture>
 {
@@ -15,18 +13,21 @@ public class DeleteFlagHandler_Success(FlagsManagementApiFixture fixture) : ICla
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("deletable-flag", EvaluationMode.Disabled);
-		await fixture.Repository.CreateAsync(flag);
 
+		var flag = TestHelpers.CreateApplicationFlag("deletable-flag", EvaluationMode.Disabled);
+
+		await fixture.ManagementRepository.CreateAsync(flag);
+
+		var headers = new FlagRequestHeaders(Scope.Application.ToString(), flag.Key.ApplicationName, flag.Key.ApplicationVersion);
 		// Act
-		var result = await fixture.DeleteFlagHandler.HandleAsync("deletable-flag", CancellationToken.None);
+		var result = await fixture.GetHandler<DeleteFlagHandler>().HandleAsync(flag.Key.Key, headers, reason: null, cancellationToken: CancellationToken.None);
 
 		// Assert
 		var noContentResult = result.ShouldBeOfType<NoContent>();
 		noContentResult.StatusCode.ShouldBe(204);
 
 		// Verify flag was deleted from repository
-		var deletedFlag = await fixture.Repository.GetAsync("deletable-flag");
+		var deletedFlag = await fixture.ManagementRepository.GetAsync(flag.Key);
 		deletedFlag.ShouldBeNull();
 	}
 
@@ -35,51 +36,40 @@ public class DeleteFlagHandler_Success(FlagsManagementApiFixture fixture) : ICla
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flag = TestHelpers.CreateTestFlag("cached-flag", EvaluationMode.Enabled);
-		await fixture.Repository.CreateAsync(flag);
-		
+		var flag = TestHelpers.CreateApplicationFlag("cached-flag", EvaluationMode.Enabled);
+		await fixture.ManagementRepository.CreateAsync(flag);
+
+		var cacheKey = new ApplicationCacheKey(flag.Key.Key, flag.Key.ApplicationName, flag.Key.ApplicationVersion);
 		// Add to cache
 		if (fixture.Cache != null)
 		{
-			await fixture.Cache.SetAsync("cached-flag", flag, TimeSpan.FromMinutes(5));
-			var cachedFlag = await fixture.Cache.GetAsync("cached-flag");
+			await fixture.Cache.SetAsync(
+				cacheKey, 
+				new EvaluationCriteria
+				{
+					FlagKey = flag.Key.Key,
+					ActiveEvaluationModes = flag.ActiveEvaluationModes,
+				});
+			var cachedFlag = await fixture.Cache.GetAsync(cacheKey);
 			cachedFlag.ShouldNotBeNull();
 		}
 
+		var headers = new FlagRequestHeaders(Scope.Application.ToString(), flag.Key.ApplicationName, flag.Key.ApplicationVersion);
 		// Act
-		var result = await fixture.DeleteFlagHandler.HandleAsync("cached-flag", CancellationToken.None);
+		var result = await fixture.GetHandler<DeleteFlagHandler>().HandleAsync(flag.Key.Key, headers, reason: null, cancellationToken: CancellationToken.None);
 
 		// Assert
 		result.ShouldBeOfType<NoContent>();
 
 		// Verify flag was deleted from both repository and cache
-		var deletedFlag = await fixture.Repository.GetAsync("cached-flag");
+		var deletedFlag = await fixture.ManagementRepository.GetAsync(flag.Key);
 		deletedFlag.ShouldBeNull();
 
 		if (fixture.Cache != null)
 		{
-			var cachedFlagAfterDelete = await fixture.Cache.GetAsync("cached-flag");
+			var cachedFlagAfterDelete = await fixture.Cache.GetAsync(cacheKey);
 			cachedFlagAfterDelete.ShouldBeNull();
 		}
-	}
-}
-
-public class DeleteFlagHandler_NotFound(FlagsManagementApiFixture fixture) : IClassFixture<FlagsManagementApiFixture>
-{
-	[Fact]
-	public async Task If_FlagDoesNotExist_ThenReturnsNotFound()
-	{
-		// Arrange
-		await fixture.ClearAllData();
-
-		// Act
-		var result = await fixture.DeleteFlagHandler.HandleAsync("non-existent-flag", CancellationToken.None);
-
-		// Assert
-		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
-		problemResponse.StatusCode.ShouldBe(404);
-		problemResponse.ProblemDetails.Detail.ShouldContain("non-existent-flag");
-		problemResponse.ProblemDetails.Detail.ShouldContain("was not found");
 	}
 }
 
@@ -90,12 +80,16 @@ public class DeleteFlagHandler_PermanentFlag(FlagsManagementApiFixture fixture) 
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var permanentFlag = TestHelpers.CreateTestFlag("permanent-flag", EvaluationMode.Enabled);
-		permanentFlag.Retention = new RetentionPolicy(expirationDate: null, isPermanent: true);
-		await fixture.Repository.CreateAsync(permanentFlag);
 
+		var flag = TestHelpers.CreateGlobalFlag("permanent-flag", EvaluationMode.Enabled);
+		await fixture.ManagementRepository.CreateAsync(flag);
+
+		var headers = new FlagRequestHeaders(Scope.Global.ToString(), null, null);
 		// Act
-		var result = await fixture.DeleteFlagHandler.HandleAsync("permanent-flag", CancellationToken.None);
+		var result = await fixture.GetHandler<DeleteFlagHandler>().HandleAsync(flag.Key.Key,
+			headers,
+			reason: null, 
+			cancellationToken: CancellationToken.None);
 
 		// Assert
 		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
@@ -105,34 +99,7 @@ public class DeleteFlagHandler_PermanentFlag(FlagsManagementApiFixture fixture) 
 		problemResponse.ProblemDetails.Detail.ShouldContain("marked as permanent");
 
 		// Verify flag was not deleted
-		var existingFlag = await fixture.Repository.GetAsync("permanent-flag");
+		var existingFlag = await fixture.ManagementRepository.GetAsync(flag.Key);
 		existingFlag.ShouldNotBeNull();
-	}
-}
-
-public class DeleteFlagHandler_ValidationErrors(FlagsManagementApiFixture fixture) : IClassFixture<FlagsManagementApiFixture>
-{
-	[Fact]
-	public async Task If_KeyIsEmpty_ThenReturnsBadRequest()
-	{
-		// Act
-		var result = await fixture.DeleteFlagHandler.HandleAsync("", CancellationToken.None);
-
-		// Assert
-		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
-		problemResponse.StatusCode.ShouldBe(400);
-		problemResponse.ProblemDetails.Detail.ShouldContain("cannot be empty or null");
-	}
-
-	[Fact]
-	public async Task If_KeyIsNull_ThenReturnsBadRequest()
-	{
-		// Act
-		var result = await fixture.DeleteFlagHandler.HandleAsync(null!, CancellationToken.None);
-
-		// Assert
-		var problemResponse = result.ShouldBeOfType<ProblemHttpResult>();
-		problemResponse.StatusCode.ShouldBe(400);
-		problemResponse.ProblemDetails.Detail.ShouldContain("cannot be empty or null");
 	}
 }

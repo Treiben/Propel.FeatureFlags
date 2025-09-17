@@ -1,13 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
-using Propel.FeatureFlags;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
-using Propel.FeatureFlags.Infrastructure.PostgresSql;
-using Propel.FeatureFlags.Infrastructure.Redis;
+using Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
 using Propel.FlagsManagement.Api;
-using Propel.FlagsManagement.Api.Endpoints;
 using Propel.FlagsManagement.Api.Endpoints.Shared;
 using StackExchange.Redis;
 using Testcontainers.PostgreSql;
@@ -19,24 +16,15 @@ public class FlagsManagementApiFixture : IAsyncLifetime
 {
 	private readonly PostgreSqlContainer _postgresContainer;
 	private readonly RedisContainer _redisContainer;
+
+	private readonly ConnectionMultiplexer _redisConnection = null!;
+
 	private ServiceProvider _serviceProvider = null!;
-	private ConnectionMultiplexer _redisConnection = null!;
 
-	public CreateFlagHandler CreateFlagHandler { get; private set; } = null!;
-	public DeleteFlagHandler DeleteFlagHandler { get; private set; } = null!;
-	public FlagEvaluationHandler FlagEvaluationHandler { get; private set; } = null!;
-	public ManageTenantAccessHandler ManageTenantAccessHandler { get; private set; } = null!;
-	public ManageUserAccessHandler ManageUserAccessHandler { get; private set; } = null!;
-	public ToggleFlagHandler ToggleFlagHandler { get; private set; } = null!;
-	public UpdateFlagHandler UpdateFlagHandler { get; private set; } = null!;
-	public UpdateScheduleHandler UpdateScheduleHandler { get; private set; } = null!;
-	public UpdateTimeWindowHandler UpdateTimeWindowHandler { get; private set; } = null!;
-	public UpdateTargetingRulesHandler UpdateTargetingRulesHandler { get; private set; } = null!;
-
-
-	public IFeatureFlagRepository Repository { get; private set; } = null!;
+	public IFlagManagementRepository ManagementRepository { get; private set; } = null!;
 
 	public IFeatureFlagCache? Cache { get; private set; }
+
 	public Mock<ICurrentUserService> MockCurrentUserService { get; private set; } = null!;
 
 	public FlagsManagementApiFixture()
@@ -65,27 +53,27 @@ public class FlagsManagementApiFixture : IAsyncLifetime
 		var services = new ServiceCollection();
 		services.AddLogging(builder => builder.AddConsole());
 
+		var options = new FeatureFlagConfigurationOptions
+		{
+			SqlConnectionString = _postgresContainer.GetConnectionString(),
+			RedisConnectionString = _redisContainer.GetConnectionString(),
+			CacheOptions = new CacheOptions
+			{
+				UseCache = true,
+				ExpiryInMinutes = TimeSpan.FromMinutes(2)
+			}
+		};
+		// Configure flags management api services
+		services
+			.RegisterPropelFeatureFlagServices(options)
+			.RegisterPropelManagementApServicesi()
+			.AddPropelHealthchecks(options.SqlConnectionString!, options.RedisConnectionString!);
+
 		// Setup mocks
 		MockCurrentUserService = new Mock<ICurrentUserService>();
 		MockCurrentUserService.Setup(x => x.UserName).Returns("test-user");
 		MockCurrentUserService.Setup(x => x.UserId).Returns("test-user-id");
 		services.AddSingleton(MockCurrentUserService.Object);
-
-		// Setup PostgreSQL
-		var postgresConnectionString = _postgresContainer.GetConnectionString();
-		services.AddPostgresSqlFeatureFlags(postgresConnectionString);
-		// Setup Redis cache
-		var redisConnectionString = _redisContainer.GetConnectionString();
-		services.AddRedisCache(_redisContainer.GetConnectionString());
-
-		// Register feature flag services
-		services.AddFeatureFlags(new Propel.FeatureFlags.Core.FeatureFlagConfigurationOptions
-		{
-			UseCache = true
-		});
-
-		// Register api handlers
-		services.AddHandlers();
 
 		// Build service provider
 		_serviceProvider = services.BuildServiceProvider();
@@ -94,20 +82,13 @@ public class FlagsManagementApiFixture : IAsyncLifetime
 		await _serviceProvider.EnsureFeatureFlagsDatabaseAsync();
 
 		// Get infrastructure services
-		Repository = _serviceProvider.GetRequiredService<IFeatureFlagRepository>();
+		ManagementRepository = _serviceProvider.GetRequiredService<IFlagManagementRepository>();
 		Cache = _serviceProvider.GetService<IFeatureFlagCache>();
+	}
 
-		// Get services
-		CreateFlagHandler = _serviceProvider.GetRequiredService<CreateFlagHandler>();
-		DeleteFlagHandler = _serviceProvider.GetRequiredService<DeleteFlagHandler>();
-		FlagEvaluationHandler = _serviceProvider.GetRequiredService<FlagEvaluationHandler>();
-		ManageTenantAccessHandler = _serviceProvider.GetRequiredService<ManageTenantAccessHandler>();
-		ManageUserAccessHandler = _serviceProvider.GetRequiredService<ManageUserAccessHandler>();
-		ToggleFlagHandler = _serviceProvider.GetRequiredService<ToggleFlagHandler>();
-		UpdateFlagHandler = _serviceProvider.GetRequiredService<UpdateFlagHandler>();
-		UpdateScheduleHandler = _serviceProvider.GetRequiredService<UpdateScheduleHandler>();
-		UpdateTimeWindowHandler = _serviceProvider.GetRequiredService<UpdateTimeWindowHandler>();
-		UpdateTargetingRulesHandler = _serviceProvider.GetRequiredService<UpdateTargetingRulesHandler>();
+	public T GetHandler<T>() where T : class
+	{
+		return _serviceProvider.GetRequiredService<T>();
 	}
 
 	public async Task DisposeAsync()
