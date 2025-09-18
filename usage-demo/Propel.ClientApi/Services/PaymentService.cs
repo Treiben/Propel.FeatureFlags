@@ -1,4 +1,5 @@
-﻿using Propel.FeatureFlags.Services.ApplicationScope;
+﻿using Propel.ClientApi.FeatureFlags;
+using Propel.FeatureFlags.Services.ApplicationScope;
 
 namespace Propel.ClientApi.Services;
 
@@ -38,8 +39,10 @@ public class PaymentService(
 	IFeatureFlagClient featureFlags,
 	IPaymentProcessorV1 legacyProcessor,
 	IPaymentProcessorV2 newProcessor,
+	IFeatureFlagFactory flagFactory,
 	ILogger<PaymentService> logger)
 {
+	// Service demonstrating feature flag call using IFeatureFlagClient instead of HttpContext
 	public async Task<PaymentResult> ProcessPaymentAsync(PaymentRequest request)
 	{
 		// IMPORTANT: This context is for TECHNICAL routing decisions,
@@ -60,11 +63,9 @@ public class PaymentService(
 		// • Enable gradually based on customer risk profiles
 		//
 
-		// Type-safe feature flag evaluation
-		// Provides compile-time safety, auto-completion, and better maintainability
-		// Uses strongly-typed feature flag definition with default values
+		var paymentProcessorFlag = flagFactory.GetFlagByType<NewPaymentProcessorFeatureFlag>();
 		if (await featureFlags.IsEnabledAsync(
-				FlagsConfig.NewPaymentProcessorFeatureFlag,
+				paymentProcessorFlag,
 				userId: request.CustomerId,
 				attributes: context))
 		{

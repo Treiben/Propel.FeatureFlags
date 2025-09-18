@@ -1,4 +1,5 @@
-﻿using Propel.FeatureFlags.AspNetCore.Extensions;
+﻿using Propel.ClientApi.FeatureFlags;
+using Propel.FeatureFlags.AspNetCore.Extensions;
 
 namespace Propel.ClientApi.MinimalApiEndpoints;
 
@@ -11,9 +12,10 @@ public static class AdminEndpoints
 		// Uses strongly-typed feature flag definition with default values
 		app.MapGet("/admin/sensitive-operation", async (HttpContext context) =>
 		{
-			// Type-safe evaluation ensures the flag exists with proper defaults
-			// If flag doesn't exist in database, it will be auto-created with the configured defaults
-			if (await context.IsFeatureFlagEnabledAsync(FlagsConfig.AdminPanelEnabledFeatureFlag))
+			var flag = new AdminPanelEnabledFeatureFlag();	// Strongly-typed flag reference
+															// Type-safe evaluation ensures the flag exists with proper defaults
+															// If flag doesn't exist in database, it will be auto-created with the configured defaults
+			if (await context.IsFeatureFlagEnabledAsync(flag))
 			{
 				return Results.Ok("Sensitive operation completed");
 			}

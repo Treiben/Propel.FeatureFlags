@@ -1,4 +1,5 @@
-﻿using Propel.FeatureFlags.AspNetCore.Extensions;
+﻿using Propel.ClientApi.FeatureFlags;
+using Propel.FeatureFlags.AspNetCore.Extensions;
 
 namespace Propel.ClientApi.MinimalApiEndpoints;
 
@@ -45,9 +46,9 @@ public static class RecommendationsEndpoints
 		{
 			// Type-safe evaluation ensures the flag exists with proper defaults
 			// If flag doesn't exist in database, it will be auto-created with the configured defaults
+			var featureFlag = new RecommendationAlgorithmFeatureFlag();
 			var algorithmType = await context.FeatureFlags()
-				.GetVariationAsync(FlagsConfig.RecommendationAlgorithmFeatureFlag, 
-				"collaborative-filtering");
+				.GetVariationAsync(featureFlag, "collaborative-filtering");
 
 			return algorithmType switch
 			{

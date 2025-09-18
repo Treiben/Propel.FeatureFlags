@@ -1,4 +1,5 @@
-﻿using Propel.FeatureFlags.AspNetCore.Extensions;
+﻿using Propel.ClientApi.FeatureFlags;
+using Propel.FeatureFlags.AspNetCore.Extensions;
 
 namespace Propel.ClientApi.MinimalApiEndpoints;
 
@@ -43,11 +44,13 @@ public static class OrderEndpoints
 	public static WebApplication MapOrderEndpoints(this WebApplication app)
 	{
 		// Type-safe feature flag evaluation - RECOMMENDED APPROACH
-		app.MapPost("/orders", async (CreateOrderRequest request, HttpContext context) =>
+		app.MapPost("/orders", async 
+			(CreateOrderRequest request,
+			HttpContext context) =>
 		{
-			// Type-safe feature flag evaluation with compile-time safety, auto-completion, and maintainability
-			var checkoutVersion = await context.GetFeatureFlagVariationAsync(
-				FlagsConfig.CheckoutVersionFeatureFlag, "v1");
+			var flag = new CheckoutVersionFeatureFlag(); // Strongly-typed flag reference
+														// Type-safe feature flag evaluation with compile-time safety, auto-completion, and maintainability
+			var checkoutVersion = await context.GetFeatureFlagVariationAsync(flag, "v1");
 
 			return checkoutVersion switch
 			{

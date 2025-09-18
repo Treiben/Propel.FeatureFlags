@@ -12,7 +12,7 @@ namespace Propel.ClientApi.FeatureFlags;
 
 // Note: It is often safer to default to disabled for high-impact features,
 // so flag can be enabled on an approved schedule rather than immediately upon deployment.
-public class AdminPanelEnabledFeatureFlag : TypeSafeFeatureFlag
+public class AdminPanelEnabledFeatureFlag : RegisteredFeatureFlag
 {
 	public AdminPanelEnabledFeatureFlag()
 		: base(key: "admin-panel-enabled",

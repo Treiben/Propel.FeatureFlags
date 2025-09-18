@@ -6,7 +6,7 @@ namespace Propel.ClientApi.FeatureFlags;
 // Type-safe feature flag for controlling the new product API implementation.
 // Enables A/B testing between legacy and enhanced product API endpoints
 // with improved performance and additional product data.
-public class NewProductApiFeatureFlag : TypeSafeFeatureFlag
+public class NewProductApiFeatureFlag : RegisteredFeatureFlag
 {
 	public NewProductApiFeatureFlag() 
 		: base(key: "new-product-api", 
@@ -27,7 +27,7 @@ public class NewProductApiFeatureFlag : TypeSafeFeatureFlag
 // Type-safe feature flag for controlling the scheduled launch of featured products.
 // Enables coordinated release of new featured product displays and promotions
 // at a specific date and time across the platform.
-public class FeaturedProductsLaunchFeatureFlag : TypeSafeFeatureFlag
+public class FeaturedProductsLaunchFeatureFlag : RegisteredFeatureFlag
 {
 	public FeaturedProductsLaunchFeatureFlag() 
 		: base(key: "featured-products-launch",
@@ -48,7 +48,7 @@ public class FeaturedProductsLaunchFeatureFlag : TypeSafeFeatureFlag
 // Type-safe feature flag for controlling enhanced catalog UI features.
 // Enables advanced catalog functionality during business hours when
 // customer support is available to assist with the more complex interface.
-public class EnhancedCatalogUiFeatureFlag : TypeSafeFeatureFlag
+public class EnhancedCatalogUiFeatureFlag : RegisteredFeatureFlag
 {
 	public EnhancedCatalogUiFeatureFlag()
 		: base(key: "enhanced-catalog-ui",

@@ -12,7 +12,7 @@ namespace Propel.ClientApi.FeatureFlags;
 
 // Note: It is often safer to default to disabled so when the feature is deployed it can be enabled
 // on approved release schedule rather than immeditately,
-public class CheckoutVersionFeatureFlag : TypeSafeFeatureFlag
+public class CheckoutVersionFeatureFlag : RegisteredFeatureFlag
 {
 	public CheckoutVersionFeatureFlag() 
 		: base(key: "checkout-version",

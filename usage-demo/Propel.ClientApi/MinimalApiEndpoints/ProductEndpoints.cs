@@ -1,4 +1,5 @@
-﻿using Propel.FeatureFlags.AspNetCore.Extensions;
+﻿using Propel.ClientApi.FeatureFlags;
+using Propel.FeatureFlags.AspNetCore.Extensions;
 
 namespace Propel.ClientApi.MinimalApiEndpoints;
 
@@ -21,11 +22,14 @@ public static class ProductEndpoints
 		// Type-safe feature flag evaluation
 		// Provides compile-time safety, auto-completion, and better maintainability
 		// Uses strongly-typed feature flag definition with default values
-		app.MapGet("/products", async (HttpContext context) =>
+		app.MapGet("/products", async (
+			HttpContext context,
+			IFeatureFlagFactory flags) =>
 		{
+			var flag = flags.GetFlagByType<NewProductApiFeatureFlag>();
 			// Type-safe evaluation ensures the flag exists with proper defaults
 			// If flag doesn't exist in database, it will be auto-created with the configured defaults
-			if (await context.IsFeatureFlagEnabledAsync(FlagsConfig.NewProductApiFeatureFlag))
+			if (await context.IsFeatureFlagEnabledAsync(flag))
 			{
 				return Results.Ok(GetProductsV2()); // New technical implementation
 			}
@@ -52,9 +56,12 @@ public static class ProductEndpoints
 		/// appropriate for coordinating technical releases.
 		/// </summary>
 
-		app.MapGet("/products/featured", async (HttpContext context) =>
+		app.MapGet("/products/featured", async (
+			HttpContext context,
+			IFeatureFlagFactory flags) =>
 		{
-			if (await context.IsFeatureFlagEnabledAsync(FlagsConfig.FeaturedProductsLaunchFeatureFlag))
+			var flag = flags.GetFlagByType<FeaturedProductsLaunchFeatureFlag>();
+			if (await context.IsFeatureFlagEnabledAsync(flag))
 			{
 				return Results.Ok(GetFeaturedProductsV2()); // New enhanced display
 			}
@@ -82,9 +89,12 @@ public static class ProductEndpoints
 		/// a valid technical consideration.
 		/// </summary>
 
-		app.MapGet("/products/catalog", async (HttpContext context) =>
+		app.MapGet("/products/catalog", async (
+			HttpContext context,
+			IFeatureFlagFactory flags) =>
 		{
-			if (await context.IsFeatureFlagEnabledAsync(FlagsConfig.EnhancedCatalogUiFeatureFlag))
+			var flag = flags.GetFlagByType<EnhancedCatalogUiFeatureFlag>();
+			if (await context.IsFeatureFlagEnabledAsync(flag))
 			{
 				return Results.Ok(GetEnhancedCatalogView()); // Enhanced UI with support-dependent features
 			}

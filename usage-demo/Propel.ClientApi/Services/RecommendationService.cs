@@ -1,4 +1,5 @@
-﻿using Propel.FeatureFlags.Services.ApplicationScope;
+﻿using Propel.ClientApi.FeatureFlags;
+using Propel.FeatureFlags.Services.ApplicationScope;
 
 namespace Propel.ClientApi.Services;
 
@@ -9,6 +10,7 @@ public interface IRecommendationService
 	Task<List<Product>> GetRecommendationsAsync(string userId, string category);
 }
 
+// Service demonstrating feature flag call using IFeatureFlagClient instead of HttpContext
 public class RecommendationService(IFeatureFlagClient featureFlags, ILogger<RecommendationService> logger) : IRecommendationService
 {
 	public async Task<List<Product>> GetRecommendationsAsync(string userId, string category)
@@ -20,8 +22,9 @@ public class RecommendationService(IFeatureFlagClient featureFlags, ILogger<Reco
 		};
 
 		// A/B test for recommendation algorithm
+		var recommendationAlgorithmFlag = new RecommendationAlgorithmFeatureFlag();
 		var algorithm = await featureFlags.GetVariationAsync(
-				flag: FlagsConfig.RecommendationAlgorithmFeatureFlag,
+				flag: recommendationAlgorithmFlag,
 				defaultValue: "collaborative-filtering", // default
 				userId: userId,
 				attributes: context

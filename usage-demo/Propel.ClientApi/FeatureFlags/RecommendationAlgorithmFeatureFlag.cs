@@ -3,7 +3,7 @@ using Propel.FeatureFlags.Services.ApplicationScope;
 
 namespace Propel.ClientApi.FeatureFlags;
 
-public class RecommendationAlgorithmFeatureFlag : TypeSafeFeatureFlag
+public class RecommendationAlgorithmFeatureFlag : RegisteredFeatureFlag
 {
 	public RecommendationAlgorithmFeatureFlag()
 		: base(key: "recommendation-algorithm",

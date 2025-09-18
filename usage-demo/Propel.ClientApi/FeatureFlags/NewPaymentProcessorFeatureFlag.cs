@@ -7,7 +7,7 @@ namespace Propel.ClientApi.FeatureFlags;
 
 // Note: It is often safer to default to disabled so when the feature is deployed it can be enabled
 // on approved release schedule from management tools rather than immeditately,
-public class NewPaymentProcessorFeatureFlag : TypeSafeFeatureFlag
+public class NewPaymentProcessorFeatureFlag : RegisteredFeatureFlag
 {
 	public NewPaymentProcessorFeatureFlag()
 		: base(key: "new-payment-processor",

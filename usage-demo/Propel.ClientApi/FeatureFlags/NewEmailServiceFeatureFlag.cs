@@ -3,7 +3,7 @@ using Propel.FeatureFlags.Services.ApplicationScope;
 
 namespace Propel.ClientApi.FeatureFlags;
 
-public class NewEmailServiceFeatureFlag : TypeSafeFeatureFlag
+public class NewEmailServiceFeatureFlag : RegisteredFeatureFlag
 {
 	public NewEmailServiceFeatureFlag() 
 		: base(key: "new-email-service",
@@ -19,10 +19,5 @@ public class NewEmailServiceFeatureFlag : TypeSafeFeatureFlag
 			},
 			defaultMode: EvaluationMode.Disabled)
 	{
-	}
-
-	public static IApplicationFeatureFlag Create()
-	{
-		return new NewEmailServiceFeatureFlag(); 
 	}
 }
