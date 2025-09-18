@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using Npgsql;
-using System.Threading;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql;
 
