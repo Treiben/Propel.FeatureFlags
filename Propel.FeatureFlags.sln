@@ -44,6 +44,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Infrast
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Infrastructure.Redis", "infrastructure\Propel.FeatureFlags.Infrastructure.Redis\Propel.FeatureFlags.Infrastructure.Redis.csproj", "{F24A32CB-B1C0-0359-4E6E-0A0EB3A9B65C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Management", "..\Propel.FeatureFlags.Management\Propel.FeatureFlags.Management.csproj", "{CE25A9D4-D97B-4598-B70F-A85902859E94}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -100,6 +102,10 @@ Global
 		{F24A32CB-B1C0-0359-4E6E-0A0EB3A9B65C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F24A32CB-B1C0-0359-4E6E-0A0EB3A9B65C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F24A32CB-B1C0-0359-4E6E-0A0EB3A9B65C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE25A9D4-D97B-4598-B70F-A85902859E94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE25A9D4-D97B-4598-B70F-A85902859E94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE25A9D4-D97B-4598-B70F-A85902859E94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE25A9D4-D97B-4598-B70F-A85902859E94}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -117,6 +123,7 @@ Global
 		{878C5854-E9C1-7DB4-D04B-4BF80200D214} = {DAF30CB3-F5F3-4519-B38C-4A1A3D5DC208}
 		{5F42F4AF-C983-F099-F7CB-BFFAC191B53B} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{F24A32CB-B1C0-0359-4E6E-0A0EB3A9B65C} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{CE25A9D4-D97B-4598-B70F-A85902859E94} = {FBB511E7-C532-48AF-A111-684F0E1B21D4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B84A57E7-342F-45BE-BD70-F37A7F4D7E27}

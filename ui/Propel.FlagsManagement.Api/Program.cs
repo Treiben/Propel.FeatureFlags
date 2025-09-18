@@ -69,8 +69,6 @@ builder.Services
 
 var app = builder.Build();
 
-await app.InitializeFeatureFlagsDatabase();
-
 // Configure the HTTP request pipeline.
 app.UseHttpsRedirection();
 
