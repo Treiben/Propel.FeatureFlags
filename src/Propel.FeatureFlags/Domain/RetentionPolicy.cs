@@ -1,5 +1,4 @@
 ﻿using Propel.FeatureFlags.Helpers;
-using Propel.FeatureFlags.Infrastructure;
 
 namespace Propel.FeatureFlags.Domain;
 
@@ -20,11 +19,4 @@ public class RetentionPolicy
 		ExpirationDate = isPermanent ? DateTime.MaxValue.ToUniversalTime() : DateTimeHelpers.NormalizeToUtc(expirationDate, DateTime.UtcNow.AddDays(30));
 		IsPermanent = isPermanent;
 	}
-}
-
-public enum Scope
-{
-	Global,
-	Feature,
-	Application,
 }

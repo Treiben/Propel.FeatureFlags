@@ -26,3 +26,10 @@ public class FlagKey
 		ApplicationVersion = string.IsNullOrWhiteSpace(applicationVersion) ? null : applicationVersion!.Trim();
 	}
 }
+
+public enum Scope
+{
+	Global,
+	Feature,
+	Application,
+}

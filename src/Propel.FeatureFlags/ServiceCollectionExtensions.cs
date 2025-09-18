@@ -41,9 +41,9 @@ public static class ServiceCollectionExtensions
 		return services;
 	}
 
-	public static IServiceCollection RegisterFlagsInDatabase(this IServiceCollection services)
+	public static IServiceCollection AddAllFeatureFlags(this IServiceCollection services)
 	{
-		var currentAssembly = Assembly.GetExecutingAssembly();
+		var currentAssembly = Assembly.GetEntryAssembly();
 
 		var allFlags = currentAssembly
 			.GetTypes()
@@ -53,8 +53,8 @@ public static class ServiceCollectionExtensions
 
 		foreach (var flag in allFlags)
 		{
-			var sliceInstance = (IRegisteredFeatureFlag)Activator.CreateInstance(flag)!;
-			services.AddSingleton(typeof(IRegisteredFeatureFlag), flag);
+			var instance = (IRegisteredFeatureFlag)Activator.CreateInstance(flag)!;
+			services.AddSingleton<IRegisteredFeatureFlag>(instance);
 		}
 
 		return services;
