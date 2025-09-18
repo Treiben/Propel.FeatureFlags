@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Npgsql;
+using System.Threading;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql;
 
@@ -42,6 +43,37 @@ public class PostgreSQLDatabaseInitializer
 		return true;
 	}
 
+	public async Task<bool> SeedAsync(string sqlScript)
+	{
+		if (!File.Exists(sqlScript))
+		{
+			_logger.LogWarning("SQL script file {File} does not exist. Skipping seeding.", sqlScript);
+			return false;
+		}
+		var script = await File.ReadAllTextAsync(sqlScript);
+		if (string.IsNullOrWhiteSpace(script))
+		{
+			_logger.LogWarning("SQL script file {File} is empty. Skipping seeding.", sqlScript);
+			return false;
+		}
+
+		var dataExists = await DataExistsAsync();
+		if (dataExists)
+		{
+			_logger.LogInformation("Database already contains data. Skipping seeding from script file {File}", sqlScript);
+			return true;
+		}
+		using var connection = new NpgsqlConnection(_connectionString);
+		using var command = new NpgsqlCommand(script, connection);
+
+		await connection.OpenAsync();
+		await command.ExecuteNonQueryAsync();
+
+		_logger.LogInformation("Successfully seeded database from script file {File}", sqlScript);
+
+		return true;
+	}
+
 	private async Task<bool> DatabaseExistsAsync(CancellationToken cancellationToken = default)
 	{
 		using var connection = new NpgsqlConnection(_masterConnectionString);
@@ -49,6 +81,18 @@ public class PostgreSQLDatabaseInitializer
 		var checkDbSql = "SELECT 1 FROM pg_database WHERE datname = @dbName";
 		using var checkCmd = new NpgsqlCommand(checkDbSql, connection);
 		checkCmd.Parameters.AddWithValue("dbName", _databaseName);
+
+		await connection.OpenAsync(cancellationToken);
+
+		return await checkCmd.ExecuteScalarAsync(cancellationToken) != null;
+	}
+
+	private async Task<bool> DataExistsAsync(CancellationToken cancellationToken = default)
+	{
+		using var connection = new NpgsqlConnection(_connectionString);
+
+		var checkDataSql = "SELECT 1 FROM feature_flags LIMIT 1";
+		using var checkCmd = new NpgsqlCommand(checkDataSql, connection);
 
 		await connection.OpenAsync(cancellationToken);
 
@@ -87,9 +131,10 @@ public class PostgreSQLDatabaseInitializer
 
 	private async Task<bool> CreateSchemaAsync(CancellationToken cancellationToken = default)
 	{
-		using var connection = new NpgsqlConnection(_connectionString);
+		var builder = new NpgsqlConnectionStringBuilder(_connectionString);
+		var createSchemaSql = GetCreateSchemaScript(builder.SearchPath!);
 
-		var createSchemaSql = GetCreateSchemaScript();
+		using var connection = new NpgsqlConnection(_connectionString);
 		using var createCmd = new NpgsqlCommand(createSchemaSql, connection);
 
 		await connection.OpenAsync(cancellationToken);
@@ -100,9 +145,14 @@ public class PostgreSQLDatabaseInitializer
 		return true;
 	}
 
-	private static string GetCreateSchemaScript()
+	private static string GetCreateSchemaScript(string customSchema)
 	{
-		return @"
+		var schema = "public";
+		if (!string.IsNullOrWhiteSpace(customSchema))
+			schema = customSchema;
+
+		var createSchema = $"CREATE SCHEMA IF NOT EXISTS {schema};";
+		return createSchema + @"
 -- Create UUID extension for the audit table
 CREATE EXTENSION IF NOT EXISTS ""uuid-ossp"";
 
@@ -155,7 +205,7 @@ CREATE TABLE feature_flags (
     tags JSONB NOT NULL DEFAULT '{}'
 );
 
--- Create the feature_flag_audit table
+-- Create the feature_flags_audit table
 CREATE TABLE feature_flag_audit (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 	flag_key VARCHAR(255) NOT NULL,
