@@ -1,49 +1,49 @@
 using FeatureFlags.IntegrationTests.Support;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Infrastructure;
 
 namespace FeatureFlags.IntegrationTests.Postgres;
 
-public class GetAsync_WithColumnMapping(PostgresRepositoriesTests fixture) : IClassFixture<PostgresRepositoriesTests>
+public class GetAsync_WithColumnMapping(PostgresRepositoriesTestsFixture fixture) : IClassFixture<PostgresRepositoriesTestsFixture>
 {
 	[Fact]
 	public async Task If_ComplexFlagExists_ThenMapsAllEvaluationColumns()
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, _) = TestHelpers.SetupTestCases("complex-eval-flag", EvaluationMode.UserTargeted);
-		
-		// Set up complex data to test column mapping
-		flag.Schedule = ActivationSchedule.CreateSchedule(DateTime.UtcNow.AddDays(1), DateTime.UtcNow.AddDays(7));
-		flag.OperationalWindow = new OperationalWindow(
-			TimeSpan.FromHours(9), 
-			TimeSpan.FromHours(17), 
-			"America/New_York", 
-			[DayOfWeek.Monday, DayOfWeek.Wednesday, DayOfWeek.Friday]);
-		flag.UserAccessControl = new AccessControl(
-			allowed: ["user1", "user2"], 
-			blocked: ["blocked1"], 
-			rolloutPercentage: 75);
-		flag.TenantAccessControl = new AccessControl(
-			allowed: ["tenant1"], 
-			rolloutPercentage: 50);
-		flag.Variations = new Variations 
-		{ 
-			Values = new Dictionary<string, object> { { "control", "red" }, { "treatment", "blue" } },
-			DefaultVariation = "control"
-		};
-		flag.TargetingRules = [
-			TargetingRuleFactory.CreateTargetingRule("region", TargetingOperator.In, ["US", "CA"], "treatment")
-		];
+		var (flag, _) = new FlagConfigurationBuilder("complex-eval-flag")
+				.WithEvaluationModes(EvaluationMode.UserTargeted)
+				.WithSchedule(ActivationSchedule.CreateSchedule(DateTime.UtcNow.AddDays(1), DateTime.UtcNow.AddDays(7)))
+				.WithOperationalWindow(new OperationalWindow(
+					TimeSpan.FromHours(9),
+					TimeSpan.FromHours(17),
+					"America/New_York",
+					[DayOfWeek.Monday, DayOfWeek.Wednesday, DayOfWeek.Friday]))
+				.WithUserAccessControl(new AccessControl(
+					allowed: ["user1", "user2"],
+					blocked: ["blocked1"],
+					rolloutPercentage: 75))
+				.WithTenantAccessControl(new AccessControl(
+					allowed: ["tenant1"],
+					rolloutPercentage: 50))
+				.WithVariations(new Variations
+				{
+					Values = new Dictionary<string, object> { { "control", "red" }, { "treatment", "blue" } },
+					DefaultVariation = "control"
+				})
+				.WithTargetingRules([
+					TargetingRuleFactory.CreateTargetingRule("region", TargetingOperator.In, ["US", "CA"], "treatment")
+				])
+				.Build();
 
-		await fixture.ManagementRepository.CreateAsync(flag);
+
+		await fixture.SaveAsync(flag, "complex-eval-flag", "created by integration tests");
 
 		// Act
-		var result = await fixture.EvaluationRepository.GetAsync(flag.Key);
+		var result = await fixture.EvaluationRepository.GetAsync(flag.Identifier);
 
 		// Assert - Verify all evaluation columns are correctly mapped
 		result.ShouldNotBeNull();
-		result.FlagKey.ShouldBe(flag.Key.Key);
+		result.Identifier.ShouldBe(flag.Identifier);
 		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.UserTargeted]).ShouldBeTrue();
 		
 		// Schedule mapping
@@ -81,13 +81,14 @@ public class GetAsync_WithColumnMapping(PostgresRepositoriesTests fixture) : ICl
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, _) = TestHelpers.SetupTestCases("minimal-flag", EvaluationMode.Enabled);
-		// Keep minimal data to test null handling
-		
-		await fixture.ManagementRepository.CreateAsync(flag);
+		var (flag, _) = new FlagConfigurationBuilder("minimal-flag")
+							.WithEvaluationModes(EvaluationMode.On)
+							.Build();
+
+		await fixture.SaveAsync(flag, "minimal-flag", "created by integration tests");
 
 		// Act
-		var result = await fixture.EvaluationRepository.GetAsync(flag.Key);
+		var result = await fixture.EvaluationRepository.GetAsync(flag.Identifier);
 
 		// Assert - Verify nullable columns are handled with defaults
 		result.ShouldNotBeNull();
@@ -106,27 +107,28 @@ public class GetAsync_WithColumnMapping(PostgresRepositoriesTests fixture) : ICl
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, _) = TestHelpers.SetupTestCases("json-test-flag", EvaluationMode.UserTargeted);
-		
-		flag.TargetingRules = [
-			TargetingRuleFactory.CreateTargetingRule("environment", TargetingOperator.Equals, ["production"], "prod-variation"),
-			TargetingRuleFactory.CreateTargetingRule("version", TargetingOperator.GreaterThan, ["2.0"], "new-feature")
-		];
-		flag.Variations = new Variations 
-		{ 
-			Values = new Dictionary<string, object> 
-			{ 
-				{ "off", false }, 
-				{ "on", true },
-				{ "percentage", 0.75 },
-				{ "config", new { timeout = 5000, retries = 3 } }
-			}
-		};
+		var (flag, _) = new FlagConfigurationBuilder("json-test-flag")
+			.WithEvaluationModes(EvaluationMode.UserTargeted)
+			.WithTargetingRules([
+				TargetingRuleFactory.CreateTargetingRule("environment", TargetingOperator.Equals, ["production"], "prod-variation"),
+				TargetingRuleFactory.CreateTargetingRule("version", TargetingOperator.GreaterThan, ["2.0"], "new-feature")
+			])
+			.WithVariations(new Variations
+			{
+				Values = new Dictionary<string, object>
+				{
+					{ "off", false },
+					{ "on", true },
+					{ "percentage", 0.75 },
+					{ "config", new { timeout = 5000, retries = 3 } }
+				}
+			})
+			.Build();
 
-		await fixture.ManagementRepository.CreateAsync(flag);
+		await fixture.SaveAsync(flag, "json-test-flag", "created by integration tests");
 
 		// Act
-		var result = await fixture.EvaluationRepository.GetAsync(flag.Key);
+		var result = await fixture.EvaluationRepository.GetAsync(flag.Identifier);
 
 		// Assert - Verify JSON deserialization
 		result.ShouldNotBeNull();
@@ -142,14 +144,14 @@ public class GetAsync_WithColumnMapping(PostgresRepositoriesTests fixture) : ICl
 	}
 }
 
-public class GetAsync_WithNonExistentFlag(PostgresRepositoriesTests fixture) : IClassFixture<PostgresRepositoriesTests>
+public class GetAsync_WithNonExistentFlag(PostgresRepositoriesTestsFixture fixture) : IClassFixture<PostgresRepositoriesTestsFixture>
 {
 	[Fact]
 	public async Task If_FlagDoesNotExist_ThenReturnsNull()
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var flagKey = new FlagKey("non-existent-flag", Scope.Application, "test-app", "1.0");
+		var flagKey = new FlagIdentifier("non-existent-flag", Scope.Application, "test-app", "1.0");
 
 		// Act
 		var result = await fixture.EvaluationRepository.GetAsync(flagKey);
@@ -163,10 +165,13 @@ public class GetAsync_WithNonExistentFlag(PostgresRepositoriesTests fixture) : I
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, _) = TestHelpers.SetupTestCases("scoped-flag", EvaluationMode.Enabled);
-		await fixture.ManagementRepository.CreateAsync(flag);
+		var (flag, _) = new FlagConfigurationBuilder("scoped-flag")
+								.WithEvaluationModes(EvaluationMode.On)
+								.Build();
 
-		var differentScopeKey = new FlagKey(flag.Key.Key, Scope.Global, flag.Key.ApplicationName, flag.Key.ApplicationVersion);
+		await fixture.SaveAsync(flag, "scoped-flag", "created by integration tests");
+
+		var differentScopeKey = new FlagIdentifier(flag.Identifier.Key, Scope.Global);
 
 		// Act
 		var result = await fixture.EvaluationRepository.GetAsync(differentScopeKey);
@@ -180,10 +185,16 @@ public class GetAsync_WithNonExistentFlag(PostgresRepositoriesTests fixture) : I
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, _) = TestHelpers.SetupTestCases("app-flag", EvaluationMode.Enabled);
-		await fixture.ManagementRepository.CreateAsync(flag);
+		var (flag, _) = new FlagConfigurationBuilder("app-flag")
+								.WithEvaluationModes(EvaluationMode.On)
+								.Build();
 
-		var differentAppKey = new FlagKey(flag.Key.Key, flag.Key.Scope, "different-app", flag.Key.ApplicationVersion);
+		await fixture.SaveAsync(flag, "app-flag", "created by integration tests");
+
+		var differentAppKey = new FlagIdentifier(flag.Identifier.Key, 
+			flag.Identifier.Scope, 
+			"different-app",
+			flag.Identifier.ApplicationVersion);
 
 		// Act
 		var result = await fixture.EvaluationRepository.GetAsync(differentAppKey);
@@ -193,23 +204,26 @@ public class GetAsync_WithNonExistentFlag(PostgresRepositoriesTests fixture) : I
 	}
 }
 
-public class CreateAsync_WithAuditTrail(PostgresRepositoriesTests fixture) : IClassFixture<PostgresRepositoriesTests>
+public class CreateAsync_WithAuditTrail(PostgresRepositoriesTestsFixture fixture) : IClassFixture<PostgresRepositoriesTestsFixture>
 {
 	[Fact]
 	public async Task If_NewFlag_ThenCreatesSuccessfully()
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, _) = TestHelpers.SetupTestCases("new-eval-flag", EvaluationMode.Enabled);
+		var (flag, _) = new FlagConfigurationBuilder("new-eval-flag")
+								.WithEvaluationModes(EvaluationMode.On)
+								.Build();
 
 		// Act
-		await fixture.EvaluationRepository.CreateAsync(flag);
+		await fixture.EvaluationRepository.CreateAsync(flag.Identifier, EvaluationMode.On, 
+			"new-eval-flag", "created by tester");
 
 		// Assert - Verify flag was created by retrieving it
-		var result = await fixture.EvaluationRepository.GetAsync(flag.Key);
+		var result = await fixture.EvaluationRepository.GetAsync(flag.Identifier);
 		result.ShouldNotBeNull();
-		result.FlagKey.ShouldBe(flag.Key.Key);
-		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.Enabled]).ShouldBeTrue();
+		result.Identifier.ShouldBe(flag.Identifier);
+		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.On]).ShouldBeTrue();
 	}
 
 	[Fact]
@@ -217,48 +231,20 @@ public class CreateAsync_WithAuditTrail(PostgresRepositoriesTests fixture) : ICl
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, _) = TestHelpers.SetupTestCases("duplicate-eval-flag", EvaluationMode.Enabled);
-		await fixture.EvaluationRepository.CreateAsync(flag);
+		var (flag, _) = new FlagConfigurationBuilder("duplicate-eval-flag")
+							.WithEvaluationModes(EvaluationMode.On)
+							.Build();
 
-		// Modify flag data to ensure we can detect if duplicate creation occurs
-		flag.Name = "Modified Name";
-		flag.Description = "Modified Description";
+		await fixture.EvaluationRepository.CreateAsync(flag.Identifier, EvaluationMode.On, "new-eval-flag", "created by tester");
 
 		// Act - Try to create the same flag again
-		await fixture.EvaluationRepository.CreateAsync(flag);
+		await fixture.EvaluationRepository.CreateAsync(flag.Identifier, EvaluationMode.Off, "modified-eval-flag", "modified by tester");
 
 		// Assert - Verify original flag data is preserved (not overwritten)
-		var result = await fixture.ManagementRepository.GetAsync(flag.Key);
+		var result = await fixture.EvaluationRepository.GetAsync(flag.Identifier);
+
 		result.ShouldNotBeNull();
-		result.Name.ShouldNotBe("Modified Name");
-		result.Description.ShouldNotBe("Modified Description");
-	}
-
-	[Fact]
-	public async Task If_CreateWithComplexData_ThenPreservesAllFields()
-	{
-		// Arrange
-		await fixture.ClearAllData();
-		var (flag, _) = TestHelpers.SetupTestCases("complex-create-flag", EvaluationMode.TenantRolloutPercentage);
-		
-		flag.UserAccessControl = new AccessControl(allowed: ["admin"], rolloutPercentage: 25);
-		flag.TenantAccessControl = new AccessControl(blocked: ["test-tenant"], rolloutPercentage: 80);
-		flag.Variations = new Variations 
-		{ 
-			Values = new Dictionary<string, object> { { "feature-on", true }, { "feature-off", false } },
-			DefaultVariation = "feature-off"
-		};
-
-		// Act
-		await fixture.ManagementRepository.CreateAsync(flag);
-
-		// Assert - Verify all data is preserved through create and retrieval
-		var result = await fixture.EvaluationRepository.GetAsync(flag.Key);
-		result.ShouldNotBeNull();
-		result.UserAccessControl.Allowed.ShouldContain("admin");
-		result.UserAccessControl.RolloutPercentage.ShouldBe(25);
-		result.TenantAccessControl.Blocked.ShouldContain("test-tenant");
-		result.TenantAccessControl.RolloutPercentage.ShouldBe(80);
-		result.Variations.DefaultVariation.ShouldBe("feature-off");
+		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.On]).ShouldBeTrue();
+		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.Off]).ShouldBeFalse();
 	}
 }

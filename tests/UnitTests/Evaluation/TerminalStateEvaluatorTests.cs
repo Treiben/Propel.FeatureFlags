@@ -1,5 +1,5 @@
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Services.Evaluation;
+using Propel.FeatureFlags.Evaluation;
 
 namespace FeatureFlags.UnitTests.Evaluation;
 
@@ -11,31 +11,35 @@ public class TerminalStateEvaluator_CanProcess
 	public void CanProcess_FlagHasDisabledMode_ReturnsTrue()
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria();
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var flagConfig = new FlagEvaluationConfiguration(identifier);
 
 		// Act & Assert
-		_evaluator.CanProcess(criteria, new EvaluationContext()).ShouldBeTrue();
+		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeTrue();
 	}
 
 	[Fact]
 	public void CanProcess_FlagHasEnabledMode_ReturnsTrue()
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria();
-		criteria.ActiveEvaluationModes.AddMode(EvaluationMode.Enabled);
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var flagConfig = new FlagEvaluationConfiguration(identifier);
+		flagConfig.ActiveEvaluationModes.AddMode(EvaluationMode.On);
 
 		// Act & Assert
-		_evaluator.CanProcess(criteria, new EvaluationContext()).ShouldBeTrue();
+		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeTrue();
 	}
 
 	[Fact]
 	public void CanProcess_FlagHasBothDisabledAndEnabled_ReturnsTrue()
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.Enabled, EvaluationMode.Disabled]) };
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var modes = new EvaluationModes([EvaluationMode.On, EvaluationMode.Off]);
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: modes);
 
 		// Act & Assert
-		_evaluator.CanProcess(criteria, new EvaluationContext()).ShouldBeTrue();
+		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeTrue();
 	}
 
 	[Theory]
@@ -46,20 +50,23 @@ public class TerminalStateEvaluator_CanProcess
 	public void CanProcess_FlagHasOnlyNonTerminalModes_ReturnsFalse(EvaluationMode mode)
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria { ActiveEvaluationModes = new EvaluationModes([mode]) };
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var modes = new EvaluationModes([mode]);
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: modes);
 
 		// Act & Assert
-		_evaluator.CanProcess(criteria, new EvaluationContext()).ShouldBeFalse();
+		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeFalse();
 	}
 
 	[Fact]
 	public void CanProcess_FlagHasDefaultDisabledMode_ReturnsTrue()
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria(); // Default constructor creates Disabled mode
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var flagConfig = new FlagEvaluationConfiguration(identifier); // Default constructor creates Disabled mode
 
 		// Act & Assert
-		_evaluator.CanProcess(criteria, new EvaluationContext()).ShouldBeTrue();
+		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeTrue();
 	}
 }
 
@@ -71,14 +78,12 @@ public class TerminalStateEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_FlagIsDisabled_ReturnsDisabledResult()
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria
-		{
-			FlagKey = "test-disabled-flag",
-			Variations = new Variations { DefaultVariation = "disabled-variation" }
-		};
+		var identifier = new FlagIdentifier("test-disabled-flag", Scope.Global);
+		var variations = new Variations { DefaultVariation = "disabled-variation" };
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(criteria, new EvaluationContext());
+		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -90,19 +95,17 @@ public class TerminalStateEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_FlagIsEnabled_ReturnsEnabledResult()
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria
-		{
-			FlagKey = "test-enabled-flag",
-			ActiveEvaluationModes = new EvaluationModes([EvaluationMode.Enabled]),
-			Variations = new Variations { DefaultVariation = "should-not-be-used" }
-		};
+		var identifier = new FlagIdentifier("test-enabled-flag", Scope.Global);
+		var activeEvaluationModes = new EvaluationModes([EvaluationMode.On]);
+		var variations = new Variations { DefaultVariation = "should-not-be-used" };
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: activeEvaluationModes, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(criteria, new EvaluationContext());
+		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe(criteria.Variations.DefaultVariation);
+		result.Variation.ShouldBe(flagConfig.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Feature flag 'test-enabled-flag' is explicitly enabled");
 	}
 
@@ -110,15 +113,13 @@ public class TerminalStateEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_FlagHasBothModes_DisabledTakesPrecedence()
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria
-		{
-			FlagKey = "priority-test-flag",
-			ActiveEvaluationModes = new EvaluationModes([EvaluationMode.Disabled, EvaluationMode.Enabled]),
-			Variations = new Variations { DefaultVariation = "disabled-wins" }
-		};
+		var identifier = new FlagIdentifier("priority-test-flag", Scope.Global);
+		var activeEvaluationModes = new EvaluationModes([EvaluationMode.Off, EvaluationMode.On]);
+		var variations = new Variations { DefaultVariation = "disabled-wins" };
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: activeEvaluationModes, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(criteria, new EvaluationContext());
+		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -135,14 +136,12 @@ public class TerminalStateEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_DisabledFlag_ReturnsCorrectVariation(string defaultVariation)
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria
-		{
-			FlagKey = "variation-test",
-			Variations = new Variations { DefaultVariation = defaultVariation }
-		};
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var variations = new Variations { DefaultVariation = defaultVariation };
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(criteria, new EvaluationContext());
+		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -153,18 +152,16 @@ public class TerminalStateEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_EnabledFlag_AlwaysReturnsOn()
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria
-		{
-			FlagKey = "always-on-test",
-			ActiveEvaluationModes = new EvaluationModes([EvaluationMode.Enabled]),
-			Variations = new Variations { DefaultVariation = "should-be-ignored" }
-		};
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var activeEvaluationModes = new EvaluationModes([EvaluationMode.On]);
+		var variations = new Variations { DefaultVariation = "should-be-ignored" };
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: activeEvaluationModes, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(criteria, new EvaluationContext());
+		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe(criteria.Variations.DefaultVariation); // Always "on" for enabled flags
+		result.Variation.ShouldBe(flagConfig.Variations.DefaultVariation); // Always "on" for enabled flags
 	}
 }

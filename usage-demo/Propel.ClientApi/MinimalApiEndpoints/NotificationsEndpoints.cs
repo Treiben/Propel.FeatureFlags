@@ -1,7 +1,7 @@
-﻿using Propel.ClientApi.FeatureFlags;
+﻿using ApiFlagUsageDemo.FeatureFlags;
 using Propel.FeatureFlags.Attributes;
 
-namespace Propel.ClientApi.MinimalApiEndpoints;
+namespace ApiFlagUsageDemo.MinimalApiEndpoints;
 
 public static class NotificationsEndpoints
 {

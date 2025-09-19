@@ -1,5 +1,5 @@
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Services.Evaluation;
+using Propel.FeatureFlags.Evaluation;
 
 namespace FeatureFlags.UnitTests.Evaluation;
 
@@ -79,38 +79,39 @@ public class TargetingRulesEvaluatorTests
 	{
 		// Arrange
 		var evaluator = new TargetingRulesEvaluator();
-		var criteria = new EvaluationCriteria
-		{
-			TargetingRules = hasRules ? [CreateStringRule("userId", TargetingOperator.Equals, ["user123"], "on")] : []
-		};
+
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		List<ITargetingRule> targetingRules = hasRules ? [CreateStringRule("userId", TargetingOperator.Equals, ["user123"], "on")] : [];
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, targetingRules: targetingRules);
+
 		var context = new EvaluationContext();
 
 		// Act
-		var result = evaluator.CanProcess(criteria, context);
+		var result = evaluator.CanProcess(flagConfig, context);
 
 		// Assert
 		Assert.Equal(expected, result);
 	}
 
-	private static EvaluationCriteria CreateCriteriaWithStringRule(string attribute, TargetingOperator op, List<string> values, string variation)
+	private static FlagEvaluationConfiguration CreateCriteriaWithStringRule(string attribute, TargetingOperator op, List<string> values, string variation)
 	{
-		return new EvaluationCriteria
-		{
-			TargetingRules = [CreateStringRule(attribute, op, values, variation)],
-			Variations = new Variations { DefaultVariation = "off" }
-		};
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		return new FlagEvaluationConfiguration(identifier: identifier,
+			targetingRules: [CreateStringRule(attribute, op, values, variation)],
+			variations: new Variations { DefaultVariation = "off" }
+		);
 	}
 
-	private static EvaluationCriteria CreateCriteriaWithNumericRule(string attribute, TargetingOperator op, List<double> values, string variation)
+	private static FlagEvaluationConfiguration CreateCriteriaWithNumericRule(string attribute, TargetingOperator op, List<double> values, string variation)
 	{
-		return new EvaluationCriteria
-		{
-			TargetingRules = [CreateNumericRule(attribute, op, values, variation)],
-			Variations = new Variations { 
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		return new FlagEvaluationConfiguration(identifier: identifier,
+		targetingRules: [CreateNumericRule(attribute, op, values, variation)],
+		variations: new Variations { 
 				Values = new Dictionary<string, object> { { "adult", true }, { "junior", false } },
 				DefaultVariation = "junior"
 			}
-		};
+		);
 	}
 
 	private static StringTargetingRule CreateStringRule(string attribute, TargetingOperator op, List<string> values, string variation)

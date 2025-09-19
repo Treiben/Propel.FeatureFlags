@@ -1,28 +1,28 @@
-﻿using Propel.FeatureFlags.Services.ApplicationScope;
+﻿using Propel.FeatureFlags.Domain;
 
-namespace Propel.ClientApi.FeatureFlags;
+namespace ApiFlagUsageDemo.FeatureFlags;
 
 public interface IFeatureFlagFactory
 {
-	IRegisteredFeatureFlag? GetFlagByKey(string key);
-	IRegisteredFeatureFlag? GetFlagByType<T>() where T : IRegisteredFeatureFlag;
-	IEnumerable<IRegisteredFeatureFlag> GetAllFlags();
+	IFeatureFlag? GetFlagByKey(string key);
+	IFeatureFlag? GetFlagByType<T>() where T : IFeatureFlag;
+	IEnumerable<IFeatureFlag> GetAllFlags();
 }
 
 public class DemoFeatureFlagFactory : IFeatureFlagFactory
 {
-	private readonly HashSet<IRegisteredFeatureFlag> _allFlags;
+	private readonly HashSet<IFeatureFlag> _allFlags;
 
-	public DemoFeatureFlagFactory(IEnumerable<IRegisteredFeatureFlag> allFlags)
+	public DemoFeatureFlagFactory(IEnumerable<IFeatureFlag> allFlags)
 	{
 		_allFlags = allFlags.ToHashSet();
 	}
 
-	public IRegisteredFeatureFlag? GetFlagByKey(string key) => _allFlags.FirstOrDefault(f => f.Key == key);
+	public IFeatureFlag? GetFlagByKey(string key) => _allFlags.FirstOrDefault(f => f.Key == key);
 
-	public IRegisteredFeatureFlag? GetFlagByType<T>() where T : IRegisteredFeatureFlag => _allFlags.OfType<T>().FirstOrDefault();
+	public IFeatureFlag? GetFlagByType<T>() where T : IFeatureFlag => _allFlags.OfType<T>().FirstOrDefault();
 
-	public IEnumerable<IRegisteredFeatureFlag> GetAllFlags() => [.. _allFlags];
+	public IEnumerable<IFeatureFlag> GetAllFlags() => [.. _allFlags];
 
-	public void AddFlag(IRegisteredFeatureFlag flag) => _allFlags.Add(flag);
+	public void AddFlag(IFeatureFlag flag) => _allFlags.Add(flag);
 }

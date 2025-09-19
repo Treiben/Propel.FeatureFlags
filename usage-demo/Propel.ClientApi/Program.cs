@@ -1,13 +1,13 @@
-using Propel.ClientApi.FeatureFlags;
-using Propel.ClientApi.MinimalApiEndpoints;
-using Propel.ClientApi.Services;
-using Propel.FeatureFlags;
+using ApiFlagUsageDemo.FeatureFlags;
+using ApiFlagUsageDemo.MinimalApiEndpoints;
+using ApiFlagUsageDemo.Services;
+
 using Propel.FeatureFlags.AspNetCore.Middleware;
-using Propel.FeatureFlags.Attributes;
+using Propel.FeatureFlags.Extensions;
+
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
-using Propel.FeatureFlags.Infrastructure.Redis;
-using Propel.FeatureFlags.Services.ApplicationScope;
+using Propel.FeatureFlags.Infrastructure.Redis.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddLogging();
@@ -18,79 +18,86 @@ builder.Services.AddHttpContextAccessor();
 //-----------------------------------------------------------------------------
 // Configure Propel FeatureFlags
 //-----------------------------------------------------------------------------
-var options = builder.Configuration.GetSection("PropelFeatureFlags").Get<FeatureFlagConfigurationOptions>() ?? new();
+var propelOptions = builder.Configuration.GetSection("PropelFeatureFlags").Get<PropelOptions>() ?? new();
 
 // Register the core feature flag services
-builder.Services.AddFeatureFlagServices(options);
+builder.Services.AddPropelServices(propelOptions);
 
 // Register the feature flags defined in the assembly (RECOMMENDED)
-builder.Services.AddAllFeatureFlags();
+builder.Services.AddPropelFeatureFlags();
 
 //optional: for large code bases with tons of flags, you might want to implement your own feature flag factory
 builder.Services.AddSingleton<IFeatureFlagFactory, DemoFeatureFlagFactory>();
 
-//-----------------------------------------------------------------------------
-// Optional integrations
-//-----------------------------------------------------------------------------
 
-// STORAGE
-// If you want to use PostgreSQL for feature flag storage, uncomment the line below
-// 0. Add the Propel.FeatureFlags.PostgresSql package
-// 1. Add the PostgreSQL connection string to appsettings.json
-var postgresConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-	?? options.SqlConnectionString // fallback to the configured SQL connection string
+//----------------------------------------------------------------------------
+// Configure feature flag persistence (supported integrations: postgres, sql server)
+//----------------------------------------------------------------------------
+
+// 0. install the Propel.FeatureFlags.Infrastructure.PostgresSql package
+// 1. use configured connection string
+var pgConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+	?? propelOptions.Database.SqlConnectionString // fallback to the configured SQL connection string
 	?? throw new InvalidOperationException("PostgreSQL connection string is required but not found in configuration");
 
-builder.Services.AddPostgresSqlFeatureFlags(postgresConnectionString);
-// Otherwise,you can follow the similar steps to use other storage options like MongoDB, SQL Server, Azure AppConfiguration, etc.
-//-----------------------------------------------------------------------------
-
-// CACHING
-// If you want to use Redis for caching feature flags, uncomment the line below
-// 0. Add the Propel.FeatureFlags.Redis package
-// 1. Add the Redis connection string to appsettings.json
-// 2. Register the Redis cache
-if (options.CacheOptions.UseCache == true && !string.IsNullOrEmpty(options.RedisConnectionString))
-	builder.Services.AddRedisCache(options.RedisConnectionString);
-// If featureFlagOptions.UseCache is true and Redis is not configured, then it will use in-memory caching by default
-// If you don't want any caching, set UseCache to false in appsettings.json
+builder.Services.AddPropelPersistence(pgConnectionString);
+// same steps for SQL Server (Propel.FeatureFlags.Infrastructure.SqlServer package)
 
 
+//----------------------------------------------------------------------------
+// Configure caching (optional, but recommended for performance and scalability)
+//----------------------------------------------------------------------------
+
+var cacheOptions = propelOptions.Cache;
+
+// for in-memory caching (default)
+if (cacheOptions.EnableInMemoryCache == true)
+	builder.Services.AddPropelInMemoryCache();
+
+// for redis distributed cache
+// 0. install Propel.FeatureFlags.Infrastructure.Redis package
+// 1. use configured redis connection string
+if (cacheOptions.EnableDistributedCache == true)
+	builder.Services.AddPropelDistributedCache(cacheOptions.RedisConnectionString);
+
+// to not use caching at all (not recommended) - skip adding any caching services or disable it explicitly in config file
+
 //-----------------------------------------------------------------------------
-// ATTRIBUTE-BASED FEATURE FLAGS VIA ATTRIBUTES (AOP EXPERIMENTAL)
+// Aspect-oriented feature flags with FeatureFlaggedAttribute (optional, experimental)
 //-----------------------------------------------------------------------------
-// To use FeatureFlaggedAttribute:
-// 0. Add the Propel.FeatureFlags.Attributes package
-// 1. Register the attributes
-// option 1: If the flags don't need to use any HttpContext data or is not aspnet application, register as
-// builder.Services.AddFeatureFlagsAttributes();
-// option 2: if you have custom data that should be passed from HttpContext headers (e.g. user id, tenant id), use
-builder.Services.AddHttpFeatureFlagsAttributes(); // HttpContextAccessor must be added (e.g. builder.Services.AddHttpContextAccessor)
+
+// 0. install the Propel.FeatureFlags.Attributes package
+// 1. register the attributes
+
+// option: to use flag attributes with HttpContext data (e.g. user id, tenant id)
+builder.Services.AddHttpContextAccessor(); // required for HttpContext-based attributes
+builder.Services.AddHttpFeatureFlagsAttributes();
+
+// option: if you don't need HttpContext data, you can use this instead:
+builder.Services.AddHttpFeatureFlagsAttributes();
 
 //2. Register the service with interceptor to enable attribute-based feature flags
 builder.Services.AddScopedWithFeatureFlags<INotificationService, NotificationService>();
 
 //-----------------------------------------------------------------------------
+// Register your application services normally
 
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<PaymentService>();
 
 var app = builder.Build();
 
-//-----------------------------------------------------------------------------
 // Ensure the feature flags database is initialized and feature flags are registered
-await app.InitializeFeatureFlagsDatabase(sqlScriptFile: "init-db.sql");
-//-----------------------------------------------------------------------------
+await app.EnsureDatabase(sqlScriptFile: "seed-db.sql");
 
 // Configure the HTTP request pipeline.
 app.UseHttpsRedirection();
 
 app.MapHealthChecks("/health");
 
-//-----------------------------------------------------------------------------
-// Examples of setting up feature flag middleware for different usage scenarios
-app.MapFeatureFlagMiddleware("maintenanceWithHeaders");
-//-----------------------------------------------------------------------------
+// add the feature flag middleware to the pipeline for global flags evaluation and to use in endpoints
+// example scenarios: "basic", "maintenance", "global", "user-extraction", "
+app.MapFeatureFlagMiddleware("maintenance+headers");
 
 app.MapAdminEndpoints();
 app.MapNotificationsEndpoints();
@@ -272,14 +279,14 @@ public static class AppExtensions
 	}
 
 	// Ensure the feature flags database is initialized and feature flags are registered
-	public static async Task InitializeFeatureFlagsDatabase(this WebApplication app, string? sqlScriptFile = null)
+	public static async Task EnsureDatabase(this WebApplication app, string? sqlScriptFile = null)
 	{
 		try
 		{
 			app.Logger.LogInformation("Starting feature flags database initialization...");
 
 			// This will create the database and tables if they don't exist
-			await app.Services.EnsureFeatureFlagsDatabaseAsync();
+			await app.Services.EnsurePropelDatabase();
 
 			app.Logger.LogInformation("Feature flags database initialization completed successfully");
 
@@ -289,7 +296,7 @@ public static class AppExtensions
 				// Use: during application startup at development time
 				// NOT RECOMMEND FOR PRODUCTION
 				// For production, use migrations instead or seed with registered flags from assembly
-				await app.Services.SeedDatabaseFromScriptAsync(sqlScriptFile);
+				await app.Services.SeedDatabaseAsync(sqlScriptFile);
 			}
 
 			// seed with registered flags from assembly
@@ -315,15 +322,14 @@ public static class AppExtensions
 		var serviceProvider = app.Services.CreateScope().ServiceProvider;
 		var repository = serviceProvider.GetRequiredService<IFlagEvaluationRepository>();
 
-		//------------------------------------------------------------------------
-		// Insert new flags 
-		//-------------------------------------------------------------------------
+		// Get all registered feature flags from the factory
 		var factory = serviceProvider.GetRequiredService<IFeatureFlagFactory>();
 		var allFlags = factory.GetAllFlags();
 
+		// Insert each flag in the database if not already present
 		foreach (var flag in allFlags)
 		{
-			await flag.EnsureFeatureFlagsInDatabaseAsync(repository);
+			await flag.RegisterPropelFlagsAsync(repository);
 		}
 
 		//------------------------------------------------------------------------

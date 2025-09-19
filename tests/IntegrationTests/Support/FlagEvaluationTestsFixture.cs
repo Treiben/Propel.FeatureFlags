@@ -1,11 +1,13 @@
 ﻿using Microsoft.Extensions.Logging;
 using Npgsql;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Evaluation;
+using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FeatureFlags.Infrastructure.PostgresSql;
 using Propel.FeatureFlags.Infrastructure.Redis;
 using Propel.FeatureFlags.Services;
 using Propel.FeatureFlags.Services.ApplicationScope;
-using Propel.FeatureFlags.Services.Evaluation;
 using StackExchange.Redis;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
@@ -20,7 +22,6 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 	public IFeatureFlagEvaluator Evaluator { get; private set; } = null!;
 	public IFeatureFlagClient Client { get; private set; } = null!;
 	public FlagEvaluationRepository EvaluationRepository { get; private set; } = null!;
-	public FlagManagementRepository ManagementRepository { get; private set; } = null!;
 	public RedisFeatureFlagCache Cache { get; private set; } = null!;
 
 	private ConnectionMultiplexer _redisConnection = null!;
@@ -54,17 +55,19 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 			throw new InvalidOperationException("Failed to initialize PostgreSQL database for feature flags");
 
 		EvaluationRepository = new FlagEvaluationRepository(connectionString, new Mock<ILogger<FlagEvaluationRepository>>().Object);
-		ManagementRepository = new FlagManagementRepository(connectionString, new Mock<ILogger<FlagManagementRepository>>().Object);
 
 		var redisConnectionString = _redisContainer.GetConnectionString();
 		_redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
 
-		var cacheOptions = new CacheOptions
+		var options = new PropelOptions
 		{
-			ExpiryInMinutes = TimeSpan.FromMinutes(1)
+			Cache = new CacheOptions
+			{
+				CacheDurationInMinutes = TimeSpan.FromMinutes(1)
+			}
 		};
 
-		Cache = new RedisFeatureFlagCache(_redisConnection, cacheOptions, new Mock<ILogger<RedisFeatureFlagCache>>().Object);
+		Cache = new RedisFeatureFlagCache(_redisConnection, options, new Mock<ILogger<RedisFeatureFlagCache>>().Object);
 
 		var evaluationManager = new FlagEvaluationManager([
 			new ActivationScheduleEvaluator(),
@@ -95,5 +98,11 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 		await command.ExecuteNonQueryAsync();
 
 		await Cache.ClearAsync();
+	}
+
+	public async Task SaveAsync(FlagEvaluationConfiguration flag,
+		string name, string description)
+	{
+		await DatabaseHelpers.SafeFlagAsync(_postgresContainer, flag, name, description);
 	}
 }

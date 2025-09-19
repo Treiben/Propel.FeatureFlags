@@ -1,17 +1,18 @@
 ﻿using Microsoft.Extensions.Logging;
 using Npgsql;
+using NpgsqlTypes;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Helpers;
 using Propel.FeatureFlags.Infrastructure.PostgresSql;
 using Testcontainers.PostgreSql;
 
 namespace FeatureFlags.IntegrationTests.Support;
 
-public class PostgresRepositoriesTests : IAsyncLifetime
+public class PostgresRepositoriesTestsFixture : IAsyncLifetime
 {
 	private readonly PostgreSqlContainer _container;
 	public FlagEvaluationRepository EvaluationRepository { get; private set; } = null!;
-	public FlagManagementRepository ManagementRepository { get; private set; } = null!;
-
-	public PostgresRepositoriesTests()
+	public PostgresRepositoriesTestsFixture()
 	{
 		_container = new PostgreSqlBuilder()
 			.WithImage("postgres:15-alpine")
@@ -34,7 +35,6 @@ public class PostgresRepositoriesTests : IAsyncLifetime
 			throw new InvalidOperationException("Failed to initialize PostgreSQL database for feature flags");
 
 		EvaluationRepository = new FlagEvaluationRepository(connectionString, new Mock<ILogger<FlagEvaluationRepository>>().Object);
-		ManagementRepository = new FlagManagementRepository(connectionString, new Mock<ILogger<FlagManagementRepository>>().Object);
 	}
 
 	public async Task DisposeAsync()
@@ -49,5 +49,11 @@ public class PostgresRepositoriesTests : IAsyncLifetime
 		await connection.OpenAsync();
 		using var command = new NpgsqlCommand("DELETE FROM feature_flags", connection);
 		await command.ExecuteNonQueryAsync();
+	}
+
+	public async Task SaveAsync(FlagEvaluationConfiguration flag,
+		string name, string description)
+	{
+		await DatabaseHelpers.SafeFlagAsync(_container, flag, name, description);
 	}
 }

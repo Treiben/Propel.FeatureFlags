@@ -1,6 +1,6 @@
-﻿using Propel.FeatureFlags.Services.ApplicationScope;
+﻿using Propel.FeatureFlags.Domain;
 
-namespace Propel.ClientApi.FeatureFlags;
+namespace ApiFlagUsageDemo.FeatureFlags;
 
 
 // Type-safe feature flag for controlling checkout processing variations.
@@ -12,20 +12,12 @@ namespace Propel.ClientApi.FeatureFlags;
 
 // Note: It is often safer to default to disabled so when the feature is deployed it can be enabled
 // on approved release schedule rather than immeditately,
-public class CheckoutVersionFeatureFlag : RegisteredFeatureFlag
+public class CheckoutVersionFeatureFlag : FeatureFlagBase
 {
 	public CheckoutVersionFeatureFlag() 
 		: base(key: "checkout-version",
 			name: "Checkout Processing Version",
-			description: "Controls which checkout processing implementation is used for A/B testing. Supports v1 (legacy stable), v2 (enhanced with optimizations), and v3 (experimental cutting-edge algorithms). All variations achieve the same business outcome with different technical approaches.",
-			tags: new()
-				{
-					{ "category", "performance" },
-					{ "type", "a-b-test" },
-					{ "impact", "medium" },
-					{ "team", "checkout" },
-					{ "variations", "v1,v2,v3" }
-			})
+			description: "Controls which checkout processing implementation is used for A/B testing. Supports v1 (legacy stable), v2 (enhanced with optimizations), and v3 (experimental cutting-edge algorithms). All variations achieve the same business outcome with different technical approaches.")
 	{
 	}
 }

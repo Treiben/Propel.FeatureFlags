@@ -20,7 +20,7 @@ public class TargetingRuleFactory_CreaterTargetingRule
         rule.Variation.ShouldBe("premium");
         
         var numericRule = (NumericTargetingRule)rule;
-        numericRule.Values.ShouldBe(new List<double> { 1.5, 2.0, 10 });
+        numericRule.Values.ShouldBe([1.5, 2.0, 10]);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class TargetingRuleFactory_CreaterTargetingRule
         // Assert
         rule.ShouldBeOfType<NumericTargetingRule>();
         var numericRule = (NumericTargetingRule)rule;
-        numericRule.Values.ShouldBe(new List<double> { 1, 2, 100 });
+        numericRule.Values.ShouldBe([1, 2, 100]);
     }
 
     [Fact]
@@ -126,6 +126,6 @@ public class TargetingRuleFactory_CreaterTargetingRule
         // Assert
         rule.ShouldBeOfType<NumericTargetingRule>();
         var numericRule = (NumericTargetingRule)rule;
-        numericRule.Values.ShouldBe(new List<double> { -1.5, -10, 0 });
+        numericRule.Values.ShouldBe([-1.5, -10, 0]);
     }
 }

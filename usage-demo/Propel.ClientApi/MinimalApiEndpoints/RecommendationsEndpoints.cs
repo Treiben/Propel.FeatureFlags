@@ -1,7 +1,7 @@
-﻿using Propel.ClientApi.FeatureFlags;
+﻿using ApiFlagUsageDemo.FeatureFlags;
 using Propel.FeatureFlags.AspNetCore.Extensions;
 
-namespace Propel.ClientApi.MinimalApiEndpoints;
+namespace ApiFlagUsageDemo.MinimalApiEndpoints;
 
 /// <summary>
 ///=== Complex feature flag demo: user-specific recommendation algorithms ===

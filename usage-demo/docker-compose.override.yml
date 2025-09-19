@@ -1,0 +1,33 @@
+services:
+  postgres:
+    # Expose additional port for local development tools
+    ports:
+      - "5432:5432"
+    environment:
+      # Enable more verbose logging in development
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+
+  redis:
+    # Expose Redis port for local development tools
+    ports:
+      - "6379:6379"
+    # Enable Redis CLI access in development
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --protected-mode no
+
+  propel.demo.api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      - ASPNETCORE_HTTP_PORTS=8080  # Container port
+      - ASPNETCORE_HTTPS_PORTS=8081 # Container port (if HTTPS needed)
+    ports:
+      - "5001:8080"  # Host:Container mapping
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+      - ./usage-demo/Propel.ClientApi:/app/source:ro
+      - ./usage-demo/Propel.ClientApi/appsettings.Development.json:/app/appsettings.Development.json:ro
+
+

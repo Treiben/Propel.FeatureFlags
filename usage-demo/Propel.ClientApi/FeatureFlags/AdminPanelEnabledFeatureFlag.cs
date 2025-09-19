@@ -1,7 +1,6 @@
 ﻿using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Services.ApplicationScope;
 
-namespace Propel.ClientApi.FeatureFlags;
+namespace ApiFlagUsageDemo.FeatureFlags;
 
 // Type-safe feature flag definition for admin panel functionality.
 // When this flag doesn't exist in the database, it will be automatically created
@@ -12,20 +11,13 @@ namespace Propel.ClientApi.FeatureFlags;
 
 // Note: It is often safer to default to disabled for high-impact features,
 // so flag can be enabled on an approved schedule rather than immediately upon deployment.
-public class AdminPanelEnabledFeatureFlag : RegisteredFeatureFlag
+public class AdminPanelEnabledFeatureFlag : FeatureFlagBase
 {
 	public AdminPanelEnabledFeatureFlag()
 		: base(key: "admin-panel-enabled",
 			name: "Admin Panel Access", 
 			description: "Controls access to administrative panel features including user management, system settings, and sensitive operations",
-			tags: new()
-				{
-					{ "category", "security" },
-					{ "impact", "high" },
-					{ "team", "platform" },
-					{ "environment", "all" }
-				}, 
-			defaultMode: EvaluationMode.Enabled)
+			onOfMode: EvaluationMode.On)
 	{
 	}
 }

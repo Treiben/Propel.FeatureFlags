@@ -1,5 +1,5 @@
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Services.Evaluation;
+using Propel.FeatureFlags.Evaluation;
 
 namespace FeatureFlags.UnitTests.Evaluation;
 
@@ -11,34 +11,43 @@ public class OperationalWindowEvaluator_CanProcess
 	public void CanProcess_FlagHasTimeWindowMode_ReturnsTrue()
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.TimeWindow]) };
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var modes = new EvaluationModes([EvaluationMode.TimeWindow]);
+		var flagConfig = new FlagEvaluationConfiguration(
+			identifier: identifier, activeEvaluationModes: modes);
 
 		// Act & Assert
-		_evaluator.CanProcess(criteria, new EvaluationContext()).ShouldBeTrue();
+		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeTrue();
 	}
 
 	[Fact]
 	public void CanProcess_FlagHasMultipleModesIncludingTimeWindow_ReturnsTrue()
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria { ActiveEvaluationModes = new EvaluationModes([EvaluationMode.TimeWindow, EvaluationMode.Scheduled]) };
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var modes = new EvaluationModes([EvaluationMode.TimeWindow, EvaluationMode.Scheduled]);
+		var flagConfig = new FlagEvaluationConfiguration(
+			identifier: identifier, activeEvaluationModes: modes);
 
 		// Act & Assert
-		_evaluator.CanProcess(criteria, new EvaluationContext()).ShouldBeTrue();
+		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeTrue();
 	}
 
 	[Theory]
-	[InlineData(EvaluationMode.Disabled)]
-	[InlineData(EvaluationMode.Enabled)]
+	[InlineData(EvaluationMode.Off)]
+	[InlineData(EvaluationMode.On)]
 	[InlineData(EvaluationMode.Scheduled)]
 	[InlineData(EvaluationMode.UserTargeted)]
 	public void CanProcess_FlagDoesNotHaveTimeWindowMode_ReturnsFalse(EvaluationMode mode)
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria { ActiveEvaluationModes = new EvaluationModes([mode]) };
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var modes = new EvaluationModes([mode]);
+		var flagConfig = new FlagEvaluationConfiguration(
+			identifier: identifier, activeEvaluationModes: modes);
 
 		// Act & Assert
-		_evaluator.CanProcess(criteria, new EvaluationContext()).ShouldBeFalse();
+		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeFalse();
 	}
 }
 
@@ -50,18 +59,14 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_AlwaysOpen_ReturnsEnabled()
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria
-		{
-			OperationalWindow = OperationalWindow.AlwaysOpen,
-			Variations = new Variations { DefaultVariation = "off" }
-		};
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var flagConfig = new FlagEvaluationConfiguration(identifier);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(criteria, new EvaluationContext());
+		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe(criteria.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Flag operational window is always open.");
 	}
 
@@ -70,20 +75,20 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	{
 		// Arrange
 		var evaluationTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc); // Monday 12 PM
-		var criteria = new EvaluationCriteria
-		{
-			OperationalWindow = new OperationalWindow(
-				TimeSpan.FromHours(9), TimeSpan.FromHours(17)),
-			Variations = new Variations { DefaultVariation = "window-closed" }
-		};
+
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var window = new OperationalWindow(
+			TimeSpan.FromHours(9), TimeSpan.FromHours(17)); // 9 AM to 5 PM
+		var variations = new Variations { DefaultVariation = "window-open" };
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(criteria,
+		var result = await _evaluator.ProcessEvaluation(flagConfig,
 			new EvaluationContext(evaluationTime: evaluationTime));
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe(criteria.Variations.DefaultVariation);
+		result.Variation.ShouldBe(flagConfig.Variations.DefaultVariation);
 		result.Reason.ShouldBe("Within time window");
 	}
 
@@ -92,15 +97,15 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	{
 		// Arrange
 		var evaluationTime = new DateTime(2024, 1, 15, 20, 0, 0, DateTimeKind.Utc); // Monday 8 PM
-		var criteria = new EvaluationCriteria
-		{
-			OperationalWindow = new OperationalWindow(
-				TimeSpan.FromHours(9), TimeSpan.FromHours(17)),
-			Variations = new Variations { DefaultVariation = "window-closed" }
-		};
+
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var window = new OperationalWindow(
+			TimeSpan.FromHours(9), TimeSpan.FromHours(17)); // 9 AM to 5 PM
+		var variations = new Variations { DefaultVariation = "window-closed" };
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(criteria,
+		var result = await _evaluator.ProcessEvaluation(flagConfig,
 			new EvaluationContext(evaluationTime: evaluationTime));
 
 		// Assert
@@ -116,17 +121,17 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var nightTime = new DateTime(2024, 1, 15, 2, 0, 0, DateTimeKind.Utc); // Monday 2 AM
 		var dayTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc); // Monday 12 PM
 
-		var criteria = new EvaluationCriteria
-		{
-			OperationalWindow = new OperationalWindow(
-				TimeSpan.FromHours(22), TimeSpan.FromHours(6)), // 10 PM to 6 AM
-			Variations = new Variations { DefaultVariation = "maintenance-off" }
-		};
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var window = new OperationalWindow(
+				TimeSpan.FromHours(22), TimeSpan.FromHours(6)); // 10 PM to 6 AM
+		var variations = new Variations { DefaultVariation = "maintenance-off" };
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
+
 
 		// Act
-		var resultNight = await _evaluator.ProcessEvaluation(criteria,
+		var resultNight = await _evaluator.ProcessEvaluation(flagConfig,
 			new EvaluationContext(evaluationTime: nightTime));
-		var resultDay = await _evaluator.ProcessEvaluation(criteria,
+		var resultDay = await _evaluator.ProcessEvaluation(flagConfig,
 			new EvaluationContext(evaluationTime: dayTime));
 
 		// Assert
@@ -146,18 +151,17 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		DayOfWeek[] weekdaysOnly = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
 			DayOfWeek.Thursday, DayOfWeek.Friday];
 
-		var criteria = new EvaluationCriteria
-		{
-			OperationalWindow = new OperationalWindow(
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var window = new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
-				daysActive: weekdaysOnly),
-			Variations = new Variations { DefaultVariation = "weekend-off" }
-		};
+				daysActive: weekdaysOnly);
+		var variations = new Variations { DefaultVariation = "weekend-off" };
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
 
 		// Act
-		var resultMonday = await _evaluator.ProcessEvaluation(criteria,
+		var resultMonday = await _evaluator.ProcessEvaluation(flagConfig,
 			new EvaluationContext(evaluationTime: monday));
-		var resultSaturday = await _evaluator.ProcessEvaluation(criteria,
+		var resultSaturday = await _evaluator.ProcessEvaluation(flagConfig,
 			new EvaluationContext(evaluationTime: saturday));
 
 		// Assert
@@ -174,16 +178,16 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	{
 		// Arrange
 		var evaluationTime = new DateTime(2024, 1, 15, 17, 0, 0, DateTimeKind.Utc); // 5 PM UTC
-		var criteria = new EvaluationCriteria
-		{
-			OperationalWindow = new OperationalWindow(
+
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var window = new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
-				"Pacific Standard Time"), // Window is in PST
-			Variations = new Variations { DefaultVariation = "off" }
-		};
+				"Pacific Standard Time"); // Window is in PST
+		var variations = new Variations { DefaultVariation = "off" };
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
 
 		// Act - Use Eastern time context (5 PM UTC = 12 PM EST, within window)
-		var result = await _evaluator.ProcessEvaluation(criteria,
+		var result = await _evaluator.ProcessEvaluation(flagConfig,
 			new EvaluationContext(evaluationTime: evaluationTime, timeZone: "Eastern Standard Time"));
 
 		// Assert
@@ -195,14 +199,11 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_NoEvaluationTimeProvided_UsesCurrentTime()
 	{
 		// Arrange
-		var criteria = new EvaluationCriteria
-		{
-			OperationalWindow = OperationalWindow.AlwaysOpen,
-			Variations = new Variations { DefaultVariation = "off" }
-		};
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var flagConfig = new FlagEvaluationConfiguration(identifier);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(criteria,
+		var result = await _evaluator.ProcessEvaluation(flagConfig,
 			new EvaluationContext(evaluationTime: null));
 
 		// Assert
@@ -216,28 +217,28 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		// Arrange - Business hours: 9 AM - 5 PM, weekdays only
 		DayOfWeek[] businessDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
 			DayOfWeek.Thursday, DayOfWeek.Friday];
-		var criteria = new EvaluationCriteria
-		{
-			OperationalWindow = new OperationalWindow(
+
+		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var window = new OperationalWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
-				daysActive: businessDays),
-			Variations = new Variations { DefaultVariation = "after-hours" }
-		};
+				daysActive: businessDays); 
+		var variations = new Variations { DefaultVariation = "after-hours" };
+		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
 
 		// Act & Assert - During business hours (Wednesday 2 PM)
-		var businessResult = await _evaluator.ProcessEvaluation(criteria,
+		var businessResult = await _evaluator.ProcessEvaluation(flagConfig,
 			new EvaluationContext(evaluationTime: new DateTime(2024, 1, 17, 14, 0, 0, DateTimeKind.Utc)));
 		businessResult.IsEnabled.ShouldBeTrue();
 		businessResult.Reason.ShouldBe("Within time window");
 
 		// Act & Assert - After hours (Wednesday 8 PM)
-		var afterResult = await _evaluator.ProcessEvaluation(criteria,
+		var afterResult = await _evaluator.ProcessEvaluation(flagConfig,
 			new EvaluationContext(evaluationTime: new DateTime(2024, 1, 17, 20, 0, 0, DateTimeKind.Utc)));
 		afterResult.IsEnabled.ShouldBeFalse();
 		afterResult.Reason.ShouldBe("Outside time window");
 
 		// Act & Assert - Weekend (Saturday 2 PM)
-		var weekendResult = await _evaluator.ProcessEvaluation(criteria,
+		var weekendResult = await _evaluator.ProcessEvaluation(flagConfig,
 			new EvaluationContext(evaluationTime: new DateTime(2024, 1, 20, 14, 0, 0, DateTimeKind.Utc)));
 		weekendResult.IsEnabled.ShouldBeFalse();
 		weekendResult.Reason.ShouldBe("Outside allowed days");

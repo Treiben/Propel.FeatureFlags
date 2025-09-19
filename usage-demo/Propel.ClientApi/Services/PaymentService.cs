@@ -1,7 +1,7 @@
-﻿using Propel.ClientApi.FeatureFlags;
+﻿using ApiFlagUsageDemo.FeatureFlags;
 using Propel.FeatureFlags.Services.ApplicationScope;
 
-namespace Propel.ClientApi.Services;
+namespace ApiFlagUsageDemo.Services;
 
 /// <summary>
 ///=== SERVICE LAYER FEATURE FLAG INTEGRATION DEMO ===

@@ -10,13 +10,18 @@ public class Evaluate_WithEnabledFlag(FlagEvaluationTestsFixture fixture) : ICla
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, appFlag) = TestHelpers.SetupTestCases("enabled-test", EvaluationMode.Enabled);
-		await fixture.EvaluationRepository.CreateAsync(flag);
+
+		var (config, flag) = new FlagConfigurationBuilder("enabled-test")
+		.WithEvaluationModes(EvaluationMode.On)
+		.ForFeatureFlag(defaultMode: EvaluationMode.On)
+		.Build();
+
+		await fixture.EvaluationRepository.CreateAsync(config.Identifier, flag.OnOffMode, flag.Name, flag.Description);
 
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await fixture.Evaluator.Evaluate(appFlag, context);
+		var result = await fixture.Evaluator.Evaluate(flag, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -32,21 +37,24 @@ public class Evaluate_WithUserTargetedFlag(FlagEvaluationTestsFixture fixture) :
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, appFlag) = TestHelpers.SetupTestCases("targeted-flag", EvaluationMode.UserTargeted);
-		flag.TargetingRules = [
-			TargetingRuleFactory.CreateTargetingRule(
-				"userId",
-				TargetingOperator.Equals,
-				["target-user"],
-				"premium-features"
-			),
-		];
-		await fixture.ManagementRepository.CreateAsync(flag);
+
+		var (config, flag) = new FlagConfigurationBuilder("targeted-flag")
+									.WithEvaluationModes(EvaluationMode.UserTargeted)
+									.WithTargetingRules([TargetingRuleFactory.CreateTargetingRule(
+											"userId",
+											TargetingOperator.Equals,
+											["target-user"],
+											"premium-features"
+										)])
+									.ForFeatureFlag(defaultMode: EvaluationMode.Off)
+									.Build();
+
+		await fixture.SaveAsync(config, "targeted-flag", "created by integration tests");
 
 		var context = new EvaluationContext(userId: "current-user");
 
 		// Act
-		var result = await fixture.Evaluator.Evaluate(appFlag, context);
+		var result = await fixture.Evaluator.Evaluate(flag, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -61,17 +69,21 @@ public class Evaluate_WithUserRolloutFlag(FlagEvaluationTestsFixture fixture) : 
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, appFlag) = TestHelpers.SetupTestCases("rollout-flag", EvaluationMode.UserRolloutPercentage);
-		flag.UserAccessControl = new AccessControl(
-			allowed: ["allowed-user"],
-			rolloutPercentage: 0);
 
-		await fixture.ManagementRepository.CreateAsync(flag);
+		var (config, flag) = new FlagConfigurationBuilder("rollout-flag")
+							.WithEvaluationModes(EvaluationMode.UserRolloutPercentage)
+							.WithUserAccessControl(new AccessControl(
+								allowed: ["allowed-user"],
+								rolloutPercentage: 0))
+							.ForFeatureFlag(defaultMode: EvaluationMode.Off)
+							.Build();
+
+		await fixture.SaveAsync(config, "rollout-flag", "created by integration tests");
 
 		var context = new EvaluationContext(userId: "allowed-user");
 
 		// Act
-		var result = await fixture.Evaluator.Evaluate(appFlag, context);
+		var result = await fixture.Evaluator.Evaluate(flag, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -83,17 +95,21 @@ public class Evaluate_WithUserRolloutFlag(FlagEvaluationTestsFixture fixture) : 
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, appFlag) = TestHelpers.SetupTestCases("rollout-flag", EvaluationMode.UserRolloutPercentage);
-		flag.UserAccessControl = new AccessControl(
-			blocked: ["blocked-user"],
-			rolloutPercentage: 100);
 
-		await fixture.ManagementRepository.CreateAsync(flag);
+		var (config, flag) = new FlagConfigurationBuilder("rollout-flag")
+					.WithEvaluationModes(EvaluationMode.UserRolloutPercentage)
+					.WithUserAccessControl(new AccessControl(
+						blocked: ["blocked-user"],
+						rolloutPercentage: 100))
+					.ForFeatureFlag(defaultMode: EvaluationMode.Off)
+					.Build();
+
+		await fixture.SaveAsync(config, "rollout-flag", "created by integration tests");
 
 		var context = new EvaluationContext(userId: "blocked-user");
 
 		// Act
-		var result = await fixture.Evaluator.Evaluate(appFlag, context);
+		var result = await fixture.Evaluator.Evaluate(flag, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -108,18 +124,20 @@ public class Evaluate_WithTimeWindowFlag(FlagEvaluationTestsFixture fixture) : I
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, appFlag) = TestHelpers.SetupTestCases("window-flag", EvaluationMode.TimeWindow);
-		flag.OperationalWindow = new OperationalWindow(
-			TimeSpan.FromHours(9),
-			TimeSpan.FromHours(17));
 
-		await fixture.ManagementRepository.CreateAsync(flag);
+		var (config, flag) = new FlagConfigurationBuilder("window-flag")
+				.WithEvaluationModes(EvaluationMode.TimeWindow)
+				.WithOperationalWindow(new OperationalWindow(TimeSpan.FromHours(9), TimeSpan.FromHours(17)))
+				.ForFeatureFlag(defaultMode: EvaluationMode.Off)
+				.Build();
+
+		await fixture.SaveAsync(config, "window-flag", "created by integration tests");
 
 		var evaluationTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc);
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
 		// Act
-		var result = await fixture.Evaluator.Evaluate(appFlag, context);
+		var result = await fixture.Evaluator.Evaluate(flag, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -131,18 +149,20 @@ public class Evaluate_WithTimeWindowFlag(FlagEvaluationTestsFixture fixture) : I
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, appFlag) = TestHelpers.SetupTestCases("window-flag", EvaluationMode.TimeWindow);
-		flag.OperationalWindow = new OperationalWindow(
-			TimeSpan.FromHours(9),
-			TimeSpan.FromHours(17));
 
-		await fixture.ManagementRepository.CreateAsync(flag);
+		var (config, flag) = new FlagConfigurationBuilder("window-flag")
+					.WithEvaluationModes(EvaluationMode.TimeWindow)
+					.WithOperationalWindow(new OperationalWindow(TimeSpan.FromHours(9), TimeSpan.FromHours(17)))
+					.ForFeatureFlag(defaultMode: EvaluationMode.Off)
+					.Build();
+
+		await fixture.SaveAsync(config, "window-flag", "created by integration tests");
 
 		var evaluationTime = new DateTime(2024, 1, 15, 20, 0, 0, DateTimeKind.Utc);
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
 		// Act
-		var result = await fixture.Evaluator.Evaluate(appFlag, context);
+		var result = await fixture.Evaluator.Evaluate(flag, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -157,30 +177,31 @@ public class GetVariation_WithComplexVariations(FlagEvaluationTestsFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, appFlag) = TestHelpers.SetupTestCases("string-flag", EvaluationMode.UserTargeted);
-		
-		flag.TargetingRules = [
-			TargetingRuleFactory.CreateTargetingRule(
-							attribute: "user-type",
-							op: TargetingOperator.In,
-							values: ["dev-user", "test-user"],
-							variation: "string-variant"
-						)
-		];
-		flag.Variations = new Variations
-		{
-			Values = new Dictionary<string, object>
-						{
-							{ "string-variant", "Hello World" }
-						}
-		};
-		await fixture.ManagementRepository.CreateAsync(flag);
+
+		var (config, flag) = new FlagConfigurationBuilder("string-flag")
+				.WithEvaluationModes(EvaluationMode.UserTargeted)
+				.WithTargetingRules([TargetingRuleFactory.CreateTargetingRule(
+								attribute: "user-type",
+								op: TargetingOperator.In,
+								values: ["dev-user", "test-user"],
+								variation: "string-variant"
+							)])
+				.WithVariations(new Variations { 
+					Values = new Dictionary<string, object> 
+					{ 
+						{ "string-variant", "Hello World" } 
+					} 
+				})
+				.ForFeatureFlag(defaultMode: EvaluationMode.Off)
+				.Build();
+
+		await fixture.SaveAsync(config, "string-flag", "created by integration tests");
 
 		var context = new EvaluationContext(attributes: new Dictionary<string, object> { { "user-type", "test-user" } },
 			userId: "dev-user");
 
 		// Act
-		var result = await fixture.Evaluator.GetVariation(appFlag, "default", context);
+		var result = await fixture.Evaluator.GetVariation(flag, "default", context);
 
 		// Assert
 		result.ShouldBe("Hello World");
@@ -191,23 +212,26 @@ public class GetVariation_WithComplexVariations(FlagEvaluationTestsFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, appFlag) = TestHelpers.SetupTestCases("int-flag", EvaluationMode.UserTargeted);
-		flag.TargetingRules = [
-		TargetingRuleFactory.CreateTargetingRule(
-								"userId",
-								TargetingOperator.Equals,
-								["test-user"],
-								"int-variant"
-								)
-		];
-		flag.Variations = new Variations
-		{
-			Values = new Dictionary<string, object>
+
+		var (config, flag) = new FlagConfigurationBuilder("int-flag")
+				.WithEvaluationModes(EvaluationMode.UserTargeted)
+				.WithTargetingRules([TargetingRuleFactory.CreateTargetingRule(
+										"userId",
+										TargetingOperator.Equals,
+										["test-user"],
+										"int-variant"
+									)])
+				.WithVariations(new Variations
+				{
+					Values = new Dictionary<string, object>
 						{
 							{ "int-variant", 42 }
 						}
-		};
-		await fixture.ManagementRepository.CreateAsync(flag);
+				})
+		.ForFeatureFlag(defaultMode: EvaluationMode.Off)
+		.Build();
+
+		await fixture.SaveAsync(config, "integer-flag", "created by integration tests");
 
 		var context = new EvaluationContext(
 			userId: "test-user",
@@ -215,7 +239,7 @@ public class GetVariation_WithComplexVariations(FlagEvaluationTestsFixture fixtu
 		);
 
 		// Act
-		var result = await fixture.Evaluator.GetVariation(appFlag, 0, context);
+		var result = await fixture.Evaluator.GetVariation(flag, 0, context);
 
 		// Assert
 		result.ShouldBe(42);
@@ -226,14 +250,18 @@ public class GetVariation_WithComplexVariations(FlagEvaluationTestsFixture fixtu
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, appFlag) = TestHelpers.SetupTestCases("disabled-variation", EvaluationMode.Disabled);
 
-		await fixture.ManagementRepository.CreateAsync(flag);
+		var (config, flag) = new FlagConfigurationBuilder("disabled-variation")
+				.WithEvaluationModes(EvaluationMode.Off)
+				.ForFeatureFlag(defaultMode: EvaluationMode.Off)
+				.Build();
+
+		await fixture.SaveAsync(config, "disabled-variation", "created by integration tests");
 
 		var context = new EvaluationContext(userId: "test-user");
 
 		// Act
-		var result = await fixture.Evaluator.GetVariation(appFlag, "default-value", context);
+		var result = await fixture.Evaluator.GetVariation(flag, "default-value", context);
 
 		// Assert
 		result.ShouldBe("default-value");

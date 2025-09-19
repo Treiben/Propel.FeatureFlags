@@ -1,23 +1,14 @@
 ﻿using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Services.ApplicationScope;
 
-namespace Propel.ClientApi.FeatureFlags;
+namespace ApiFlagUsageDemo.FeatureFlags;
 
-public class NewEmailServiceFeatureFlag : RegisteredFeatureFlag
+public class NewEmailServiceFeatureFlag : FeatureFlagBase
 {
 	public NewEmailServiceFeatureFlag() 
 		: base(key: "new-email-service",
 			name: "New Email Service",
 			description: "Controls whether to use the enhanced email service implementation with improved performance and features, or fall back to the legacy email service. Enables safe rollout of new email infrastructure with automatic fallback for resilience.",
-			tags: new Dictionary<string, string>
-			{
-				{ "category", "infrastructure" },
-				{ "type", "implementation-toggle" },
-				{ "impact", "medium" },
-				{ "team", "platform" },
-				{ "rollback", "automatic" }
-			},
-			defaultMode: EvaluationMode.Disabled)
+			onOfMode: EvaluationMode.Off)
 	{
 	}
 }
