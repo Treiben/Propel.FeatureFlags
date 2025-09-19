@@ -12,7 +12,7 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["usage-demo/ApiFlagUsageDemo/ApiFlagUsageDemo.csproj", "usage-demo/ApiFlagUsageDemo/"]
+COPY ["usage-demo/WebClientDemo/WebClientDemo.csproj", "usage-demo/WebClientDemo/"]
 
 COPY ["src/Propel.FeatureFlags/Propel.FeatureFlags.csproj", "src/Propel.FeatureFlags/"]
 COPY ["src/Propel.FeatureFlags.AspNetCore/Propel.FeatureFlags.AspNetCore.csproj", "src/Propel.FeatureFlags.AspNetCore/"]
@@ -22,18 +22,18 @@ COPY ["infrastructure/Propel.FeatureFlags.Infrastructure.Redis/Propel.FeatureFla
 COPY ["infrastructure/Propel.FeatureFlags.Infrastructure.PostgresSql/Propel.FeatureFlags.Infrastructure.PostgresSql.csproj", "infrastructure/Propel.FeatureFlags.Infrastructure.PostgresSql/"]
 
 
-RUN dotnet restore "./usage-demo/ApiFlagUsageDemo/ApiFlagUsageDemo.csproj"
+RUN dotnet restore "./usage-demo/WebClientDemo/WebClientDemo.csproj"
 COPY . .
-WORKDIR "/src/usage-demo/ApiFlagUsageDemo"
-RUN dotnet build "./ApiFlagUsageDemo.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/usage-demo/WebClientDemo"
+RUN dotnet build "./WebClientDemo.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./ApiFlagUsageDemo.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./WebClientDemo.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "ApiFlagUsageDemo.dll"]
+ENTRYPOINT ["dotnet", "WebClientDemo.dll"]

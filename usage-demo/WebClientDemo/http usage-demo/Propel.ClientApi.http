@@ -1,6 +1,6 @@
 ﻿@Demo_Api_HostAddress_Https = https://localhost:7089
 @Demo_Api_HostAddress_Http = http://localhost:5245
-@Demo_Api_HostAddress_Docker = http://localhost:5002
+@Demo_Api_HostAddress_Docker = http://localhost:5001
 @baseUrl = {{Demo_Api_HostAddress_Docker}}
 
 ###############################################################################
@@ -147,10 +147,6 @@ Country: DE
 # ADMIN ENDPOINTS (Role-Based Targeting)
 ###############################################################################
 
-###############################################################################
-# ADMIN ENDPOINTS (Role-Based Targeting)
-###############################################################################
-
 ### 14. Admin Operation - Regular User (Should return 404)
 # Expected: 404 Not Found - Feature doesn't exist for this user
 # Reason: Role "user" and department "marketing" don't match targeting rules (admin/super-admin roles OR engineering/operations departments)
@@ -202,11 +198,11 @@ Department: operations
 
 ### 19. Test During Business Hours (Enhanced Catalog should be enabled)
 # Expected: 200 OK - Returns enhanced catalog with advanced features
-# Reason: Business hours (9 AM - 6 PM EST, Mon-Fri) enable enhanced-catalog-ui
+# Reason: Business hours (9 AM - 6 PM CST, Mon-Fri) enable enhanced-catalog-ui
 GET {{baseUrl}}/products/catalog
 Accept: application/json
 User-Id: business-hours-test
-Timezone: America/New_York
+Timezone: America/Chicago
 
 ### 20. Test Outside Business Hours (Enhanced Catalog should be disabled)
 # Expected: 200 OK - Returns standard catalog with basic features
@@ -274,12 +270,12 @@ User-Id: test-user-001
   "totalPrice": 10.00
 }
 
-### 26. User 002 - Checkout Version Test
+### 26. User 007 - Checkout Version Test
 # Expected: 200 OK - Returns order with checkout version (likely different from 001)
 # Reason: Different user hash may result in different checkout version
 POST {{baseUrl}}/orders
 Content-Type: application/json
-User-Id: test-user-002
+User-Id: test-user-007
 
 {
   "productId": "test-product",
@@ -287,12 +283,12 @@ User-Id: test-user-002
   "totalPrice": 10.00
 }
 
-### 27. User 003 - Checkout Version Test
+### 27. User 10 - Checkout Version Test
 # Expected: 200 OK - Returns order with checkout version
 # Reason: Demonstrates percentage rollout distribution across users
 POST {{baseUrl}}/orders
 Content-Type: application/json
-User-Id: test-user-003
+User-Id: test-user-10
 
 {
   "productId": "test-product",
@@ -300,31 +296,6 @@ User-Id: test-user-003
   "totalPrice": 10.00
 }
 
-### 28. User 004 - Checkout Version Test
-# Expected: 200 OK - Returns order with checkout version
-# Reason: Shows variation in checkout versions across user base
-POST {{baseUrl}}/orders
-Content-Type: application/json
-User-Id: test-user-004
-
-{
-  "productId": "test-product",
-  "quantity": 1,
-  "totalPrice": 10.00
-}
-
-### 29. User 005 - Checkout Version Test
-# Expected: 200 OK - Returns order with checkout version
-# Reason: Completes sample of percentage rollout distribution
-POST {{baseUrl}}/orders
-Content-Type: application/json
-User-Id: test-user-005
-
-{
-  "productId": "test-product",
-  "quantity": 1,
-  "totalPrice": 10.00
-}
 
 ###############################################################################
 # TESTING NOTES
