@@ -11,7 +11,7 @@ namespace FeatureFlags.IntegrationTests.Support;
 public class PostgresRepositoriesTestsFixture : IAsyncLifetime
 {
 	private readonly PostgreSqlContainer _container;
-	public FlagEvaluationRepository EvaluationRepository { get; private set; } = null!;
+	public ClientApplicationRepository EvaluationRepository { get; private set; } = null!;
 	public PostgresRepositoriesTestsFixture()
 	{
 		_container = new PostgreSqlBuilder()
@@ -34,7 +34,7 @@ public class PostgresRepositoriesTestsFixture : IAsyncLifetime
 		if (!initialized)
 			throw new InvalidOperationException("Failed to initialize PostgreSQL database for feature flags");
 
-		EvaluationRepository = new FlagEvaluationRepository(connectionString, new Mock<ILogger<FlagEvaluationRepository>>().Object);
+		EvaluationRepository = new ClientApplicationRepository(connectionString, new Mock<ILogger<ClientApplicationRepository>>().Object);
 	}
 
 	public async Task DisposeAsync()

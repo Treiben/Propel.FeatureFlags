@@ -21,7 +21,7 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 
 	public IFeatureFlagEvaluator Evaluator { get; private set; } = null!;
 	public IFeatureFlagClient Client { get; private set; } = null!;
-	public FlagEvaluationRepository EvaluationRepository { get; private set; } = null!;
+	public ClientApplicationRepository EvaluationRepository { get; private set; } = null!;
 	public RedisFeatureFlagCache Cache { get; private set; } = null!;
 
 	private ConnectionMultiplexer _redisConnection = null!;
@@ -54,7 +54,7 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 		if (!initialized)
 			throw new InvalidOperationException("Failed to initialize PostgreSQL database for feature flags");
 
-		EvaluationRepository = new FlagEvaluationRepository(connectionString, new Mock<ILogger<FlagEvaluationRepository>>().Object);
+		EvaluationRepository = new ClientApplicationRepository(connectionString, new Mock<ILogger<ClientApplicationRepository>>().Object);
 
 		var redisConnectionString = _redisContainer.GetConnectionString();
 		_redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
