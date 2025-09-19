@@ -37,7 +37,7 @@ builder.Services.AddSingleton<IFeatureFlagFactory, DemoFeatureFlagFactory>();
 // 0. install the Propel.FeatureFlags.Infrastructure.PostgresSql package
 // 1. use configured connection string
 var pgConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-	?? propelOptions.Database.SqlConnectionString // fallback to the configured SQL connection string
+	?? propelOptions.Database.DefaultConnection // fallback to the configured SQL connection string
 	?? throw new InvalidOperationException("PostgreSQL connection string is required but not found in configuration");
 
 builder.Services.AddPropelPersistence(pgConnectionString);
@@ -83,6 +83,8 @@ builder.Services.AddScopedWithFeatureFlags<INotificationService, NotificationSer
 // Register your application services normally
 
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
+builder.Services.AddScoped<IPaymentProcessorV1, PaymentProcessorV1>();
+builder.Services.AddScoped<IPaymentProcessorV2, PaymentProcessorV2>();
 builder.Services.AddScoped<PaymentService>();
 
 var app = builder.Build();
@@ -96,7 +98,7 @@ app.UseHttpsRedirection();
 app.MapHealthChecks("/health");
 
 // add the feature flag middleware to the pipeline for global flags evaluation and to use in endpoints
-// example scenarios: "basic", "maintenance", "global", "user-extraction", "
+// example scenarios: "basic", "saas", "maintenance", "global", "user-extraction", "
 app.MapFeatureFlagMiddleware("maintenance+headers");
 
 app.MapAdminEndpoints();
@@ -133,7 +135,7 @@ public static class AppExtensions
 			// Slightly more complex middleware configuration example:
 			// Feature flag middleware with global flags
 			// This allows you to define global feature gates that apply to all users
-			case "globalFlags":
+			case "global":
 
 				return (WebApplication)app.UseFeatureFlags(options =>
 				{
@@ -154,7 +156,7 @@ public static class AppExtensions
 
 			// For more advanced feature flags, such as A/B or user percentage,
 			// example of feature flag middleware with custom user ID extraction and attribute extractors
-			case "customUserExtraction":
+			case "user-extraction":
 				return (WebApplication)app.UseFeatureFlags(options =>
 				{
 					// Custom user ID extraction
@@ -206,7 +208,7 @@ public static class AppExtensions
 			// Advanced middleware configuration example:
 			// Feature flag middleware with maintenance mode AND additional attributes from headers
 			// that can be useful for targeting rules
-			case "maintenanceWithHeaders":
+			case "maintenance+headers":
 				return (WebApplication)app.UseFeatureFlags(options =>
 				{
 					options.EnableMaintenanceMode = true;

@@ -12,28 +12,28 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["usage-demo/Propel.ClientApi/Propel.ClientApi.csproj", "usage-demo/Propel.ClientApi/"]
+COPY ["usage-demo/ApiFlagUsageDemo/ApiFlagUsageDemo.csproj", "usage-demo/ApiFlagUsageDemo/"]
 
 COPY ["src/Propel.FeatureFlags/Propel.FeatureFlags.csproj", "src/Propel.FeatureFlags/"]
 COPY ["src/Propel.FeatureFlags.AspNetCore/Propel.FeatureFlags.AspNetCore.csproj", "src/Propel.FeatureFlags.AspNetCore/"]
 COPY ["src/Propel.FeatureFlags.Attributes/Propel.FeatureFlags.Attributes.csproj", "src/Propel.FeatureFlags.Attributes/"]
 
-COPY ["infrastructure/Propel.FeatureFlags.Redis/Propel.FeatureFlags.Redis.csproj", "infrastructure/Propel.FeatureFlags.Redis/"]
-COPY ["infrastructure/Propel.FeatureFlags.PostgresSql/Propel.FeatureFlags.PostgresSql.csproj", "infrastructure/Propel.FeatureFlags.PostgresSql/"]
+COPY ["infrastructure/Propel.FeatureFlags.Infrastructure.Redis/Propel.FeatureFlags.Infrastructure.Redis.csproj", "infrastructure/Propel.FeatureFlags.Infrastructure.Redis/"]
+COPY ["infrastructure/Propel.FeatureFlags.Infrastructure.PostgresSql/Propel.FeatureFlags.Infrastructure.PostgresSql.csproj", "infrastructure/Propel.FeatureFlags.Infrastructure.PostgresSql/"]
 
 
-RUN dotnet restore "./usage-demo/Propel.ClientApi/Propel.ClientApi.csproj"
+RUN dotnet restore "./usage-demo/ApiFlagUsageDemo/ApiFlagUsageDemo.csproj"
 COPY . .
-WORKDIR "/src/usage-demo/Propel.ClientApi"
-RUN dotnet build "./Propel.ClientApi.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/usage-demo/ApiFlagUsageDemo"
+RUN dotnet build "./ApiFlagUsageDemo.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Propel.ClientApi.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./ApiFlagUsageDemo.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Propel.ClientApi.dll"]
+ENTRYPOINT ["dotnet", "ApiFlagUsageDemo.dll"]
