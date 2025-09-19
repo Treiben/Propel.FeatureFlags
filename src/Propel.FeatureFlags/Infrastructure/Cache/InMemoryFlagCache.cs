@@ -3,9 +3,9 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Infrastructure.Cache;
 
-public sealed class MemoryFeatureFlagCache(MemoryCache cache, PropelOptions options) : IFeatureFlagCache
+public sealed class InMemoryFlagCache(IMemoryCache cache, PropelOptions options) : IFeatureFlagCache
 {
-	private readonly MemoryCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+	private readonly IMemoryCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
 	private readonly CacheOptions _cacheConfiguration = options.Cache ?? throw new ArgumentNullException(nameof(CacheOptions));
 
 	public Task<FlagEvaluationConfiguration?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
@@ -37,7 +37,7 @@ public sealed class MemoryFeatureFlagCache(MemoryCache cache, PropelOptions opti
 
 	public Task ClearAsync(CancellationToken cancellationToken = default)
 	{
-		_cache.Clear();
+		((MemoryCache)_cache).Clear();
 		return Task.CompletedTask;
 	}
 }

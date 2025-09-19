@@ -41,7 +41,7 @@ public static class ServiceCollectionExtensions
 	public static IServiceCollection AddPropelInMemoryCache(this IServiceCollection services)
 	{
 		services.AddMemoryCache();
-		services.TryAddSingleton<IFeatureFlagCache, MemoryFeatureFlagCache>();
+		services.TryAddSingleton<IFeatureFlagCache, InMemoryFlagCache>();
 		return services;
 	}
 

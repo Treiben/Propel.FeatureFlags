@@ -34,5 +34,5 @@ public class CacheOptions
 
 public class DatabaseOptions
 {
-	public string? SqlConnectionString { get; set; }
+	public string? DefaultConnection { get; set; }
 }
