@@ -158,20 +158,18 @@ CREATE EXTENSION IF NOT EXISTS ""uuid-ossp"";
 -- Create the feature_flags table
 CREATE TABLE feature_flags (
     key VARCHAR(255) PRIMARY KEY,
+
+	-- Descriptive fields
     name VARCHAR(500) NOT NULL,
     description TEXT NOT NULL DEFAULT '',
-
-	-- Evaluation modes
-    evaluation_modes JSONB NOT NULL DEFAULT '[]',
-    
-    -- Retention and expiration
-    is_permanent BOOLEAN NOT NULL DEFAULT FALSE,
-    expiration_date TIMESTAMP WITH TIME ZONE NOT NULL,
 
 	-- Flag uniquness scope
 	application_name VARCHAR(255) NULL,
 	application_version VARCHAR(100) NULL,
 	scope INT NOT NULL DEFAULT 0,
+
+	-- Evaluation modes
+    evaluation_modes JSONB NOT NULL DEFAULT '[]',
     
     -- Scheduling
     scheduled_enable_date TIMESTAMP WITH TIME ZONE NULL,
@@ -198,18 +196,36 @@ CREATE TABLE feature_flags (
     
     -- Variations
     variations JSONB NOT NULL DEFAULT '{}',
-    default_variation VARCHAR(255) NOT NULL DEFAULT 'off',
-    
+    default_variation VARCHAR(255) NOT NULL DEFAULT 'off'
+);
+
+-- Create the metdata table
+CREATE TABLE feature_flags_metadata (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+	flag_key VARCHAR(255) NOT NULL,
+
+	-- Flag uniquness scope
+	application_name VARCHAR(255) NULL,
+	application_version VARCHAR(100) NULL,
+
+    -- Retention and expiration
+    is_permanent BOOLEAN NOT NULL DEFAULT FALSE,
+    expiration_date TIMESTAMP WITH TIME ZONE NOT NULL,
+
 	-- Tags for categorization
     tags JSONB NOT NULL DEFAULT '{}'
 );
 
 -- Create the feature_flags_audit table
-CREATE TABLE feature_flag_audit (
+CREATE TABLE feature_flags_audit (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 	flag_key VARCHAR(255) NOT NULL,
+
+	-- Flag uniquness scope
 	application_name VARCHAR(255) NULL DEFAULT 'global',
 	application_version VARCHAR(100) NULL,
+
+	-- Action details
 	action VARCHAR(50) NOT NULL,
 	actor VARCHAR(255) NOT NULL,
 	timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -218,9 +234,7 @@ CREATE TABLE feature_flag_audit (
 
 -- Create indexes for feature_flags table
 CREATE INDEX IF NOT EXISTS ix_feature_flags_evaluation_modes ON feature_flags USING GIN(evaluation_modes);
-CREATE INDEX IF NOT EXISTS idx_feature_flags_expiration_date ON feature_flags (expiration_date) WHERE expiration_date IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_feature_flags_scheduled_enable ON feature_flags (scheduled_enable_date) WHERE scheduled_enable_date IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_feature_flags_tags ON feature_flags USING GIN (tags);
 CREATE INDEX IF NOT EXISTS idx_feature_flags_enabled_users ON feature_flags USING GIN (enabled_users);
 CREATE INDEX IF NOT EXISTS idx_feature_flags_enabled_tenants ON feature_flags USING GIN (enabled_tenants);
 CREATE INDEX IF NOT EXISTS idx_feature_flags_disabled_tenants ON feature_flags USING GIN (disabled_tenants);
@@ -239,7 +253,7 @@ CREATE INDEX IF NOT EXISTS idx_feature_flags_key_scope_app_version ON feature_fl
 CREATE INDEX IF NOT EXISTS idx_feature_flags_scope_app_name ON feature_flags (scope, application_name);
 
 -- Create indexes for feature_flag_audit table
-CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_flag_key ON feature_flag_audit (flag_key);
+CREATE INDEX IF NOT EXISTS idx_feature_flags_audit_flag_key ON feature_flags_audit (flag_key);
 ";
 	}
 }

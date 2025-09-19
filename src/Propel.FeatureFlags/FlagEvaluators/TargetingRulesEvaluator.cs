@@ -1,17 +1,18 @@
 ﻿using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.FlagEvaluators;
 
-namespace Propel.FeatureFlags.Services.Evaluation;
+namespace Propel.FeatureFlags.Evaluation;
 
 public sealed class TargetingRulesEvaluator : OrderedEvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.CustomTargeting;
 
-	public override bool CanProcess(EvaluationCriteria flag, EvaluationContext context)
+	public override bool CanProcess(FlagEvaluationConfiguration flag, EvaluationContext context)
 	{
 		return flag.TargetingRules != null && flag.TargetingRules.Count > 0;
 	}
 
-	public override async Task<EvaluationResult?> ProcessEvaluation(EvaluationCriteria flag, EvaluationContext context)
+	public override async Task<EvaluationResult?> ProcessEvaluation(FlagEvaluationConfiguration flag, EvaluationContext context)
 	{
 		var id = context.TenantId ?? context.UserId;
 		if (string.IsNullOrWhiteSpace(id))

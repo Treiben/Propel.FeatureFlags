@@ -8,13 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Infrastructure\Cache\SystemMemoryCache.cs" />
-    <Compile Remove="Domain\FlagAuditRecord.cs" />
-    <Compile Remove="Domain\FlagTenantAccessControl.cs" />
-    <Compile Remove="Domain\FlagUserAccessControl.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.8" />
     <PackageReference Include="System.Text.Json" Version="9.0.8" />

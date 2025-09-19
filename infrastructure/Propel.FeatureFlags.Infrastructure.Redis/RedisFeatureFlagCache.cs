@@ -10,14 +10,14 @@ namespace Propel.FeatureFlags.Infrastructure.Redis;
 
 public class RedisFeatureFlagCache(
 	IConnectionMultiplexer redis, 
-	CacheOptions cacheConfiguration, 
+	PropelOptions options, 
 	ILogger<RedisFeatureFlagCache> logger) : IFeatureFlagCache
 {
 	private readonly IDatabase _database = redis.GetDatabase();
-	private readonly CacheOptions _cacheConfiguration = cacheConfiguration ?? throw new ArgumentNullException(nameof(cacheConfiguration));
+	private readonly CacheOptions _cacheConfiguration = options.Cache ?? throw new ArgumentNullException(nameof(CacheOptions));
 
 
-	public async Task<EvaluationCriteria?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
+	public async Task<FlagEvaluationConfiguration?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
 		logger.LogDebug("Getting feature flag {Key} from cache", key);
@@ -35,8 +35,8 @@ public class RedisFeatureFlagCache(
 				return null;
 			}
 
-			var flag = JsonSerializer.Deserialize<EvaluationCriteria>(value!, JsonDefaults.JsonOptions);
-			logger.LogDebug("Feature flag {Key} retrieved from cache", flag?.FlagKey);
+			var flag = JsonSerializer.Deserialize<FlagEvaluationConfiguration>(value!, JsonDefaults.JsonOptions);
+			logger.LogDebug("Feature flag {Key} retrieved from cache", flag?.Identifier);
 			return flag;
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
@@ -46,10 +46,10 @@ public class RedisFeatureFlagCache(
 		}
 	}
 
-	public async Task SetAsync(CacheKey cacheKey, EvaluationCriteria flag, CancellationToken cancellationToken = default)
+	public async Task SetAsync(CacheKey cacheKey, FlagEvaluationConfiguration flag, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
-		logger.LogDebug("Setting feature flag {Key} in cache with expiration {Expiration}", key, _cacheConfiguration.ExpiryInMinutes);
+		logger.LogDebug("Setting feature flag {Key} in cache with expiration {Expiration}", key, _cacheConfiguration.CacheDurationInMinutes);
 		if (cancellationToken.IsCancellationRequested)
 		{
 			throw new OperationCanceledException(cancellationToken);
@@ -59,7 +59,7 @@ public class RedisFeatureFlagCache(
 		{
 			var value = JsonSerializer.Serialize(flag, JsonDefaults.JsonOptions);
 			logger.LogDebug("Serialized feature flag {Key} to JSON", key);
-			if (await _database.StringSetAsync(key, value, _cacheConfiguration.ExpiryInMinutes))
+			if (await _database.StringSetAsync(key, value, _cacheConfiguration.CacheDurationInMinutes))
 			{
 				logger.LogDebug("Feature flag {Key} set in cache successfully", key);
 			}

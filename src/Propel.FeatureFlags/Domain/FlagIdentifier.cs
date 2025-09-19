@@ -1,13 +1,13 @@
 ﻿namespace Propel.FeatureFlags.Domain;
 
-public class FlagKey
+public class FlagIdentifier
 {
 	public string Key { get; }
 	public string? ApplicationName { get; }
 	public string? ApplicationVersion { get; }
 	public Scope Scope { get; }
 
-	public FlagKey(string key, Scope scope, string? applicationName = null, string? applicationVersion = null)
+	public FlagIdentifier(string key, Scope scope, string? applicationName = null, string? applicationVersion = null)
 	{
 		if (string.IsNullOrWhiteSpace(key))
 		{

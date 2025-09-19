@@ -1,8 +1,9 @@
 ﻿using Castle.DynamicProxy;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Propel.FeatureFlags.Attributes;
 
-namespace Propel.FeatureFlags.Attributes;
+namespace Propel.FeatureFlags.Extensions;
 
 public static class ServiceCollectionExtensions
 {

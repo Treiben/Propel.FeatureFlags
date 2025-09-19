@@ -7,10 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Helpers\InDatabaseValidator.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.8" />
     <PackageReference Include="Npgsql" Version="9.0.3" />

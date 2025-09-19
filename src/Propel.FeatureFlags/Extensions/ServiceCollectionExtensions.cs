@@ -1,22 +1,22 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Evaluation;
+using Propel.FeatureFlags.FlagEvaluators;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FeatureFlags.Services;
 using Propel.FeatureFlags.Services.ApplicationScope;
-using Propel.FeatureFlags.Services.Evaluation;
 using Propel.FeatureFlags.Services.GlobalScope;
 using System.Reflection;
 
-namespace Propel.FeatureFlags;
+namespace Propel.FeatureFlags.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddFeatureFlagServices(this IServiceCollection services, FeatureFlagConfigurationOptions options)
+	public static IServiceCollection AddPropelServices(this IServiceCollection services, PropelOptions options)
 	{
-		// Register core services
-		services.AddSingleton<CacheOptions>(options.CacheOptions ?? new CacheOptions { UseCache = false });
-		services.AddSingleton<FeatureFlagConfigurationOptions>(options);
+		services.AddSingleton(options);
 
 		services.AddSingleton<IFeatureFlagEvaluator, FeatureFlagEvaluator>();
 		services.AddSingleton<IFeatureFlagClient, FeatureFlagClient>();
@@ -35,26 +35,30 @@ public static class ServiceCollectionExtensions
 					new UserRolloutEvaluator(),
 				])));
 
-		if (options.CacheOptions?.UseCache == true && string.IsNullOrEmpty(options.RedisConnectionString))
-			services.TryAddSingleton<IFeatureFlagCache, MemoryFeatureFlagCache>();
-
 		return services;
 	}
 
-	public static IServiceCollection AddAllFeatureFlags(this IServiceCollection services)
+	public static IServiceCollection AddPropelInMemoryCache(this IServiceCollection services)
+	{
+		services.AddMemoryCache();
+		services.TryAddSingleton<IFeatureFlagCache, MemoryFeatureFlagCache>();
+		return services;
+	}
+
+	public static IServiceCollection AddPropelFeatureFlags(this IServiceCollection services)
 	{
 		var currentAssembly = Assembly.GetEntryAssembly();
 
 		var allFlags = currentAssembly
 			.GetTypes()
-			.Where(t => typeof(IRegisteredFeatureFlag).IsAssignableFrom(t)
+			.Where(t => typeof(IFeatureFlag).IsAssignableFrom(t)
 					&& !t.IsInterface
 					&& !t.IsAbstract);
 
 		foreach (var flag in allFlags)
 		{
-			var instance = (IRegisteredFeatureFlag)Activator.CreateInstance(flag)!;
-			services.AddSingleton<IRegisteredFeatureFlag>(instance);
+			var instance = (IFeatureFlag)Activator.CreateInstance(flag)!;
+			services.AddSingleton(instance);
 		}
 
 		return services;

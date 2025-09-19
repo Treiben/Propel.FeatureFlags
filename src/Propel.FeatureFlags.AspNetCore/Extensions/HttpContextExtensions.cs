@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Propel.FeatureFlags.Services.ApplicationScope;
+using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.AspNetCore.Extensions;
 
@@ -10,7 +10,7 @@ public static class HttpContextExtensions
 		return context.Items["FeatureFlagEvaluator"] as HttpContextFeatureFlagEvaluator;
 	}
 
-	public static async Task<bool> IsFeatureFlagEnabledAsync(this HttpContext context, IRegisteredFeatureFlag flag)
+	public static async Task<bool> IsFeatureFlagEnabledAsync(this HttpContext context, IFeatureFlag flag)
 	{
 		var evaluator = context.FeatureFlags();
 		if (evaluator == null)
@@ -19,7 +19,7 @@ public static class HttpContextExtensions
 		return await evaluator.IsEnabledAsync(flag);
 	}
 
-	public static async Task<T> GetFeatureFlagVariationAsync<T>(this HttpContext context, IRegisteredFeatureFlag flag, T defaultValue)
+	public static async Task<T> GetFeatureFlagVariationAsync<T>(this HttpContext context, IFeatureFlag flag, T defaultValue)
 	{
 		var evaluator = context.FeatureFlags();
 		if (evaluator == null)

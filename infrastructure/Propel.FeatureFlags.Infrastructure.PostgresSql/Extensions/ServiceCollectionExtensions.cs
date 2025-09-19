@@ -6,10 +6,10 @@ namespace Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddPostgresSqlFeatureFlags(this IServiceCollection services, string connectionString)
+	public static IServiceCollection AddPropelPersistence(this IServiceCollection services, string pgConnectionString)
 	{
 		// Configure connection string with resilience settings here
-		var builder = new NpgsqlConnectionStringBuilder(connectionString)
+		var builder = new NpgsqlConnectionStringBuilder(pgConnectionString)
 		{
 			CommandTimeout = 30,
 			Timeout = 15,
@@ -22,11 +22,6 @@ public static class ServiceCollectionExtensions
 
 		var configuredConnectionString = builder.ToString();
 
-		services.AddSingleton<IFlagManagementRepository>(sp =>
-			new FlagManagementRepository(
-				configuredConnectionString,
-				sp.GetRequiredService<ILogger<FlagManagementRepository>>()));
-
 		services.AddSingleton<IFlagEvaluationRepository>(sp =>
 			new FlagEvaluationRepository(
 				configuredConnectionString,
@@ -34,7 +29,7 @@ public static class ServiceCollectionExtensions
 
 		services.AddSingleton(sp =>
 			new PostgreSQLDatabaseInitializer(
-				connectionString ?? throw new InvalidOperationException("PostgreSQL connection string required"),
+				pgConnectionString ?? throw new InvalidOperationException("PostgreSQL connection string required"),
 				sp.GetRequiredService<ILogger<PostgreSQLDatabaseInitializer>>()));
 
 		return services;
@@ -44,7 +39,7 @@ public static class ServiceCollectionExtensions
 	/// Ensures the PostgreSQL database and schema exist for feature flags
 	/// Call this during application startup
 	/// </summary>
-	public static async Task<IServiceProvider> EnsureFeatureFlagsDatabaseAsync(this IServiceProvider services,
+	public static async Task<IServiceProvider> EnsurePropelDatabase(this IServiceProvider services,
 		CancellationToken cancellationToken = default)
 	{
 		var initializer = services.GetRequiredService<PostgreSQLDatabaseInitializer>();
@@ -60,7 +55,7 @@ public static class ServiceCollectionExtensions
 	/// Use: during application startup at development time
 	/// For production, use migrations instead or seed with registered flags from assembly
 	/// </summary>
-	public static async Task<IServiceProvider> SeedDatabaseFromScriptAsync(this IServiceProvider services, string sqlScriptFile)
+	public static async Task<IServiceProvider> SeedDatabaseAsync(this IServiceProvider services, string sqlScriptFile)
 	{
 		var initializer = services.GetRequiredService<PostgreSQLDatabaseInitializer>();
 		var seeded = await initializer.SeedAsync(sqlScriptFile);

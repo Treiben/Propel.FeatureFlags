@@ -2,8 +2,8 @@
 
 public enum EvaluationMode
 {
-	Disabled = 0,
-	Enabled = 1,
+	Off = 0,
+	On = 1,
 	Scheduled = 2,
 	TimeWindow = 3,
 	UserTargeted = 4,
@@ -15,40 +15,40 @@ public enum EvaluationMode
 
 public class EvaluationModes
 {
-	public HashSet<EvaluationMode> Modes { get; } = [EvaluationMode.Disabled];
+	public HashSet<EvaluationMode> Modes { get; } = [EvaluationMode.Off];
 
 	public EvaluationModes(HashSet<EvaluationMode> modes)
 	{
 		if (modes.Count == 0)
 		{
-			Modes = [EvaluationMode.Disabled];
+			Modes = [EvaluationMode.Off];
 		}
 
-		if (modes.Contains(EvaluationMode.Disabled) && modes.Count > 1)
+		if (modes.Contains(EvaluationMode.Off) && modes.Count > 1)
 		{
 			// If Disabled is present with other modes, remove all other modes
-			Modes = [EvaluationMode.Disabled];
+			Modes = [EvaluationMode.Off];
 		}
 
 		Modes = modes;
 	}
 
-	public static EvaluationModes FlagIsDisabled => new([EvaluationMode.Disabled]);
+	public static EvaluationModes FlagIsDisabled => new([EvaluationMode.Off]);
 
 	public void AddMode(EvaluationMode mode)
 	{
-		if (mode == EvaluationMode.Disabled)
+		if (mode == EvaluationMode.Off)
 		{
 			// If adding Disabled, it should be the only status
 			Modes.Clear();
-			Modes.Add(EvaluationMode.Disabled);
+			Modes.Add(EvaluationMode.Off);
 			return;
 		}
 
-		if (mode != EvaluationMode.Disabled && Modes.Contains(EvaluationMode.Disabled))
+		if (mode != EvaluationMode.Off && Modes.Contains(EvaluationMode.Off))
 		{
 			// If adding any status other than Disabled, remove Disabled
-			Modes.Remove(EvaluationMode.Disabled);
+			Modes.Remove(EvaluationMode.Off);
 		}
 
 		Modes.Add(mode);
@@ -61,7 +61,7 @@ public class EvaluationModes
 		if (Modes.Count == 0)
 		{
 			// If no modes left, default to Disabled
-			Modes.Add(EvaluationMode.Disabled);
+			Modes.Add(EvaluationMode.Off);
 		}
 	}
 

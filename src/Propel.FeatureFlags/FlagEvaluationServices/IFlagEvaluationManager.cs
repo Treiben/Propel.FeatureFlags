@@ -1,11 +1,11 @@
 ﻿using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Services.Evaluation;
+using Propel.FeatureFlags.FlagEvaluators;
 
 namespace Propel.FeatureFlags.Services;
 
 public interface IFlagEvaluationManager
 {
-	Task<EvaluationResult?> ProcessEvaluation(EvaluationCriteria flag, EvaluationContext context);
+	Task<EvaluationResult?> ProcessEvaluation(FlagEvaluationConfiguration flag, EvaluationContext context);
 }
 
 public sealed class FlagEvaluationManager : IFlagEvaluationManager
@@ -21,7 +21,7 @@ public sealed class FlagEvaluationManager : IFlagEvaluationManager
 		_handlers = [.. handlers.OrderBy(h => h.EvaluationOrder)];
 	}
 
-	public async Task<EvaluationResult?> ProcessEvaluation(EvaluationCriteria flag, EvaluationContext context)
+	public async Task<EvaluationResult?> ProcessEvaluation(FlagEvaluationConfiguration flag, EvaluationContext context)
 	{
 		var processingHandlers = _handlers.Where(h => h.CanProcess(flag, context)).ToList();
 		EvaluationResult? result = default;

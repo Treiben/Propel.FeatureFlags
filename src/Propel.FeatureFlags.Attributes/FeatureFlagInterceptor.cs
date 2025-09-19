@@ -1,5 +1,6 @@
 using Castle.Core.Internal;
 using Castle.DynamicProxy;
+using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Services.ApplicationScope;
 using System.Reflection;
 
@@ -165,28 +166,28 @@ public class FeatureFlagInterceptor : IInterceptor
 		return (T)GetDefaultValue(typeof(T))!;
 	}
 
-	private static IRegisteredFeatureFlag? GetFeatureFlagInstance(Type flagType)
+	private static IFeatureFlag? GetFeatureFlagInstance(Type flagType)
 	{
 		try
 		{
 			// Validate that the type implements IApplicationFeatureFlag
-			if (!typeof(IRegisteredFeatureFlag).IsAssignableFrom(flagType))
+			if (!typeof(IFeatureFlag).IsAssignableFrom(flagType))
 			{
 				return null;
 			}
 
 			// Look for a static Create method first
 			var createMethod = flagType.GetMethod("Create", BindingFlags.Public | BindingFlags.Static);
-			if (createMethod != null && typeof(IRegisteredFeatureFlag).IsAssignableFrom(createMethod.ReturnType))
+			if (createMethod != null && typeof(IFeatureFlag).IsAssignableFrom(createMethod.ReturnType))
 			{
-				return (IRegisteredFeatureFlag?)createMethod.Invoke(null, null);
+				return (IFeatureFlag?)createMethod.Invoke(null, null);
 			}
 
 			// Fall back to parameterless constructor
 			var constructor = flagType.GetConstructor(Type.EmptyTypes);
 			if (constructor != null)
 			{
-				return (IRegisteredFeatureFlag?)Activator.CreateInstance(flagType);
+				return (IFeatureFlag?)Activator.CreateInstance(flagType);
 			}
 
 			return null;

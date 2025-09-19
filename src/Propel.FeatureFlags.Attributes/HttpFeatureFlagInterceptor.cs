@@ -1,7 +1,7 @@
 ﻿using Castle.DynamicProxy;
 using Microsoft.AspNetCore.Http;
 using Propel.FeatureFlags.AspNetCore.Extensions;
-using Propel.FeatureFlags.Services.ApplicationScope;
+using Propel.FeatureFlags.Domain;
 using System.Collections.Concurrent;
 using System.Reflection;
 
@@ -13,7 +13,7 @@ public sealed class HttpFeatureFlagInterceptor(IHttpContextAccessor httpContextA
 
 	// Caching for performance
 	private static readonly ConcurrentDictionary<MethodInfo, FeatureFlaggedAttribute?> _attributeCache = new();
-	private static readonly ConcurrentDictionary<Type, IRegisteredFeatureFlag?> _flagInstanceCache = new();
+	private static readonly ConcurrentDictionary<Type, IFeatureFlag?> _flagInstanceCache = new();
 
 	public void Intercept(IInvocation invocation)
 	{
@@ -188,28 +188,28 @@ public sealed class HttpFeatureFlagInterceptor(IHttpContextAccessor httpContextA
 		});
 	}
 
-	private static IRegisteredFeatureFlag? GetFeatureFlagInstance(Type flagType)
+	private static IFeatureFlag? GetFeatureFlagInstance(Type flagType)
 	{
 		return _flagInstanceCache.GetOrAdd(flagType, type =>
 		{
 			try
 			{
 				// Validate that the type implements IApplicationFeatureFlag
-				if (!typeof(IRegisteredFeatureFlag).IsAssignableFrom(type))
+				if (!typeof(IFeatureFlag).IsAssignableFrom(type))
 					return null;
 
 				// Look for a static Create method first
 				var createMethod = type.GetMethod("Create", BindingFlags.Public | BindingFlags.Static);
-				if (createMethod != null && typeof(IRegisteredFeatureFlag).IsAssignableFrom(createMethod.ReturnType))
+				if (createMethod != null && typeof(IFeatureFlag).IsAssignableFrom(createMethod.ReturnType))
 				{
-					return (IRegisteredFeatureFlag?)createMethod.Invoke(null, null);
+					return (IFeatureFlag?)createMethod.Invoke(null, null);
 				}
 
 				// Fall back to parameterless constructor
 				var constructor = type.GetConstructor(Type.EmptyTypes);
 				if (constructor != null)
 				{
-					return (IRegisteredFeatureFlag?)Activator.CreateInstance(type);
+					return (IFeatureFlag?)Activator.CreateInstance(type);
 				}
 
 				return null;
@@ -221,7 +221,7 @@ public sealed class HttpFeatureFlagInterceptor(IHttpContextAccessor httpContextA
 		});
 	}
 
-	private async Task<bool> IsEnabledAsync(IRegisteredFeatureFlag flag)
+	private async Task<bool> IsEnabledAsync(IFeatureFlag flag)
 	{
 		var context = _httpContextAccessor.HttpContext;
 		if (context == null)

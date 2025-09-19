@@ -19,41 +19,41 @@ public class GlobalFlagEvaluator(
 
 	public async Task<EvaluationResult?> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
-		var flagData = await GetFlagAsync(flagKey, cancellationToken);
-		if (flagData == null)
+		var flagConfig = await GetFlagConfiguration(flagKey, cancellationToken);
+		if (flagConfig == null)
 		{
 			throw new Exception("The global feature flag is not found. Please create the flag in the system before evaluating it or remove reference to it.");
 		}
 
-		return await _evaluationManager.ProcessEvaluation(flagData, context);
+		return await _evaluationManager.ProcessEvaluation(flagConfig, context);
 	}
 
-	private async Task<EvaluationCriteria?> GetFlagAsync(string flagKey, CancellationToken cancellationToken)
+	private async Task<FlagEvaluationConfiguration?> GetFlagConfiguration(string flagKey, CancellationToken cancellationToken)
 	{
 		// Create composite key for uniqueness per application
 		var cacheKey = new GlobalCacheKey(flagKey);
 		// Try cache first
-		EvaluationCriteria? flagData = null;
+		FlagEvaluationConfiguration? flagConfig = null;
 		if (cache != null)
 		{
-			flagData = await cache.GetAsync(cacheKey, cancellationToken);
+			flagConfig = await cache.GetAsync(cacheKey, cancellationToken);
 		}
 
 		// If not in cache, get from repository
-		if (flagData == null)
+		if (flagConfig == null)
 		{
-			flagData = await _repository.GetAsync(new FlagKey(
+			flagConfig = await _repository.GetAsync(new FlagIdentifier(
 					key: flagKey,
 					scope: Scope.Global
 				), cancellationToken);
 
 			// Cache for future requests if found
-			if (flagData != null && cache != null)
+			if (flagConfig != null && cache != null)
 			{
-				await cache.SetAsync(cacheKey, flagData, cancellationToken);
+				await cache.SetAsync(cacheKey, flagConfig, cancellationToken);
 			}
 		}
 
-		return flagData;
+		return flagConfig;
 	}
 }

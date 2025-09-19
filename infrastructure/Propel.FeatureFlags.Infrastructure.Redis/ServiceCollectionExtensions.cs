@@ -4,11 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Propel.FeatureFlags.Infrastructure.Cache;
 using StackExchange.Redis;
 
-namespace Propel.FeatureFlags.Infrastructure.Redis;
+namespace Propel.FeatureFlags.Infrastructure.Redis.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddRedisCache(this IServiceCollection services, string connectionString)
+	public static IServiceCollection AddPropelDistributedCache(this IServiceCollection services, string connectionString)
 	{
 		if (!string.IsNullOrEmpty(connectionString))
 		{

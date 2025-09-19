@@ -3,22 +3,28 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Infrastructure.Cache;
 
-public sealed class MemoryFeatureFlagCache(MemoryCache cache, CacheOptions cacheConfiguration) : IFeatureFlagCache
+public sealed class MemoryFeatureFlagCache(MemoryCache cache, PropelOptions options) : IFeatureFlagCache
 {
 	private readonly MemoryCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-	private readonly CacheOptions _cacheConfiguration = cacheConfiguration ?? throw new ArgumentNullException(nameof(cacheConfiguration));
+	private readonly CacheOptions _cacheConfiguration = options.Cache ?? throw new ArgumentNullException(nameof(CacheOptions));
 
-	public Task<EvaluationCriteria?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
+	public Task<FlagEvaluationConfiguration?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
 		var flagKey = cacheKey.ComposeKey();
-		_cache.TryGetValue(flagKey, out EvaluationCriteria? flag);
+		_cache.TryGetValue(flagKey, out FlagEvaluationConfiguration? flag);
 		return Task.FromResult(flag);
 	}
 
-	public Task SetAsync(CacheKey cacheKey, EvaluationCriteria flag, CancellationToken cancellationToken = default)
+	public Task SetAsync(CacheKey cacheKey, FlagEvaluationConfiguration flag, CancellationToken cancellationToken = default)
 	{
 		var flagKey = cacheKey.ComposeKey();
-		_cache.Set(flagKey, flag, _cacheConfiguration.ExpiryInMinutes);
+		var memOptions = new MemoryCacheEntryOptions
+		{
+			AbsoluteExpirationRelativeToNow = _cacheConfiguration.CacheDurationInMinutes,
+			SlidingExpiration = _cacheConfiguration.CacheDurationInMinutes,
+			Priority = CacheItemPriority.Normal,
+		};
+		_cache.Set(flagKey, flag, memOptions);
 		return Task.CompletedTask;
 	}
 

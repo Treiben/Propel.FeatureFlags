@@ -4,11 +4,11 @@ namespace Propel.FeatureFlags.Services.ApplicationScope;
 
 public interface IFeatureFlagClient
 {
-	Task<bool> IsEnabledAsync(IRegisteredFeatureFlag flag, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null);
+	Task<bool> IsEnabledAsync(IFeatureFlag flag, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null);
 
-	Task<T> GetVariationAsync<T>(IRegisteredFeatureFlag flag, T defaultValue, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null);
+	Task<T> GetVariationAsync<T>(IFeatureFlag flag, T defaultValue, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null);
 
-	Task<EvaluationResult?> EvaluateAsync(IRegisteredFeatureFlag flag, string? tenantId = null, string? userId = null, string? timeZone = null, Dictionary<string, object>? attributes = null);
+	Task<EvaluationResult?> EvaluateAsync(IFeatureFlag flag, string? tenantId = null, string? userId = null, string? timeZone = null, Dictionary<string, object>? attributes = null);
 }
 
 public sealed class FeatureFlagClient(
@@ -18,7 +18,7 @@ public sealed class FeatureFlagClient(
 	private readonly string? _defaultTimeZone = defaultTimeZone ?? "UTC";
 
 	public async Task<bool> IsEnabledAsync(
-		IRegisteredFeatureFlag flag,
+		IFeatureFlag flag,
 		string? tenantId = null,
 		string? userId = null,
 		Dictionary<string, object>? attributes = null)
@@ -34,7 +34,7 @@ public sealed class FeatureFlagClient(
 	}
 
 	public async Task<T> GetVariationAsync<T>(
-		IRegisteredFeatureFlag flag,
+		IFeatureFlag flag,
 		T defaultValue,
 		string? tenantId = null,
 		string? userId = null,
@@ -50,7 +50,7 @@ public sealed class FeatureFlagClient(
 	}
 
 	public async Task<EvaluationResult?> EvaluateAsync(
-		IRegisteredFeatureFlag flag,
+		IFeatureFlag flag,
 		string? tenantId = null,
 		string? userId = null,
 		string? timeZone = null,

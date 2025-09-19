@@ -1,17 +1,18 @@
 ﻿using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.FlagEvaluators;
 
-namespace Propel.FeatureFlags.Services.Evaluation;
+namespace Propel.FeatureFlags.Evaluation;
 
 public sealed class OperationalWindowEvaluator : OrderedEvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.OperationalWindow;
 
-	public override bool CanProcess(EvaluationCriteria flag, EvaluationContext context)
+	public override bool CanProcess(FlagEvaluationConfiguration flag, EvaluationContext context)
 	{
 		return flag.ActiveEvaluationModes.ContainsModes([EvaluationMode.TimeWindow]);
 	}
 
-	public override async Task<EvaluationResult?> ProcessEvaluation(EvaluationCriteria flag, EvaluationContext context)
+	public override async Task<EvaluationResult?> ProcessEvaluation(FlagEvaluationConfiguration flag, EvaluationContext context)
 	{
 		if (flag.OperationalWindow == OperationalWindow.AlwaysOpen)
 		{
