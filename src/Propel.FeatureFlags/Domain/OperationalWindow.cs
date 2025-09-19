@@ -52,7 +52,7 @@ public class OperationalWindow
 
 	public (bool, string) IsActiveAt(DateTime evaluationTime, string? contextTimeZone = null)
 	{
-		var effectiveTimeZone = contextTimeZone ?? TimeZone;
+		var effectiveTimeZone = TimeZone ?? contextTimeZone;
 		
 		try
 		{
