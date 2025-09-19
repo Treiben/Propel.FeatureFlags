@@ -59,7 +59,7 @@ services:
     container_name: propel-demo-api
     build:
       context: .
-      dockerfile: ApiFlagUsageDemo/Dockerfile
+      dockerfile: WebClientDemo/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080 
@@ -79,7 +79,7 @@ services:
     restart: unless-stopped
     volumes:
       - type: bind
-        source: ./ApiFlagUsageDemo/appsettings.json
+        source: ./WebClientDemo/appsettings.json
         target: /app/appsettings.json
         read_only: true
 
