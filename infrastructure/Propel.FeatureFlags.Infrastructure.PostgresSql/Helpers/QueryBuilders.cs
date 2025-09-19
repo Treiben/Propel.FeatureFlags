@@ -1,4 +1,6 @@
-﻿using Propel.FeatureFlags.Domain;
+﻿using Npgsql;
+using NpgsqlTypes;
+using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql.Helpers;
 
@@ -33,6 +35,29 @@ public static class QueryBuilders
 		else
 		{
 			return ($"WHERE {prefix}key = @key AND {prefix}scope = @scope AND {prefix}application_name = @application_name AND {prefix}application_version IS NULL", parameters);
+		}
+	}
+
+	public static void AddWhereParameters(this NpgsqlCommand command, Dictionary<string, object> parameters)
+	{
+		foreach (var (key, value) in parameters)
+		{
+			if (key.StartsWith("tag") && !key.StartsWith("tagKey"))
+			{
+				// JSONB parameter for tag values
+				var parameter = command.Parameters.Add(key, NpgsqlDbType.Jsonb);
+				parameter.Value = value;
+			}
+			else if (key.StartsWith("mode"))
+			{
+				// JSONB parameter for evaluation modes
+				var parameter = command.Parameters.Add(key, NpgsqlDbType.Jsonb);
+				parameter.Value = value;
+			}
+			else
+			{
+				command.Parameters.AddWithValue(key, value);
+			}
 		}
 	}
 }

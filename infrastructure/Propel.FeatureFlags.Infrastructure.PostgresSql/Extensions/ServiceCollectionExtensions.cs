@@ -23,9 +23,9 @@ public static class ServiceCollectionExtensions
 		var configuredConnectionString = builder.ToString();
 
 		services.AddSingleton<IFlagEvaluationRepository>(sp =>
-			new FlagEvaluationRepository(
+			new ClientApplicationRepository(
 				configuredConnectionString,
-				sp.GetRequiredService<ILogger<FlagEvaluationRepository>>()));
+				sp.GetRequiredService<ILogger<ClientApplicationRepository>>()));
 
 		services.AddSingleton(sp =>
 			new PostgreSQLDatabaseInitializer(

@@ -1,12 +1,11 @@
 ﻿using Npgsql;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql.Helpers;
 
 public static class FlagAuditHelpers
 {
-	public static async Task AddAuditTrail(FlagIdentifier flagKey,
+	public static async Task AddAuditTrail(FlagIdentifier flag,
 							NpgsqlConnection connection,
 							CancellationToken cancellationToken)
 	{
@@ -14,14 +13,15 @@ public static class FlagAuditHelpers
 					INSERT INTO feature_flags_audit (
 						flag_key, application_name, application_version, action, actor, timestamp, reason
 					) VALUES (
-						@key, @application_name, @application_version, 'flag created', 'Application', @timestamp, 'Auto-registered by the application'
+						@key, @application_name, @application_version, @action, 'Application', @timestamp, 'Auto-registered by the application'
 					);";
 
 		try
 		{
 			using var command = new NpgsqlCommand(sql, connection);
-			command.AddIdentifierParameters(flagKey);
+			command.AddIdentifierParameters(flag);
 			command.Parameters.AddWithValue("timestamp", DateTime.UtcNow);
+			command.Parameters.AddWithValue("action", PersistenceActions.FlagCreated);
 
 			if (connection.State != System.Data.ConnectionState.Open)
 				await connection.OpenAsync(cancellationToken);
@@ -33,7 +33,7 @@ public static class FlagAuditHelpers
 		}
 	}
 
-	public static async Task CreateInitialMetadataRecord(FlagIdentifier flagKey, string name, string description, NpgsqlConnection connection, CancellationToken cancellationToken)
+	public static async Task CreateInitialMetadataRecord(FlagIdentifier flag, string name, string description, NpgsqlConnection connection, CancellationToken cancellationToken)
 	{
 		const string sql = @"
             INSERT INTO feature_flags_metadata (
@@ -44,7 +44,7 @@ public static class FlagAuditHelpers
 		try
 		{
 			using var command = new NpgsqlCommand(sql, connection);
-			command.AddIdentifierParameters(flagKey);
+			command.AddIdentifierParameters(flag);
 			command.Parameters.AddWithValue("expiration_date", DateTimeOffset.UtcNow.AddDays(30));
 			command.Parameters.AddWithValue("is_permanent", false);
 
@@ -58,13 +58,13 @@ public static class FlagAuditHelpers
 		}
 	}
 
-	public static async Task<bool> FlagAlreadyCreated(FlagIdentifier flagKey, NpgsqlConnection connection, CancellationToken cancellationToken)
+	public static async Task<bool> FlagAlreadyCreated(FlagIdentifier flag, NpgsqlConnection connection, CancellationToken cancellationToken)
 	{
-		var (whereClause, parameters) = QueryBuilders.BuildWhereClause(flagKey);
+		var (whereClause, parameters) = QueryBuilders.BuildWhereClause(flag);
 		var sql = $"SELECT COUNT(*) FROM feature_flags {whereClause}";
 
 		using var command = new NpgsqlCommand(sql, connection);
-		command.AddFilterParameters(parameters);
+		command.AddWhereParameters(parameters);
 
 		if (connection.State != System.Data.ConnectionState.Open)
 			await connection.OpenAsync(cancellationToken);
@@ -73,10 +73,10 @@ public static class FlagAuditHelpers
 		return count > 0;
 	}
 
-	public static void AddIdentifierParameters(this NpgsqlCommand command, FlagIdentifier flag)
+	private static void AddIdentifierParameters(this NpgsqlCommand command, FlagIdentifier flag)
 	{
 		command.Parameters.AddWithValue("key", flag.Key);
-		command.Parameters.AddWithValue("application_name", (object?)flag.ApplicationName ?? DBNull.Value);
-		command.Parameters.AddWithValue("application_version", (object?)flag.ApplicationVersion ?? DBNull.Value);
+		command.Parameters.AddWithValue("application_name", flag.ApplicationName);
+		command.Parameters.AddWithValue("application_version", flag.ApplicationVersion);
 	}
 }

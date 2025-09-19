@@ -9,12 +9,12 @@ using System.Text.Json;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql;
 
-public class FlagEvaluationRepository : IFlagEvaluationRepository
+public class ClientApplicationRepository : IFlagEvaluationRepository
 {
 	private readonly string _connectionString;
-	private readonly ILogger<FlagEvaluationRepository> _logger;
+	private readonly ILogger<ClientApplicationRepository> _logger;
 
-	public FlagEvaluationRepository(string connectionString, ILogger<FlagEvaluationRepository> logger)
+	public ClientApplicationRepository(string connectionString, ILogger<ClientApplicationRepository> logger)
 	{
 		_connectionString = connectionString;
 		_logger = logger;
@@ -50,7 +50,7 @@ public class FlagEvaluationRepository : IFlagEvaluationRepository
 		{
 			using var connection = new NpgsqlConnection(_connectionString);
 			using var command = new NpgsqlCommand(sql, connection);
-			command.AddFilterParameters(parameters);
+			command.AddWhereParameters(parameters);
 
 			await connection.OpenAsync(cancellationToken);
 			using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -75,14 +75,32 @@ public class FlagEvaluationRepository : IFlagEvaluationRepository
 
 	public async Task CreateAsync(FlagIdentifier identifier, EvaluationMode mode, string name, string description, CancellationToken cancellationToken = default)
 	{
+		if (identifier.Scope == Scope.Global)
+		{
+			throw new InvalidOperationException("Only application-level flags are allowed to be created from client applications. Global flags are outside of application domain and must be created by management tools.");
+		}
+
 		_logger.LogDebug("Creating feature flag with key: {Key} for application: {Application}", identifier.Key, identifier.ApplicationName);
+
+		var applicationName = identifier.ApplicationName;
+		if (string.IsNullOrEmpty(identifier.ApplicationName))
+		{
+			applicationName = ApplicationInfo.Name;
+		}
+
+		var applicationVersion = identifier.ApplicationVersion;
+		if (string.IsNullOrEmpty(identifier.ApplicationVersion))
+		{
+			applicationVersion = ApplicationInfo.Version ?? "1.0.0.0";
+		}
 
 		const string sql = @"
             INSERT INTO feature_flags (
-                key, name, description, scope, application_name, application_version, evaluation_modes
+                key, application_name, application_version, scope, name, description, evaluation_modes
             ) VALUES (
-                @key, @name, @description, @scope, @application_name, @application_version, @evaluation_modes             
-            );";
+                @key, @application_name, @application_version, @scope, @name, @description, @evaluation_modes             
+            )
+			ON CONFLICT (key, application_name, application_version, scope) DO NOTHING;";
 
 		try
 		{
@@ -90,15 +108,12 @@ public class FlagEvaluationRepository : IFlagEvaluationRepository
 			await connection.OpenAsync(cancellationToken);
 
 			bool flagAlreadyCreated = await FlagAuditHelpers.FlagAlreadyCreated(identifier, connection, cancellationToken);
-			if (flagAlreadyCreated)
-			{
-				_logger.LogWarning("Feature flag with key '{Key}' already exists in scope '{Scope}' for application '{ApplicationName}'. Nothing to add there.",
-					identifier.Key, identifier.Scope, identifier.ApplicationName);
-				return;
-			}
+
 			using var command = new NpgsqlCommand(sql, connection);
-			command.AddIdentifierParameters(identifier);
-			command.Parameters.AddWithValue("scope", (int)identifier.Scope);
+			command.Parameters.AddWithValue("key", identifier.Key);
+			command.Parameters.AddWithValue("application_name", applicationName);
+			command.Parameters.AddWithValue("application_version", applicationVersion);
+			command.Parameters.AddWithValue("scope", (int)Scope.Application);
 			command.Parameters.AddWithValue("name", name);
 			command.Parameters.AddWithValue("description", description);
 			var evaluationModesParam = command.Parameters.Add("evaluation_modes", NpgsqlDbType.Jsonb);
@@ -107,8 +122,9 @@ public class FlagEvaluationRepository : IFlagEvaluationRepository
 			var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
 			if (rowsAffected == 0)
 			{
-				throw new InsertFlagException("Failed to add a feature flag: inserted 0 records",
-					identifier.Key, identifier.Scope, identifier.ApplicationName, identifier.ApplicationVersion);
+				_logger.LogWarning("Feature flag with key '{Key}' already exists in scope '{Scope}' for application '{ApplicationName}'. Nothing to add there.",
+					identifier.Key, identifier.Scope, identifier.ApplicationName);
+				return;
 			}
 
 			await FlagAuditHelpers.CreateInitialMetadataRecord(identifier, name, description, connection, cancellationToken);
