@@ -200,7 +200,7 @@ public class OperationalWindow_IsActiveAt
 	}
 
 	[Fact]
-	public void IsActiveAt_InvalidTimeZone_ReturnsFalse()
+	public void IsActiveAt_InvalidTimeZone_ReturnsOutsizeOfTimeWindow()
 	{
 		// Arrange
 		var window = new OperationalWindow(
@@ -211,7 +211,8 @@ public class OperationalWindow_IsActiveAt
 
 		// Assert
 		isActive.ShouldBeFalse();
-		reason.ShouldBe("Invalid timezone: Invalid/TimeZone");
+		// time zone should be checked by flag's time zone first
+		reason.ShouldBe("Outside time window");
 	}
 
 	[Fact]
