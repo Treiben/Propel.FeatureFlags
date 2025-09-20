@@ -1,4 +1,6 @@
-﻿namespace Propel.FeatureFlags.Domain;
+﻿using System.Globalization;
+
+namespace Propel.FeatureFlags.Domain;
 
 public enum TargetingOperator
 {
@@ -99,9 +101,9 @@ public class TargetingRuleFactory
 {
 	public static ITargetingRule CreateTargetingRule(string attribute, TargetingOperator op, List<string> values, string variation)
 	{
-		if (values.Count > 0 && values.All(v => double.TryParse(v, out _)))
+		if (values.Count > 0 && values.All(v => double.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out _)))
 		{
-			var numericValues = values.Select(v => double.Parse(v)).ToList();
+			var numericValues = values.Select(v => double.Parse(v, NumberStyles.Any, CultureInfo.InvariantCulture)).ToList();
 			return CreateNumericTargetingRule(attribute, op, numericValues, variation);
 		}
 

@@ -76,7 +76,7 @@ public class TargetingRuleFactory_CreaterTargetingRule
     [InlineData("0", "NumericTargetingRule")]
     [InlineData("-5.5", "NumericTargetingRule")]
     [InlineData("1.23E+10", "NumericTargetingRule")]
-    [InlineData("Infinity", "StringTargetingRule")]
+    [InlineData("Infinity", "NumericTargetingRule")]
     [InlineData("1.5.2", "StringTargetingRule")]
     [InlineData("", "StringTargetingRule")]
     [InlineData(" ", "StringTargetingRule")]
