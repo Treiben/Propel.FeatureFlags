@@ -50,15 +50,15 @@ builder.Services.AddPropelPersistence(pgConnectionString);
 
 var cacheOptions = propelOptions.Cache;
 
-// for in-memory caching (default)
-if (cacheOptions.EnableInMemoryCache == true)
-	builder.Services.AddPropelInMemoryCache();
-
 // for redis distributed cache
 // 0. install Propel.FeatureFlags.Infrastructure.Redis package
 // 1. use configured redis connection string
 if (cacheOptions.EnableDistributedCache == true)
-	builder.Services.AddPropelDistributedCache(cacheOptions.RedisConnectionString);
+	builder.Services.AddPropelDistributedCache(cacheOptions.Connection);
+
+// for in-memory caching (default)
+if (cacheOptions.EnableInMemoryCache == true)
+	builder.Services.AddPropelInMemoryCache();
 
 // to not use caching at all (not recommended) - skip adding any caching services or disable it explicitly in config file
 
@@ -71,13 +71,13 @@ if (cacheOptions.EnableDistributedCache == true)
 
 // option: to use flag attributes with HttpContext data (e.g. user id, tenant id)
 builder.Services.AddHttpContextAccessor(); // required for HttpContext-based attributes
-builder.Services.AddHttpFeatureFlagsAttributes();
+builder.Services.AddHttpAttributeInterceptors();
 
 // option: if you don't need HttpContext data, you can use this instead:
-builder.Services.AddHttpFeatureFlagsAttributes();
+builder.Services.AddAttributeInterceptors();
 
 //2. Register the service with interceptor to enable attribute-based feature flags
-builder.Services.AddScopedWithFeatureFlags<INotificationService, NotificationService>();
+builder.Services.RegisterServiceWithAttributes<INotificationService, NotificationService>();
 
 //-----------------------------------------------------------------------------
 // Register your application services normally
