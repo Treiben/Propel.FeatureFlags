@@ -9,12 +9,12 @@ public class PropelOptions
 
 public class CacheOptions
 {
-	public string? RedisConnectionString { get; set; }
+	public string? Connection { get; set; }
 	/// <summary>
 	/// Enable or disable in-memory caching of feature flag evaluations
 	/// Default: true (recommended for performance)
 	/// </summary>
-	public bool EnableInMemoryCache { get; set; } = true;
+	public bool EnableInMemoryCache { get; set; } = false;
 	/// <summary>
 	/// Duration to cache feature flag evaluations in memory
 	/// Default: 5 minutes
