@@ -22,157 +22,171 @@ A type-safe feature flag library for .NET with support for targeting, scheduling
 
 See the complete working example in `/usage-demo/WebClientDemo` - a client API application demonstrating minimal API endpoints with feature flag integration.
 
-## Quick Start
+## Basic Flag Setup and Usage
 
-### 1. Install Packages
+### 1. Install Core Packages
 ```bash
 dotnet add package Propel.FeatureFlags
 dotnet add package Propel.FeatureFlags.AspNetCore
-dotnet add package Propel.FeatureFlags.Infrastructure.PostgresSql
 ```
 
-### 2. Configure Services
+### 2. Register Services
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-// Core feature flags
+// Core feature flag services
 builder.Services.AddPropelServices();
 builder.Services.AddPropelFeatureFlags();
-
-// Storage
-builder.Services.AddPropelPersistence(connectionString);
-
-// Caching (optional)
-builder.Services.AddPropelDistributedCache(redisConnectionString);
 
 var app = builder.Build();
 app.UseFeatureFlags();
 ```
 
-### 3. Define Type-Safe Flags
+### 3. Define Type-Safe Flag
 ```csharp
-public class NewCheckoutFeatureFlag : TypeSafeFeatureFlag
+public class NewProductApiFeatureFlag : FeatureFlagBase
 {
-    public NewCheckoutFeatureFlag() : base(
-        key: "new-checkout-flow",
-        name: "New Checkout Flow",
-        description: "Enhanced checkout with one-click purchasing",
-        defaultMode: EvaluationMode.Disabled)
+    public NewProductApiFeatureFlag() 
+        : base(key: "new-product-api", 
+            name: "New Product API", 
+            description: "Controls whether to use the new enhanced product API implementation",
+            onOfMode: EvaluationMode.Off)
     {
     }
 }
 ```
 
-### 4. Evaluate Flags
+### 4. Use in Endpoints
 ```csharp
-// In controllers/endpoints
-app.MapGet("/checkout", async (HttpContext context) =>
+// With HttpContext
+app.MapGet("/products", async (HttpContext context) =>
 {
-    if (await context.IsFeatureFlagEnabledAsync(new NewCheckoutFeatureFlag()))
+    if (await context.IsFeatureFlagEnabledAsync(new NewProductApiFeatureFlag()))
     {
-        return Results.Ok("New checkout experience");
+        return Results.Ok("New API implementation");
     }
-    return Results.Ok("Standard checkout");
+    return Results.Ok("Legacy API implementation");
 });
 
-// With variations
-var algorithm = await context.GetFeatureFlagVariationAsync(
-    new RecommendationAlgorithmFlag(), 
-    "collaborative-filtering");
-```
-
-## Evaluation Modes
-
-| Mode | Description | Use Case |
-|------|-------------|----------|
-| `Off`| Flag is disabled | Kill switches, disable features |
-| `On` | Flag is enabled | Enable features, simple toggles |
-| `Scheduled` | Time-based activation | Coordinated releases, campaigns |
-| `TimeWindow` | Daily/weekly time ranges | Business hours, maintenance windows |
-| `UserTargeted` | Specific user allowlists/blocklists | Beta users, specific targeting |
-| `UserRolloutPercentage` | Percentage-based user rollout | Gradual rollouts, A/B testing |
-| `TenantRolloutPercentage` | Percentage-based tenant rollout | Multi-tenant gradual rollouts |
-| `TenantTargeted` | Specific tenant allowlists/blocklists | Tenant-specific features |
-| `TargetingRules` | Custom attribute-based rules | Complex targeting scenarios |
-
-## Architecture
-
-### Application vs Global Flags
-
-**Application Flags**: Auto-created when first evaluated, managed by development teams
-```csharp
-await context.IsFeatureFlagEnabledAsync(new MyAppFeatureFlag());
-```
-
-**Global Flags**: Explicitly created, managed via configuration
-```csharp
-app.UseFeatureFlags(options => {
-    options.GlobalFlags.Add(new GlobalFlag {
-        Key = "maintenance-mode",
-        StatusCode = 503,
-        Response = new { message = "Service temporarily unavailable" }
-    });
-});
-```
-
-## Advanced Configuration
-
-### Middleware Options
-```csharp
-app.UseFeatureFlags(options =>
+// With Factory Pattern
+app.MapGet("/products", async (HttpContext context, IFeatureFlagFactory flags) =>
 {
-    // Maintenance mode
-    options.EnableMaintenanceMode = true;
-    options.MaintenanceFlagKey = "api-maintenance";
-    
-    // Custom user ID extraction
-    options.UserIdExtractor = context => 
-        context.User.FindFirst("sub")?.Value;
-        
-    // Custom attributes for targeting
-    options.AttributeExtractors.Add(context => new Dictionary<string, object>
+    var flag = flags.GetFlagByType<NewProductApiFeatureFlag>();
+    if (await context.IsFeatureFlagEnabledAsync(flag))
     {
-        ["userTier"] = context.User.FindFirst("tier")?.Value ?? "free",
-        ["country"] = context.Request.Headers["Country"].FirstOrDefault() ?? "US"
-    });
+        return Results.Ok("New API implementation");
+    }
+    return Results.Ok("Legacy API implementation");
 });
 ```
 
-### Attribute-Based Evaluation
+## Attribute-Based Usage
+
+Aspect-Oriented Programming (AOP) style flag evaluation allows you to decorate methods with feature flags. When the flag is disabled, it automatically calls a fallback method.
+
+### 1. Install Attributes Package
+```bash
+dotnet add package Propel.FeatureFlags.Attributes
+```
+
+### 2. Register Attribute Interceptors
 ```csharp
-// Install: Propel.FeatureFlags.Attributes
+// For HttpContext-based evaluation (user/tenant targeting)
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpAttributeInterceptors();
-builder.Services.RegisterServiceWithAttributes<IEmailService, EmailService>();
 
-public class EmailService : IEmailService
+// For simple evaluation without HttpContext
+builder.Services.AddAttributeInterceptors();
+
+// Register service with interceptor support
+builder.Services.RegisterServiceWithAttributes<INotificationService, NotificationService>();
+```
+
+### 3. Use FeatureFlagged Attribute
+```csharp
+public interface INotificationService
 {
-    [FeatureFlagged(typeof(NewEmailProviderFlag), fallbackMethod: nameof(SendLegacyEmail))]
-    public virtual async Task<string> SendEmailAsync(string to, string subject, string body)
+    Task<string> SendEmailAsync(string userId, string subject, string body);
+    Task<string> SendEmailLegacyAsync(string userId, string subject, string body);
+}
+
+public class NotificationService : INotificationService
+{
+    [FeatureFlagged(type: typeof(NewEmailServiceFeatureFlag), fallbackMethod: nameof(SendEmailLegacyAsync))]
+    public virtual async Task<string> SendEmailAsync(string userId, string subject, string body)
     {
-        // New implementation
-        return await newProvider.SendAsync(to, subject, body);
+        // New implementation - called when flag is enabled
+        return "Email sent using new service.";
     }
-    
-    public virtual async Task<string> SendLegacyEmail(string to, string subject, string body)
+
+    public virtual async Task<string> SendEmailLegacyAsync(string userId, string subject, string body)
     {
-        // Fallback implementation
-        return await legacyProvider.SendAsync(to, subject, body);
+        // Fallback implementation - called when flag is disabled
+        return "Email sent using legacy service.";
     }
 }
 ```
 
-## Available Packages
+## Database Configuration
 
-| Package | Purpose | Target Framework |
-|---------|---------|------------------|
-| `Propel.FeatureFlags` | Core library | .NET Standard 2.0 |
-| `Propel.FeatureFlags.AspNetCore` | ASP.NET Core integration | .NET 9.0 |
-| `Propel.FeatureFlags.Infrastructure.PostgresSql` | PostgreSQL storage | .NET 9.0 |
-| `Propel.FeatureFlags.Infrastructure.Redis` | Redis caching | .NET Standard 2.0 |
-| `Propel.FeatureFlags.Attributes` | AOP-style evaluation | .NET 9.0 |
+### 1. Install Database Package
+```bash
+# PostgreSQL
+dotnet add package Propel.FeatureFlags.Infrastructure.PostgresSql
 
-## Configuration
+# SQL Server
+dotnet add package Propel.FeatureFlags.Infrastructure.SqlServer
+```
 
+### 2. Configure Connection
+```csharp
+var pgConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("PostgreSQL connection string is required");
+
+builder.Services.AddPropelPersistence(pgConnectionString);
+```
+
+### 3. Database Initialization
+```csharp
+var app = builder.Build();
+
+// Automatic database setup and flag registration
+await app.EnsureDatabase();
+
+// With optional SQL seeding for development
+await app.EnsureDatabase(sqlScriptFile: "seed-db.sql");
+```
+
+**Database initialization includes:**
+- Creates database and tables if they don't exist
+- Automatically registers all defined flags from code
+- Optional SQL script seeding for development/testing
+- Fails fast in production, continues in development on errors
+
+## Cache Configuration
+
+### Redis Distributed Cache
+```bash
+dotnet add package Propel.FeatureFlags.Infrastructure.Redis
+```
+
+```csharp
+builder.Services.AddPropelDistributedCache("localhost:6379");
+```
+
+### In-Memory Cache
+```csharp
+builder.Services.AddPropelInMemoryCache();
+```
+
+### Cache Options
+- **Distributed Cache**: Shared across multiple application instances, requires Redis
+- **In-Memory Cache**: Per-instance caching, faster but not shared
+- **No Cache**: Direct database queries, not recommended for production
+
+## Flag Configuration in JSON
+
+### Application Settings
 ```json
 {
   "PropelFeatureFlags": {
@@ -191,72 +205,162 @@ public class EmailService : IEmailService
 }
 ```
 
-## Database Deployment
-
-### Connection Configuration
-
+### Loading Configuration
 ```csharp
-// 1. Standard ConnectionStrings section (preferred)
-var pgConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    // 2. Fallback to PropelFeatureFlags configuration section  
-    ?? propelOptions.Database.DefaultConnection
-    ?? throw new InvalidOperationException("PostgreSQL connection string is required");
-
-builder.Services.AddPropelPersistence(pgConnectionString);
-```
-No separate database deployments or migrations needed for the flags database.
-
-```csharp
-var app = builder.Build();
-
-// Automatic database initialization
-await app.EnsureDatabase();
+var propelOptions = builder.Configuration.GetSection("PropelFeatureFlags").Get<PropelOptions>() ?? new();
+builder.Services.AddPropelServices(propelOptions);
 ```
 
-### Zero-Config Flag Deployment
+## Middleware Configuration
 
-After you defined your type-safe flags in code, you can automatically register them from your application startup.
+The library supports different middleware scenarios for various use cases:
 
+### Basic Configuration
 ```csharp
-// Developer defines this in code
-public class NewCheckoutFeatureFlag : TypeSafeFeatureFlag { ... }
-
-// App automatically registers it in database on startup - no manual step needed
-await app.DeployFlagsAsync(); // Called automatically by EnsureDatabase()
+app.UseFeatureFlags(); // Default configuration
 ```
 
-**Implementation approaches:**
-
-Factory-based registration (recommended for organized codebases)
+### Maintenance Mode
 ```csharp
-var factory = serviceProvider.GetRequiredService<IFeatureFlagFactory>();
-var allFlags = factory.GetAllFlags();
-foreach (var flag in allFlags)
+app.UseFeatureFlags(options =>
 {
-    await flag.RegisterPropelFlagsAsync(repository);
+    options.EnableMaintenanceMode = true;
+    options.MaintenanceFlagKey = "api-maintenance";
+    options.MaintenanceResponse = new
+    {
+        message = "API is temporarily down for maintenance",
+        estimatedDuration = "30 minutes",
+        contact = "support@company.com"
+    };
+});
+```
+
+### SaaS with Custom Attributes
+```csharp
+app.UseFeatureFlags(options =>
+{
+    // Custom user ID extraction
+    options.UserIdExtractor = context =>
+    {
+        var jwtUserId = context.User.FindFirst("sub")?.Value;
+        if (!string.IsNullOrEmpty(jwtUserId)) return jwtUserId;
+        
+        var apiKey = context.Request.Headers["X-API-Key"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(apiKey)) return $"api:{apiKey}";
+        
+        return context.Request.Headers["X-Session-ID"].FirstOrDefault();
+    };
+
+    // Extract tenant and user attributes for targeting
+    options.AttributeExtractors.Add(context =>
+    {
+        var attributes = new Dictionary<string, object>();
+        
+        if (context.Request.Headers.TryGetValue("X-Tenant-ID", out var tenantId))
+            attributes["tenantId"] = tenantId.ToString();
+            
+        if (context.Request.Headers.TryGetValue("Role", out var role))
+            attributes["role"] = role.ToString();
+            
+        var userTier = context.User.FindFirst("tier")?.Value;
+        if (!string.IsNullOrEmpty(userTier))
+            attributes["userTier"] = userTier;
+            
+        return attributes;
+    });
+});
+```
+
+### Advanced Configuration
+```csharp
+app.UseFeatureFlags(options =>
+{
+    // Combine maintenance mode with custom attribute extraction
+    options.EnableMaintenanceMode = true;
+    options.MaintenanceFlagKey = "api-maintenance";
+    
+    // Extract headers for targeting rules
+    options.AttributeExtractors.Add(context =>
+    {
+        var attributes = new Dictionary<string, object>();
+        
+        if (context.Request.Headers.TryGetValue("Department", out var department))
+            attributes["department"] = department.ToString();
+            
+        if (context.Request.Headers.TryGetValue("Country", out var country))
+            attributes["country"] = country.ToString();
+            
+        if (context.Request.Headers.TryGetValue("User-Type", out var userType))
+            attributes["userType"] = userType.ToString();
+            
+        return attributes;
+    });
+});
+```
+
+## Factory Pattern
+
+For organized flag management in larger codebases:
+
+### Interface Definition
+```csharp
+public interface IFeatureFlagFactory
+{
+    IFeatureFlag? GetFlagByKey(string key);
+    IFeatureFlag? GetFlagByType<T>() where T : IFeatureFlag;
+    IEnumerable<IFeatureFlag> GetAllFlags();
 }
 ```
 
-Assembly scanning (alternative)
+### Implementation
 ```csharp
-// Automatically finds all TypeSafeFeatureFlag implementations
-var currentAssembly = Assembly.GetExecutingAssembly();
-var allFlags = currentAssembly
-	.GetTypes()
-	.Where(t => typeof(IRegisteredFeatureFlag).IsAssignableFrom(t)
-			&& !t.IsInterface
-			&& !t.IsAbstract);
-foreach (var flag in allFlags)
+public class DemoFeatureFlagFactory : IFeatureFlagFactory
 {
-	var instance = (IRegisteredFeatureFlag)Activator.CreateInstance(flag)!;
-	await instance.RegisterPropelFlagsAsync(repository);
+    private readonly HashSet<IFeatureFlag> _allFlags;
+
+    public DemoFeatureFlagFactory(IEnumerable<IFeatureFlag> allFlags)
+    {
+        _allFlags = allFlags.ToHashSet();
+    }
+
+    public IFeatureFlag? GetFlagByKey(string key) => 
+        _allFlags.FirstOrDefault(f => f.Key == key);
+
+    public IFeatureFlag? GetFlagByType<T>() where T : IFeatureFlag => 
+        _allFlags.OfType<T>().FirstOrDefault();
+
+    public IEnumerable<IFeatureFlag> GetAllFlags() => [.. _allFlags];
 }
 ```
 
-**Development vs Production:**
+### Registration
+```csharp
+builder.Services.AddSingleton<IFeatureFlagFactory, DemoFeatureFlagFactory>();
+```
 
-- **Production**: Only automatic flag registration from code
-- **Development**: Optional SQL script seeding for test data (NOT recommended for production)
+## Evaluation Modes
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| `Off`| Flag is disabled | Kill switches, disable features |
+| `On` | Flag is enabled | Enable features, simple toggles |
+| `Scheduled` | Time-based activation | Coordinated releases, campaigns |
+| `TimeWindow` | Daily/weekly time ranges | Business hours, maintenance windows |
+| `UserTargeted` | Specific user allowlists/blocklists | Beta users, specific targeting |
+| `UserRolloutPercentage` | Percentage-based user rollout | Gradual rollouts, A/B testing |
+| `TenantRolloutPercentage` | Percentage-based tenant rollout | Multi-tenant gradual rollouts |
+| `TenantTargeted` | Specific tenant allowlists/blocklists | Tenant-specific features |
+| `TargetingRules` | Custom attribute-based rules | Complex targeting scenarios |
+
+## Available Packages
+
+| Package | Purpose | Target Framework |
+|---------|---------|------------------|
+| `Propel.FeatureFlags` | Core library | .NET Standard 2.0 |
+| `Propel.FeatureFlags.AspNetCore` | ASP.NET Core integration | .NET 9.0 |
+| `Propel.FeatureFlags.Infrastructure.PostgresSql` | PostgreSQL storage | .NET 9.0 |
+| `Propel.FeatureFlags.Infrastructure.Redis` | Redis caching | .NET Standard 2.0 |
+| `Propel.FeatureFlags.Attributes` | AOP-style evaluation | .NET 9.0 |
 
 ## Best Practices
 

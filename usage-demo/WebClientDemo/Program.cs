@@ -23,7 +23,7 @@ var propelOptions = builder.Configuration.GetSection("PropelFeatureFlags").Get<P
 // Register the core feature flag services
 builder.Services.AddPropelServices(propelOptions);
 
-// Register the feature flags defined in the assembly (RECOMMENDED)
+// Register the feature flags defined in the assembly with container (RECOMMENDED)
 builder.Services.AddPropelFeatureFlags();
 
 //optional: for large code bases with tons of flags, you might want to implement your own feature flag factory
@@ -294,14 +294,12 @@ public static class AppExtensions
 
 			if (!app.Environment.IsProduction() && !string.IsNullOrEmpty(sqlScriptFile))
 			{
-				// Flags should be defined in the provided SQL script file
+				// Flag seeding from SQL script file (NOT RECOMMEND FOR PRODUCTION)
 				// Use: during application startup at development time
-				// NOT RECOMMEND FOR PRODUCTION
-				// For production, use migrations instead or seed with registered flags from assembly
 				await app.Services.SeedDatabaseAsync(sqlScriptFile);
 			}
 
-			// seed with registered flags from assembly
+			// Deploy feature flags to the database (RECOMMENDED)
 			await app.DeployFlagsAsync();
 		}
 		catch (Exception ex)
@@ -319,6 +317,7 @@ public static class AppExtensions
 		}
 	}
 
+	// Deploy feature flags defined in code to the database
 	private static async Task DeployFlagsAsync(this WebApplication app)
 	{
 		var serviceProvider = app.Services.CreateScope().ServiceProvider;

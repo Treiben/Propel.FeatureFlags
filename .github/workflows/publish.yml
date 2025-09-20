@@ -25,16 +25,13 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
 
-    - name: Pack packages
-      run: dotnet pack --configuration Release --no-build --output ./packages
-
-    - name: Publish to NuGet
-      run: dotnet nuget push ./packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-
-    - name: Pack packages
+    - name: Pack specific packages
       run: |
         dotnet pack src/Propel.FeatureFlags/Propel.FeatureFlags.csproj --configuration Release --no-build --output ./packages
         dotnet pack src/Propel.FeatureFlags.AspNetCore/Propel.FeatureFlags.AspNetCore.csproj --configuration Release --no-build --output ./packages
         dotnet pack src/Propel.FeatureFlags.Attributes/Propel.FeatureFlags.Attributes.csproj --configuration Release --no-build --output ./packages
         dotnet pack src/infrastructure/Propel.FeatureFlags.Infrastructure.PostgresSql/Propel.FeatureFlags.Infrastructure.PostgresSql.csproj --configuration Release --no-build --output ./packages
         dotnet pack src/infrastructure/Propel.FeatureFlags.Infrastructure.Redis/Propel.FeatureFlags.Infrastructure.Redis.csproj --configuration Release --no-build --output ./packages
+
+    - name: Publish to NuGet
+      run: dotnet nuget push ./packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

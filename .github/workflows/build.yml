@@ -3,8 +3,28 @@ name: Build and Test
 on:
   push:
     branches: [ main ]
+    paths:
+      - '**/*.cs'
+      - '**/*.csproj'
+      - '**/*.sln'
+      - '**/*.config'
+      - '**/Directory.Build.props'
+      - '**/Directory.Build.targets'
+      - 'global.json'
+      - 'nuget.config'
+      - '.github/workflows/build.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - '**/*.cs'
+      - '**/*.csproj'
+      - '**/*.sln'
+      - '**/*.config'
+      - '**/Directory.Build.props'
+      - '**/Directory.Build.targets'
+      - 'global.json'
+      - 'nuget.config'
+      - '.github/workflows/build.yml'
 
 jobs:
   build:
