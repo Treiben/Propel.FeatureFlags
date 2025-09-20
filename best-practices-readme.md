@@ -1,21 +1,5 @@
 # Design Philosophy & Best Practices
 
-## The Problem This Library Solves
-
-Most development teams face a fundamental tension: developers want to deploy continuously, but product owners need to control when features reach users. Traditional approaches force these concerns together, creating bottlenecks where deployments wait for business decisions, or features go live before they're ready.
-
-This library separates these concerns completely. Developers control technical deployment, product owners control feature activation. The result is faster delivery cycles and better risk management.
-
-## How It Works
-
-When developers reference a flag in code and deploy, the flag is automatically created in a disabled state. This means:
-
-- **Developers can deploy immediately** without waiting for product decisions
-- **Product owners can activate features** when business conditions are right
-- **Both teams operate independently** without coordination overhead
-
-The auto-creation pattern ensures deployments never fail due to missing flags, while the disabled default ensures features don't accidentally go live during deployment.
-
 ## Understanding Flag Types
 
 **Application Flags** are owned by development teams. They control technical implementations like which algorithm to use, which API version to call, or whether to show a new UI component. These flags auto-create when first referenced, allowing developers to ship code immediately.

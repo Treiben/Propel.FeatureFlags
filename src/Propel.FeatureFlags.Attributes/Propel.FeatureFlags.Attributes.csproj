@@ -7,6 +7,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Description>Aspect-Oriented Programming (AOP) integration for Propel Feature Flags using Castle DynamicProxy. Enables declarative feature flag evaluation through the [FeatureFlagged] attribute with support for both synchronous and asynchronous methods, fallback method execution, and automatic proxy generation for runtime interception.</Description>
+  </PropertyGroup>
+  
   <ItemGroup>
     <PackageReference Include="Castle.Core" Version="5.2.1" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />

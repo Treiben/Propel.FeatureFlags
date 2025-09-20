@@ -348,7 +348,7 @@ public static class AppExtensions
 		//foreach (var flag in allFlags)
 		//{
 		//	var instance = (IRegisteredFeatureFlag)Activator.CreateInstance(flag)!;
-		//	await instance.EnsureFeatureFlagsInDatabaseAsync(repository);
+		//	await instance.RegisterPropelFlagsAsync(repository);
 		//}
 		//------------------------------------------------------------------------
 	}
