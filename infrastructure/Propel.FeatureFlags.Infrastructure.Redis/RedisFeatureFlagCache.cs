@@ -20,7 +20,7 @@ public class RedisFeatureFlagCache(
 	public async Task<FlagEvaluationConfiguration?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
-		logger.LogDebug("Getting feature flag {Key} from cache", key);
+		logger.LogDebug("Getting feature flag {Key} from cache", cacheKey.Key);
 		if (cancellationToken.IsCancellationRequested)
 		{
 			throw new OperationCanceledException(cancellationToken);
@@ -31,17 +31,17 @@ public class RedisFeatureFlagCache(
 			var value = await _database.StringGetAsync(key);
 			if (!value.HasValue)
 			{
-				logger.LogDebug("Feature flag {Key} not found in cache", key);
+				logger.LogDebug("Cache key {Key} not found in cache", key);
 				return null;
 			}
 
 			var flag = JsonSerializer.Deserialize<FlagEvaluationConfiguration>(value!, JsonDefaults.JsonOptions);
-			logger.LogDebug("Feature flag {Key} retrieved from cache", flag?.Identifier);
+			logger.LogDebug("Cache key {Key} retrieved from cache", key);
 			return flag;
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
 		{
-			logger.LogWarning(ex, "Failed to get feature flag {Key} from cache", key);
+			logger.LogWarning(ex, "Failed to get feature flag {Key} from cache", cacheKey.Key);
 			return null;
 		}
 	}
@@ -49,7 +49,7 @@ public class RedisFeatureFlagCache(
 	public async Task SetAsync(CacheKey cacheKey, FlagEvaluationConfiguration flag, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
-		logger.LogDebug("Setting feature flag {Key} in cache with expiration {Expiration}", key, _cacheConfiguration.CacheDurationInMinutes);
+		logger.LogDebug("Setting feature flag {Key} in cache with expiration {Expiration}", cacheKey.Key, _cacheConfiguration.CacheDurationInMinutes);
 		if (cancellationToken.IsCancellationRequested)
 		{
 			throw new OperationCanceledException(cancellationToken);
@@ -58,7 +58,7 @@ public class RedisFeatureFlagCache(
 		try
 		{
 			var value = JsonSerializer.Serialize(flag, JsonDefaults.JsonOptions);
-			logger.LogDebug("Serialized feature flag {Key} to JSON", key);
+			logger.LogDebug("Serialized cache key {Key} to JSON", key);
 			if (await _database.StringSetAsync(key, value, _cacheConfiguration.CacheDurationInMinutes))
 			{
 				logger.LogDebug("Feature flag {Key} set in cache successfully", key);

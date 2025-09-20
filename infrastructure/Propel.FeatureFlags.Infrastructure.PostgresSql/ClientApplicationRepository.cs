@@ -24,7 +24,7 @@ public class ClientApplicationRepository : IFlagEvaluationRepository
 	public async Task<FlagEvaluationConfiguration?> GetAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default)
 	{
 		_logger.LogDebug("Getting feature flag with key: {Key}, Scope: {Scope}, Application: {Application}",
-			identifier, identifier.Scope, identifier.ApplicationName);
+			identifier.Key, identifier.Scope, identifier.ApplicationName);
 
 		var (whereClause, parameters) = QueryBuilders.BuildWhereClause(identifier);
 		var sql = $@"SELECT key,
@@ -57,18 +57,18 @@ public class ClientApplicationRepository : IFlagEvaluationRepository
 
 			if (!await reader.ReadAsync(cancellationToken))
 			{
-				_logger.LogDebug("Feature flag with key {Key} not found within scope {Scope}", identifier, identifier.Scope);
+				_logger.LogDebug("Feature flag with key {Key} not found within application {Application} scope", identifier.Key, identifier.ApplicationName);
 				return null;
 			}
 
 			var flag = await reader.LoadAsync(identifier);
 			_logger.LogDebug("Retrieved feature flag: {Key} with evaluation modes {Modes}",
-				flag.Identifier, string.Join(",", flag.ActiveEvaluationModes.Modes));
+				flag.Identifier.Key, string.Join(",", flag.ActiveEvaluationModes.Modes));
 			return flag;
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
 		{
-			_logger.LogError(ex, "Error retrieving feature flag with key {Key}", identifier);
+			_logger.LogError(ex, "Error retrieving feature flag with key {Key} for {Application}", identifier.Key, identifier.ApplicationName);
 			throw;
 		}
 	}
@@ -130,7 +130,7 @@ public class ClientApplicationRepository : IFlagEvaluationRepository
 			await FlagAuditHelpers.CreateInitialMetadataRecord(identifier, name, description, connection, cancellationToken);
 			await FlagAuditHelpers.AddAuditTrail(identifier, connection, cancellationToken);
 
-			_logger.LogDebug("Successfully created feature flag: {Key}", identifier);
+			_logger.LogDebug("Successfully created feature flag: {Key}", identifier.Key);
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException && ex is not InsertFlagException)
 		{
