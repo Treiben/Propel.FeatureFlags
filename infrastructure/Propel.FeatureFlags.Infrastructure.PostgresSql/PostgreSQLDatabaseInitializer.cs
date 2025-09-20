@@ -8,6 +8,7 @@ public class PostgreSQLDatabaseInitializer
 	private readonly string _connectionString;
 	private readonly string _masterConnectionString;
 	private readonly string _databaseName;
+	private readonly string _searchPath;
 	private readonly ILogger<PostgreSQLDatabaseInitializer> _logger;
 
 	public PostgreSQLDatabaseInitializer(string connectionString, ILogger<PostgreSQLDatabaseInitializer> logger)
@@ -19,6 +20,7 @@ public class PostgreSQLDatabaseInitializer
 
 		var connectionBuilder = new NpgsqlConnectionStringBuilder(connectionString);
 		_databaseName = connectionBuilder.Database!;
+		_searchPath = connectionBuilder.SearchPath ?? "public";
 
 		// Connect to postgres database to create the target database
 		connectionBuilder.Database = "postgres";
@@ -130,8 +132,7 @@ public class PostgreSQLDatabaseInitializer
 
 	private async Task<bool> CreateSchemaAsync(CancellationToken cancellationToken = default)
 	{
-		var builder = new NpgsqlConnectionStringBuilder(_connectionString);
-		var createSchemaSql = GetCreateSchemaScript(builder.SearchPath!);
+		var createSchemaSql = GetCreateSchemaScript();
 
 		using var connection = new NpgsqlConnection(_connectionString);
 		using var createCmd = new NpgsqlCommand(createSchemaSql, connection);
@@ -144,14 +145,10 @@ public class PostgreSQLDatabaseInitializer
 		return true;
 	}
 
-	private static string GetCreateSchemaScript(string customSchema)
+	private string GetCreateSchemaScript()
 	{
-		var schema = "public";
-		if (!string.IsNullOrWhiteSpace(customSchema))
-			schema = customSchema;
-
-		var createSchema = $"CREATE SCHEMA IF NOT EXISTS {schema};";
-		return createSchema + @"
+		var schema = $"CREATE SCHEMA IF NOT EXISTS {_searchPath};";
+		return schema + @"
 -- Create the feature_flags table
 CREATE TABLE feature_flags (
 	-- Flag uniquness scope

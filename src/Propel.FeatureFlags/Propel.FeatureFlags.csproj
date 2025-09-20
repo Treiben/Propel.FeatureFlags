@@ -6,9 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
-  </PropertyGroup>
-
-  <PropertyGroup>
     <Description>Core feature flag models and evaluation engine for .NET applications</Description>
   </PropertyGroup>
   

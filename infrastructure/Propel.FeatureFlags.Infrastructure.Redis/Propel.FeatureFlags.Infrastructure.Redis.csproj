@@ -6,9 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
-  </PropertyGroup>
-
-  <PropertyGroup>
     <Description>Redis distributed caching provider for Propel Feature Flags using StackExchange.Redis with connection pooling and resilient connection management. Provides distributed caching capabilities for feature flag configurations with configurable TTL and efficient cache clearing for scalable deployments.</Description>
   </PropertyGroup>
   

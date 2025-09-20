@@ -24,7 +24,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
 	ProjectSection(SolutionItems) = preProject
 		Directory.Build.props = Directory.Build.props
-		best-practices-readme.md = best-practices-readme.md
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -35,6 +34,14 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebClientDemo", "usage-demo\WebClientDemo\WebClientDemo.csproj", "{DC458ACE-8C9C-BBB3-EEAE-8F719523A091}"
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "usage-demo\docker-compose.dcproj", "{81DDED9D-158B-E303-5F62-77A2896D2A5A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Infrastructure.SqlServer", "infrastructure\Propel.FeatureFlags.Infrastructure.SqlServer\Propel.FeatureFlags.Infrastructure.SqlServer.csproj", "{CC43FA0D-174D-049D-6F91-E33C74F921E2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "migrations", "migrations", "{A4E6A502-D6F5-4250-B66E-D058D1079AA5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Migrations", "infrastructure\migrations\Propel.FeatureFlags.Migraions\Propel.FeatureFlags.Migrations.csproj", "{222316C9-E2EF-4A01-8890-3BC38BD29814}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Migrations.SqlServer", "infrastructure\migrations\Propel.FeatureFlags.Migrations.SqlServer\Propel.FeatureFlags.Migrations.SqlServer.csproj", "{0340F91D-8AE0-4E65-AD45-7444FC78ACDB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -78,6 +85,18 @@ Global
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC43FA0D-174D-049D-6F91-E33C74F921E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC43FA0D-174D-049D-6F91-E33C74F921E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC43FA0D-174D-049D-6F91-E33C74F921E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC43FA0D-174D-049D-6F91-E33C74F921E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{222316C9-E2EF-4A01-8890-3BC38BD29814}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{222316C9-E2EF-4A01-8890-3BC38BD29814}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{222316C9-E2EF-4A01-8890-3BC38BD29814}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{222316C9-E2EF-4A01-8890-3BC38BD29814}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0340F91D-8AE0-4E65-AD45-7444FC78ACDB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0340F91D-8AE0-4E65-AD45-7444FC78ACDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0340F91D-8AE0-4E65-AD45-7444FC78ACDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0340F91D-8AE0-4E65-AD45-7444FC78ACDB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -92,6 +111,10 @@ Global
 		{F24A32CB-B1C0-0359-4E6E-0A0EB3A9B65C} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{DC458ACE-8C9C-BBB3-EEAE-8F719523A091} = {B35B9A4F-7FDA-4842-90DB-833533AD0C02}
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A} = {B35B9A4F-7FDA-4842-90DB-833533AD0C02}
+		{CC43FA0D-174D-049D-6F91-E33C74F921E2} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{A4E6A502-D6F5-4250-B66E-D058D1079AA5} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{222316C9-E2EF-4A01-8890-3BC38BD29814} = {A4E6A502-D6F5-4250-B66E-D058D1079AA5}
+		{0340F91D-8AE0-4E65-AD45-7444FC78ACDB} = {A4E6A502-D6F5-4250-B66E-D058D1079AA5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B84A57E7-342F-45BE-BD70-F37A7F4D7E27}

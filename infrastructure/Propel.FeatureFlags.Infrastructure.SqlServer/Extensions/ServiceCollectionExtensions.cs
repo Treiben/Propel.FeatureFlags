@@ -1,23 +1,21 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
-namespace Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
+namespace Propel.FeatureFlags.Infrastructure.SqlServer.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddPropelPersistence(this IServiceCollection services, string pgConnectionString)
+	public static IServiceCollection AddPropelPersistence(this IServiceCollection services, string sqlServerConnectionString)
 	{
-		// Configure connection string with resilience settings here
-		var builder = new NpgsqlConnectionStringBuilder(pgConnectionString)
+		// Configure connection string with resilience settings
+		var builder = new SqlConnectionStringBuilder(sqlServerConnectionString)
 		{
 			CommandTimeout = 30,
-			Timeout = 15,
+			ConnectTimeout = 15,
 			MaxPoolSize = 100,
 			MinPoolSize = 5,
 			Pooling = true,
-			ConnectionIdleLifetime = 300,
-			ConnectionPruningInterval = 10,
 			ApplicationName = "PropelFeatureFlags"
 		};
 
@@ -29,39 +27,39 @@ public static class ServiceCollectionExtensions
 				sp.GetRequiredService<ILogger<ClientApplicationRepository>>()));
 
 		services.AddSingleton(sp =>
-			new PostgreSQLDatabaseInitializer(
-				pgConnectionString ?? throw new InvalidOperationException("PostgreSQL connection string required"),
-				sp.GetRequiredService<ILogger<PostgreSQLDatabaseInitializer>>()));
+			new SqlServerDatabaseInitializer(
+				sqlServerConnectionString ?? throw new InvalidOperationException("SQL Server connection string required"),
+				sp.GetRequiredService<ILogger<SqlServerDatabaseInitializer>>()));
 
 		return services;
 	}
 
 	/// <summary>
-	/// Ensures the PostgreSQL database and schema exist for feature flags
+	/// Ensures the SQL Server database and schema exist for feature flags
 	/// Call this during application startup
 	/// </summary>
 	public static async Task<IServiceProvider> EnsurePropelDatabase(this IServiceProvider services,
 		CancellationToken cancellationToken = default)
 	{
-		var initializer = services.GetRequiredService<PostgreSQLDatabaseInitializer>();
+		var initializer = services.GetRequiredService<SqlServerDatabaseInitializer>();
 		var initialized = await initializer.InitializeAsync(cancellationToken);
 		if (!initialized)
-			throw new InvalidOperationException("Failed to initialize PostgreSQL database for feature flags");
+			throw new InvalidOperationException("Failed to initialize SQL Server database for feature flags");
 		return services;
 	}
 
 	/// <summary>
-	/// Ensures the PostgreSQL database is seeded with initial data for feature flags
+	/// Ensures the SQL Server database is seeded with initial data for feature flags
 	/// Flags should be defined in the provided SQL script file
 	/// Use: during application startup at development time
 	/// For production, use migrations instead or seed with registered flags from assembly
 	/// </summary>
 	public static async Task<IServiceProvider> SeedDatabaseAsync(this IServiceProvider services, string sqlScriptFile)
 	{
-		var initializer = services.GetRequiredService<PostgreSQLDatabaseInitializer>();
+		var initializer = services.GetRequiredService<SqlServerDatabaseInitializer>();
 		var seeded = await initializer.SeedAsync(sqlScriptFile);
 		if (!seeded)
-			throw new InvalidOperationException("Failed to seed PostgreSQL database for feature flags");
+			throw new InvalidOperationException("Failed to seed SQL Server database for feature flags");
 		return services;
 	}
 }

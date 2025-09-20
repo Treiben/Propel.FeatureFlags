@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
 
-public static class NpgsqlDataReaderExtensions
+public static class DataReaderExtensions
 {
 	public static async Task<T> DeserializeAsync<T>(this NpgsqlDataReader reader, string columnName)
 	{

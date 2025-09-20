@@ -5,8 +5,19 @@
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <Description>SqlServer storage provider for Propel Feature Flags using SqlClient. Handles database operations for feature flag data with automatic schema creation and JSON storage for targeting rules and configurations.</Description>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="sqlserver_database_initializer.cs" />
+    <Compile Remove="sqlserver_repository.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="manual-create-database.sql" />
+  </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.8" />

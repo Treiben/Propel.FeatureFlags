@@ -1,6 +1,6 @@
-CREATE SCHEMA IF NOT EXISTS propel_test;
+CREATE SCHEMA IF NOT EXISTS [YOUR SCHEMA GOES HERE];
 
-SET search_path TO propel_test;
+SET search_path TO [YOUR SCHEMA];
 
 -- Create the feature_flags table
 CREATE TABLE feature_flags (

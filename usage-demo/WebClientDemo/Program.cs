@@ -90,7 +90,13 @@ builder.Services.AddScoped<PaymentService>();
 var app = builder.Build();
 
 // Ensure the feature flags database is initialized and feature flags are registered
-await app.EnsureDatabase(sqlScriptFile: "seed-db.sql");
+if (app.Environment.IsDevelopment())
+{
+	await app.EnsureDatabase();
+}
+
+// Deploy feature flags to the database (RECOMMENDED)
+await app.RegisterAllFlags();
 
 // Configure the HTTP request pipeline.
 app.UseHttpsRedirection();
@@ -280,8 +286,9 @@ public static class AppExtensions
 		};
 	}
 
-	// Ensure the feature flags database is initialized and feature flags are registered
-	public static async Task EnsureDatabase(this WebApplication app, string? sqlScriptFile = null)
+	// Ensure the feature flags database is fully initialized
+	// NOTE: In production, it's recommended to use migrations
+	public static async Task EnsureDatabase(this WebApplication app)
 	{
 		try
 		{
@@ -292,15 +299,9 @@ public static class AppExtensions
 
 			app.Logger.LogInformation("Feature flags database initialization completed successfully");
 
-			if (!app.Environment.IsProduction() && !string.IsNullOrEmpty(sqlScriptFile))
-			{
-				// Flag seeding from SQL script file (NOT RECOMMEND FOR PRODUCTION)
-				// Use: during application startup at development time
-				await app.Services.SeedDatabaseAsync(sqlScriptFile);
-			}
-
-			// Deploy feature flags to the database (RECOMMENDED)
-			await app.DeployFlagsAsync();
+			// Flag seeding from SQL script file (NOT RECOMMEND FOR PRODUCTION)
+			// Use: during application startup at development time
+			await app.Services.SeedDatabaseAsync("seed-db.sql");
 		}
 		catch (Exception ex)
 		{
@@ -318,7 +319,7 @@ public static class AppExtensions
 	}
 
 	// Deploy feature flags defined in code to the database
-	private static async Task DeployFlagsAsync(this WebApplication app)
+	public static async Task RegisterAllFlags(this WebApplication app)
 	{
 		var serviceProvider = app.Services.CreateScope().ServiceProvider;
 		var repository = serviceProvider.GetRequiredService<IFlagEvaluationRepository>();
