@@ -1,7 +1,6 @@
 # Propel.FeatureFlags
 
-[![Build](https://github.com/tasriyan/Propel.FeatureFlags/actions/workflows/build.yml/badge.svg)](https://github.com/tasriyan/Propel.FeatureFlags/actions/workflows/build.yml)
-[![NuGet](https://img.shields.io/nuget/v/Propel.FeatureFlags.svg)](https://www.nuget.org/packages/Propel.FeatureFlags/)
+[![Build and Test](https://github.com/tasriyan/Propel.FeatureFlags/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/tasriyan/Propel.FeatureFlags/actions/workflows/build.yml)
 [![Framework](https://img.shields.io/badge/.NET-Standard%202.0%20%7C%20.NET%209.0-blue)](https://dotnet.microsoft.com/)
 [![Language](https://img.shields.io/badge/language-C%23-239120.svg)](https://docs.microsoft.com/en-us/dotnet/csharp/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
