@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Helpers;
 using Propel.FeatureFlags.Infrastructure.SqlServer;
-using Propel.FeatureFlags.Migrations.SqlServer;
 using System.Data;
 using System.Text.Json;
 using Testcontainers.MsSql;
@@ -43,10 +42,7 @@ public class SqlServerRepositoriesTestsFixture : IAsyncLifetime
 		EvaluationRepository = new ClientApplicationRepository(connectionString, 
 			new Mock<ILogger<ClientApplicationRepository>>().Object);
 
-		var migrationOptions = new SqlMigrationOptions
-		{
-			Connection = connectionString,
-		};
+		var migrationOptions = new SqlMigrationOptions(Connection: connectionString);
 		MigrationRepository = new SqlServerMigrationRepository(migrationOptions, new Mock<ILogger<SqlServerMigrationRepository>>().Object);
 	}
 

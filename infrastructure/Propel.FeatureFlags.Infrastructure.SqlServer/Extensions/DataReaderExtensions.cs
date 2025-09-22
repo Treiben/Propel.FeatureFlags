@@ -35,7 +35,7 @@ public static class SqlDataReaderExtensions
 		// Load schedule - handle DB nulls properly
 		var enableOn = await reader.GetFieldValueOrDefaultAsync<DateTimeOffset?>("ScheduledEnableDate");
 		var disableOn = await reader.GetFieldValueOrDefaultAsync<DateTimeOffset?>("ScheduledDisableDate");
-
+		
 		var schedule = new ActivationSchedule(
 			enableOn: enableOn?.DateTime ?? DateTime.MinValue,
 			disableOn: disableOn?.DateTime ?? DateTime.MaxValue

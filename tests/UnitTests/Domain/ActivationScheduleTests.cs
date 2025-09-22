@@ -243,8 +243,8 @@ public class ActivationSchedule_HasSchedule
 	public void HasSchedule_WithEnableDate_ReturnsTrue()
 	{
 		// Arrange
-		var enableDate = DateTime.UtcNow.AddDays(-1);
-		var schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime());
+		var enableDate = DateTime.Now.AddDays(-1);
+		var schedule = new ActivationSchedule(enableDate, DateTime.MaxValue, false);
 
 		// Act & Assert
 		schedule.HasSchedule().ShouldBeTrue();
@@ -254,9 +254,9 @@ public class ActivationSchedule_HasSchedule
 	public void HasSchedule_WithBothDates_ReturnsTrue()
 	{
 		// Arrange
-		var enableDate = DateTime.UtcNow.AddDays(-1);
-		var disableDate = DateTime.UtcNow.AddDays(1);
-		var schedule = new ActivationSchedule(enableDate, disableDate);
+		var enableDate = DateTime.Now.AddDays(-1);
+		var disableDate = DateTime.Now.AddDays(1);
+		var schedule = new ActivationSchedule(enableDate, disableDate, false);
 
 		// Act & Assert
 		schedule.HasSchedule().ShouldBeTrue();

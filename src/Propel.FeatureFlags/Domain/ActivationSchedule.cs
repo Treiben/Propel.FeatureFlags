@@ -7,10 +7,18 @@ public class ActivationSchedule
 	public DateTime EnableOn { get; }
 	public DateTime DisableOn { get; }
 
-	public ActivationSchedule(DateTime enableOn, DateTime disableOn)
+	public bool IsUtc { get; }
+
+	public ActivationSchedule(DateTime enableOn, DateTime disableOn, bool isUtc = true)
 	{
-		var enableOnUtc = DateTimeHelpers.NormalizeToUtc(enableOn, utcReplacementDt: DateTime.MinValue);
-		var disableOnUtc = DateTimeHelpers.NormalizeToUtc(disableOn, utcReplacementDt: DateTime.MaxValue);
+		var enableOnUtc = enableOn;
+		var disableOnUtc = disableOn;
+
+		if (!isUtc)
+		{
+			enableOnUtc = DateTimeHelpers.NormalizeToUtc(enableOn, utcReplacementDt: DateTime.MinValue);
+			disableOnUtc = DateTimeHelpers.NormalizeToUtc(disableOn, utcReplacementDt: DateTime.MaxValue);
+		}
 
 		if (disableOnUtc <= enableOnUtc)
 		{
@@ -21,7 +29,7 @@ public class ActivationSchedule
 		DisableOn = disableOnUtc;
 	}
 
-	public static ActivationSchedule Unscheduled => new(DateTime.MinValue, DateTime.MaxValue);
+	public static ActivationSchedule Unscheduled => new(DateTime.MinValue.ToUniversalTime(), DateTime.MaxValue.ToUniversalTime());
 
 	// This method is used to create new flag schedules in valid state
 	public static ActivationSchedule CreateSchedule(DateTime? enableOn, DateTime? disableOn = null)
