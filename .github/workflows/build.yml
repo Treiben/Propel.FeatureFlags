@@ -25,6 +25,7 @@ on:
       - 'global.json'
       - 'nuget.config'
       - '.github/workflows/build.yml'
+  workflow_dispatch:
 
 jobs:
   build:
