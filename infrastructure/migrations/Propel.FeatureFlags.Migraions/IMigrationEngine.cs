@@ -15,11 +15,10 @@ public interface IMigrationEngine
 }
 
 public class MigrationEngine(
-	ILogger<IMigrationEngine> logger,
-	IConfiguration configuration,
-	IMigrationRepository repository) : IMigrationEngine
+		IMigrationRepository repository,
+		ILogger<IMigrationEngine> logger) : IMigrationEngine
 {
-	private readonly string _scriptsPath = Path.Combine(Directory.GetCurrentDirectory(), "Scripts", "Migrations");
+	private readonly string _scriptsPath = Path.Combine(Directory.GetCurrentDirectory(), "scripts");
 
 	public async Task<MigrationResult> MigrateAsync(CancellationToken cancellationToken = default)
 	{
@@ -37,12 +36,20 @@ public class MigrationEngine(
 			var allMigrations = LoadMigrationFiles();
 			var appliedMigrations = await repository.GetAppliedMigrationsAsync(cancellationToken);
 
+			if (allMigrations.Count == 0)
+			{
+				logger.LogWarning("No migration files found in directory: {Path}", _scriptsPath);
+				result.Success = true;
+				result.Message = "No migrations to apply";
+				return result;
+			}
+
 			var pendingMigrations = allMigrations
 				.Where(m => !appliedMigrations.Contains(m.Version))
 				.OrderBy(m => m.GetSortableVersion())
 				.ToList();
 
-			if (!pendingMigrations.Any())
+			if (pendingMigrations.Count == 0)
 			{
 				logger.LogInformation("No pending migrations found");
 				result.Success = true;
@@ -100,6 +107,13 @@ public class MigrationEngine(
 			logger.LogInformation("Starting rollback of {Steps} migration(s)...", steps);
 
 			var appliedMigrations = await repository.GetAppliedMigrationsAsync(cancellationToken);
+			if (appliedMigrations.Count == 0)
+			{
+				result.Message = "No applied migrations to rollback";
+				result.Success = true;
+				return result;
+			}
+
 			var allMigrations = LoadMigrationFiles();
 
 			var migrationsToRollback = appliedMigrations
@@ -160,18 +174,18 @@ public class MigrationEngine(
 	{
 		try
 		{
-			var databaseExists = await repository.DatabaseExistsAsync(cancellationToken);
-			if (!databaseExists)
-			{
-				logger.LogWarning("Database does not exist");
-				return;
-			}
-
 			var allMigrations = LoadMigrationFiles();
 			var appliedMigrations = await repository.GetAppliedMigrationsAsync(cancellationToken);
 
 			Console.WriteLine("\n=== Migration Status ===");
-			Console.WriteLine($"Database: {configuration.GetConnectionString("DefaultConnection")}");
+			if (allMigrations.Count == 0)
+			{
+				logger.LogWarning("No migration files found in directory: {Path}", _scriptsPath);
+				Console.WriteLine("No migrations found.");
+				return;
+			}
+
+			Console.WriteLine($"Database: {repository.DatabaseName}");
 			Console.WriteLine($"Total migrations: {allMigrations.Count}");
 			Console.WriteLine($"Applied migrations: {appliedMigrations.Count}");
 			Console.WriteLine($"Pending migrations: {allMigrations.Count - appliedMigrations.Count}");
@@ -201,6 +215,18 @@ public class MigrationEngine(
 		try
 		{
 			var migrations = LoadMigrationFiles();
+			if (migrations.Count == 0)
+			{
+				logger.LogWarning(@"No migration files found in directory: {Path}. 
+Migration file name should start with the same as migration version, e.g. for migration version 1.0.1 the file name should start with V1_0_0.", _scriptsPath);
+				result.Success = false;
+				result.Errors.Add("No migration files with version pattern names were found.");
+				result.Message = @"
+No migration files found in directory: {Path}. 
+Migration file name should start with the same as migration version, e.g. for migration version 1.0.1 the file name should start with V1_0_0.";
+				return result;
+			}
+
 			var errors = new List<string>();
 
 			// Check for duplicate versions
@@ -232,11 +258,11 @@ public class MigrationEngine(
 				}
 			}
 
-			result.Success = !errors.Any();
+			result.Success = errors.Count == 0;
 			result.Errors = errors;
 			result.Message = result.Success ? "All migrations are valid" : $"Found {errors.Count} validation errors";
 
-			if (errors.Any())
+			if (errors.Count != 0)
 			{
 				foreach (var error in errors)
 				{
@@ -288,24 +314,9 @@ public class MigrationEngine(
 
 	private async Task EnsureDatabaseSetupAsync(CancellationToken cancellationToken)
 	{
-		var createDatabaseIfNotExists = configuration.GetValue("Migration:CreateDatabaseIfNotExists", true);
-
-		if (createDatabaseIfNotExists)
-		{
-			var databaseExists = await repository.DatabaseExistsAsync(cancellationToken);
-			if (!databaseExists)
-			{
-				logger.LogInformation("Creating database...");
-				await repository.CreateDatabaseAsync(cancellationToken);
-			}
-		}
-
-		var migrationTableExists = await repository.MigrationTableExistsAsync(cancellationToken);
-		if (!migrationTableExists)
-		{
-			logger.LogInformation("Creating migration tracking table...");
-			await repository.CreateMigrationTableAsync(cancellationToken);
-		}
+		await repository.CreateDatabaseAsync(cancellationToken);
+		await repository.CreateSchemaAsync(cancellationToken);
+		await repository.CreateMigrationTableAsync(cancellationToken);
 	}
 
 	private List<Migration> LoadMigrationFiles()

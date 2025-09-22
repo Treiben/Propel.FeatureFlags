@@ -1,30 +1,29 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Propel.FeatureFlags.Migrations;
 
-public class Migrator(IMigrationEngine migrationEngine, ILogger<Migrator> logger)
+public class Migrator(IMigrationEngine migrationEngine, IConfiguration configuration, ILogger<Migrator> logger)
 {
-	public async Task<MigrationResult> Run(string[] args)
+	public async Task<MigrationResult> Run(params string[] args)
 	{
 		try
 		{
 			logger.LogInformation("Starting Propel Feature Flags Database Migration");
 
-			var command = args.Length > 0 ? args[0].ToLower() : "migrate";
+			var command = CommandFromConfig();
+
+			logger.LogInformation("Received command {Command}", command);
 
 			switch (command)
 			{
 				case "migrate":
-				case "up":
 					return await migrationEngine.MigrateAsync();
 
 				case "rollback":
-				case "down":
-					var steps = args.Length > 1 && int.TryParse(args[1], out var s) ? s : 1;
-					return await migrationEngine.RollbackAsync(steps);
+					return await migrationEngine.RollbackAsync();
 
 				case "status":
-				case "info":
 					 await migrationEngine.ShowStatusAsync();
 					return MigrationResult.Ok();
 
@@ -44,6 +43,44 @@ public class Migrator(IMigrationEngine migrationEngine, ILogger<Migrator> logger
 			logger.LogError(ex, "Migration failed: {Message}", ex.Message);
 			return MigrationResult.Failed(because: ex.Message);
 		}
+	}
+
+	private string CommandFromConfig()
+	{
+		var command = configuration["command"];
+
+		if (string.IsNullOrWhiteSpace(command))
+		{
+			return "show-usage";
+		}
+
+		command = command.ToLowerInvariant();
+		if (command == "migrate" || command == "up")
+		{
+			return "migrate";
+		}
+
+		if (command == "rollback" || command == "down")
+		{
+			return "rollback";
+		}
+
+		if (command == "status" || command == "info")
+		{
+			return "status";
+		}
+
+		if (command == "validate")
+		{
+			return "validate";
+		}
+
+		if (command == "baseline")
+		{
+			return "baseline";
+		}
+
+		return "show-usage";
 	}
 
 	static void ShowUsage()

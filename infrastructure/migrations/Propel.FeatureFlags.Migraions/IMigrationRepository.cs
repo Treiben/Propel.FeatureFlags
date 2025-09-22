@@ -2,9 +2,9 @@
 
 public interface IMigrationRepository
 {
-	Task<bool> DatabaseExistsAsync(CancellationToken cancellationToken = default);
+	string DatabaseName { get; }
 	Task CreateDatabaseAsync(CancellationToken cancellationToken = default);
-	Task<bool> MigrationTableExistsAsync(CancellationToken cancellationToken = default);
+	Task CreateSchemaAsync(CancellationToken cancellationToken = default);
 	Task CreateMigrationTableAsync(CancellationToken cancellationToken = default);
 	Task<List<string>> GetAppliedMigrationsAsync(CancellationToken cancellationToken = default);
 	Task RecordMigrationAsync(string version, string description, CancellationToken cancellationToken = default);
