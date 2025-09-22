@@ -37,7 +37,12 @@ public sealed class InMemoryFlagCache(IMemoryCache cache, PropelOptions options)
 
 	public Task ClearAsync(CancellationToken cancellationToken = default)
 	{
-		((MemoryCache)_cache).Clear();
+		var pattern = $"{CacheKey.KEY_PREFIX}:";
+		foreach (var key in ((MemoryCache)_cache).Keys)
+		{
+			if (((string)key).StartsWith(pattern))
+				_cache.Remove(key);
+		}
 		return Task.CompletedTask;
 	}
 }

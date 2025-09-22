@@ -4,7 +4,7 @@ namespace Propel.FeatureFlags.Infrastructure.Cache;
 
 public class CacheKey
 {
-	private const string KEY_PREFIX = "ff";
+	public const string KEY_PREFIX = "ff";
 
 	public const string Pattern = $"{KEY_PREFIX}:*";
 
