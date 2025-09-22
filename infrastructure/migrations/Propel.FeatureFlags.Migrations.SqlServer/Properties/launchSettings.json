@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Propel.FeatureFlags.Migrations.SqlServer": {
+      "commandName": "Project",
+      "commandLineArgs": "--command migrate"
+    }
+  }
+}

@@ -2,8 +2,7 @@
 // Services/SqlServerMigrationRepository.cs - SQL Server Implementation
 // =============================================================================
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+using  Microsoft.Extensions.Logging;
 using System.Data;
 
 namespace Propel.FeatureFlags.Migrations.SqlServer;
@@ -11,7 +10,6 @@ namespace Propel.FeatureFlags.Migrations.SqlServer;
 public class SqlServerMigrationRepository : IMigrationRepository
 {
 	private readonly ILogger<SqlServerMigrationRepository> _logger;
-	private readonly IConfiguration _configuration;
 	private readonly string _connectionString;
 	private readonly string _masterConnectionString;
 	private readonly string _databaseName;
@@ -19,59 +17,45 @@ public class SqlServerMigrationRepository : IMigrationRepository
 	private readonly string _migrationTableName;
 	private readonly int _timeoutSeconds;
 
+	public string DatabaseName => _databaseName;
+
 	public SqlServerMigrationRepository(
-		ILogger<SqlServerMigrationRepository> logger,
-		IConfiguration configuration)
+		SqlMigrationOptions options,
+		ILogger<SqlServerMigrationRepository> logger)
 	{
 		_logger = logger;
-		_configuration = configuration;
 
-		_connectionString = _configuration.GetConnectionString("DefaultConnection")
-			?? throw new InvalidOperationException("DefaultConnection connection string is required");
-		_masterConnectionString = _configuration.GetConnectionString("MasterConnection")
-			?? throw new InvalidOperationException("MasterConnection connection string is required");
+		_connectionString = options.Connection;
 
-		_databaseName = _configuration.GetValue<string>("Migration:DatabaseName") ?? "PropelFeatureFlags";
-		_schemaName = _configuration.GetValue<string>("Migration:SchemaName") ?? "dbo";
-		_migrationTableName = _configuration.GetValue<string>("Migration:MigrationTableName") ?? "schema_migrations";
-		_timeoutSeconds = _configuration.GetValue("Migration:TimeoutSeconds", 30);
-	}
-
-	public async Task<bool> DatabaseExistsAsync(CancellationToken cancellationToken = default)
-	{
-		try
-		{
-			using var connection = new SqlConnection(_masterConnectionString);
-			await connection.OpenAsync(cancellationToken);
-
-			var sql = "SELECT 1 FROM sys.databases WHERE name = @DatabaseName";
-			using var command = new SqlCommand(sql, connection);
-			command.Parameters.AddWithValue("@DatabaseName", _databaseName);
-			command.CommandTimeout = _timeoutSeconds;
-
-			var result = await command.ExecuteScalarAsync(cancellationToken);
-			return result != null;
-		}
-		catch (Exception ex)
-		{
-			_logger.LogError(ex, "Failed to check if database exists: {DatabaseName}", _databaseName);
-			throw;
-		}
+		var connectionBuilder = new SqlConnectionStringBuilder(_connectionString);
+		_databaseName = connectionBuilder.InitialCatalog;
+		_masterConnectionString = new SqlConnectionStringBuilder(_connectionString)
+										{
+											InitialCatalog = "master"
+										}.ConnectionString;
+		_schemaName = string.IsNullOrWhiteSpace(options.Schema) ? "dbo" : options.Schema;
+		_migrationTableName = string.IsNullOrWhiteSpace(options.MigrationTable) ? "flags_schema_migrations" : options.MigrationTable;
+		_timeoutSeconds = connectionBuilder.ConnectTimeout > 0 ? connectionBuilder.ConnectTimeout : 30;
 	}
 
 	public async Task CreateDatabaseAsync(CancellationToken cancellationToken = default)
 	{
+		_logger.LogInformation("Creating database...");
 		try
 		{
 			using var connection = new SqlConnection(_masterConnectionString);
-			await connection.OpenAsync(cancellationToken);
 
-			var sql = $"CREATE DATABASE [{_databaseName}]";
+			var sql = $@"
+IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = '{_databaseName}')
+BEGIN
+	CREATE DATABASE [{_databaseName}]
+END;";
+
 			using var command = new SqlCommand(sql, connection);
 			command.CommandTimeout = _timeoutSeconds;
 
+			await connection.OpenAsync(cancellationToken);
 			await command.ExecuteNonQueryAsync(cancellationToken);
-			_logger.LogInformation("Database {DatabaseName} created successfully", _databaseName);
 		}
 		catch (Exception ex)
 		{
@@ -80,58 +64,59 @@ public class SqlServerMigrationRepository : IMigrationRepository
 		}
 	}
 
-	public async Task<bool> MigrationTableExistsAsync(CancellationToken cancellationToken = default)
+	public async Task CreateSchemaAsync(CancellationToken cancellationToken = default)
 	{
+		_logger.LogInformation("Creating schema...");
 		try
 		{
 			using var connection = new SqlConnection(_connectionString);
-			await connection.OpenAsync(cancellationToken);
 
-			var sql = @"
-                SELECT CASE WHEN EXISTS (
-                    SELECT * FROM INFORMATION_SCHEMA.TABLES 
-                    WHERE TABLE_SCHEMA = @SchemaName 
-                    AND TABLE_NAME = @TableName
-                ) THEN 1 ELSE 0 END";
-
+			var sql = $@"
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = '{_schemaName}')
+BEGIN
+    EXEC('CREATE SCHEMA [{_schemaName}] AUTHORIZATION [dbo]');
+END;";
 			using var command = new SqlCommand(sql, connection);
-			command.Parameters.AddWithValue("@SchemaName", _schemaName);
-			command.Parameters.AddWithValue("@TableName", _migrationTableName);
 			command.CommandTimeout = _timeoutSeconds;
 
-			var result = await command.ExecuteScalarAsync(cancellationToken);
-			return Convert.ToBoolean(result);
+			await connection.OpenAsync(cancellationToken);
+			await command.ExecuteNonQueryAsync(cancellationToken);
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Failed to check if migration table exists");
+			_logger.LogError(ex, "Failed to create database: {SchemaName}", _schemaName);
 			throw;
 		}
 	}
 
 	public async Task CreateMigrationTableAsync(CancellationToken cancellationToken = default)
 	{
+		_logger.LogInformation("Creating migration tracking table...");
 		try
 		{
 			using var connection = new SqlConnection(_connectionString);
-			await connection.OpenAsync(cancellationToken);
 
 			var sql = $@"
-                CREATE TABLE [{_schemaName}].[{_migrationTableName}] (
-                    version NVARCHAR(50) PRIMARY KEY,
-                    applied_at DATETIMEOFFSET NOT NULL DEFAULT GETUTCDATE(),
-                    description NVARCHAR(MAX) NOT NULL
-                )";
+IF (SELECT CASE WHEN EXISTS (
+    SELECT * FROM INFORMATION_SCHEMA.TABLES 
+    WHERE TABLE_SCHEMA = '{_schemaName}' AND TABLE_NAME = '{_migrationTableName}'
+) THEN 1 ELSE 0 END) = 0
+BEGIN
+	CREATE TABLE [{_schemaName}].[{_migrationTableName}] (
+		version NVARCHAR(50) PRIMARY KEY,
+		applied_at DATETIMEOFFSET NOT NULL DEFAULT GETUTCDATE(),
+		description NVARCHAR(MAX) NOT NULL)
+END;";
 
 			using var command = new SqlCommand(sql, connection);
 			command.CommandTimeout = _timeoutSeconds;
 
+			await connection.OpenAsync(cancellationToken);
 			await command.ExecuteNonQueryAsync(cancellationToken);
-			_logger.LogInformation("Migration table {TableName} created successfully", _migrationTableName);
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Failed to create migration table: {TableName}", _migrationTableName);
+			_logger.LogError(ex, "Failed to check if migration table exists");
 			throw;
 		}
 	}
@@ -141,7 +126,6 @@ public class SqlServerMigrationRepository : IMigrationRepository
 		try
 		{
 			using var connection = new SqlConnection(_connectionString);
-			await connection.OpenAsync(cancellationToken);
 
 			var sql = $@"
                 SELECT version 
@@ -151,9 +135,10 @@ public class SqlServerMigrationRepository : IMigrationRepository
 			using var command = new SqlCommand(sql, connection);
 			command.CommandTimeout = _timeoutSeconds;
 
-			var migrations = new List<string>();
+			await connection.OpenAsync(cancellationToken);
 			using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
+			var migrations = new List<string>();
 			while (await reader.ReadAsync(cancellationToken))
 			{
 				migrations.Add(reader.GetString("version"));
@@ -164,7 +149,7 @@ public class SqlServerMigrationRepository : IMigrationRepository
 		catch (Exception ex)
 		{
 			_logger.LogError(ex, "Failed to get applied migrations");
-			throw;
+			return [];
 		}
 	}
 
@@ -173,18 +158,19 @@ public class SqlServerMigrationRepository : IMigrationRepository
 		try
 		{
 			using var connection = new SqlConnection(_connectionString);
-			await connection.OpenAsync(cancellationToken);
 
 			var sql = $@"
                 INSERT INTO [{_schemaName}].[{_migrationTableName}] (version, description, applied_at)
-                VALUES (@Version, @Description, GETUTCDATE())";
+                VALUES (@version, @description, GETUTCDATE())";
 
 			using var command = new SqlCommand(sql, connection);
-			command.Parameters.AddWithValue("@Version", version);
-			command.Parameters.AddWithValue("@Description", description);
+			command.Parameters.AddWithValue("@version", version);
+			command.Parameters.AddWithValue("@description", description);
 			command.CommandTimeout = _timeoutSeconds;
 
+			await connection.OpenAsync(cancellationToken);
 			await command.ExecuteNonQueryAsync(cancellationToken);
+
 			_logger.LogDebug("Recorded migration: {Version}", version);
 		}
 		catch (Exception ex)
@@ -199,17 +185,18 @@ public class SqlServerMigrationRepository : IMigrationRepository
 		try
 		{
 			using var connection = new SqlConnection(_connectionString);
-			await connection.OpenAsync(cancellationToken);
 
 			var sql = $@"
                 DELETE FROM [{_schemaName}].[{_migrationTableName}] 
-                WHERE version = @Version";
+                WHERE version = @version";
 
 			using var command = new SqlCommand(sql, connection);
-			command.Parameters.AddWithValue("@Version", version);
+			command.Parameters.AddWithValue("@version", version);
 			command.CommandTimeout = _timeoutSeconds;
 
+			await connection.OpenAsync(cancellationToken);
 			await command.ExecuteNonQueryAsync(cancellationToken);
+
 			_logger.LogDebug("Removed migration record: {Version}", version);
 		}
 		catch (Exception ex)
@@ -224,7 +211,6 @@ public class SqlServerMigrationRepository : IMigrationRepository
 		try
 		{
 			using var connection = new SqlConnection(_connectionString);
-			await connection.OpenAsync(cancellationToken);
 
 			// Split SQL script by GO statements and execute each batch
 			var batches = SplitSqlBatches(sql);
@@ -237,6 +223,9 @@ public class SqlServerMigrationRepository : IMigrationRepository
 
 				using var command = new SqlCommand(batch, connection);
 				command.CommandTimeout = _timeoutSeconds;
+
+				if (connection.State != ConnectionState.Open)
+					await connection.OpenAsync(cancellationToken);
 				await command.ExecuteNonQueryAsync(cancellationToken);
 			}
 
@@ -262,7 +251,7 @@ public class SqlServerMigrationRepository : IMigrationRepository
 
 			if (string.Equals(trimmedLine, "GO", StringComparison.OrdinalIgnoreCase))
 			{
-				if (currentBatch.Any())
+				if (currentBatch.Count != 0)
 				{
 					batches.Add(string.Join(Environment.NewLine, currentBatch));
 					currentBatch.Clear();
@@ -275,7 +264,7 @@ public class SqlServerMigrationRepository : IMigrationRepository
 		}
 
 		// Add the final batch if it exists
-		if (currentBatch.Any())
+		if (currentBatch.Count != 0)
 		{
 			batches.Add(string.Join(Environment.NewLine, currentBatch));
 		}
