@@ -26,6 +26,11 @@ on:
       - 'nuget.config'
       - '.github/workflows/build.yml'
   workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual build'
+        required: false
+        default: 'Manual trigger'
 
 jobs:
   build:
