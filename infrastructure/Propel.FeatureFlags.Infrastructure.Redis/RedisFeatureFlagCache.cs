@@ -163,7 +163,7 @@ public class RedisFeatureFlagCache(
 
 		try
 		{
-			var deletedCount = await _database.KeyDeleteAsync(keys.ToArray());
+			var deletedCount = await _database.KeyDeleteAsync([.. keys]);
 			logger.LogDebug("Deleted {Count} of {Total} feature flag keys from cache",
 				deletedCount, keys.Count);
 		}
