@@ -4,6 +4,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <IsPackable>string</IsPackable>
+    <Description>Database migrations for Propel Feature Flags. Provides schema migration scripts and tools to manage database schema changes for feature flag storage providers, ensuring consistent and versioned database structures across different environments.</Description>
   </PropertyGroup>
 
   <ItemGroup>

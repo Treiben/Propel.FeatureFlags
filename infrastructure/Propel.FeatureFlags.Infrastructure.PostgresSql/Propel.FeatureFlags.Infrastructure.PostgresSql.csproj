@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>true</IsPackable>
-    <Description>PostgreSQL storage provider for Propel Feature Flags using Npgsql. Handles database operations for feature flag data with automatic schema creation and JSON storage for targeting rules and configurations.</Description>
+    <Description>PostgreSQL storage provider for Propel Feature Flags using Npgsql. Handles database operations and schema migraions for feature flag data with automatic schema creation and JSON storage for targeting rules and configurations.</Description>
   </PropertyGroup>
 
   <ItemGroup>

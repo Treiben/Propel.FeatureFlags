@@ -6,16 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
-    <Description>SqlServer storage provider for Propel Feature Flags using SqlClient. Handles database operations for feature flag data with automatic schema creation and JSON storage for targeting rules and configurations.</Description>
+    <Description>SqlServer storage provider for Propel Feature Flags using SqlClient. Handles database operations and schema migrations for feature flag data with automatic schema creation and JSON storage for targeting rules and configurations.</Description>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Remove="SqlMigrationOptions.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="manual-create-database.sql" />
-  </ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
@@ -26,18 +18,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
     <ProjectReference Include="..\migrations\Propel.FeatureFlags.Migraions\Propel.FeatureFlags.Migrations.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="scripts\manual-setup.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="scripts\rollback\V1_0_0__initial_schema.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="scripts\V1_0_0__initial_schema.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>
