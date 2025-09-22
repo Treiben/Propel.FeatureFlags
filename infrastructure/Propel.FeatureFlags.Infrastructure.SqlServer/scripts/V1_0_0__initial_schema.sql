@@ -1,4 +1,6 @@
 -- =============================================================================
+-- Initial schema for Feature Flags system
+-- Database: SQL Server
 -- Scripts/Migrations/V1_0_0__initial_schema.sql
 -- =============================================================================
 

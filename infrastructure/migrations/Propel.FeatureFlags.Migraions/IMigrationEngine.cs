@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
@@ -16,11 +16,12 @@ public interface IMigrationEngine
 
 public class MigrationEngine(
 		IMigrationRepository repository,
+		IConfiguration config,
 		ILogger<IMigrationEngine> logger) : IMigrationEngine
 {
-	private readonly string _scriptsPath = Path.Combine(Directory.GetCurrentDirectory(), "scripts");
+	private readonly string _scriptsPath = Path.Combine(Directory.GetCurrentDirectory(), config["path"] ?? "scripts");
 
-	public async Task<MigrationResult> MigrateAsync(CancellationToken cancellationToken = default)
+	public async Task<MigrationResult> MigrateAsync( CancellationToken cancellationToken = default)
 	{
 		var stopwatch = Stopwatch.StartNew();
 		var result = new MigrationResult();
@@ -32,8 +33,6 @@ public class MigrationEngine(
 
 			// Load all migration files
 			var allMigrations = LoadMigrationFiles();
-			var appliedMigrations = await repository.GetAppliedMigrationsAsync(cancellationToken);
-
 			if (allMigrations.Count == 0)
 			{
 				logger.LogWarning("No migration files found in directory: {Path}", _scriptsPath);
@@ -42,6 +41,7 @@ public class MigrationEngine(
 				return result;
 			}
 
+			var appliedMigrations = await repository.GetAppliedMigrationsAsync(cancellationToken);
 			var pendingMigrations = allMigrations
 				.Where(m => !appliedMigrations.Contains(m.Version))
 				.OrderBy(m => m.GetSortableVersion())
@@ -186,7 +186,7 @@ public class MigrationEngine(
 				return;
 			}
 
-			Console.WriteLine($"Database: {repository.DatabaseName}");
+			Console.WriteLine($"Database: {repository.Database}");
 			Console.WriteLine($"Total migrations: {allMigrations.Count}");
 			Console.WriteLine($"Applied migrations: {appliedMigrations.Count}");
 			Console.WriteLine($"Pending migrations: {allMigrations.Count - appliedMigrations.Count}");
@@ -297,7 +297,7 @@ Migration file name should start with the same as migration version, e.g. for mi
 					await repository.RecordMigrationAsync(migration.Version,
 						$"BASELINE: {migration.Description}", cancellationToken);
 				}
-				catch (SqlException ex) when (ex.Number == 2627) // Unique constraint violation
+				catch (DuplicatedVersionException ex)
 				{
 					logger.LogWarning("Migration {Version} already recorded, skipping", migration.Version);
 				}

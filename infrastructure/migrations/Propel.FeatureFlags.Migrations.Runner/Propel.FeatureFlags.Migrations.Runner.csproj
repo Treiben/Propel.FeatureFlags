@@ -5,6 +5,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <IsPackable>string</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,23 +13,28 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.9" />
   </ItemGroup>
 
-
   <ItemGroup>
+    <ProjectReference Include="..\..\Propel.FeatureFlags.Infrastructure.SqlServer\Propel.FeatureFlags.Infrastructure.SqlServer.csproj" />
     <ProjectReference Include="..\Propel.FeatureFlags.Migraions\Propel.FeatureFlags.Migrations.csproj" />
   </ItemGroup>
-
 
   <ItemGroup>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="scripts\manual-setup.sql">
+    <None Update="scripts\postgresql\rollback\V1_0_0__initial_schema.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="scripts\rollback\V1_0_0__initial_schema.sql">
+    <None Update="scripts\postgresql\V1_0_0__initial_schema.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="scripts\V1_0_0__initial_schema.sql">
+    <None Update="scripts\sqlserver\manual-setup.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="scripts\sqlserver\rollback\V1_0_0__initial_schema.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="scripts\sqlserver\V1_0_0__initial_schema.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

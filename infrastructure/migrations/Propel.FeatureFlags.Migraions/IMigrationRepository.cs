@@ -2,7 +2,7 @@
 
 public interface IMigrationRepository
 {
-	string DatabaseName { get; }
+	string Database { get; }
 	Task CreateDatabaseAsync(CancellationToken cancellationToken = default);
 	Task CreateSchemaAsync(CancellationToken cancellationToken = default);
 	Task CreateMigrationTableAsync(CancellationToken cancellationToken = default);
@@ -10,4 +10,12 @@ public interface IMigrationRepository
 	Task RecordMigrationAsync(string version, string description, CancellationToken cancellationToken = default);
 	Task RemoveMigrationAsync(string version, CancellationToken cancellationToken = default);
 	Task<bool> ExecuteSqlAsync(string sql, CancellationToken cancellationToken = default);
+}
+
+public class DuplicatedVersionException : Exception
+{
+	public DuplicatedVersionException(string version)
+		: base($"A migration with version '{version}' already exists.")
+	{
+	}
 }

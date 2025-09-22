@@ -1,5 +1,7 @@
 ﻿-- =============================================================================
--- Scripts/Migrations/Rollback/V1_0_0__initial_schema.sql
+-- Initial schema rollback for Feature Flags system
+-- Database: SqlServer
+-- Rollback Script (rollback.sql)
 -- =============================================================================
 
 -- WARNING: This will destroy all feature flag data!

@@ -1,6 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using Propel.FeatureFlags.Infrastructure.SqlServer;
+using Propel.FeatureFlags.Migrations;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
 
@@ -32,6 +35,19 @@ public static class ServiceCollectionExtensions
 			new PostgreSQLDatabaseInitializer(
 				pgConnectionString ?? throw new InvalidOperationException("PostgreSQL connection string required"),
 				sp.GetRequiredService<ILogger<PostgreSQLDatabaseInitializer>>()));
+
+		return services;
+	}
+
+	public static IServiceCollection AddMigrationServices(this IServiceCollection services, IConfiguration configuration)
+	{
+		var optionsSection = configuration.GetSection("SqlMigrationOptions");
+		var options = optionsSection.Get<SqlMigrationOptions>();
+
+		services.AddSingleton(options);
+		services.AddSingleton<IMigrationEngine, MigrationEngine>();
+		services.AddSingleton<IMigrationRepository, PostgreSqlMigrationRepository>();
+		services.AddSingleton<Migrator>();
 
 		return services;
 	}

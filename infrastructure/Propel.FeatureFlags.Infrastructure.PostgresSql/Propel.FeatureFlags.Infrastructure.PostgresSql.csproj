@@ -7,6 +7,10 @@
     <IsPackable>true</IsPackable>
     <Description>PostgreSQL storage provider for Propel Feature Flags using Npgsql. Handles database operations for feature flag data with automatic schema creation and JSON storage for targeting rules and configurations.</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="PostgreSqlMigrationOptions.cs" />
+  </ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.9">
@@ -20,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
+    <ProjectReference Include="..\migrations\Propel.FeatureFlags.Migraions\Propel.FeatureFlags.Migrations.csproj" />
   </ItemGroup>
 
 </Project>

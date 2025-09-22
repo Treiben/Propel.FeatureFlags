@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "Propel.FeatureFlags.Migrations.SqlServer": {
-      "commandName": "Project",
-      "commandLineArgs": "--action rollback:3"
-    }
-  }
-}

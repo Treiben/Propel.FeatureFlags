@@ -1,7 +1,44 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Propel.FeatureFlags.Migrations;
+
+public class MigrationRunner(IServiceProvider services, IHostApplicationLifetime lifetime, ILogger<MigrationRunner> logger) : IHostedService
+{
+	public async Task StartAsync(CancellationToken cancellationToken)
+	{
+		using var serviceScope = services.CreateScope();
+		var migrator = serviceScope.ServiceProvider.GetRequiredService<Migrator>();
+		var logger = serviceScope.ServiceProvider.GetRequiredService<ILogger<MigrationRunner>>();
+
+		try
+		{
+			await migrator.Run();
+
+			logger.LogInformation("Migration completed successfully.");
+
+			Console.WriteLine("Migration completed successfully.");
+		}
+		catch (Exception ex)
+		{
+			logger.LogError(ex, "Migration failed: {Message}", ex.Message);
+
+			Console.WriteLine("Migration failed. Check logs for details.");
+		}
+		finally
+		{
+			// Stop the application once the migration is done
+			lifetime.StopApplication();
+		}
+	}
+	public Task StopAsync(CancellationToken cancellationToken)
+	{
+		logger.LogInformation("MigrationRunner is stopping.");
+		return Task.CompletedTask;
+	}
+}
 
 public class Migrator(IMigrationEngine migrationEngine, IConfiguration configuration, ILogger<Migrator> logger)
 {
