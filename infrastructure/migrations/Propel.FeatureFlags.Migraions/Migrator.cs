@@ -21,7 +21,9 @@ public class Migrator(IMigrationEngine migrationEngine, IConfiguration configura
 					return await migrationEngine.MigrateAsync();
 
 				case "rollback":
-					return await migrationEngine.RollbackAsync();
+					var rollbackParts = configuration["action"].Split(':');
+					var steps = rollbackParts.Length > 1 && int.TryParse(rollbackParts[1], out var s) ? s : 1;
+					return await migrationEngine.RollbackAsync(steps);
 
 				case "status":
 					 await migrationEngine.ShowStatusAsync();
@@ -47,35 +49,37 @@ public class Migrator(IMigrationEngine migrationEngine, IConfiguration configura
 
 	private string CommandFromConfig()
 	{
-		var command = configuration["command"];
+		var action = configuration["action"];
 
-		if (string.IsNullOrWhiteSpace(command))
+		Console.WriteLine($"Action from config: '{action}'");
+
+		if (string.IsNullOrWhiteSpace(action))
 		{
 			return "show-usage";
 		}
 
-		command = command.ToLowerInvariant();
-		if (command == "migrate" || command == "up")
+		action = action.ToLowerInvariant();
+		if (action == "migrate" || action == "up")
 		{
 			return "migrate";
 		}
 
-		if (command == "rollback" || command == "down")
+		if (action.StartsWith("rollback") || action.StartsWith("down"))
 		{
 			return "rollback";
 		}
 
-		if (command == "status" || command == "info")
+		if (action == "status" || action == "info")
 		{
 			return "status";
 		}
 
-		if (command == "validate")
+		if (action == "validate")
 		{
 			return "validate";
 		}
 
-		if (command == "baseline")
+		if (action == "baseline")
 		{
 			return "baseline";
 		}
@@ -99,7 +103,7 @@ Commands:
 
 Examples:
   dotnet run migrate
-  dotnet run rollback 2
+  dotnet run rollback:2
   dotnet run status
   dotnet run baseline
 

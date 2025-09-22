@@ -50,7 +50,7 @@ finally
 		host.Dispose();
 	}
 }
-
+		
 
 public class MigrationRunner(IServiceProvider services, IHostApplicationLifetime lifetime, ILogger<MigrationRunner> logger) : IHostedService
 {

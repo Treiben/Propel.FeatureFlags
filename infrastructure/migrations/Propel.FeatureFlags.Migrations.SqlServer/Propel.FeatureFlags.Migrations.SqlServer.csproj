@@ -25,10 +25,10 @@
     <None Update="scripts\manual-setup.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="scripts\V1_0_0__initial_schema.sql">
+    <None Update="scripts\rollback\V1_0_0__initial_schema.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="scripts\V1_0_0__rollback.sql">
+    <None Update="scripts\V1_0_0__initial_schema.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

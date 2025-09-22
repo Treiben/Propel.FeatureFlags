@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
@@ -29,8 +29,6 @@ public class MigrationEngine(
 		{
 			logger.LogInformation("Starting database migration...");
 
-			// Ensure database and migration table exist
-			await EnsureDatabaseSetupAsync(cancellationToken);
 
 			// Load all migration files
 			var allMigrations = LoadMigrationFiles();
@@ -58,6 +56,9 @@ public class MigrationEngine(
 			}
 
 			logger.LogInformation("Found {Count} pending migrations", pendingMigrations.Count);
+
+			// Ensure database and migration table exist
+			await EnsureDatabaseSetupAsync(cancellationToken);
 
 			foreach (var migration in pendingMigrations)
 			{
@@ -121,7 +122,7 @@ public class MigrationEngine(
 				.Take(steps)
 				.ToList();
 
-			if (!migrationsToRollback.Any())
+			if (migrationsToRollback.Count == 0)
 			{
 				result.Message = "No migrations to rollback";
 				result.Success = true;
@@ -291,8 +292,15 @@ Migration file name should start with the same as migration version, e.g. for mi
 			var migrations = LoadMigrationFiles();
 			foreach (var migration in migrations)
 			{
-				await repository.RecordMigrationAsync(migration.Version,
-					$"BASELINE: {migration.Description}", cancellationToken);
+				try
+				{
+					await repository.RecordMigrationAsync(migration.Version,
+						$"BASELINE: {migration.Description}", cancellationToken);
+				}
+				catch (SqlException ex) when (ex.Number == 2627) // Unique constraint violation
+				{
+					logger.LogWarning("Migration {Version} already recorded, skipping", migration.Version);
+				}
 			}
 
 			result.Success = true;
@@ -319,17 +327,18 @@ Migration file name should start with the same as migration version, e.g. for mi
 		await repository.CreateMigrationTableAsync(cancellationToken);
 	}
 
-	private List<Migration> LoadMigrationFiles()
+	private List<Migration> LoadMigrationFiles(string sub = "")
 	{
 		var migrations = new List<Migration>();
 
-		if (!Directory.Exists(_scriptsPath))
+		var directoryPath = Path.Combine(_scriptsPath, sub);
+		if (!Directory.Exists(directoryPath))
 		{
-			logger.LogWarning("Migration scripts directory not found: {Path}", _scriptsPath);
+			logger.LogWarning("Migration scripts directory not found: {Path}", directoryPath);
 			return migrations;
 		}
 
-		var sqlFiles = Directory.GetFiles(_scriptsPath, "V*.sql", SearchOption.TopDirectoryOnly)
+		var sqlFiles = Directory.GetFiles(directoryPath, "V*.sql", SearchOption.TopDirectoryOnly)
 			.OrderBy(f => f)
 			.ToList();
 
