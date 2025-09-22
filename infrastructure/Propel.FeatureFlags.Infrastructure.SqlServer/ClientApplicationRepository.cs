@@ -26,24 +26,24 @@ public class ClientApplicationRepository : IFlagEvaluationRepository
 			identifier.Key, identifier.Scope, identifier.ApplicationName);
 
 		var (whereClause, parameters) = QueryBuilders.BuildWhereClause(identifier);
-		var sql = $@"SELECT [key],
-					evaluation_modes,
-					scheduled_enable_date, 
-					scheduled_disable_date,
-					window_start_time,
-					window_end_time, 
-					time_zone, 
-					window_days,
-					user_percentage_enabled, 
-					targeting_rules, 
-					enabled_users, 
-					disabled_users,
-					enabled_tenants, 
-					disabled_tenants, 
-					tenant_percentage_enabled,
-					variations, 
-					default_variation
-					FROM feature_flags {whereClause}";
+		var sql = $@"SELECT [Key],
+					EvaluationModes,
+					ScheduledEnableDate, 
+					ScheduledDisableDate,
+					WindowStartTime,
+					WindowEndTime, 
+					TimeZone, 
+					WindowDays,
+					UserPercentageEnabled, 
+					TargetingRules, 
+					EnabledUsers, 
+					DisabledUsers,
+					TenantPercentageEnabled,
+					EnabledTenants, 
+					DisabledTenants, 
+					Variations, 
+					DefaultVariation
+					FROM FeatureFlags {whereClause}";
 
 		try
 		{
@@ -94,14 +94,14 @@ public class ClientApplicationRepository : IFlagEvaluationRepository
 		}
 
 		const string sql = @"
-            IF NOT EXISTS (SELECT 1 FROM feature_flags 
-                          WHERE [key] = @key AND application_name = @application_name 
-                          AND application_version = @application_version AND scope = @scope)
+            IF NOT EXISTS (SELECT 1 FROM FeatureFlags 
+                          WHERE [Key] = @key AND ApplicationName = @applicationName 
+                          AND ApplicationVersion = @applicationVersion AND Scope = @scope)
             BEGIN
-                INSERT INTO feature_flags (
-                    [key], application_name, application_version, scope, name, description, evaluation_modes
+                INSERT INTO FeatureFlags (
+                    [Key], ApplicationName, ApplicationVersion, Scope, Name, Description, EvaluationModes
                 ) VALUES (
-                    @key, @application_name, @application_version, @scope, @name, @description, @evaluation_modes             
+                    @key, @applicationName, @applicationVersion, @scope, @name, @description, @evaluationModes             
                 )
             END";
 
@@ -114,12 +114,12 @@ public class ClientApplicationRepository : IFlagEvaluationRepository
 
 			using var command = new SqlCommand(sql, connection);
 			command.Parameters.AddWithValue("@key", identifier.Key);
-			command.Parameters.AddWithValue("@application_name", applicationName);
-			command.Parameters.AddWithValue("@application_version", applicationVersion);
+			command.Parameters.AddWithValue("@applicationName", applicationName);
+			command.Parameters.AddWithValue("@applicationVersion", applicationVersion);
 			command.Parameters.AddWithValue("@scope", (int)Scope.Application);
 			command.Parameters.AddWithValue("@name", name);
 			command.Parameters.AddWithValue("@description", description);
-			command.Parameters.AddWithValue("@evaluation_modes", JsonSerializer.Serialize(new List<int> { (int)mode }, JsonDefaults.JsonOptions));
+			command.Parameters.AddWithValue("@evaluationModes", JsonSerializer.Serialize(new List<int> { (int)mode }, JsonDefaults.JsonOptions));
 
 			var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
 			if (rowsAffected == 0)

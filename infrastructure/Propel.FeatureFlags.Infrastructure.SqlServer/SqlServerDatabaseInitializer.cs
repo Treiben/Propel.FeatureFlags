@@ -91,7 +91,7 @@ public class SqlServerDatabaseInitializer
 	{
 		using var connection = new SqlConnection(_connectionString);
 
-		var checkDataSql = "SELECT TOP 1 1 FROM feature_flags";
+		var checkDataSql = "SELECT TOP 1 1 FROM FeatureFlags";
 		using var checkCmd = new SqlCommand(checkDataSql, connection);
 
 		await connection.OpenAsync(cancellationToken);
@@ -121,7 +121,7 @@ public class SqlServerDatabaseInitializer
 		var checkTableSql = @"
 				SELECT CASE WHEN EXISTS (
 					SELECT * FROM INFORMATION_SCHEMA.TABLES 
-					WHERE TABLE_NAME = 'feature_flags')
+					WHERE TABLE_NAME = 'FeatureFlags')
 				THEN 1 ELSE 0 END";
 		using var checkCmd = new SqlCommand(checkTableSql, connection);
 
@@ -148,107 +148,93 @@ public class SqlServerDatabaseInitializer
 	private static string GetCreateSchemaScript()
 	{
 		return @"
--- Create the feature_flags table
-CREATE TABLE feature_flags (
+-- Create the FeatureFlags table
+CREATE TABLE FeatureFlags (
 	-- Flag uniqueness scope
-    [key] NVARCHAR(255) NOT NULL,
-	application_name NVARCHAR(255) NOT NULL DEFAULT 'global',
-	application_version NVARCHAR(100) NOT NULL DEFAULT '0.0.0.0',
-	scope INT NOT NULL DEFAULT 0,
+    [Key] NVARCHAR(255) NOT NULL,
+	ApplicationName NVARCHAR(255) NOT NULL DEFAULT 'global',
+	ApplicationVersion NVARCHAR(100) NOT NULL DEFAULT '0.0.0.0',
+	Scope INT NOT NULL DEFAULT 0,
 	
 	-- Descriptive fields
-    name NVARCHAR(500) NOT NULL,
-    description NVARCHAR(MAX) NOT NULL DEFAULT '',
+    Name NVARCHAR(500) NOT NULL,
+    Description NVARCHAR(MAX) NOT NULL DEFAULT '',
 
 	-- Evaluation modes
-    evaluation_modes NVARCHAR(MAX) NOT NULL DEFAULT '[]'
-        CONSTRAINT CK_evaluation_modes_json CHECK (ISJSON(evaluation_modes) = 1),
+    EvaluationModes NVARCHAR(MAX) NOT NULL DEFAULT '[]'
+        CONSTRAINT CK_EvaluationModes_json CHECK (ISJSON(EvaluationModes) = 1),
     
     -- Scheduling
-    scheduled_enable_date DATETIMEOFFSET NULL,
-    scheduled_disable_date DATETIMEOFFSET NULL,
+    ScheduledEnableDate DATETIMEOFFSET NULL,
+    ScheduledDisableDate DATETIMEOFFSET NULL,
     
     -- Time Windows
-    window_start_time TIME NULL,
-    window_end_time TIME NULL,
-    time_zone NVARCHAR(100) NULL,
-    window_days NVARCHAR(MAX) NOT NULL DEFAULT '[]'
-        CONSTRAINT CK_window_days_json CHECK (ISJSON(window_days) = 1),
+    WindowStartTime TIME NULL,
+    WindowEndTime TIME NULL,
+    TimeZone NVARCHAR(100) NULL,
+    WindowDays NVARCHAR(MAX) NOT NULL DEFAULT '[]'
+        CONSTRAINT CK_WindowDays_json CHECK (ISJSON(WindowDays) = 1),
     
     -- Targeting
-    targeting_rules NVARCHAR(MAX) NOT NULL DEFAULT '[]'
-        CONSTRAINT CK_targeting_rules_json CHECK (ISJSON(targeting_rules) = 1),
+    TargetingRules NVARCHAR(MAX) NOT NULL DEFAULT '[]'
+        CONSTRAINT CK_TargetingRules_json CHECK (ISJSON(TargetingRules) = 1),
 
 	-- User-level controls
-    enabled_users NVARCHAR(MAX) NOT NULL DEFAULT '[]'
-        CONSTRAINT CK_enabled_users_json CHECK (ISJSON(enabled_users) = 1),
-    disabled_users NVARCHAR(MAX) NOT NULL DEFAULT '[]'
-        CONSTRAINT CK_disabled_users_json CHECK (ISJSON(disabled_users) = 1),
-    user_percentage_enabled INT NOT NULL DEFAULT 100 
-        CONSTRAINT CK_user_percentage CHECK (user_percentage_enabled >= 0 AND user_percentage_enabled <= 100),
+    EnabledUsers NVARCHAR(MAX) NOT NULL DEFAULT '[]'
+        CONSTRAINT CK_EnabledUsers CHECK (ISJSON(EnabledUsers) = 1),
+    DisabledUsers NVARCHAR(MAX) NOT NULL DEFAULT '[]'
+        CONSTRAINT CK_DisabledUsers CHECK (ISJSON(DisabledUsers) = 1),
+    UserPercentageEnabled INT NOT NULL DEFAULT 100 
+        CONSTRAINT CK_UserPercentageEnabled CHECK (UserPercentageEnabled >= 0 AND UserPercentageEnabled <= 100),
 
     -- Tenant-level controls
-    enabled_tenants NVARCHAR(MAX) NOT NULL DEFAULT '[]'
-        CONSTRAINT CK_enabled_tenants_json CHECK (ISJSON(enabled_tenants) = 1),
-    disabled_tenants NVARCHAR(MAX) NOT NULL DEFAULT '[]'
-        CONSTRAINT CK_disabled_tenants_json CHECK (ISJSON(disabled_tenants) = 1),
-    tenant_percentage_enabled INT NOT NULL DEFAULT 100 
-        CONSTRAINT CK_tenant_percentage CHECK (tenant_percentage_enabled >= 0 AND tenant_percentage_enabled <= 100),
+    EnabledTenants NVARCHAR(MAX) NOT NULL DEFAULT '[]'
+        CONSTRAINT CK_EnabledTenants_json CHECK (ISJSON(EnabledTenants) = 1),
+    DisabledTenants NVARCHAR(MAX) NOT NULL DEFAULT '[]'
+        CONSTRAINT CK_DisabledTenants_json CHECK (ISJSON(DisabledTenants) = 1),
+    TenantPercentageEnabled INT NOT NULL DEFAULT 100 
+        CONSTRAINT CK_TenantPercentageEnabled CHECK (TenantPercentageEnabled >= 0 AND TenantPercentageEnabled <= 100),
     
     -- Variations
-    variations NVARCHAR(MAX) NOT NULL DEFAULT '{}'
-        CONSTRAINT CK_variations_json CHECK (ISJSON(variations) = 1),
-    default_variation NVARCHAR(255) NOT NULL DEFAULT 'off',
+    Variations NVARCHAR(MAX) NOT NULL DEFAULT '{}'
+        CONSTRAINT CK_Variations_json CHECK (ISJSON(variations) = 1),
+    DefaultVariation NVARCHAR(255) NOT NULL DEFAULT 'off',
 
-	CONSTRAINT PK_feature_flags PRIMARY KEY ([key], application_name, application_version, scope)
+	CONSTRAINT PK_feature_flags PRIMARY KEY ([key], ApplicationName, ApplicationVersion, Scope)
 );
 
 -- Create the metadata table
-CREATE TABLE feature_flags_metadata (
-    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-	flag_key NVARCHAR(255) NOT NULL,
+CREATE TABLE FeatureFlagsMetadata (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+	FlagKey NVARCHAR(255) NOT NULL,
 
 	-- Flag uniqueness scope
-	application_name NVARCHAR(255) NOT NULL DEFAULT 'global',
-	application_version NVARCHAR(100) NOT NULL DEFAULT '0.0.0.0',
+	ApplicationName NVARCHAR(255) NOT NULL DEFAULT 'global',
+	ApplicationVersion NVARCHAR(100) NOT NULL DEFAULT '0.0.0.0',
 
     -- Retention and expiration
-    is_permanent BIT NOT NULL DEFAULT 0,
-    expiration_date DATETIMEOFFSET NOT NULL,
+    IsPermanent BIT NOT NULL DEFAULT 0,
+    ExpirationDate DATETIMEOFFSET NOT NULL,
 
 	-- Tags for categorization
-    tags NVARCHAR(MAX) NOT NULL DEFAULT '{}'
+    Tags NVARCHAR(MAX) NOT NULL DEFAULT '{}'
         CONSTRAINT CK_metadata_tags_json CHECK (ISJSON(tags) = 1)
 );
 
 -- Create the feature_flags_audit table
-CREATE TABLE feature_flags_audit (
-    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-	flag_key NVARCHAR(255) NOT NULL,
+CREATE TABLE FeatureFlagsAudit (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+	FlagKey NVARCHAR(255) NOT NULL,
 
 	-- Flag uniqueness scope
-	application_name NVARCHAR(255) NULL DEFAULT 'global',
-	application_version NVARCHAR(100) NOT NULL DEFAULT '0.0.0.0',
+	ApplicationName NVARCHAR(255) NULL DEFAULT 'global',
+	ApplicationVersion NVARCHAR(100) NOT NULL DEFAULT '0.0.0.0',
 
 	-- Action details
-	action NVARCHAR(50) NOT NULL,
-	actor NVARCHAR(255) NOT NULL,
-	timestamp DATETIMEOFFSET NOT NULL DEFAULT GETUTCDATE(),
-	reason NVARCHAR(MAX) NULL
-);
-
--- Create indexes for feature_flags table
-CREATE NONCLUSTERED INDEX IX_feature_flags_scheduled_enable 
-    ON feature_flags (scheduled_enable_date) 
-    WHERE scheduled_enable_date IS NOT NULL;
-
--- Add indexes for read operation optimization
-CREATE NONCLUSTERED INDEX IX_feature_flags_application_name ON feature_flags (application_name);
-CREATE NONCLUSTERED INDEX IX_feature_flags_application_version ON feature_flags (application_version);
-CREATE NONCLUSTERED INDEX IX_feature_flags_scope ON feature_flags (scope);
-
--- Composite index for filtering operations
-CREATE NONCLUSTERED INDEX IX_feature_flags_scope_app_name ON feature_flags (scope, application_name);
-";
+	Action NVARCHAR(50) NOT NULL,
+	Actor NVARCHAR(255) NOT NULL,
+	Timestamp DATETIMEOFFSET NOT NULL DEFAULT GETUTCDATE(),
+	Reason NVARCHAR(MAX) NULL
+);";
 	}
 }

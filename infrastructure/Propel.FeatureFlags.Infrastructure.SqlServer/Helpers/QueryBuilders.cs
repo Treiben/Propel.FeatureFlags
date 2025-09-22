@@ -9,13 +9,13 @@ public static class QueryBuilders
 	{
 		var parameters = new Dictionary<string, object>
 		{
-			["key"] = flagKey.Key,
-			["scope"] = (int)flagKey.Scope
+			["Key"] = flagKey.Key,
+			["Scope"] = (int)flagKey.Scope
 		};
 
 		if (flagKey.Scope == Scope.Global)
 		{
-			return ($"WHERE {prefix}[key] = @key AND {prefix}scope = @scope", parameters);
+			return ($"WHERE {prefix}[Key] = @key AND {prefix}Scope = @scope", parameters);
 		}
 
 		// Application or Feature scope
@@ -24,16 +24,16 @@ public static class QueryBuilders
 			throw new ArgumentException("Application name required for application-scoped flags.", nameof(flagKey.ApplicationName));
 		}
 
-		parameters["application_name"] = flagKey.ApplicationName;
+		parameters["applicationName"] = flagKey.ApplicationName;
 
 		if (!string.IsNullOrEmpty(flagKey.ApplicationVersion))
 		{
-			parameters["application_version"] = flagKey.ApplicationVersion;
-			return ($"WHERE {prefix}[key] = @key AND {prefix}scope = @scope AND {prefix}application_name = @application_name AND {prefix}application_version = @application_version", parameters);
+			parameters["applicationVersion"] = flagKey.ApplicationVersion;
+			return ($"WHERE {prefix}[Key] = @key AND {prefix}Scope = @scope AND {prefix}ApplicationName = @applicationName AND {prefix}ApplicationVersion = @applicationVersion", parameters);
 		}
 		else
 		{
-			return ($"WHERE {prefix}[key] = @key AND {prefix}scope = @scope AND {prefix}application_name = @application_name AND {prefix}application_version IS NULL", parameters);
+			return ($"WHERE {prefix}[Key] = @key AND {prefix}Scope = @scope AND {prefix}ApplicationName = @applicationName AND {prefix}ApplicationVersion IS NULL", parameters);
 		}
 	}
 

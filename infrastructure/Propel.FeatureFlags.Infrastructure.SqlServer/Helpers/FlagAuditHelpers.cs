@@ -10,10 +10,10 @@ public static class FlagAuditHelpers
 							CancellationToken cancellationToken)
 	{
 		const string sql = @"-- Audit log entry
-					INSERT INTO feature_flags_audit (
-						flag_key, application_name, application_version, action, actor, timestamp, reason
+					INSERT INTO FeatureFlagsAudit (
+						FlagKey, ApplicationName, ApplicationVersion, Action, Actor, Timestamp, Reason
 					) VALUES (
-						@key, @application_name, @application_version, @action, 'Application', @timestamp, 'Auto-registered by the application'
+						@key, @applicationName, @applicationVersion, @action, 'Application', @timestamp, 'Auto-registered by the application'
 					)";
 
 		try
@@ -36,17 +36,17 @@ public static class FlagAuditHelpers
 	public static async Task CreateInitialMetadataRecord(FlagIdentifier flag, string name, string description, SqlConnection connection, CancellationToken cancellationToken)
 	{
 		const string sql = @"
-            INSERT INTO feature_flags_metadata (
-                flag_key, application_name, application_version, expiration_date, is_permanent
+            INSERT INTO FeatureFlagsMetadata (
+                FlagKey, ApplicationName, ApplicationVersion, ExpirationDate, IsPermanent
             ) VALUES (
-                @key, @application_name, @application_version, @expiration_date, @is_permanent
+                @key, @applicationName, @applicationVersion, @expirationDate, @isPermanent
             )";
 		try
 		{
 			using var command = new SqlCommand(sql, connection);
 			command.AddIdentifierParameters(flag);
-			command.Parameters.AddWithValue("@expiration_date", DateTimeOffset.UtcNow.AddDays(30));
-			command.Parameters.AddWithValue("@is_permanent", false);
+			command.Parameters.AddWithValue("@expirationDate", DateTimeOffset.UtcNow.AddDays(30));
+			command.Parameters.AddWithValue("@isPermanent", false);
 
 			if (connection.State != System.Data.ConnectionState.Open)
 				await connection.OpenAsync(cancellationToken);
@@ -61,7 +61,7 @@ public static class FlagAuditHelpers
 	public static async Task<bool> FlagAlreadyCreated(FlagIdentifier flag, SqlConnection connection, CancellationToken cancellationToken)
 	{
 		var (whereClause, parameters) = QueryBuilders.BuildWhereClause(flag);
-		var sql = $"SELECT COUNT(*) FROM feature_flags {whereClause}";
+		var sql = $"SELECT COUNT(*) FROM FeatureFlags {whereClause}";
 
 		using var command = new SqlCommand(sql, connection);
 		command.AddWhereParameters(parameters);
@@ -76,7 +76,7 @@ public static class FlagAuditHelpers
 	private static void AddIdentifierParameters(this SqlCommand command, FlagIdentifier flag)
 	{
 		command.Parameters.AddWithValue("@key", flag.Key);
-		command.Parameters.AddWithValue("@application_name", flag.ApplicationName);
-		command.Parameters.AddWithValue("@application_version", flag.ApplicationVersion);
+		command.Parameters.AddWithValue("@applicationName", flag.ApplicationName);
+		command.Parameters.AddWithValue("@applicationVersion", flag.ApplicationVersion);
 	}
 }

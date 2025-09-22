@@ -29,12 +29,12 @@ public static class SqlDataReaderExtensions
 	public static async Task<FlagEvaluationConfiguration> LoadAsync(this SqlDataReader reader, FlagIdentifier identifier)
 	{
 		// Load evaluation modes
-		var evaluationModes = await reader.DeserializeAsync<int[]>("evaluation_modes");
+		var evaluationModes = await reader.DeserializeAsync<int[]>("EvaluationModes");
 		var evaluationModeSet = new EvaluationModes([.. evaluationModes.Select(m => (EvaluationMode)m)]);
 
 		// Load schedule - handle DB nulls properly
-		var enableOn = await reader.GetFieldValueOrDefaultAsync<DateTimeOffset?>("scheduled_enable_date");
-		var disableOn = await reader.GetFieldValueOrDefaultAsync<DateTimeOffset?>("scheduled_disable_date");
+		var enableOn = await reader.GetFieldValueOrDefaultAsync<DateTimeOffset?>("ScheduledEnableDate");
+		var disableOn = await reader.GetFieldValueOrDefaultAsync<DateTimeOffset?>("ScheduledDisableDate");
 
 		var schedule = new ActivationSchedule(
 			enableOn: enableOn?.DateTime ?? DateTime.MinValue,
@@ -42,38 +42,38 @@ public static class SqlDataReaderExtensions
 		);
 
 		// Load operational window
-		var windowDaysData = await reader.DeserializeAsync<int[]>("window_days");
+		var windowDaysData = await reader.DeserializeAsync<int[]>("WindowDays");
 		var windowDays = windowDaysData?.Select(d => (DayOfWeek)d).ToArray();
 
 		var operationalWindow = new OperationalWindow(
-			startOn: await reader.GetFieldValueOrDefaultAsync<TimeSpan>("window_start_time"),
-			stopOn: await reader.GetFieldValueOrDefaultAsync("window_end_time", new TimeSpan(23, 59, 59)),
-			timeZone: await reader.GetFieldValueOrDefaultAsync("time_zone", "UTC"),
+			startOn: await reader.GetFieldValueOrDefaultAsync<TimeSpan>("WindowStartTime"),
+			stopOn: await reader.GetFieldValueOrDefaultAsync("WindowEndTime", new TimeSpan(23, 59, 59)),
+			timeZone: await reader.GetFieldValueOrDefaultAsync("TimeZone", "UTC"),
 			daysActive: windowDays
 		);
 
 		// Load access controls
 		var userAccess = new AccessControl(
-			allowed: await reader.DeserializeAsync<List<string>>("enabled_users"),
-			blocked: await reader.DeserializeAsync<List<string>>("disabled_users"),
-			rolloutPercentage: await reader.GetFieldValueAsync<int>("user_percentage_enabled")
+			allowed: await reader.DeserializeAsync<List<string>>("EnabledUsers"),
+			blocked: await reader.DeserializeAsync<List<string>>("DisabledUsers"),
+			rolloutPercentage: await reader.GetFieldValueAsync<int>("UserPercentageEnabled")
 		);
 
 		var tenantAccess = new AccessControl(
-			allowed: await reader.DeserializeAsync<List<string>>("enabled_tenants"),
-			blocked: await reader.DeserializeAsync<List<string>>("disabled_tenants"),
-			rolloutPercentage: await reader.GetFieldValueAsync<int>("tenant_percentage_enabled")
+			allowed: await reader.DeserializeAsync<List<string>>("EnabledTenants"),
+			blocked: await reader.DeserializeAsync<List<string>>("DisabledTenants"),
+			rolloutPercentage: await reader.GetFieldValueAsync<int>("TenantPercentageEnabled")
 		);
 
 		// Load variations
 		var variations = new Variations
 		{
-			Values = await reader.DeserializeAsync<Dictionary<string, object>>("variations") ?? [],
-			DefaultVariation = await reader.GetFieldValueOrDefaultAsync("default_variation", "off")
+			Values = await reader.DeserializeAsync<Dictionary<string, object>>("Variations") ?? [],
+			DefaultVariation = await reader.GetFieldValueOrDefaultAsync("DefaultVariation", "off")
 		};
 
 		// Load targeting rules
-		var targetingRules = await reader.DeserializeAsync<List<ITargetingRule>>("targeting_rules") ?? [];
+		var targetingRules = await reader.DeserializeAsync<List<ITargetingRule>>("TargetingRules") ?? [];
 
 		return new FlagEvaluationConfiguration(
 			identifier: identifier,
