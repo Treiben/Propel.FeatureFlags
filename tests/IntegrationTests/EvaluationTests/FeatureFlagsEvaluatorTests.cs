@@ -1,7 +1,7 @@
 using FeatureFlags.IntegrationTests.Support;
 using Propel.FeatureFlags.Domain;
 
-namespace FeatureFlags.IntegrationTests.Evaluator;
+namespace FeatureFlags.IntegrationTests.EvaluationTests.Evaluator;
 
 public class Evaluate_WithEnabledFlag(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {

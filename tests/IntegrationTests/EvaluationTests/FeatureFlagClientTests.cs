@@ -1,7 +1,7 @@
 using FeatureFlags.IntegrationTests.Support;
 using Propel.FeatureFlags.Domain;
 
-namespace FeatureFlags.IntegrationTests.Client;
+namespace FeatureFlags.IntegrationTests.EvaluationTests.Client;
 
 public class IsEnabledAsync_WithEnabledFlag(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {

@@ -5,7 +5,7 @@ using Propel.FeatureFlags.Infrastructure.Redis;
 using StackExchange.Redis;
 using Testcontainers.Redis;
 
-namespace FeatureFlags.IntegrationTests.Support;
+namespace FeatureFlags.IntegrationTests.CacheTests;
 
 public class RedisTestsFixture : IAsyncLifetime
 {

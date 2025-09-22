@@ -1,9 +1,9 @@
-using FeatureFlags.IntegrationTests.Support;
+﻿using FeatureFlags.IntegrationTests.Support;
 using Propel.FeatureFlags.Domain;
 
-namespace FeatureFlags.IntegrationTests.Postgres;
+namespace FeatureFlags.IntegrationTests.SqlServerTests;
 
-public class GetAsync_WithColumnMapping(PostgresRepositoriesTestsFixture fixture) : IClassFixture<PostgresRepositoriesTestsFixture>
+public class GetAsync_WithColumnMapping(SqlServerRepositoriesTestsFixture fixture) : IClassFixture<SqlServerRepositoriesTestsFixture>
 {
 	[Fact]
 	public async Task If_ComplexFlagExists_ThenMapsAllEvaluationColumns()
@@ -45,29 +45,29 @@ public class GetAsync_WithColumnMapping(PostgresRepositoriesTestsFixture fixture
 		result.ShouldNotBeNull();
 		result.Identifier.ShouldBe(flag.Identifier);
 		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.UserTargeted]).ShouldBeTrue();
-		
+
 		// Schedule mapping
 		result.Schedule.EnableOn.Date.ShouldBe(flag.Schedule.EnableOn.Date);
 		result.Schedule.DisableOn.Date.ShouldBe(flag.Schedule.DisableOn.Date);
-		
+
 		// Operational window mapping
 		result.OperationalWindow.StartOn.ShouldBe(flag.OperationalWindow.StartOn);
 		result.OperationalWindow.StopOn.ShouldBe(flag.OperationalWindow.StopOn);
 		result.OperationalWindow.TimeZone.ShouldBe("America/New_York");
 		result.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Monday);
 		result.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Friday);
-		
+
 		// Access control mapping
 		result.UserAccessControl.Allowed.ShouldContain("user1");
 		result.UserAccessControl.Blocked.ShouldContain("blocked1");
 		result.UserAccessControl.RolloutPercentage.ShouldBe(75);
 		result.TenantAccessControl.RolloutPercentage.ShouldBe(50);
-		
+
 		// Variations mapping
 		result.Variations.Values.ShouldContainKey("control");
 		result.Variations.Values.ShouldContainKey("treatment");
 		result.Variations.DefaultVariation.ShouldBe("control");
-		
+
 		// Targeting rules mapping
 		result.TargetingRules.Count.ShouldBe(1);
 		var rule = (StringTargetingRule)result.TargetingRules[0];
@@ -133,18 +133,18 @@ public class GetAsync_WithColumnMapping(PostgresRepositoriesTestsFixture fixture
 		// Assert - Verify JSON deserialization
 		result.ShouldNotBeNull();
 		result.TargetingRules.Count.ShouldBe(2);
-		
+
 		var envRule = (StringTargetingRule)result.TargetingRules.First(r => r.Attribute == "environment");
 		envRule.Values.ShouldContain("production");
 		envRule.Variation.ShouldBe("prod-variation");
-		
+
 		result.Variations.Values.Count.ShouldBe(4);
 		result.Variations.Values.ShouldContainKey("off");
 		result.Variations.Values.ShouldContainKey("config");
 	}
 }
 
-public class GetAsync_WithNonExistentFlag(PostgresRepositoriesTestsFixture fixture) : IClassFixture<PostgresRepositoriesTestsFixture>
+public class GetAsync_WithNonExistentFlag(SqlServerRepositoriesTestsFixture fixture) : IClassFixture<SqlServerRepositoriesTestsFixture>
 {
 	[Fact]
 	public async Task If_FlagDoesNotExist_ThenReturnsNull()
@@ -191,8 +191,8 @@ public class GetAsync_WithNonExistentFlag(PostgresRepositoriesTestsFixture fixtu
 
 		await fixture.SaveAsync(flag, "app-flag", "created by integration tests");
 
-		var differentAppKey = new FlagIdentifier(flag.Identifier.Key, 
-			flag.Identifier.Scope, 
+		var differentAppKey = new FlagIdentifier(flag.Identifier.Key,
+			flag.Identifier.Scope,
 			"different-app",
 			flag.Identifier.ApplicationVersion);
 
@@ -204,7 +204,7 @@ public class GetAsync_WithNonExistentFlag(PostgresRepositoriesTestsFixture fixtu
 	}
 }
 
-public class CreateAsync_WithAuditTrail(PostgresRepositoriesTestsFixture fixture) : IClassFixture<PostgresRepositoriesTestsFixture>
+public class CreateAsync_WithAuditTrail(SqlServerRepositoriesTestsFixture fixture) : IClassFixture<SqlServerRepositoriesTestsFixture>
 {
 	[Fact]
 	public async Task If_NewFlag_ThenCreatesSuccessfully()
@@ -216,7 +216,7 @@ public class CreateAsync_WithAuditTrail(PostgresRepositoriesTestsFixture fixture
 								.Build();
 
 		// Act
-		await fixture.EvaluationRepository.CreateAsync(flag.Identifier, EvaluationMode.On, 
+		await fixture.EvaluationRepository.CreateAsync(flag.Identifier, EvaluationMode.On,
 			"new-eval-flag", "created by tester");
 
 		// Assert - Verify flag was created by retrieving it

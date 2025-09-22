@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using FeatureFlags.IntegrationTests.PostgreTests;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Evaluation;
@@ -12,7 +13,7 @@ using StackExchange.Redis;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
 
-namespace FeatureFlags.IntegrationTests.Support;
+namespace FeatureFlags.IntegrationTests.EvaluationTests;
 
 public class FlagEvaluationTestsFixture : IAsyncLifetime
 {
@@ -103,6 +104,6 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 	public async Task SaveAsync(FlagEvaluationConfiguration flag,
 		string name, string description)
 	{
-		await DatabaseHelpers.SafeFlagAsync(_postgresContainer, flag, name, description);
+		await PosgreDbHelpers.CreateFlagAsync(_postgresContainer, flag, name, description);
 	}
 }

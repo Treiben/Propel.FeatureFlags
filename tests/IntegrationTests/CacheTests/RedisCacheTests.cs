@@ -3,7 +3,7 @@ using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
 
-namespace FeatureFlags.IntegrationTests.Redis;
+namespace FeatureFlags.IntegrationTests.CacheTests.Redis;
 
 /* The tests cover these scenarios:
  *		Cache operations (Get, Set, Remove, Clear)

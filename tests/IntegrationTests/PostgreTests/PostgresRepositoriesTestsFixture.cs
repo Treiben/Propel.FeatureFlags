@@ -1,137 +1,68 @@
-﻿using Npgsql;
+﻿using Microsoft.Extensions.Logging;
+using Npgsql;
 using NpgsqlTypes;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Helpers;
-using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.Cache;
+using Propel.FeatureFlags.Infrastructure.PostgresSql;
 using System.Text.Json;
-using System.Threading;
 using Testcontainers.PostgreSql;
 
-namespace FeatureFlags.IntegrationTests.Support;
+namespace FeatureFlags.IntegrationTests.PostgreTests;
 
-public class ApplicationFeatureFlag(
-	string key,
-	string? name = null,
-	string? description = null,
-	EvaluationMode defaultMode = EvaluationMode.Off)
-	: FeatureFlagBase(key, name, description, defaultMode)
+public class PostgresRepositoriesTestsFixture : IAsyncLifetime
 {
-}
-
-public class FlagConfigurationBuilder
-{
-	private FlagIdentifier _flagIdentifier;
-
-	private List<ITargetingRule> _targetingRules = [];
-	private EvaluationModes _evaluationModes = EvaluationModes.FlagIsDisabled;
-	private Variations _variations = Variations.OnOff;
-	private ActivationSchedule _schedule = ActivationSchedule.Unscheduled;
-	private OperationalWindow _window = OperationalWindow.AlwaysOpen;
-	private AccessControl _userAccessControl = AccessControl.Unrestricted;
-	private AccessControl _tenantAccessControl = AccessControl.Unrestricted;
-
-	private ApplicationFeatureFlag? _featureFlag;
-
-	public FlagConfigurationBuilder(string? key = null, Scope? scope = null)
+	private readonly PostgreSqlContainer _container;
+	public ClientApplicationRepository EvaluationRepository { get; private set; } = null!;
+	public PostgresRepositoriesTestsFixture()
 	{
-		var identifierKey = key ?? "default-flag";
-		var identifierScope = scope ?? Scope.Application;
-		if (identifierScope == Scope.Application)
-		{
-			_flagIdentifier = new FlagIdentifier(identifierKey, identifierScope, ApplicationInfo.Name, ApplicationInfo.Version);
-		}
-		else // Global or Feature scope
-			_flagIdentifier = new FlagIdentifier(identifierKey, identifierScope);
+		_container = new PostgreSqlBuilder()
+			.WithImage("postgres:15-alpine")
+			.WithDatabase("feature_flags_test")
+			.WithUsername("test_user")
+			.WithPassword("test_password")
+			.WithPortBinding(5432, true)
+			.Build();
 	}
 
-	public FlagConfigurationBuilder WithEvaluationModes(params EvaluationMode[] modes)
+	public async Task InitializeAsync()
 	{
-		_evaluationModes = new EvaluationModes([.. modes]);
-		return this;
+		await _container.StartAsync();
+
+		var connectionString = _container.GetConnectionString();
+
+		var dbInitializer = new PostgreSQLDatabaseInitializer(connectionString, 
+			new Mock<ILogger<PostgreSQLDatabaseInitializer>>().Object);
+		var initialized = await dbInitializer.InitializeAsync();
+		if (!initialized)
+			throw new InvalidOperationException("Failed to initialize PostgreSQL database for feature flags");
+
+		EvaluationRepository = new ClientApplicationRepository(connectionString, new Mock<ILogger<ClientApplicationRepository>>().Object);
 	}
 
-	public FlagConfigurationBuilder WithTargetingRules(List<ITargetingRule> rules)
+	public async Task DisposeAsync()
 	{
-		_targetingRules = rules;
-		return this;
+		await _container.DisposeAsync();
 	}
 
-	public FlagConfigurationBuilder WithVariations(Variations variations)
+	public async Task ClearAllData()
 	{
-		_variations = variations;
-		return this;
+		var connectionString = _container.GetConnectionString();
+		using var connection = new NpgsqlConnection(connectionString);
+		await connection.OpenAsync();
+		using var command = new NpgsqlCommand("DELETE FROM feature_flags", connection);
+		await command.ExecuteNonQueryAsync();
 	}
 
-	public FlagConfigurationBuilder WithSchedule(ActivationSchedule schedule)
+	public async Task SaveAsync(FlagEvaluationConfiguration flag,
+		string name, string description)
 	{
-		_schedule = schedule;
-		return this;
-	}
-
-	public FlagConfigurationBuilder WithOperationalWindow(OperationalWindow window)
-	{
-		_window = window;
-		return this;
-	}
-
-	public FlagConfigurationBuilder WithUserAccessControl(AccessControl accessControl)
-	{
-		_userAccessControl = accessControl;
-		return this;
-	}
-
-	public FlagConfigurationBuilder WithTenantAccessControl(AccessControl accessControl)
-	{
-		_tenantAccessControl = accessControl;
-		return this;
-	}
-
-	public FlagConfigurationBuilder ForFeatureFlag(string? name = null, string? description = null, EvaluationMode defaultMode = EvaluationMode.Off)
-	{
-		_featureFlag = new ApplicationFeatureFlag(
-			key: _flagIdentifier.Key,
-			name: name ?? $"App Flag {_flagIdentifier.Key}",
-			description: description ?? "Application flag for integration tests",
-			defaultMode: defaultMode);
-		return this;
-	}
-
-	public (FlagEvaluationConfiguration, IFeatureFlag?) Build()
-	{
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: _flagIdentifier,
-			activeEvaluationModes: _evaluationModes,
-			schedule: _schedule,
-			operationalWindow: _window,
-			targetingRules: _targetingRules,
-			userAccessControl: _userAccessControl,
-			tenantAccessControl: _tenantAccessControl,
-			variations: _variations);
-
-		return (flagConfig, _featureFlag);
+		await PosgreDbHelpers.CreateFlagAsync(_container, flag, name, description);
 	}
 }
 
-public static class CacheKeyFactory
+public static class PosgreDbHelpers
 {
-	public static CacheKey CreateCacheKey(string key)
-	{
-		var applicationName = ApplicationInfo.Name;
-		var applicationVersion = ApplicationInfo.Version;
-
-		return new CacheKey(key, [applicationName, applicationVersion]);
-	}
-
-	public static CacheKey CreateGlobalCacheKey(string key)
-	{
-		return new CacheKey(key, ["global"]);
-	}
-}
-
-public static class DatabaseHelpers
-{
-	public async static Task SafeFlagAsync(PostgreSqlContainer container, FlagEvaluationConfiguration flag, 
+	public async static Task CreateFlagAsync(PostgreSqlContainer container, FlagEvaluationConfiguration flag,
 		string name, string description)
 	{
 		var connectionString = container.GetConnectionString();
@@ -154,13 +85,13 @@ public static class DatabaseHelpers
                 @tenant_percentage_enabled, @enabled_tenants, @disabled_tenants            
             );", connection);
 
-		command.AddAllParameters(flag, name, description);
+		command.AddFlagFieldsAsync(flag, name, description);
 
 		await connection.OpenAsync();
 		await command.ExecuteNonQueryAsync();
 	}
 
-	private static void AddAllParameters(this NpgsqlCommand command, FlagEvaluationConfiguration flag,
+	private static void AddFlagFieldsAsync(this NpgsqlCommand command, FlagEvaluationConfiguration flag,
 		string name, string description)
 	{
 		// Flag identity parameters
