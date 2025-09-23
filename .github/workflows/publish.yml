@@ -19,6 +19,11 @@ jobs:
           9.0.x
           8.0.x
 
+    - name: Clean build artifacts
+      run: |
+        dotnet clean --configuration Release
+        rm -rf ./packages
+
     - name: Restore dependencies
       run: dotnet restore
 
