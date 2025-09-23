@@ -4,14 +4,14 @@ using Propel.FeatureFlags.Infrastructure;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 
-public static class DbContextExtensions
+public static class ServiceCollectionExtensions
 {
 	public static IServiceCollection AddDashboardDbContext(this IServiceCollection services, PropelOptions options)
 	{
 		var connectionString = options.Database.DefaultConnection
 			?? throw new InvalidOperationException("Database connection string is required");
 
-		var databaseProvider = DetectDatabaseProvider(connectionString);
+		var databaseProvider = options.Database.Provider ?? DetectDatabaseProvider(connectionString);
 
 		return databaseProvider switch
 		{
@@ -35,7 +35,7 @@ public static class DbContextExtensions
 		};
 	}
 
-	public static DatabaseProvider DetectDatabaseProvider(string connectionString)
+	private static DatabaseProvider DetectDatabaseProvider(string connectionString)
 	{
 		if (string.IsNullOrWhiteSpace(connectionString))
 			throw new ArgumentException("Connection string cannot be null or empty", nameof(connectionString));
@@ -62,10 +62,4 @@ public static class DbContextExtensions
 		// Fallback: try to parse as PostgreSQL first, then SQL Server
 		throw new NotSupportedException($"Could not detect database provider from connection string. Supported providers: PostgreSQL, SQL Server");
 	}
-}
-
-public enum DatabaseProvider
-{
-	PostgreSQL,
-	SqlServer
 }

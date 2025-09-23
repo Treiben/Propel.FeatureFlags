@@ -35,4 +35,12 @@ public class CacheOptions
 public class DatabaseOptions
 {
 	public string? DefaultConnection { get; set; }
+
+	public DatabaseProvider? Provider { get; set; }
+}
+
+public enum DatabaseProvider
+{
+	PostgreSQL,
+	SqlServer
 }
