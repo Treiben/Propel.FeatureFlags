@@ -1,0 +1,139 @@
+﻿using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
+using Propel.FeatureFlags.Dashboard.Api.Domain;
+using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
+using Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
+using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
+using Propel.FeatureFlags.Domain;
+
+namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
+
+public record ManageUserAccessRequest(string[]? AllowedUsers, string[]? BlockedUsers, int? Percentage);
+
+public sealed class UpdateUserAccessControlEndpoints : IEndpoint
+{
+	public void AddEndpoint(IEndpointRouteBuilder epRoutBuilder)
+	{
+		epRoutBuilder.MapPost("/api/feature-flags/{key}/users",
+			async (
+				string key,
+				[FromHeader(Name = "X-Scope")] string scope,
+				[FromHeader(Name = "X-Application-Name")] string? applicationName,
+				[FromHeader(Name = "X-Application-Version")] string? applicationVersion,
+				ManageUserAccessRequest request,
+				ManageUserAccessHandler handler,
+				CancellationToken cancellationToken) =>
+			{
+				return await handler.HandleAsync(key, new FlagRequestHeaders(scope, applicationName, applicationVersion), request, cancellationToken);
+			})
+			.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
+			.AddEndpointFilter<ValidationFilter<ManageUserAccessRequest>>()
+			.WithName("UpdateUserAccessControl")
+			.WithTags("Feature Flags", "Operations", "User Targeting", "Rollout Percentage", "Access Control Management", "Management Api")
+			.Produces<FeatureFlagResponse>()
+			.ProducesValidationProblem();
+	}
+}
+
+public sealed class ManageUserAccessHandler(
+		IDashboardRepository repository,
+		ICurrentUserService currentUserService,
+		IFlagResolverService flagResolver,
+		ICacheInvalidationService cacheInvalidationService,
+		ILogger<ManageUserAccessHandler> logger)
+{
+	public async Task<IResult> HandleAsync(
+		string key,
+		FlagRequestHeaders headers,
+		ManageUserAccessRequest request,
+		CancellationToken cancellationToken)
+	{
+		try
+		{
+			var (isValid, result, source) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
+			if (!isValid) return result;
+
+			var flagWithUpdatedUsers = CreateFlagWithUpdatedUsers(request, source!);
+			flagWithUpdatedUsers!.UpdateAuditTrail(currentUserService.UserName!);
+
+			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedUsers, cancellationToken);
+			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);
+
+			logger.LogInformation("Feature flag {Key} user rollout percentage set to {Percentage}% by {User})",
+				key, request.Percentage, currentUserService.UserName);
+
+			return Results.Ok(new FeatureFlagResponse(updatedFlag));
+		}
+		catch (Exception ex)
+		{
+			return HttpProblemFactory.InternalServerError(ex, logger);
+		}
+	}
+
+	private FeatureFlag CreateFlagWithUpdatedUsers(ManageUserAccessRequest request, FeatureFlag source)
+	{
+		var modes = new EvaluationModes([.. source.Configuration.ActiveEvaluationModes.Modes]);
+		modes.RemoveMode(EvaluationMode.On);
+
+		if (request.Percentage == 0) // Special case: 0% effectively disables the flag
+		{
+			modes.RemoveMode(EvaluationMode.UserRolloutPercentage);
+		}
+		else // Standard percentage rollout
+		{
+			modes.AddMode(EvaluationMode.UserRolloutPercentage);
+		}
+
+		if (request.AllowedUsers?.Length > 0 || request.BlockedUsers?.Length > 0)
+		{
+			modes.AddMode(EvaluationMode.UserTargeted);
+		}
+		else
+		{
+			// If no users are specified, remove the UserTargeted mode
+			modes.RemoveMode(EvaluationMode.UserTargeted);
+		}
+
+		var accessControl = new AccessControl(
+							allowed: [.. request.AllowedUsers ?? []],
+							blocked: [.. request.BlockedUsers ?? []],
+							rolloutPercentage: request.Percentage ?? source.Configuration.UserAccessControl.RolloutPercentage);
+
+		var configuration = new FlagEvaluationConfiguration(
+									identifier: source.Identifier,
+									activeEvaluationModes: modes,
+									schedule: source.Configuration.Schedule,
+									operationalWindow: source.Configuration.OperationalWindow,
+									userAccessControl: accessControl,
+									tenantAccessControl: source.Configuration.TenantAccessControl,
+									targetingRules: source.Configuration.TargetingRules,
+									variations: source.Configuration.Variations);
+
+		return new FeatureFlag(Identifier: source.Identifier, Metadata: source.Metadata, Configuration: configuration);
+	}
+}
+
+public sealed class ManageUserAccessRequestValidator : AbstractValidator<ManageUserAccessRequest>
+{
+	public ManageUserAccessRequestValidator()
+	{
+		RuleFor(c => c.Percentage)
+			.InclusiveBetween(0, 100)
+			.WithMessage("Feature flag rollout percentage must be between 0 and 100");
+
+		RuleFor(c => c.AllowedUsers)
+			.Must(list => list == null || list.Distinct().Count() == list.Length)
+			.WithMessage("Duplicate user IDs are not allowed in AllowedUsers");
+
+		RuleFor(c => c.BlockedUsers)
+			.Must(list => list == null || list.Distinct().Count() == list.Length)
+			.WithMessage("Duplicate user IDs are not allowed in BlockedUsers");
+
+		RuleFor(c => c)
+			.Must(c => c.BlockedUsers!.Any(b => c.AllowedUsers!.Contains(b)) == false)
+			.When(c => c.BlockedUsers != null && c.AllowedUsers != null)
+			.WithMessage("Users cannot be in both allowed and blocked lists");
+	}
+}
+
+

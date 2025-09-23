@@ -43,6 +43,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Migrati
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Migrations.Runner", "infrastructure\migrations\Propel.FeatureFlags.Migrations.Runner\Propel.FeatureFlags.Migrations.Runner.csproj", "{68FCF651-5DFC-02C4-D0AC-D0999F79D059}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dashboard", "dashboard", "{016F2DB1-DF80-40A2-9649-0FD0AE255814}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Dashboard.Api", "dashboard\Propel.FeatureFlags.Dashboard.Api\Propel.FeatureFlags.Dashboard.Api.csproj", "{AE04054B-58BF-8B16-25F8-FF8A4DB671E1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +101,10 @@ Global
 		{68FCF651-5DFC-02C4-D0AC-D0999F79D059}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{68FCF651-5DFC-02C4-D0AC-D0999F79D059}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{68FCF651-5DFC-02C4-D0AC-D0999F79D059}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE04054B-58BF-8B16-25F8-FF8A4DB671E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE04054B-58BF-8B16-25F8-FF8A4DB671E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE04054B-58BF-8B16-25F8-FF8A4DB671E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE04054B-58BF-8B16-25F8-FF8A4DB671E1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -115,6 +123,7 @@ Global
 		{A4E6A502-D6F5-4250-B66E-D058D1079AA5} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{222316C9-E2EF-4A01-8890-3BC38BD29814} = {A4E6A502-D6F5-4250-B66E-D058D1079AA5}
 		{68FCF651-5DFC-02C4-D0AC-D0999F79D059} = {A4E6A502-D6F5-4250-B66E-D058D1079AA5}
+		{AE04054B-58BF-8B16-25F8-FF8A4DB671E1} = {016F2DB1-DF80-40A2-9649-0FD0AE255814}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B84A57E7-342F-45BE-BD70-F37A7F4D7E27}
