@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Propel.FeatureFlags.Dashboard.Api.Infrastructure.Entities;
 
-namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.SqlServerConfig;
+namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.SqlServer;
 
 public class FeatureFlagConfiguration : IEntityTypeConfiguration<FeatureFlag>
 {

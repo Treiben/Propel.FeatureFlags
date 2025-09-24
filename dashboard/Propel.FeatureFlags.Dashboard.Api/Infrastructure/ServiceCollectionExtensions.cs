@@ -1,5 +1,5 @@
-﻿using Propel.FeatureFlags.Dashboard.Api.Infrastructure.PostgresConfig;
-using Propel.FeatureFlags.Dashboard.Api.Infrastructure.SqlServerConfig;
+﻿using Propel.FeatureFlags.Dashboard.Api.Infrastructure.Postgres;
+using Propel.FeatureFlags.Dashboard.Api.Infrastructure.SqlServer;
 using Propel.FeatureFlags.Infrastructure;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure;

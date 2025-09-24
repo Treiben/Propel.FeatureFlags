@@ -11,8 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Infrastructure\PostgresConfig\DbContextExtensions.cs" />
-    <Compile Remove="Infrastructure\SqlServerConfig\DbContextExtension.cs" />
+    <Compile Remove="Infrastructure\Postgres\DbContextExtensions.cs" />
+    <Compile Remove="Infrastructure\SqlServer\DbContextExtension.cs" />
   </ItemGroup>
 
   <ItemGroup>

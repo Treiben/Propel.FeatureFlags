@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Propel.FeatureFlags.Dashboard.Api.Infrastructure.Entities;
 
-namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.PostgresConfig;
+namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.Postgres;
 
 public class FeatureFlagConfiguration : IEntityTypeConfiguration<FeatureFlag>
 {

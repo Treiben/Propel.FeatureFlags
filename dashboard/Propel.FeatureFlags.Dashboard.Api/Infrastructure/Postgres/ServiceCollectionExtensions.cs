@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.PostgresConfig;
+namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.Postgres;
 
 public static class ServiceCollectionExtensions
 {

@@ -2,17 +2,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Propel.FeatureFlags.Dashboard.Api.Infrastructure.Entities;
 
-namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.SqlServerConfig;
+namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.SqlServer;
 
-public class FeatureFlagMetadataConfiguration : IEntityTypeConfiguration<FeatureFlagMetadata>
+public class FeatureFlagAuditConfiguration : IEntityTypeConfiguration<FeatureFlagAudit>
 {
-    public void Configure(EntityTypeBuilder<FeatureFlagMetadata> builder)
+    public void Configure(EntityTypeBuilder<FeatureFlagAudit> builder)
     {
         // Table mapping
-        builder.ToTable("FeatureFlagsMetadata", t =>
-        {
-            t.HasCheckConstraint("CK_metadata_tags_json", "ISJSON(Tags) = 1");
-        });
+        builder.ToTable("FeatureFlagsAudit");
 
         // Primary key
         builder.HasKey(e => e.Id);
@@ -30,8 +27,7 @@ public class FeatureFlagMetadataConfiguration : IEntityTypeConfiguration<Feature
         builder.Property(e => e.ApplicationName)
             .HasColumnName("ApplicationName")
             .HasMaxLength(255)
-            .HasDefaultValue("global")
-            .IsRequired();
+            .HasDefaultValue("global");
 
         builder.Property(e => e.ApplicationVersion)
             .HasColumnName("ApplicationVersion")
@@ -39,20 +35,24 @@ public class FeatureFlagMetadataConfiguration : IEntityTypeConfiguration<Feature
             .HasDefaultValue("0.0.0.0")
             .IsRequired();
 
-        builder.Property(e => e.IsPermanent)
-            .HasColumnName("IsPermanent")
-            .HasDefaultValue(false)
+        builder.Property(e => e.Action)
+            .HasColumnName("Action")
+            .HasMaxLength(50)
             .IsRequired();
 
-        builder.Property(e => e.ExpirationDate)
-            .HasColumnName("ExpirationDate")
+        builder.Property(e => e.Actor)
+            .HasColumnName("Actor")
+            .HasMaxLength(255)
+            .IsRequired();
+
+        builder.Property(e => e.Timestamp)
+            .HasColumnName("Timestamp")
             .HasColumnType("DATETIMEOFFSET")
+            .HasDefaultValueSql("GETUTCDATE()") // SQL Server function
             .IsRequired();
 
-        builder.Property(e => e.Tags)
-            .HasColumnName("Tags")
-            .HasColumnType("NVARCHAR(MAX)")
-            .HasDefaultValue("{}")
-            .IsRequired();
+        builder.Property(e => e.Reason)
+            .HasColumnName("Reason")
+            .HasColumnType("NVARCHAR(MAX)");
     }
 }

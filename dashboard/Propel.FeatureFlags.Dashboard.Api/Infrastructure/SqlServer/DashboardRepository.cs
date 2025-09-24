@@ -3,7 +3,7 @@ using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Domain;
 using System.Text.Json;
 
-namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.SqlServerConfig;
+namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.SqlServer;
 
 public class SqlServerDbContext(DbContextOptions<DashboardDbContext> options) : DashboardDbContext(options)
 {

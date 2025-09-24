@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.SqlServerConfig;
+namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.SqlServer;
 
 public static class ServiceCollectionExtensions
 {

@@ -2,14 +2,14 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Propel.FeatureFlags.Dashboard.Api.Infrastructure.Entities;
 
-namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.PostgresConfig;
+namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.Postgres;
 
-public class FeatureFlagMetadataConfiguration : IEntityTypeConfiguration<FeatureFlagMetadata>
+public class FeatureFlagAuditConfiguration : IEntityTypeConfiguration<FeatureFlagAudit>
 {
-	public void Configure(EntityTypeBuilder<FeatureFlagMetadata> builder)
+	public void Configure(EntityTypeBuilder<FeatureFlagAudit> builder)
 	{
 		// Table mapping
-		builder.ToTable("feature_flags_metadata");
+		builder.ToTable("feature_flags_audit");
 
 		// Primary key
 		builder.HasKey(e => e.Id);
@@ -17,7 +17,7 @@ public class FeatureFlagMetadataConfiguration : IEntityTypeConfiguration<Feature
 		// Column mappings
 		builder.Property(e => e.Id)
 			.HasColumnName("id")
-			.HasDefaultValueSql("gen_random_uuid()");
+			.HasDefaultValueSql("gen_random_uuid()"); // PostgreSQL function
 
 		builder.Property(e => e.FlagKey)
 			.HasColumnName("flag_key")
@@ -27,8 +27,7 @@ public class FeatureFlagMetadataConfiguration : IEntityTypeConfiguration<Feature
 		builder.Property(e => e.ApplicationName)
 			.HasColumnName("application_name")
 			.HasMaxLength(255)
-			.HasDefaultValue("global")
-			.IsRequired();
+			.HasDefaultValue("global");
 
 		builder.Property(e => e.ApplicationVersion)
 			.HasColumnName("application_version")
@@ -36,20 +35,22 @@ public class FeatureFlagMetadataConfiguration : IEntityTypeConfiguration<Feature
 			.HasDefaultValue("0.0.0.0")
 			.IsRequired();
 
-		builder.Property(e => e.IsPermanent)
-			.HasColumnName("is_permanent")
-			.HasDefaultValue(false)
+		builder.Property(e => e.Action)
+			.HasColumnName("action")
+			.HasMaxLength(50)
 			.IsRequired();
 
-		builder.Property(e => e.ExpirationDate)
-			.HasColumnName("expiration_date")
+		builder.Property(e => e.Actor)
+			.HasColumnName("actor")
+			.HasMaxLength(255)
 			.IsRequired();
 
-		builder.Property(e => e.Tags)
-			.HasColumnName("tags")
-			.HasDefaultValue("{}")
+		builder.Property(e => e.Timestamp)
+			.HasColumnName("timestamp")
+			.HasDefaultValueSql("NOW()") // PostgreSQL function
 			.IsRequired();
 
-		builder.Property(e => e.Tags).HasColumnType("jsonb");
+		builder.Property(e => e.Reason)
+			.HasColumnName("reason");
 	}
 }

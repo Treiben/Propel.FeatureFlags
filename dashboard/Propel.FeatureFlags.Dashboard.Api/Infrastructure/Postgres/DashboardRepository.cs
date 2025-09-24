@@ -3,7 +3,7 @@ using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Domain;
 using System.Text.Json;
 
-namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.PostgresConfig;
+namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.Postgres;
 
 public class PostgresDbContext(DbContextOptions<DashboardDbContext> options) : DashboardDbContext(options)
 {
