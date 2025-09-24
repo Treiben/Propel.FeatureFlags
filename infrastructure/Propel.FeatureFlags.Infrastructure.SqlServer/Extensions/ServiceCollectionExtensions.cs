@@ -8,7 +8,7 @@ namespace Propel.FeatureFlags.Infrastructure.SqlServer.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddPropelPersistence(this IServiceCollection services, string sqlServerConnectionString)
+	public static IServiceCollection AddFeatureFlagPersistence(this IServiceCollection services, string sqlServerConnectionString)
 	{
 		// Configure connection string with resilience settings
 		var builder = new SqlConnectionStringBuilder(sqlServerConnectionString)
@@ -23,15 +23,15 @@ public static class ServiceCollectionExtensions
 
 		var configuredConnectionString = builder.ToString();
 
-		services.AddSingleton<IFlagEvaluationRepository>(sp =>
-			new ClientApplicationRepository(
+		services.AddSingleton<IFeatureFlagRepository>(sp =>
+			new SqlFeatureFlagRepository(
 				configuredConnectionString,
-				sp.GetRequiredService<ILogger<ClientApplicationRepository>>()));
+				sp.GetRequiredService<ILogger<SqlFeatureFlagRepository>>()));
 
 		services.AddSingleton(sp =>
-			new SqlServerDatabaseInitializer(
+			new SqlDatabaseInitializer(
 				sqlServerConnectionString ?? throw new InvalidOperationException("SQL Server connection string required"),
-				sp.GetRequiredService<ILogger<SqlServerDatabaseInitializer>>()));
+				sp.GetRequiredService<ILogger<SqlDatabaseInitializer>>()));
 
 		return services;
 	}
@@ -41,9 +41,9 @@ public static class ServiceCollectionExtensions
 		var optionsSection = configuration.GetSection("SqlMigrationOptions");
 		var options = optionsSection.Get<SqlMigrationOptions>();
 
-		services.AddSingleton(options);
+		services.AddSingleton(options!);
 		services.AddSingleton<IMigrationEngine, MigrationEngine>();
-		services.AddSingleton<IMigrationRepository, SqlServerMigrationRepository>();
+		services.AddSingleton<IMigrationRepository, SqlMigrationRepository>();
 		services.AddSingleton<Migrator>();
 
 		return services;
@@ -53,10 +53,10 @@ public static class ServiceCollectionExtensions
 	/// Ensures the SQL Server database and schema exist for feature flags
 	/// Call this during application startup
 	/// </summary>
-	public static async Task<IServiceProvider> EnsurePropelDatabase(this IServiceProvider services,
+	public static async Task<IServiceProvider> EnsureFeatureFlagDatabase(this IServiceProvider services,
 		CancellationToken cancellationToken = default)
 	{
-		var initializer = services.GetRequiredService<SqlServerDatabaseInitializer>();
+		var initializer = services.GetRequiredService<SqlDatabaseInitializer>();
 		var initialized = await initializer.InitializeAsync(cancellationToken);
 		if (!initialized)
 			throw new InvalidOperationException("Failed to initialize SQL Server database for feature flags");
@@ -69,10 +69,10 @@ public static class ServiceCollectionExtensions
 	/// Use: during application startup at development time
 	/// For production, use migrations instead or seed with registered flags from assembly
 	/// </summary>
-	public static async Task<IServiceProvider> SeedDatabaseAsync(this IServiceProvider services, string sqlScriptFile)
+	public static async Task<IServiceProvider> SeedFeatureFlags(this IServiceProvider services, string file)
 	{
-		var initializer = services.GetRequiredService<SqlServerDatabaseInitializer>();
-		var seeded = await initializer.SeedAsync(sqlScriptFile);
+		var initializer = services.GetRequiredService<SqlDatabaseInitializer>();
+		var seeded = await initializer.SeedAsync(file);
 		if (!seeded)
 			throw new InvalidOperationException("Failed to seed SQL Server database for feature flags");
 		return services;

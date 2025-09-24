@@ -8,12 +8,12 @@ using System.Text.Json;
 
 namespace Propel.FeatureFlags.Infrastructure.SqlServer;
 
-public class ClientApplicationRepository : IFlagEvaluationRepository
+public class SqlFeatureFlagRepository : IFeatureFlagRepository
 {
 	private readonly string _connectionString;
-	private readonly ILogger<ClientApplicationRepository> _logger;
+	private readonly ILogger<SqlFeatureFlagRepository> _logger;
 
-	public ClientApplicationRepository(string connectionString, ILogger<ClientApplicationRepository> logger)
+	public SqlFeatureFlagRepository(string connectionString, ILogger<SqlFeatureFlagRepository> logger)
 	{
 		_connectionString = connectionString;
 		_logger = logger;

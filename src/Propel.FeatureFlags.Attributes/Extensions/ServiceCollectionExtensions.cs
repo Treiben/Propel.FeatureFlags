@@ -26,7 +26,7 @@ public static class ServiceCollectionExtensions
 		return services;
 	}
 
-	public static IServiceCollection RegisterServiceWithAttributes<TInterface, TImplementation>(this IServiceCollection services)
+	public static IServiceCollection RegisterServiceWithFlagAttributes<TInterface, TImplementation>(this IServiceCollection services)
 	where TInterface : class
 	where TImplementation : class, TInterface
 	{

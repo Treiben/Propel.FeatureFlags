@@ -3,14 +3,14 @@ using Microsoft.Data.SqlClient;
 
 namespace Propel.FeatureFlags.Infrastructure.SqlServer;
 
-public class SqlServerDatabaseInitializer
+public class SqlDatabaseInitializer
 {
 	private readonly string _connectionString;
 	private readonly string _masterConnectionString;
 	private readonly string _databaseName;
-	private readonly ILogger<SqlServerDatabaseInitializer> _logger;
+	private readonly ILogger<SqlDatabaseInitializer> _logger;
 
-	public SqlServerDatabaseInitializer(string connectionString, ILogger<SqlServerDatabaseInitializer> logger)
+	public SqlDatabaseInitializer(string connectionString, ILogger<SqlDatabaseInitializer> logger)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(connectionString, nameof(connectionString));
 

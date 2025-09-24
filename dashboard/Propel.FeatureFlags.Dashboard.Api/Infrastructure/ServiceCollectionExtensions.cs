@@ -8,7 +8,7 @@ public static class ServiceCollectionExtensions
 {
 	public static IServiceCollection AddDashboardPersistence(this IServiceCollection services, PropelOptions options)
 	{
-		var connectionString = options.Database.DefaultConnection
+		var connectionString = options.Database.ConnectionString
 			?? throw new InvalidOperationException("Database connection string is required");
 
 		var databaseProvider = options.Database.Provider ?? DetectDatabaseProvider(connectionString);

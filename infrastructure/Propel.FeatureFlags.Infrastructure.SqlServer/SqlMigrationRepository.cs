@@ -5,9 +5,9 @@ using System.Data;
 
 namespace Propel.FeatureFlags.Infrastructure.SqlServer;
 
-public class SqlServerMigrationRepository : IMigrationRepository
+public class SqlMigrationRepository : IMigrationRepository
 {
-	private readonly ILogger<SqlServerMigrationRepository> _logger;
+	private readonly ILogger<SqlMigrationRepository> _logger;
 	private readonly string _connectionString;
 	private readonly string _masterConnectionString;
 	private readonly string _schemaName;
@@ -16,9 +16,9 @@ public class SqlServerMigrationRepository : IMigrationRepository
 
 	public string Database { get; }
 
-	public SqlServerMigrationRepository(
+	public SqlMigrationRepository(
 		SqlMigrationOptions options,
-		ILogger<SqlServerMigrationRepository> logger)
+		ILogger<SqlMigrationRepository> logger)
 	{
 		Database = options.Database;
 

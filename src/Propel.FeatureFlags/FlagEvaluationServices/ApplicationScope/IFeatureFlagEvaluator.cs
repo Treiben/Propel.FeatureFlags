@@ -13,11 +13,11 @@ public interface IFeatureFlagEvaluator
 }
 
 public sealed class FeatureFlagEvaluator(
-	IFlagEvaluationRepository repository,
+	IFeatureFlagRepository repository,
 	IFlagEvaluationManager evaluationManager,
 	IFeatureFlagCache? cache = null) : IFeatureFlagEvaluator
 {
-	private readonly IFlagEvaluationRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+	private readonly IFeatureFlagRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
 	private readonly IFlagEvaluationManager _evaluationManager = evaluationManager ?? throw new ArgumentNullException(nameof(evaluationManager));
 
 	private string ApplicationName => ApplicationInfo.Name;

@@ -14,7 +14,7 @@ namespace Propel.FeatureFlags.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddPropelServices(this IServiceCollection services, PropelOptions options)
+	public static IServiceCollection AddFeatureFlagServices(this IServiceCollection services, PropelOptions options)
 	{
 		services.AddSingleton(options);
 
@@ -38,14 +38,14 @@ public static class ServiceCollectionExtensions
 		return services;
 	}
 
-	public static IServiceCollection AddPropelInMemoryCache(this IServiceCollection services)
+	public static IServiceCollection AddFeatureFlagDefaultCache(this IServiceCollection services)
 	{
 		services.AddMemoryCache();
 		services.TryAddSingleton<IFeatureFlagCache, InMemoryFlagCache>();
 		return services;
 	}
 
-	public static IServiceCollection AddPropelFeatureFlags(this IServiceCollection services)
+	public static IServiceCollection RegisterAllFlags(this IServiceCollection services)
 	{
 		var currentAssembly = Assembly.GetEntryAssembly();
 

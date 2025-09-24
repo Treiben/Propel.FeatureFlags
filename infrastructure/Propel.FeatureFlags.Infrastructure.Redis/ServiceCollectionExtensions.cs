@@ -8,7 +8,7 @@ namespace Propel.FeatureFlags.Infrastructure.Redis.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddPropelDistributedCache(this IServiceCollection services, string connectionString)
+	public static IServiceCollection AddFeatureFlagRedisCache(this IServiceCollection services, string connectionString)
 	{
 		if (!string.IsNullOrEmpty(connectionString))
 		{

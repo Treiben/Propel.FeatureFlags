@@ -6,9 +6,9 @@ using System.Data;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql;
 
-public class PostgreSqlMigrationRepository : IMigrationRepository
+public class PostgreMigrationRepository : IMigrationRepository
 {
-	private readonly ILogger<PostgreSqlMigrationRepository> _logger;
+	private readonly ILogger<PostgreMigrationRepository> _logger;
 	private readonly string _connectionString;
 	private readonly string _masterConnectionString;
 	private readonly string _schemaName;
@@ -17,9 +17,9 @@ public class PostgreSqlMigrationRepository : IMigrationRepository
 
 	public string Database { get; }
 
-	public PostgreSqlMigrationRepository(
+	public PostgreMigrationRepository(
 		SqlMigrationOptions options,
-		ILogger<PostgreSqlMigrationRepository> logger)
+		ILogger<PostgreMigrationRepository> logger)
 	{
 		Database = options.Database;
 

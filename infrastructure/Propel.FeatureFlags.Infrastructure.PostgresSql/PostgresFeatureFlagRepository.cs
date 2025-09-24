@@ -9,12 +9,12 @@ using System.Text.Json;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql;
 
-public class ClientApplicationRepository : IFlagEvaluationRepository
+public class PostgresFeatureFlagRepository : IFeatureFlagRepository
 {
 	private readonly string _connectionString;
-	private readonly ILogger<ClientApplicationRepository> _logger;
+	private readonly ILogger<PostgresFeatureFlagRepository> _logger;
 
-	public ClientApplicationRepository(string connectionString, ILogger<ClientApplicationRepository> logger)
+	public PostgresFeatureFlagRepository(string connectionString, ILogger<PostgresFeatureFlagRepository> logger)
 	{
 		_connectionString = connectionString;
 		_logger = logger;

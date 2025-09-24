@@ -9,7 +9,7 @@ namespace Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddPropelPersistence(this IServiceCollection services, string pgConnectionString)
+	public static IServiceCollection AddFeatureFlagPersistence(this IServiceCollection services, string pgConnectionString)
 	{
 		// Configure connection string with resilience settings here
 		var builder = new NpgsqlConnectionStringBuilder(pgConnectionString)
@@ -26,15 +26,15 @@ public static class ServiceCollectionExtensions
 
 		var configuredConnectionString = builder.ToString();
 
-		services.AddSingleton<IFlagEvaluationRepository>(sp =>
-			new ClientApplicationRepository(
+		services.AddSingleton<IFeatureFlagRepository>(sp =>
+			new PostgresFeatureFlagRepository(
 				configuredConnectionString,
-				sp.GetRequiredService<ILogger<ClientApplicationRepository>>()));
+				sp.GetRequiredService<ILogger<PostgresFeatureFlagRepository>>()));
 
 		services.AddSingleton(sp =>
-			new PostgreSQLDatabaseInitializer(
+			new PostgresDatabaseInitializer(
 				pgConnectionString ?? throw new InvalidOperationException("PostgreSQL connection string required"),
-				sp.GetRequiredService<ILogger<PostgreSQLDatabaseInitializer>>()));
+				sp.GetRequiredService<ILogger<PostgresDatabaseInitializer>>()));
 
 		return services;
 	}
@@ -44,9 +44,9 @@ public static class ServiceCollectionExtensions
 		var optionsSection = configuration.GetSection("SqlMigrationOptions");
 		var options = optionsSection.Get<SqlMigrationOptions>();
 
-		services.AddSingleton(options);
+		services.AddSingleton(options!);
 		services.AddSingleton<IMigrationEngine, MigrationEngine>();
-		services.AddSingleton<IMigrationRepository, PostgreSqlMigrationRepository>();
+		services.AddSingleton<IMigrationRepository, PostgreMigrationRepository>();
 		services.AddSingleton<Migrator>();
 
 		return services;
@@ -56,10 +56,10 @@ public static class ServiceCollectionExtensions
 	/// Ensures the PostgreSQL database and schema exist for feature flags
 	/// Call this during application startup
 	/// </summary>
-	public static async Task<IServiceProvider> EnsurePropelDatabase(this IServiceProvider services,
+	public static async Task<IServiceProvider> EnsureFeatureFlagDatabase(this IServiceProvider services,
 		CancellationToken cancellationToken = default)
 	{
-		var initializer = services.GetRequiredService<PostgreSQLDatabaseInitializer>();
+		var initializer = services.GetRequiredService<PostgresDatabaseInitializer>();
 		var initialized = await initializer.InitializeAsync(cancellationToken);
 		if (!initialized)
 			throw new InvalidOperationException("Failed to initialize PostgreSQL database for feature flags");
@@ -72,10 +72,10 @@ public static class ServiceCollectionExtensions
 	/// Use: during application startup at development time
 	/// For production, use migrations instead or seed with registered flags from assembly
 	/// </summary>
-	public static async Task<IServiceProvider> SeedDatabaseAsync(this IServiceProvider services, string sqlScriptFile)
+	public static async Task<IServiceProvider> SeedFeatureFlags(this IServiceProvider services, string file)
 	{
-		var initializer = services.GetRequiredService<PostgreSQLDatabaseInitializer>();
-		var seeded = await initializer.SeedAsync(sqlScriptFile);
+		var initializer = services.GetRequiredService<PostgresDatabaseInitializer>();
+		var seeded = await initializer.SeedAsync(file);
 		if (!seeded)
 			throw new InvalidOperationException("Failed to seed PostgreSQL database for feature flags");
 		return services;

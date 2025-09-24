@@ -107,14 +107,14 @@ public static class AppExtensions
 			app.Logger.LogInformation("Starting feature flags database initialization...");
 
 			// This will create the database and tables if they don't exist
-			await app.Services.EnsurePropelDatabase();
+			await app.Services.EnsureFeatureFlagDatabase();
 
 			app.Logger.LogInformation("Feature flags database initialization completed successfully");
 
 			// Flag seeding from SQL script file (NOT RECOMMEND FOR PRODUCTION)
 			// Use: during application startup at development time
 			if (app.Environment.IsDevelopment())
-				await app.Services.SeedDatabaseAsync("seed-db.sql");
+				await app.Services.SeedFeatureFlags("seed-db.sql");
 		}
 		catch (Exception ex)
 		{

@@ -2,7 +2,7 @@
 
 namespace Propel.FeatureFlags.Infrastructure;
 
-public interface IFlagEvaluationRepository
+public interface IFeatureFlagRepository
 {
 	Task<FlagEvaluationConfiguration?> GetAsync(FlagIdentifier flagKey, CancellationToken cancellationToken = default);
 

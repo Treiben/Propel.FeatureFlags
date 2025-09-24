@@ -2,14 +2,17 @@
 
 public class PropelOptions
 {
+	public bool RegisterFlagsWithContainer { get; set; } = false;
+	public bool InsertFlagsInDatabase { get; set; } = false;
 	public string DefaultTimeZone { get; set; } = "UTC";
 	public DatabaseOptions Database { get; set; } = new DatabaseOptions();
 	public CacheOptions Cache { get; set; } = new CacheOptions();
+	public AOPOptions AttributeIntercepting { get; set; } = new AOPOptions();
 }
 
 public class CacheOptions
 {
-	public string? Connection { get; set; }
+	public string Connection { get; set; } = string.Empty;
 	/// <summary>
 	/// Enable or disable in-memory caching of feature flag evaluations
 	/// Default: true (recommended for performance)
@@ -34,7 +37,7 @@ public class CacheOptions
 
 public class DatabaseOptions
 {
-	public string? DefaultConnection { get; set; }
+	public string ConnectionString { get; set; } = string.Empty;
 
 	public DatabaseProvider? Provider { get; set; }
 }
@@ -43,4 +46,10 @@ public enum DatabaseProvider
 {
 	PostgreSQL,
 	SqlServer
+}
+
+public class AOPOptions
+{
+	public bool EnableHttpIntercepter { get; set; } = false;
+	public bool EnableIntercepter { get; set; } = false;
 }

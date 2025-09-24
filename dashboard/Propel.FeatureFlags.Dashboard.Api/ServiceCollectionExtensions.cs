@@ -25,9 +25,9 @@ public static class ServiceCollectionExtensions
 
 	public static IServiceCollection AddFeatureFlagCoreServices(this IServiceCollection services, PropelOptions options)
 	{
-		services.AddPropelServices(options);
-		services.AddPropelPersistence(options.Database.DefaultConnection!);
-		services.AddPropelDistributedCache(options.Cache.Connection!);
+		services.AddFeatureFlagServices(options);
+		services.AddFeatureFlagPersistence(options.Database.ConnectionString!);
+		services.AddFeatureFlagRedisCache(options.Cache.Connection!);
 
 		return services;
 	}
@@ -41,7 +41,7 @@ public static class ServiceCollectionExtensions
 		healthChecksBuilder.AddCheck("self", () => HealthCheckResult.Healthy("Application is running"), tags: ["liveness"]);
 
 		// Add PostgreSQL health check only if connection string is available
-		var sqlConnection = options.Database.DefaultConnection ?? string.Empty;
+		var sqlConnection = options.Database.ConnectionString ?? string.Empty;
 		if (!string.IsNullOrEmpty(sqlConnection))
 		{
 			healthChecksBuilder.AddNpgSql(

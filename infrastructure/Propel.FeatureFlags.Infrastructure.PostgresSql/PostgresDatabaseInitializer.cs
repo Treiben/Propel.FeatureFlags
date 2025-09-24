@@ -3,15 +3,15 @@ using Npgsql;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql;
 
-public class PostgreSQLDatabaseInitializer
+public class PostgresDatabaseInitializer
 {
 	private readonly string _connectionString;
 	private readonly string _masterConnectionString;
 	private readonly string _databaseName;
 	private readonly string _searchPath;
-	private readonly ILogger<PostgreSQLDatabaseInitializer> _logger;
+	private readonly ILogger<PostgresDatabaseInitializer> _logger;
 
-	public PostgreSQLDatabaseInitializer(string connectionString, ILogger<PostgreSQLDatabaseInitializer> logger)
+	public PostgresDatabaseInitializer(string connectionString, ILogger<PostgresDatabaseInitializer> logger)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(connectionString, nameof(connectionString));
 
