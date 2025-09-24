@@ -67,7 +67,7 @@ var propelOptions = builder.Configuration.GetSection("PropelOptions").Get<Propel
 builder.Services.AddFeatureFlagCoreServices(propelOptions);
 
 builder.Services
-	.AddDashboardDbContext(propelOptions)
+	.AddDashboardPersistence(propelOptions)
 	.AddDashboardServices()
 	.AddDashboardHealthchecks(propelOptions);
 

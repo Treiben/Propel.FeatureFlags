@@ -1,4 +1,4 @@
-namespace Propel.FeatureFlags.Dashboard.Api.Entities;
+namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.Entities;
 
 public class FeatureFlagAudit
 {

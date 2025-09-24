@@ -54,7 +54,7 @@ public sealed class ManageUserAccessHandler(
 			if (!isValid) return result;
 
 			var flagWithUpdatedUsers = CreateFlagWithUpdatedUsers(request, source!);
-			flagWithUpdatedUsers!.UpdateAuditTrail(currentUserService.UserName!);
+			flagWithUpdatedUsers!.UpdateAuditTrail(action: "user-access-changed", username: currentUserService.UserName!);
 
 			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedUsers, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Propel.FeatureFlags.Dashboard.Api.Entities;
+using Propel.FeatureFlags.Dashboard.Api.Infrastructure.Entities;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.SqlServerConfig;
 

@@ -59,7 +59,7 @@ public sealed class UpdateTimeWindowHandler(
 			if (!isValid) return result;
 
 			var flagWithUpdatedWindow = CreateFlagWithUpdatedTimeWindow(request, source!);
-			flagWithUpdatedWindow!.UpdateAuditTrail(currentUserService.UserName!);
+			flagWithUpdatedWindow!.UpdateAuditTrail(action: "timewindow-changed", username:currentUserService.UserName!);
 
 			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedWindow, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);

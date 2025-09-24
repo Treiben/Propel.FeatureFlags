@@ -72,7 +72,8 @@ public sealed class ToggleFlagHandler(
 				tenantAccessControl: new AccessControl(rolloutPercentage: evaluationMode == EvaluationMode.On ? 100 : 0));
 
 			var flagWithUpdatedModes = new FeatureFlag(Identifier: source.Identifier, Metadata: source.Metadata, Configuration: config);
-			flagWithUpdatedModes!.UpdateAuditTrail(currentUserService.UserName!);
+			flagWithUpdatedModes!.UpdateAuditTrail(action: evaluationMode == EvaluationMode.On ? "flag-enabled": "flag-disabled", 
+				username: currentUserService.UserName!);
 
 			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedModes, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);

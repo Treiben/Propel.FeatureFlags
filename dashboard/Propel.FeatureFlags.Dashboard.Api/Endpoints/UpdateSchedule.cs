@@ -56,13 +56,16 @@ public sealed class UpdateScheduleHandler(
 			var (isValid, result, source) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
 			if (!isValid) return result;
 
+			bool isScheduleRemoval = request.EnableOn == null && request.DisableOn == null;
+
 			var flagWithUpdatedSchedule = CreateFlagWithUpdatedSchedule(request, source!);
-			flagWithUpdatedSchedule!.UpdateAuditTrail(currentUserService.UserName!);
+			flagWithUpdatedSchedule!.UpdateAuditTrail(action: isScheduleRemoval ? "schedule-removed" : "schedule-changed", 
+				username: currentUserService.UserName!);
 
 			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedSchedule, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);
 
-			var scheduleInfo = request.EnableOn == null && request.DisableOn == null
+			var scheduleInfo = isScheduleRemoval
 				? "removed schedule"
 				: $"enable at {updatedFlag.Configuration.Schedule.EnableOn:yyyy-MM-dd HH:mm} UTC, disable at {updatedFlag.Configuration.Schedule.DisableOn:yyyy-MM-dd HH:mm} UTC";
 			logger.LogInformation("Feature flag {Key} schedule updated by {User}: {ScheduleInfo}",

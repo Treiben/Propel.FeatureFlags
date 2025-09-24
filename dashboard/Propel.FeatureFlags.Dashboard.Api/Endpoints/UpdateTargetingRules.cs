@@ -57,7 +57,7 @@ public sealed class UpdateTargetingRulesHandler(
 			if (!isValid) return result;
 
 			var flagWithUpdatedRules = CreateFlagWithUpdatedRules(request, source!);
-			flagWithUpdatedRules!.UpdateAuditTrail(currentUserService.UserName!);
+			flagWithUpdatedRules!.UpdateAuditTrail(action: "targeting-rules-changed", username:currentUserService.UserName!);
 
 			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedRules, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);

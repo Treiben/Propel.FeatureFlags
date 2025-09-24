@@ -53,9 +53,9 @@ public sealed class UpdateFlagHandler(
 			if (!isValid) return result;
 
 			var flagWithUpdatedMeta = CreateFlagWithUpdatedMetadata(request, source!);
-			flagWithUpdatedMeta!.UpdateAuditTrail(currentUserService.UserName!);
+			flagWithUpdatedMeta!.UpdateAuditTrail(action: "metadata-changed", username: currentUserService.UserName!);
 
-			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedMeta!, cancellationToken);
+			var updatedFlag = await repository.UpdateMetadataAsync(flagWithUpdatedMeta!, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);
 
 			logger.LogInformation("Feature flag {Key} updated by {User}", key, currentUserService.UserName);

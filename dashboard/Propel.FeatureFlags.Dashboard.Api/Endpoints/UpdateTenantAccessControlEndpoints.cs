@@ -54,7 +54,7 @@ public sealed class ManageTenantAccessHandler(
 			if (!isValid) return result;
 
 			var flagWithUpdatedTenants = CreateFlagWithUpdatedTenantAccess(request, source);
-			flagWithUpdatedTenants!.UpdateAuditTrail(currentUserService.UserName!);
+			flagWithUpdatedTenants!.UpdateAuditTrail(action: "tenant-access-changed", username:currentUserService.UserName!);
 
 			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedTenants, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);

@@ -1,4 +1,4 @@
-﻿namespace Propel.FeatureFlags.Dashboard.Api.Entities;
+﻿namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.Entities;
 
 public class FeatureFlag
 {
@@ -6,8 +6,10 @@ public class FeatureFlag
 	public string ApplicationName { get; set; } = "global";
 	public string ApplicationVersion { get; set; } = "0.0.0.0";
 	public int Scope { get; set; } = 0;
+
 	public string Name { get; set; } = string.Empty;
 	public string Description { get; set; } = string.Empty;
+
 	public string EvaluationModes { get; set; } = "[]";
 
 	// Scheduling
@@ -36,4 +38,8 @@ public class FeatureFlag
 	// Variations
 	public string Variations { get; set; } = "{}";
 	public string DefaultVariation { get; set; } = "off";
+
+	// Metadata
+	public FeatureFlagMetadata Metadata { get; set; } = new FeatureFlagMetadata();
+	public List<FeatureFlagAudit> AuditTrail { get; set; } = [];
 }

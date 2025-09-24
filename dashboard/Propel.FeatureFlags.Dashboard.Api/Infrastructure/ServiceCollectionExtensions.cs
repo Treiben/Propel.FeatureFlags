@@ -6,7 +6,7 @@ namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddDashboardDbContext(this IServiceCollection services, PropelOptions options)
+	public static IServiceCollection AddDashboardPersistence(this IServiceCollection services, PropelOptions options)
 	{
 		var connectionString = options.Database.DefaultConnection
 			?? throw new InvalidOperationException("Database connection string is required");
@@ -18,20 +18,6 @@ public static class ServiceCollectionExtensions
 			DatabaseProvider.PostgreSQL => services.AddPostgresDbContext(connectionString),
 			DatabaseProvider.SqlServer => services.AddSqlServerDbContext(connectionString),
 			_ => throw new NotSupportedException($"Database provider '{databaseProvider}' is not supported")
-		};
-	}
-
-	public static IServiceCollection AddDashboardDbContext(this IServiceCollection services, 
-		PropelOptions options, DatabaseProvider provider)
-	{
-		var connectionString = options.Database.DefaultConnection
-			?? throw new InvalidOperationException("Database connection string is required");
-
-		return provider switch
-		{
-			DatabaseProvider.PostgreSQL => services.AddPostgresDbContext(connectionString),
-			DatabaseProvider.SqlServer => services.AddSqlServerDbContext(connectionString),
-			_ => throw new NotSupportedException($"Database provider '{provider}' is not supported")
 		};
 	}
 

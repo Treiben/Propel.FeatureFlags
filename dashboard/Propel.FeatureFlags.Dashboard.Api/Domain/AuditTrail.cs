@@ -6,11 +6,11 @@ public class AuditTrail
 {
 	public DateTime Timestamp { get; }
 	public string Actor { get; }
-
+	public string Action { get; }
 	public string Reason { get; set; }
 
 	// This method is used to create new audit records in valid state
-	public AuditTrail(DateTime timestamp, string actor, string reason = "Not specified")
+	public AuditTrail(DateTime timestamp, string actor, string? action = null, string reason = "Not specified")
 	{
 		var utcChangedAt = DateTimeHelpers.NormalizeToUtc(dateTime: timestamp, utcReplacementDt: DateTime.UtcNow);
 
@@ -22,15 +22,17 @@ public class AuditTrail
 
 		Timestamp = utcChangedAt;
 		Actor = ValidateAndNormalize(actor);
+		Action = ValidateAndNormalize(action ?? string.Empty);
 		Reason = ValidateAndNormalize(reason);
 	}
 
 	public static AuditTrail FlagCreated(string? createdBy = null)
 	{
 		var timestamp = DateTime.UtcNow;
+		var action = "flag-created";
 		var creator = createdBy ?? "system";
 
-		return new AuditTrail(timestamp: timestamp, actor: creator, reason: "Flag created");
+		return new AuditTrail(timestamp: timestamp, actor: creator, action: action, reason: "Flag created");
 	}
 
 	public static bool operator >=(AuditTrail left, AuditTrail right) => left.Timestamp >= right.Timestamp;

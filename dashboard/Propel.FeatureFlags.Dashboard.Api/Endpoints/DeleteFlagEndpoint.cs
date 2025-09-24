@@ -52,7 +52,8 @@ public sealed class DeleteFlagHandler(
 					logger);
 			}
 
-			var deleteResult = await repository.DeleteAsync(flag.Identifier, currentUserService.UserName, reason ?? "Not specified", cancellationToken);
+			var deleteResult = await repository.DeleteAsync(flag.Identifier,
+				currentUserService.UserName, reason ?? "not specified", cancellationToken);
 
 			await cacheInvalidationService.InvalidateFlagAsync(flag.Identifier, cancellationToken);
 

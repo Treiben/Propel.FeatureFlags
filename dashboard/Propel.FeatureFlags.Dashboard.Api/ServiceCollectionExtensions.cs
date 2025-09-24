@@ -1,9 +1,7 @@
 ﻿using FluentValidation;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
-using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 using Propel.FeatureFlags.Extensions;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
@@ -18,7 +16,6 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<ICurrentUserService, CurrentUserService>();
 		services.AddScoped<IFlagResolverService, FlagResolverService>();
 		services.AddScoped<ICacheInvalidationService, CacheInvalidationService>();
-		services.AddScoped<IDashboardRepository, DashboardRepository>();
 
 		services.AddValidators();
 		services.AddHandlers();

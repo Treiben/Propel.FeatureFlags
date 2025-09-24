@@ -4,8 +4,8 @@ namespace Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
 
 public static class FeatureFlagExtensions
 {
-	public static void UpdateAuditTrail(this FeatureFlag flag, string username)
+	public static void UpdateAuditTrail(this FeatureFlag flag, string action, string username)
 	{
-		flag.Metadata.LastModified = new AuditTrail(timestamp: DateTime.UtcNow, actor: username);
+		flag.Metadata.LastModified = new AuditTrail(timestamp: DateTime.UtcNow, actor: username, action: action);
 	}
 }

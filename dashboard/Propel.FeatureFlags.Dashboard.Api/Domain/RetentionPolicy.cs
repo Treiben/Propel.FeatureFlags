@@ -14,5 +14,5 @@ public class RetentionPolicy(bool isPermanent, DateTime expirationDate)
 
 	public static RetentionPolicy Global => new(isPermanent: true, DateTime.MaxValue.ToUniversalTime());
 
-	public bool CanBeDeleted => !IsPermanent && (ExpirationDate == null || ExpirationDate <= DateTime.UtcNow);
+	public bool CanBeDeleted => !IsPermanent && ExpirationDate <= DateTime.UtcNow;
 }
