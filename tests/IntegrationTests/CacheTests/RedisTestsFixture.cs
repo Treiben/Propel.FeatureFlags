@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Propel.FeatureFlags.Extensions;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
-using Propel.FeatureFlags.Infrastructure.Redis;
-using StackExchange.Redis;
+using Propel.FeatureFlags.Infrastructure.Redis.Extensions;
 using Testcontainers.Redis;
 
 namespace FeatureFlags.IntegrationTests.CacheTests;
@@ -10,9 +10,8 @@ namespace FeatureFlags.IntegrationTests.CacheTests;
 public class RedisTestsFixture : IAsyncLifetime
 {
 	private readonly RedisContainer _container;
-	public RedisFeatureFlagCache Cache { get; private set; } = null!;
-	private ConnectionMultiplexer? _connectionMultiplexer = null!;
-	private readonly ILogger<RedisFeatureFlagCache> _logger;
+	public IServiceProvider Services { get; private set; } = null!;
+	public IFeatureFlagCache Cache => Services.GetRequiredService<IFeatureFlagCache>();
 
 	public RedisTestsFixture()
 	{
@@ -20,43 +19,119 @@ public class RedisTestsFixture : IAsyncLifetime
 			.WithImage("redis:7-alpine")
 			.WithPortBinding(6379, true)
 			.Build();
-
-		_logger = new Mock<ILogger<RedisFeatureFlagCache>>().Object;
 	}
 
 	public async Task InitializeAsync()
 	{
+		var redisConnectionString = await StartContainer();
+
+		var services = new ServiceCollection();
+
+		services.AddLogging();
+
+		services.ConfigureFeatureFlags(options =>
+		{
+			options.Cache = new CacheOptions
+			{
+				EnableDistributedCache = true,
+				Connection = redisConnectionString,
+				CacheDurationInMinutes = TimeSpan.FromMinutes(1)
+			};
+		});
+
+		Services = services.BuildServiceProvider();
+	}
+
+	private async Task<string> StartContainer()
+	{
 		await _container.StartAsync();
 		var connectionString = _container.GetConnectionString();
-
-		// Create connection multiplexer
-		_connectionMultiplexer = await ConnectionMultiplexer.ConnectAsync(connectionString);
-
-		// Initialize cache
-		var options = new PropelOptions
-		{
-			Cache = new CacheOptions
-			{
-				CacheDurationInMinutes = TimeSpan.FromMinutes(1)
-			}
-		};
-		Cache = new RedisFeatureFlagCache(_connectionMultiplexer, options, _logger);
+		return connectionString;
 	}
 
 	public async Task DisposeAsync()
 	{
-		_connectionMultiplexer?.Dispose();
 		await _container.DisposeAsync();
 	}
 
-	public IDatabase GetDatabase()
+	public async Task ClearAllFlags()
 	{
-		return _connectionMultiplexer.GetDatabase();
+		await Cache.ClearAsync();
+	}
+}
+
+public class InMemoryTestsFixture : IAsyncLifetime
+{
+	public IServiceProvider Services { get; private set; } = null!;
+	public IFeatureFlagCache Cache => Services.GetRequiredService<IFeatureFlagCache>();
+
+	public async Task InitializeAsync()
+	{
+		var services = new ServiceCollection();
+
+		services.AddLogging();
+
+		services.ConfigureFeatureFlags(options =>
+		{
+			options.Cache = new CacheOptions
+			{
+				EnableInMemoryCache = true,
+				CacheDurationInMinutes = TimeSpan.FromMinutes(1)
+			};
+		});
+
+		Services = services.BuildServiceProvider();
+	}
+
+	public async Task DisposeAsync()
+	{
+		await Task.CompletedTask;
 	}
 
 	// Helper method to clear all feature flags between tests
 	public async Task ClearAllFlags()
 	{
 		await Cache.ClearAsync();
+	}
+
+	// Helper method to check if a key exists in the underlying memory cache
+	//public bool KeyExists(string key)
+	//{
+	//	return _memoryCache.TryGetValue(key, out _);
+	//}
+
+	//// Helper method to set a non-feature flag key directly in the memory cache
+	//public void SetNonFeatureFlagKey(string key, object value)
+	//{
+	//	_memoryCache.Set(key, value);
+	//}
+
+	//// Helper method to check if a non-feature flag key exists
+	//public bool NonFeatureFlagKeyExists(string key)
+	//{
+	//	return _memoryCache.TryGetValue(key, out _);
+	//}
+}
+
+public static class ServiceCollectionExtensions
+{
+	public static IServiceCollection ConfigureFeatureFlags(this IServiceCollection services, Action<PropelOptions> configure)
+	{
+		var options = new PropelOptions();
+		configure.Invoke(options);
+
+		services.AddFeatureFlagServices(options);
+
+		var cacheOptions = options.Cache;
+		if (cacheOptions.EnableDistributedCache == true)
+		{
+			services.AddFeatureFlagRedisCache(cacheOptions.Connection);
+		}
+		else if (cacheOptions.EnableInMemoryCache == true)
+		{
+			services.AddFeatureFlagDefaultCache();
+		}
+
+		return services;
 	}
 }

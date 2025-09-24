@@ -1,21 +1,24 @@
 ﻿using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Helpers;
-using Propel.FeatureFlags.Infrastructure.SqlServer;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.SqlServer.Extensions;
 using System.Data;
 using System.Text.Json;
 using Testcontainers.MsSql;
 
 namespace FeatureFlags.IntegrationTests.SqlServerTests;
 
-public class SqlServerRepositoriesTestsFixture : IAsyncLifetime
+public class SqlServerTestsFixture : IAsyncLifetime
 {
 	private readonly MsSqlContainer _container;
-	public ClientApplicationRepository EvaluationRepository { get; private set; } = null!;
-	public SqlServerMigrationRepository MigrationRepository { get; private set; }
+	public IServiceProvider Services { get; private set; } = null!;
+	public IFeatureFlagRepository FeatureFlagRepository => Services.GetRequiredService<IFeatureFlagRepository>();
+	public IDashboardRepository DashboardRepository => Services.GetRequiredService<IDashboardRepository>();
 
-	public SqlServerRepositoriesTestsFixture()
+	public SqlServerTestsFixture()
 	{
 		_container = new MsSqlBuilder()
 			.WithImage("mcr.microsoft.com/mssql/server:2022-latest")
@@ -28,22 +31,25 @@ public class SqlServerRepositoriesTestsFixture : IAsyncLifetime
 
 	public async Task InitializeAsync()
 	{
-		await _container.StartAsync();
+		var connectionString = await StartContainer();
 
-		var connectionString = _container.GetConnectionString();
+		var services = new ServiceCollection();
 
-		var dbInitializer = new SqlServerDatabaseInitializer(connectionString,
-			new Mock<ILogger<SqlServerDatabaseInitializer>>().Object);
+		services.AddLogging();
 
-		var initialized = await dbInitializer.InitializeAsync();
-		if (!initialized)
-			throw new InvalidOperationException("Failed to initialize sql server database for feature flags");
+		services.AddFeatureFlagPersistence(connectionString);
+		services.AddDashboardPersistence(new PropelOptions
+		{
+			Database = new DatabaseOptions
+			{
+				Provider = DatabaseProvider.SqlServer,
+				ConnectionString = connectionString
+			}
+		});
 
-		EvaluationRepository = new ClientApplicationRepository(connectionString, 
-			new Mock<ILogger<ClientApplicationRepository>>().Object);
+		Services = services.BuildServiceProvider();
 
-		var migrationOptions = new SqlMigrationOptions(Connection: connectionString);
-		MigrationRepository = new SqlServerMigrationRepository(migrationOptions, new Mock<ILogger<SqlServerMigrationRepository>>().Object);
+		await Services.EnsureFeatureFlagDatabase();
 	}
 
 	public async Task DisposeAsync()
@@ -60,10 +66,18 @@ public class SqlServerRepositoriesTestsFixture : IAsyncLifetime
 		await command.ExecuteNonQueryAsync();
 	}
 
-	public async Task SaveAsync(FlagEvaluationConfiguration flag,
+	public async Task SaveFlagAsync(FlagEvaluationConfiguration flag,
 		string name, string description)
 	{
 		await SqlServerDbHelpers.CreateFlagAsync(_container, flag, name, description);
+	}
+
+	private async Task<string> StartContainer()
+	{
+		await _container.StartAsync();
+
+		var connectionString = _container.GetConnectionString();
+		return connectionString;
 	}
 }
 

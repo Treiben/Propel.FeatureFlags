@@ -3,7 +3,6 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure.SqlServer;
-using Propel.FeatureFlags.Migrations;
 using Testcontainers.MsSql;
 
 namespace FeatureFlags.IntegrationTests.MigrationsTests;
@@ -12,7 +11,7 @@ public class MigrationsTestsFixture : IAsyncLifetime
 {
 	private readonly MsSqlContainer _container;
 
-	public SqlServerMigrationRepository MigrationRepository { get; private set; }
+	public SqlMigrationRepository MigrationRepository { get; private set; }
 
 	public MigrationsTestsFixture()
 	{
@@ -36,15 +35,15 @@ public class MigrationsTestsFixture : IAsyncLifetime
 
 		var connectionString = connectionBuilder.ConnectionString;
 
-		var dbInitializer = new SqlServerDatabaseInitializer(connectionString,
-			new Mock<ILogger<SqlServerDatabaseInitializer>>().Object);
+		var dbInitializer = new SqlDatabaseInitializer(connectionString,
+			new Mock<ILogger<SqlDatabaseInitializer>>().Object);
 		var initialized = await dbInitializer.InitializeAsync();
 		if (!initialized)
 			throw new InvalidOperationException("Failed to initialize sql server database for feature flags");
 
 		var migrationOptions = new SqlMigrationOptions(connectionString, "test_schema", "migrations", connectionBuilder.InitialCatalog);
 
-		MigrationRepository = new SqlServerMigrationRepository(migrationOptions, new Mock<ILogger<SqlServerMigrationRepository>>().Object);
+		MigrationRepository = new SqlMigrationRepository(migrationOptions, new Mock<ILogger<SqlMigrationRepository>>().Object);
 	}
 
 	public async Task DisposeAsync()

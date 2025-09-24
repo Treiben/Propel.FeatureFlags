@@ -3,7 +3,7 @@ using Propel.FeatureFlags.Domain;
 
 namespace FeatureFlags.IntegrationTests.PostgreTests;
 
-public class GetAsync_WithColumnMapping(PostgresRepositoriesTestsFixture fixture) : IClassFixture<PostgresRepositoriesTestsFixture>
+public class GetAsync_WithColumnMapping(PostgresTestsFixture fixture) : IClassFixture<PostgresTestsFixture>
 {
 	[Fact]
 	public async Task If_ComplexFlagExists_ThenMapsAllEvaluationColumns()
@@ -36,10 +36,10 @@ public class GetAsync_WithColumnMapping(PostgresRepositoriesTestsFixture fixture
 				.Build();
 
 
-		await fixture.SaveAsync(flag, "complex-eval-flag", "created by integration tests");
+		await fixture.SaveFlagAsync(flag, "complex-eval-flag", "created by integration tests");
 
 		// Act
-		var result = await fixture.EvaluationRepository.GetAsync(flag.Identifier);
+		var result = await fixture.FeatureFlagRepository.GetAsync(flag.Identifier);
 
 		// Assert - Verify all evaluation columns are correctly mapped
 		result.ShouldNotBeNull();
@@ -85,10 +85,10 @@ public class GetAsync_WithColumnMapping(PostgresRepositoriesTestsFixture fixture
 							.WithEvaluationModes(EvaluationMode.On)
 							.Build();
 
-		await fixture.SaveAsync(flag, "minimal-flag", "created by integration tests");
+		await fixture.SaveFlagAsync(flag, "minimal-flag", "created by integration tests");
 
 		// Act
-		var result = await fixture.EvaluationRepository.GetAsync(flag.Identifier);
+		var result = await fixture.FeatureFlagRepository.GetAsync(flag.Identifier);
 
 		// Assert - Verify nullable columns are handled with defaults
 		result.ShouldNotBeNull();
@@ -125,10 +125,10 @@ public class GetAsync_WithColumnMapping(PostgresRepositoriesTestsFixture fixture
 			})
 			.Build();
 
-		await fixture.SaveAsync(flag, "json-test-flag", "created by integration tests");
+		await fixture.SaveFlagAsync(flag, "json-test-flag", "created by integration tests");
 
 		// Act
-		var result = await fixture.EvaluationRepository.GetAsync(flag.Identifier);
+		var result = await fixture.FeatureFlagRepository.GetAsync(flag.Identifier);
 
 		// Assert - Verify JSON deserialization
 		result.ShouldNotBeNull();
@@ -144,7 +144,7 @@ public class GetAsync_WithColumnMapping(PostgresRepositoriesTestsFixture fixture
 	}
 }
 
-public class GetAsync_WithNonExistentFlag(PostgresRepositoriesTestsFixture fixture) : IClassFixture<PostgresRepositoriesTestsFixture>
+public class GetAsync_WithNonExistentFlag(PostgresTestsFixture fixture) : IClassFixture<PostgresTestsFixture>
 {
 	[Fact]
 	public async Task If_FlagDoesNotExist_ThenReturnsNull()
@@ -154,7 +154,7 @@ public class GetAsync_WithNonExistentFlag(PostgresRepositoriesTestsFixture fixtu
 		var flagKey = new FlagIdentifier("non-existent-flag", Scope.Application, "test-app", "1.0");
 
 		// Act
-		var result = await fixture.EvaluationRepository.GetAsync(flagKey);
+		var result = await fixture.FeatureFlagRepository.GetAsync(flagKey);
 
 		// Assert
 		result.ShouldBeNull();
@@ -169,12 +169,12 @@ public class GetAsync_WithNonExistentFlag(PostgresRepositoriesTestsFixture fixtu
 								.WithEvaluationModes(EvaluationMode.On)
 								.Build();
 
-		await fixture.SaveAsync(flag, "scoped-flag", "created by integration tests");
+		await fixture.SaveFlagAsync(flag, "scoped-flag", "created by integration tests");
 
 		var differentScopeKey = new FlagIdentifier(flag.Identifier.Key, Scope.Global);
 
 		// Act
-		var result = await fixture.EvaluationRepository.GetAsync(differentScopeKey);
+		var result = await fixture.FeatureFlagRepository.GetAsync(differentScopeKey);
 
 		// Assert
 		result.ShouldBeNull();
@@ -189,7 +189,7 @@ public class GetAsync_WithNonExistentFlag(PostgresRepositoriesTestsFixture fixtu
 								.WithEvaluationModes(EvaluationMode.On)
 								.Build();
 
-		await fixture.SaveAsync(flag, "app-flag", "created by integration tests");
+		await fixture.SaveFlagAsync(flag, "app-flag", "created by integration tests");
 
 		var differentAppKey = new FlagIdentifier(flag.Identifier.Key, 
 			flag.Identifier.Scope, 
@@ -197,14 +197,14 @@ public class GetAsync_WithNonExistentFlag(PostgresRepositoriesTestsFixture fixtu
 			flag.Identifier.ApplicationVersion);
 
 		// Act
-		var result = await fixture.EvaluationRepository.GetAsync(differentAppKey);
+		var result = await fixture.FeatureFlagRepository.GetAsync(differentAppKey);
 
 		// Assert
 		result.ShouldBeNull();
 	}
 }
 
-public class CreateAsync_WithAuditTrail(PostgresRepositoriesTestsFixture fixture) : IClassFixture<PostgresRepositoriesTestsFixture>
+public class CreateAsync_WithAuditTrail(PostgresTestsFixture fixture) : IClassFixture<PostgresTestsFixture>
 {
 	[Fact]
 	public async Task If_NewFlag_ThenCreatesSuccessfully()
@@ -216,11 +216,11 @@ public class CreateAsync_WithAuditTrail(PostgresRepositoriesTestsFixture fixture
 								.Build();
 
 		// Act
-		await fixture.EvaluationRepository.CreateAsync(flag.Identifier, EvaluationMode.On, 
+		await fixture.FeatureFlagRepository.CreateAsync(flag.Identifier, EvaluationMode.On, 
 			"new-eval-flag", "created by tester");
 
 		// Assert - Verify flag was created by retrieving it
-		var result = await fixture.EvaluationRepository.GetAsync(flag.Identifier);
+		var result = await fixture.FeatureFlagRepository.GetAsync(flag.Identifier);
 		result.ShouldNotBeNull();
 		result.Identifier.ShouldBe(flag.Identifier);
 		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.On]).ShouldBeTrue();
@@ -235,13 +235,13 @@ public class CreateAsync_WithAuditTrail(PostgresRepositoriesTestsFixture fixture
 							.WithEvaluationModes(EvaluationMode.On)
 							.Build();
 
-		await fixture.EvaluationRepository.CreateAsync(flag.Identifier, EvaluationMode.On, "new-eval-flag", "created by tester");
+		await fixture.FeatureFlagRepository.CreateAsync(flag.Identifier, EvaluationMode.On, "new-eval-flag", "created by tester");
 
 		// Act - Try to create the same flag again
-		await fixture.EvaluationRepository.CreateAsync(flag.Identifier, EvaluationMode.Off, "modified-eval-flag", "modified by tester");
+		await fixture.FeatureFlagRepository.CreateAsync(flag.Identifier, EvaluationMode.Off, "modified-eval-flag", "modified by tester");
 
 		// Assert - Verify original flag data is preserved (not overwritten)
-		var result = await fixture.EvaluationRepository.GetAsync(flag.Identifier);
+		var result = await fixture.FeatureFlagRepository.GetAsync(flag.Identifier);
 
 		result.ShouldNotBeNull();
 		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.On]).ShouldBeTrue();

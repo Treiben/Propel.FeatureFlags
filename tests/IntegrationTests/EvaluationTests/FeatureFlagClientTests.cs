@@ -25,7 +25,7 @@ public class IsEnabledAsync_WithEnabledFlag(FlagEvaluationTestsFixture fixture) 
 		// Verify the flag was created in the repository
 
 		//A Arrange
-		var storedFlag = await fixture.EvaluationRepository.GetAsync(config.Identifier);
+		var storedFlag = await fixture.FeatureFlagRepository.GetAsync(config.Identifier);
 
 		// Assert	
 		storedFlag.ShouldNotBeNull();

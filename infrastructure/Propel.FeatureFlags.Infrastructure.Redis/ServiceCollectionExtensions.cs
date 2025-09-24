@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Propel.FeatureFlags.Infrastructure.Cache;
 using StackExchange.Redis;
 
@@ -12,7 +13,7 @@ public static class ServiceCollectionExtensions
 	{
 		if (!string.IsNullOrEmpty(connectionString))
 		{
-			services.AddSingleton<IConnectionMultiplexer>(provider =>
+			services.TryAddSingleton<IConnectionMultiplexer>(provider =>
 			{
 				var configurationOptions = ConfigurationOptions.Parse(connectionString); 
 				configurationOptions.AbortOnConnectFail = false;
@@ -23,7 +24,7 @@ public static class ServiceCollectionExtensions
 			});
 
 			// Use the same connection for distributed cache
-			services.AddSingleton<IDistributedCache>(provider =>
+			services.TryAddSingleton<IDistributedCache>(provider =>
 			{
 				var multiplexer = provider.GetRequiredService<IConnectionMultiplexer>();
 				return new RedisCache(new RedisCacheOptions

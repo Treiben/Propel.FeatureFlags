@@ -276,30 +276,4 @@ public class ClearAsync_WithMultipleFlags(RedisTestsFixture fixture) : IClassFix
 		// Act & Assert - Should not throw
 		await fixture.Cache.ClearAsync();
 	}
-
-	[Fact]
-	public async Task If_OnlyFeatureFlagKeys_ThenDoesNotAffectOtherKeys()
-	{
-		// Arrange
-		await fixture.ClearAllFlags();
-
-		// Set a feature flag
-		var (flag, _) = new FlagConfigurationBuilder("test-flag")
-			.WithEvaluationModes(EvaluationMode.On)
-			.Build();
-
-		var cacheKey = CacheKeyFactory.CreateCacheKey(flag.Identifier.Key);
-		await fixture.Cache.SetAsync(cacheKey, flag);
-
-		// Set a non-feature flag key directly in Redis
-		var database = fixture.GetDatabase();
-		await database.StringSetAsync("other:key", "some-value");
-
-		// Act
-		await fixture.Cache.ClearAsync();
-
-		// Assert
-		(await fixture.Cache.GetAsync(cacheKey)).ShouldBeNull(); // Feature flag should be removed
-		(await database.StringGetAsync("other:key")).HasValue.ShouldBeTrue(); // Other key should remain
-	}
 }

@@ -16,7 +16,7 @@ public class Evaluate_WithEnabledFlag(FlagEvaluationTestsFixture fixture) : ICla
 		.ForFeatureFlag(defaultMode: EvaluationMode.On)
 		.Build();
 
-		await fixture.EvaluationRepository.CreateAsync(config.Identifier, flag.OnOffMode, flag.Name, flag.Description);
+		await fixture.FeatureFlagRepository.CreateAsync(config.Identifier, flag.OnOffMode, flag.Name, flag.Description);
 
 		var context = new EvaluationContext(userId: "user123");
 

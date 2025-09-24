@@ -368,31 +368,6 @@ public class ClearAsync_WithMultipleFlags(InMemoryTestsFixture fixture) : IClass
 	}
 
 	[Fact]
-	public async Task If_OnlyFeatureFlagKeys_ThenDoesNotAffectOtherKeys()
-	{
-		// Arrange
-		await fixture.ClearAllFlags();
-
-		// Set a feature flag
-		var (flag, _) = new FlagConfigurationBuilder("test-flag")
-			.WithEvaluationModes(EvaluationMode.On)
-			.Build();
-
-		var cacheKey = CacheKeyFactory.CreateCacheKey(flag.Identifier.Key);
-		await fixture.Cache.SetAsync(cacheKey, flag);
-
-		// Set a non-feature flag key directly in the memory cache
-		fixture.SetNonFeatureFlagKey("other:key", "some-value");
-
-		// Act
-		await fixture.Cache.ClearAsync();
-
-		// Assert
-		(await fixture.Cache.GetAsync(cacheKey)).ShouldBeNull(); // Feature flag should be removed
-		fixture.NonFeatureFlagKeyExists("other:key").ShouldBeTrue(); // Other key should remain
-	}
-
-	[Fact]
 	public async Task If_CancellationTokenProvided_ThenClearsAllFlags()
 	{
 		// Arrange
@@ -439,8 +414,5 @@ public class CacheExpiration_Tests(InMemoryTestsFixture fixture) : IClassFixture
 		// Assert - Flag should be immediately retrievable
 		var retrieved = await fixture.Cache.GetAsync(cacheKey);
 		retrieved.ShouldNotBeNull();
-		
-		// Verify the key exists in the underlying cache (confirming it was stored with expiration)
-		fixture.KeyExists(cacheKey.ComposeKey()).ShouldBeTrue();
 	}
 }

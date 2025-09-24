@@ -1,17 +1,16 @@
 ﻿using FeatureFlags.IntegrationTests.PostgreTests;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Evaluation;
+using Propel.FeatureFlags.Extensions;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
-using Propel.FeatureFlags.Infrastructure.PostgresSql;
-using Propel.FeatureFlags.Infrastructure.Redis;
-using Propel.FeatureFlags.Services;
+using Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
+using Propel.FeatureFlags.Infrastructure.Redis.Extensions;
 using Propel.FeatureFlags.Services.ApplicationScope;
-using StackExchange.Redis;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
+
 
 namespace FeatureFlags.IntegrationTests.EvaluationTests;
 
@@ -20,12 +19,11 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 	private readonly PostgreSqlContainer _postgresContainer;
 	private readonly RedisContainer _redisContainer;
 
-	public IFeatureFlagEvaluator Evaluator { get; private set; } = null!;
-	public IFeatureFlagClient Client { get; private set; } = null!;
-	public ClientApplicationRepository EvaluationRepository { get; private set; } = null!;
-	public RedisFeatureFlagCache Cache { get; private set; } = null!;
-
-	private ConnectionMultiplexer _redisConnection = null!;
+	public IServiceProvider Services { get; private set; } = null!;
+	public IFeatureFlagEvaluator Evaluator => Services.GetRequiredService<IFeatureFlagEvaluator>();
+	public IFeatureFlagClient Client => Services.GetRequiredService<IFeatureFlagClient>();
+	public IFeatureFlagRepository FeatureFlagRepository => Services.GetRequiredService<IFeatureFlagRepository>();
+	public IFeatureFlagCache Cache => Services.GetRequiredService<IFeatureFlagCache>();
 
 	public FlagEvaluationTestsFixture()
 	{
@@ -45,47 +43,35 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 
 	public async Task InitializeAsync()
 	{
-		await _postgresContainer.StartAsync();
-		await _redisContainer.StartAsync();
+		var sqlConnectionString = await StartPostgresContainer();
+		var redisConnectionString = await StartRedisContainer();
 
-		var connectionString = _postgresContainer.GetConnectionString();
+		var services = new ServiceCollection();
 
-		var dbInitializer = new PostgreSQLDatabaseInitializer(connectionString, new Mock<ILogger<PostgreSQLDatabaseInitializer>>().Object);
-		var initialized = await dbInitializer.InitializeAsync();
-		if (!initialized)
-			throw new InvalidOperationException("Failed to initialize PostgreSQL database for feature flags");
+		services.AddLogging();
 
-		EvaluationRepository = new ClientApplicationRepository(connectionString, new Mock<ILogger<ClientApplicationRepository>>().Object);
-
-		var redisConnectionString = _redisContainer.GetConnectionString();
-		_redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
-
-		var options = new PropelOptions
+		services.ConfigureFeatureFlags(options =>
 		{
-			Cache = new CacheOptions
+			options.Cache = new CacheOptions
 			{
+				EnableDistributedCache = true,
+				Connection = redisConnectionString,
 				CacheDurationInMinutes = TimeSpan.FromMinutes(1)
-			}
-		};
+			};
+			options.Database = new DatabaseOptions
+			{
+				Provider = DatabaseProvider.PostgreSQL,
+				ConnectionString = sqlConnectionString
+			};
+		});
 
-		Cache = new RedisFeatureFlagCache(_redisConnection, options, new Mock<ILogger<RedisFeatureFlagCache>>().Object);
+		Services = services.BuildServiceProvider();
 
-		var evaluationManager = new FlagEvaluationManager([
-			new ActivationScheduleEvaluator(),
-			new OperationalWindowEvaluator(),
-			new TargetingRulesEvaluator(),
-			new TenantRolloutEvaluator(),
-			new TerminalStateEvaluator(),
-			new UserRolloutEvaluator(),
-		]);
-
-		Evaluator = new FeatureFlagEvaluator(EvaluationRepository, evaluationManager, Cache);
-		Client = new FeatureFlagClient(Evaluator, "UTC");
+		await Services.EnsureFeatureFlagDatabase();
 	}
 
 	public async Task DisposeAsync()
 	{
-		_redisConnection?.Dispose();
 		await _postgresContainer.DisposeAsync();
 		await _redisContainer.DisposeAsync();
 	}
@@ -105,5 +91,46 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 		string name, string description)
 	{
 		await PosgreDbHelpers.CreateFlagAsync(_postgresContainer, flag, name, description);
+	}
+
+	private async Task<string> StartPostgresContainer()
+	{
+		await _postgresContainer.StartAsync();
+
+		var connectionString = _postgresContainer.GetConnectionString();
+		return connectionString;
+	}
+
+	private async Task<string> StartRedisContainer()
+	{
+		await _redisContainer.StartAsync();
+		var connectionString = _redisContainer.GetConnectionString();
+		return connectionString;
+	}
+}
+
+public static class ServiceCollectionExtensions
+{
+	public static IServiceCollection ConfigureFeatureFlags(this IServiceCollection services, Action<PropelOptions> configure)
+	{
+		var options = new PropelOptions();
+		configure.Invoke(options);
+
+		services.AddFeatureFlagServices(options);
+
+		var cacheOptions = options.Cache;
+		if (cacheOptions.EnableDistributedCache == true)
+		{
+			services.AddFeatureFlagRedisCache(cacheOptions.Connection);
+		}
+		else if (cacheOptions.EnableInMemoryCache == true)
+		{
+			services.AddFeatureFlagDefaultCache();
+		}
+
+		var dbOptions = options.Database;
+		services.AddFeatureFlagPersistence(dbOptions.ConnectionString);
+
+		return services;
 	}
 }

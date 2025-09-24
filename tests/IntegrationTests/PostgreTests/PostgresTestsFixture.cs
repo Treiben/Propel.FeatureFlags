@@ -1,19 +1,24 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using NpgsqlTypes;
+using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Helpers;
-using Propel.FeatureFlags.Infrastructure.PostgresSql;
+using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
 using System.Text.Json;
 using Testcontainers.PostgreSql;
 
 namespace FeatureFlags.IntegrationTests.PostgreTests;
 
-public class PostgresRepositoriesTestsFixture : IAsyncLifetime
+public class PostgresTestsFixture : IAsyncLifetime
 {
 	private readonly PostgreSqlContainer _container;
-	public ClientApplicationRepository EvaluationRepository { get; private set; } = null!;
-	public PostgresRepositoriesTestsFixture()
+	public IServiceProvider Services {get; private set; } = null!;
+	public IFeatureFlagRepository FeatureFlagRepository => Services.GetRequiredService<IFeatureFlagRepository>();
+	public IDashboardRepository DashboardRepository => Services.GetRequiredService<IDashboardRepository>();
+
+	public PostgresTestsFixture()
 	{
 		_container = new PostgreSqlBuilder()
 			.WithImage("postgres:15-alpine")
@@ -26,17 +31,25 @@ public class PostgresRepositoriesTestsFixture : IAsyncLifetime
 
 	public async Task InitializeAsync()
 	{
-		await _container.StartAsync();
+		var connectionString = await StartContainer();
 
-		var connectionString = _container.GetConnectionString();
+		var services = new ServiceCollection();
 
-		var dbInitializer = new PostgreSQLDatabaseInitializer(connectionString, 
-			new Mock<ILogger<PostgreSQLDatabaseInitializer>>().Object);
-		var initialized = await dbInitializer.InitializeAsync();
-		if (!initialized)
-			throw new InvalidOperationException("Failed to initialize PostgreSQL database for feature flags");
+		services.AddLogging();
 
-		EvaluationRepository = new ClientApplicationRepository(connectionString, new Mock<ILogger<ClientApplicationRepository>>().Object);
+		services.AddFeatureFlagPersistence(connectionString);
+		services.AddDashboardPersistence(new PropelOptions
+		{
+			Database = new DatabaseOptions
+			{
+				Provider = DatabaseProvider.PostgreSQL,
+				ConnectionString = connectionString
+			}
+		});
+
+		Services = services.BuildServiceProvider();
+
+		await Services.EnsureFeatureFlagDatabase();
 	}
 
 	public async Task DisposeAsync()
@@ -53,10 +66,18 @@ public class PostgresRepositoriesTestsFixture : IAsyncLifetime
 		await command.ExecuteNonQueryAsync();
 	}
 
-	public async Task SaveAsync(FlagEvaluationConfiguration flag,
+	public async Task SaveFlagAsync(FlagEvaluationConfiguration flag,
 		string name, string description)
 	{
 		await PosgreDbHelpers.CreateFlagAsync(_container, flag, name, description);
+	}
+
+	private async Task<string> StartContainer()
+	{
+		await _container.StartAsync();
+
+		var connectionString = _container.GetConnectionString();
+		return connectionString;
 	}
 }
 
