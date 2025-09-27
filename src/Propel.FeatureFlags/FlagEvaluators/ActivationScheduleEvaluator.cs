@@ -1,7 +1,6 @@
 ﻿using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.FlagEvaluators;
 
-namespace Propel.FeatureFlags.Evaluation;
+namespace Propel.FeatureFlags.FlagEvaluators;
 
 public sealed class ActivationScheduleEvaluator: OrderedEvaluatorBase
 {
@@ -22,7 +21,7 @@ public sealed class ActivationScheduleEvaluator: OrderedEvaluatorBase
 				because: "Flag has no activation schedule and can be available immediately.");
 		}
 
-		var evaluationTime = context.EvaluationTime ?? DateTime.UtcNow;
+		var evaluationTime = context.EvaluationTime ?? Knara.UtcStrict.UtcDateTime.UtcNow;
 		var (isActive, because) = flag.Schedule.IsActiveAt(evaluationTime);
 
 		return CreateEvaluationResult(flag, context, isActive, because);

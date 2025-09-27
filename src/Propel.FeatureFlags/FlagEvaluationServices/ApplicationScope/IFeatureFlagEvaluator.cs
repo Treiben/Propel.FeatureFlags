@@ -4,7 +4,7 @@ using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
 using System.Text.Json;
 
-namespace Propel.FeatureFlags.Services.ApplicationScope;
+namespace Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
 
 public interface IFeatureFlagEvaluator
 {

@@ -1,7 +1,7 @@
 ﻿using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.FlagEvaluators;
 
-namespace Propel.FeatureFlags.Services;
+namespace Propel.FeatureFlags.FlagEvaluationServices;
 
 public interface IFlagEvaluationManager
 {

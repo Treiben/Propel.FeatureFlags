@@ -1,7 +1,6 @@
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.FlagEvaluators;
 
-namespace Propel.FeatureFlags.Evaluation;
+namespace Propel.FeatureFlags.FlagEvaluators;
 
 public sealed class TerminalStateEvaluator : OrderedEvaluatorBase
 {

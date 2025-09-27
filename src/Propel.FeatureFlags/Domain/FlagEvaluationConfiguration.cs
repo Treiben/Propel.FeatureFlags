@@ -1,4 +1,6 @@
-﻿namespace Propel.FeatureFlags.Domain;
+﻿using Knara.UtcStrict;
+
+namespace Propel.FeatureFlags.Domain;
 
 public class FlagEvaluationConfiguration
 {
@@ -6,8 +8,8 @@ public class FlagEvaluationConfiguration
 
 	public EvaluationModes ActiveEvaluationModes { get; } = EvaluationModes.FlagIsDisabled;
 
-	public ActivationSchedule Schedule { get;} = ActivationSchedule.Unscheduled;
-	public OperationalWindow OperationalWindow { get; } = OperationalWindow.AlwaysOpen;
+	public UtcSchedule Schedule { get;} = UtcSchedule.Unscheduled;
+	public UtcTimeWindow OperationalWindow { get; } = UtcTimeWindow.AlwaysOpen;
 
 	// Targeting
 	public List<ITargetingRule> TargetingRules { get; } = [];
@@ -20,8 +22,8 @@ public class FlagEvaluationConfiguration
 
 	public FlagEvaluationConfiguration(FlagIdentifier identifier,
 		EvaluationModes? activeEvaluationModes = null,
-		ActivationSchedule? schedule = null,
-		OperationalWindow? operationalWindow = null,
+		UtcSchedule? schedule = null,
+		UtcTimeWindow? operationalWindow = null,
 		List<ITargetingRule>? targetingRules = null,
 		AccessControl? userAccessControl = null,
 		AccessControl? tenantAccessControl = null,
@@ -29,8 +31,8 @@ public class FlagEvaluationConfiguration
 	{
 		Identifier = identifier ?? throw new ArgumentNullException(nameof(identifier));
 		ActiveEvaluationModes = activeEvaluationModes ?? EvaluationModes.FlagIsDisabled;
-		Schedule = schedule ?? ActivationSchedule.Unscheduled;
-		OperationalWindow = operationalWindow ?? OperationalWindow.AlwaysOpen;
+		Schedule = schedule ?? UtcSchedule.Unscheduled;
+		OperationalWindow = operationalWindow ?? UtcTimeWindow.AlwaysOpen;
 		TargetingRules = targetingRules ?? [];
 		UserAccessControl = userAccessControl ?? AccessControl.Unrestricted;
 		TenantAccessControl = tenantAccessControl ?? AccessControl.Unrestricted;

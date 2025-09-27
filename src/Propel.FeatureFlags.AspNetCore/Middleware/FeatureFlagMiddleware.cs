@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Propel.FeatureFlags.Services.ApplicationScope;
-using Propel.FeatureFlags.Services.GlobalScope;
+using Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
+using Propel.FeatureFlags.FlagEvaluationServices.GlobalScope;
 
 namespace Propel.FeatureFlags.AspNetCore.Middleware;
 

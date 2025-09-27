@@ -1,7 +1,7 @@
-﻿using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.FlagEvaluators;
+﻿using Knara.UtcStrict;
+using Propel.FeatureFlags.Domain;
 
-namespace Propel.FeatureFlags.Evaluation;
+namespace Propel.FeatureFlags.FlagEvaluators;
 
 public sealed class OperationalWindowEvaluator : OrderedEvaluatorBase
 {
@@ -14,7 +14,7 @@ public sealed class OperationalWindowEvaluator : OrderedEvaluatorBase
 
 	public override async Task<EvaluationResult?> ProcessEvaluation(FlagEvaluationConfiguration flag, EvaluationContext context)
 	{
-		if (flag.OperationalWindow == OperationalWindow.AlwaysOpen)
+		if (flag.OperationalWindow == UtcTimeWindow.AlwaysOpen)
 		{
 			// Always open window means the flag is always active
 			return CreateEvaluationResult(flag, 
@@ -24,10 +24,9 @@ public sealed class OperationalWindowEvaluator : OrderedEvaluatorBase
 		}
 
 		// Convert to specified timezone
-		var evaluationTime = context.EvaluationTime ?? DateTime.UtcNow;
-		var evaluationTimeZone = context.TimeZone ?? flag.OperationalWindow.TimeZone;
+		var evaluationTime = context.EvaluationTime ?? UtcDateTime.UtcNow;
 
-		var (isActive, because) = flag.OperationalWindow.IsActiveAt(evaluationTime, evaluationTimeZone);
+		var (isActive, because) = flag.OperationalWindow.IsActiveAt(evaluationTime);
 
 		return CreateEvaluationResult(flag, context, isActive, because);
 	}

@@ -1,5 +1,5 @@
 ﻿using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Services.ApplicationScope;
+using Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
 
 namespace Propel.FeatureFlags.AspNetCore;
 

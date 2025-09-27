@@ -1,6 +1,6 @@
 ﻿using Propel.FeatureFlags.Domain;
 
-namespace Propel.FeatureFlags.Services.ApplicationScope;
+namespace Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
 
 public interface IFeatureFlagClient
 {
@@ -8,15 +8,12 @@ public interface IFeatureFlagClient
 
 	Task<T> GetVariationAsync<T>(IFeatureFlag flag, T defaultValue, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null);
 
-	Task<EvaluationResult?> EvaluateAsync(IFeatureFlag flag, string? tenantId = null, string? userId = null, string? timeZone = null, Dictionary<string, object>? attributes = null);
+	Task<EvaluationResult?> EvaluateAsync(IFeatureFlag flag, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null);
 }
 
 public sealed class FeatureFlagClient(
-	IFeatureFlagEvaluator evaluator,
-	string? defaultTimeZone = null) : IFeatureFlagClient
+	IFeatureFlagEvaluator evaluator) : IFeatureFlagClient
 {
-	private readonly string? _defaultTimeZone = defaultTimeZone ?? "UTC";
-
 	public async Task<bool> IsEnabledAsync(
 		IFeatureFlag flag,
 		string? tenantId = null,
@@ -26,8 +23,7 @@ public sealed class FeatureFlagClient(
 		var context = new EvaluationContext(
 			tenantId: tenantId,
 			userId: userId,
-			attributes: attributes,
-			timeZone: _defaultTimeZone);
+			attributes: attributes);
 
 		var result = await evaluator.Evaluate(flag, context);
 		return result!.IsEnabled;
@@ -43,8 +39,7 @@ public sealed class FeatureFlagClient(
 		var context = new EvaluationContext(
 			tenantId: tenantId,
 			userId: userId,
-			attributes: attributes,
-			timeZone: _defaultTimeZone);
+			attributes: attributes);
 
 		return await evaluator.GetVariation(flag, defaultValue, context);
 	}
@@ -53,14 +48,12 @@ public sealed class FeatureFlagClient(
 		IFeatureFlag flag,
 		string? tenantId = null,
 		string? userId = null,
-		string? timeZone = null,
 		Dictionary<string, object>? attributes = null)
 	{
 		var context = new EvaluationContext(
 			tenantId: tenantId,
 			userId: userId,
-			attributes: attributes,
-			timeZone: timeZone ?? _defaultTimeZone);
+			attributes: attributes);
 
 		return await evaluator.Evaluate(flag, context);
 	}

@@ -1,4 +1,4 @@
-﻿using Propel.FeatureFlags.Helpers;
+﻿using Knara.UtcStrict;
 
 namespace Propel.FeatureFlags.Domain;
 
@@ -8,19 +8,16 @@ public class EvaluationContext
 					string? tenantId = null,
 					string? userId = null, 
 					Dictionary<string, object>? attributes = null,
-					DateTime? evaluationTime = null, 
-					string? timeZone = "UTC")
+					UtcDateTime? evaluationTime = null)
 	{
 		TenantId = tenantId;
 		UserId = userId;
 		Attributes = attributes ?? [];
-		EvaluationTime = DateTimeHelpers.NormalizeToUtc(dateTime: evaluationTime, utcReplacementDt: DateTime.UtcNow);
-		TimeZone = timeZone;
+		EvaluationTime = evaluationTime ?? UtcDateTime.UtcNow;
 	}
 
 	public string? TenantId { get; }			// Primary evaluation context
 	public string? UserId { get; }				// Secondary evaluation context
 	public Dictionary<string, object> Attributes { get; }
-	public DateTime? EvaluationTime { get; }
-	public string? TimeZone { get; }
+	public UtcDateTime? EvaluationTime { get; }
 }

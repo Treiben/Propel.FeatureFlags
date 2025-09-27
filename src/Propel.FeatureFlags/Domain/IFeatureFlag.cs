@@ -1,6 +1,4 @@
-﻿using Propel.FeatureFlags.Infrastructure;
-
-namespace Propel.FeatureFlags.Domain;
+﻿namespace Propel.FeatureFlags.Domain;
 
 public interface IFeatureFlag
 {

@@ -1,12 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Evaluation;
+using Propel.FeatureFlags.FlagEvaluationServices;
+using Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
+using Propel.FeatureFlags.FlagEvaluationServices.GlobalScope;
 using Propel.FeatureFlags.FlagEvaluators;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
-using Propel.FeatureFlags.Services;
-using Propel.FeatureFlags.Services.ApplicationScope;
 using Propel.FeatureFlags.Services.GlobalScope;
 using System.Reflection;
 

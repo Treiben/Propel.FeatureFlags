@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Propel.FeatureFlags.AspNetCore.Extensions;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Services.ApplicationScope;
+using Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
 
 namespace Propel.FeatureFlags.Attributes;
 
