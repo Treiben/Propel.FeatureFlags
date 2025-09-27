@@ -1,3 +1,4 @@
+using Knara.UtcStrict;
 using Microsoft.Data.SqlClient;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Helpers;
@@ -36,16 +37,16 @@ public static class SqlDataReaderExtensions
 		var enableOn = await reader.GetFieldValueOrDefaultAsync<DateTimeOffset?>("ScheduledEnableDate");
 		var disableOn = await reader.GetFieldValueOrDefaultAsync<DateTimeOffset?>("ScheduledDisableDate");
 		
-		var schedule = new ActivationSchedule(
-			enableOn: enableOn?.DateTime ?? DateTime.MinValue,
-			disableOn: disableOn?.DateTime ?? DateTime.MaxValue
+		var schedule = new UtcSchedule(
+			enableOn: enableOn ?? UtcDateTime.MinValue,
+			disableOn: disableOn ?? UtcDateTime.MaxValue
 		);
 
 		// Load operational window
 		var windowDaysData = await reader.DeserializeAsync<int[]>("WindowDays");
 		var windowDays = windowDaysData?.Select(d => (DayOfWeek)d).ToArray();
 
-		var operationalWindow = new OperationalWindow(
+		var operationalWindow = new UtcTimeWindow(
 			startOn: await reader.GetFieldValueOrDefaultAsync<TimeSpan>("WindowStartTime"),
 			stopOn: await reader.GetFieldValueOrDefaultAsync("WindowEndTime", new TimeSpan(23, 59, 59)),
 			timeZone: await reader.GetFieldValueOrDefaultAsync("TimeZone", "UTC"),

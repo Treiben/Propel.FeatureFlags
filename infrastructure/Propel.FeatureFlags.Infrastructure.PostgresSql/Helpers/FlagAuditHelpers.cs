@@ -1,4 +1,5 @@
-﻿using Npgsql;
+﻿using Knara.UtcStrict;
+using Npgsql;
 using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql.Helpers;
@@ -20,7 +21,7 @@ public static class FlagAuditHelpers
 		{
 			using var command = new NpgsqlCommand(sql, connection);
 			command.AddIdentifierParameters(flag);
-			command.Parameters.AddWithValue("timestamp", DateTime.UtcNow);
+			command.Parameters.AddWithValue("timestamp", DateTimeOffset.UtcNow);
 			command.Parameters.AddWithValue("action", PersistenceActions.FlagCreated);
 
 			if (connection.State != System.Data.ConnectionState.Open)

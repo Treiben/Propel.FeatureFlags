@@ -99,7 +99,7 @@ BEGIN
             CONSTRAINT CK_Variations_json CHECK (ISJSON(Variations) = 1),
         default_variation NVARCHAR(255) NOT NULL DEFAULT ''off'',
 
-        CONSTRAINT PK_FeatureFlags PRIMARY KEY ([key], ApplicationName, ApplicationVersion, Scope)
+        CONSTRAINT PK_FeatureFlags PRIMARY KEY ([key], ApplicationName, ApplicationVersion)
     )'
     
     EXEC sp_executesql @FeatureFlagsTable

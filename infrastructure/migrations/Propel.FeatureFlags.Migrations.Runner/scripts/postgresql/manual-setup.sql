@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS feature_flags (
     variations JSONB NOT NULL DEFAULT '{}',
     default_variation VARCHAR(255) NOT NULL DEFAULT 'off'
 
-    CONSTRAINT pk_feature_flags PRIMARY KEY (key, application_name, application_version, scope)
+    CONSTRAINT pk_feature_flags PRIMARY KEY (key, application_name, application_version)
 );
 
 -- Create the metadata table

@@ -191,7 +191,7 @@ CREATE TABLE feature_flags (
     variations JSONB NOT NULL DEFAULT '{}',
     default_variation VARCHAR(255) NOT NULL DEFAULT 'off',
 
-	PRIMARY KEY (key, application_name, application_version, scope)
+	PRIMARY KEY (key, application_name, application_version)
 );
 
 -- Create the metdata table

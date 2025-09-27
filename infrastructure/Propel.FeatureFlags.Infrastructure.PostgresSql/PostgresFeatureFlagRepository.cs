@@ -100,7 +100,7 @@ public class PostgresFeatureFlagRepository : IFeatureFlagRepository
             ) VALUES (
                 @key, @application_name, @application_version, @scope, @name, @description, @evaluation_modes             
             )
-			ON CONFLICT (key, application_name, application_version, scope) DO NOTHING;";
+			ON CONFLICT (key, application_name, application_version) DO NOTHING;";
 
 		try
 		{

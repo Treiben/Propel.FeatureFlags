@@ -200,7 +200,7 @@ CREATE TABLE FeatureFlags (
         CONSTRAINT CK_Variations_json CHECK (ISJSON(variations) = 1),
     DefaultVariation NVARCHAR(255) NOT NULL DEFAULT 'off',
 
-	CONSTRAINT PK_feature_flags PRIMARY KEY ([key], ApplicationName, ApplicationVersion, Scope)
+	CONSTRAINT PK_feature_flags PRIMARY KEY ([key], ApplicationName, ApplicationVersion)
 );
 
 -- Create the metadata table

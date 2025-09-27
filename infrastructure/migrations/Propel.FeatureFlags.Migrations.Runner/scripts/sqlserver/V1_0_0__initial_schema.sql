@@ -58,7 +58,7 @@ BEGIN
             CONSTRAINT CK_Variations_json CHECK (ISJSON(Variations) = 1),
         DefaultVariation NVARCHAR(255) NOT NULL DEFAULT 'off',
 
-        CONSTRAINT PK_FeatureFlags PRIMARY KEY ([Key], ApplicationName, ApplicationVersion, Scope)
+        CONSTRAINT PK_FeatureFlags PRIMARY KEY ([Key], ApplicationName, ApplicationVersion)
     )
     
     PRINT 'Table FeatureFlags created successfully'

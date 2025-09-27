@@ -1,4 +1,5 @@
-﻿using Npgsql;
+﻿using Knara.UtcStrict;
+using Npgsql;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Helpers;
 using System.Data;
@@ -33,19 +34,19 @@ public static class DataReaderExtensions
 		var evaluationModeSet = new EvaluationModes([.. evaluationModes.Select(m => (EvaluationMode)m)]);
 
 		// Load schedule - handle DB nulls properly
-		var enableOn = await reader.GetFieldValueOrDefaultAsync<DateTime?>("scheduled_enable_date");
-		var disableOn = await reader.GetFieldValueOrDefaultAsync<DateTime?>("scheduled_disable_date");
+		var enableOn = await reader.GetFieldValueOrDefaultAsync<DateTimeOffset?>("scheduled_enable_date");
+		var disableOn = await reader.GetFieldValueOrDefaultAsync<DateTimeOffset?>("scheduled_disable_date");
 
-		var schedule = new ActivationSchedule(
-			enableOn: enableOn ?? DateTime.MinValue,
-			disableOn: disableOn ?? DateTime.MaxValue
+		var schedule = new UtcSchedule(
+			enableOn: enableOn ?? UtcDateTime.MinValue,
+			disableOn: disableOn ?? UtcDateTime.MaxValue
 		);
 
 		// Load operational window
 		var windowDaysData = await reader.DeserializeAsync<int[]>("window_days");
 		var windowDays = windowDaysData?.Select(d => (DayOfWeek)d).ToArray();
 
-		var operationalWindow = new OperationalWindow(
+		var operationalWindow = new UtcTimeWindow(
 			startOn: await reader.GetFieldValueOrDefaultAsync<TimeSpan>("window_start_time"),
 			stopOn: await reader.GetFieldValueOrDefaultAsync("window_end_time", new TimeSpan(23, 59, 59)),
 			timeZone: await reader.GetFieldValueOrDefaultAsync("time_zone", "UTC"),
