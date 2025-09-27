@@ -1,5 +1,5 @@
 ﻿using ApiFlagUsageDemo.FeatureFlags;
-using Propel.FeatureFlags.Services.ApplicationScope;
+using Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
 
 namespace ApiFlagUsageDemo.Services;
 
