@@ -1,5 +1,6 @@
+using Knara.UtcStrict;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Evaluation;
+using Propel.FeatureFlags.FlagEvaluators;
 
 namespace FeatureFlags.UnitTests.Evaluation;
 
@@ -74,10 +75,10 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_WithinTimeWindow_ReturnsEnabled()
 	{
 		// Arrange
-		var evaluationTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc); // Monday 12 PM
+		var evaluationTime = new UtcDateTime(new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc)); // Monday 12 PM
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var window = new OperationalWindow(
+		var window = new UtcTimeWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17)); // 9 AM to 5 PM
 		var variations = new Variations { DefaultVariation = "window-open" };
 		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
@@ -96,10 +97,10 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_OutsideTimeWindow_ReturnsDisabled()
 	{
 		// Arrange
-		var evaluationTime = new DateTime(2024, 1, 15, 20, 0, 0, DateTimeKind.Utc); // Monday 8 PM
+		var evaluationTime = new UtcDateTime(new DateTime(2024, 1, 15, 20, 0, 0, DateTimeKind.Utc)); // Monday 8 PM
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var window = new OperationalWindow(
+		var window = new UtcTimeWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17)); // 9 AM to 5 PM
 		var variations = new Variations { DefaultVariation = "window-closed" };
 		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
@@ -118,12 +119,12 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_OvernightWindow_WorksCorrectly()
 	{
 		// Arrange
-		var nightTime = new DateTime(2024, 1, 15, 2, 0, 0, DateTimeKind.Utc); // Monday 2 AM
-		var dayTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc); // Monday 12 PM
+		var nightTime = new UtcDateTime(new DateTime(2024, 1, 15, 2, 0, 0, DateTimeKind.Local)); // Monday 8 AM UTC
+		var dayTime = new UtcDateTime(new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc)); // Monday 12 PM UTC
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var window = new OperationalWindow(
-				TimeSpan.FromHours(22), TimeSpan.FromHours(6)); // 10 PM to 6 AM
+		var window = new UtcTimeWindow(
+				TimeSpan.FromHours(22), TimeSpan.FromHours(10)); // 10 PM to 10 AM
 		var variations = new Variations { DefaultVariation = "maintenance-off" };
 		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
 
@@ -146,13 +147,14 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_DayOfWeekFiltering_WorksCorrectly()
 	{
 		// Arrange
-		var monday = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc); // Monday 12 PM
-		var saturday = new DateTime(2024, 1, 20, 12, 0, 0, DateTimeKind.Utc); // Saturday 12 PM
+		var dt = new DateTime(2024, 1, 15, 9, 0, 0, DateTimeKind.Utc); // Monday 9 AM UTC
+		var monday = new UtcDateTime(dt); // Monday 9 UTC
+		var saturday = new UtcDateTime(new DateTime(2024, 1, 20, 9, 0, 0, DateTimeKind.Unspecified)); // Saturday 3 PM UTC
 		DayOfWeek[] weekdaysOnly = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
 			DayOfWeek.Thursday, DayOfWeek.Friday];
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var window = new OperationalWindow(
+		var window = new UtcTimeWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 				daysActive: weekdaysOnly);
 		var variations = new Variations { DefaultVariation = "weekend-off" };
@@ -180,7 +182,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var evaluationTime = new DateTime(2024, 1, 15, 17, 0, 0, DateTimeKind.Utc); // 5 PM UTC
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var window = new OperationalWindow(
+		var window = new UtcTimeWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 				"Pacific Standard Time"); // Window is in PST
 		var variations = new Variations { DefaultVariation = "off" };
@@ -188,7 +190,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 
 		// Act - Use Eastern time context (5 PM UTC = 12 PM EST, within window)
 		var result = await _evaluator.ProcessEvaluation(flagConfig,
-			new EvaluationContext(evaluationTime: evaluationTime, timeZone: "Eastern Standard Time"));
+			new EvaluationContext(evaluationTime: new UtcDateTime(evaluationTime)));
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
@@ -219,7 +221,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 			DayOfWeek.Thursday, DayOfWeek.Friday];
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var window = new OperationalWindow(
+		var window = new UtcTimeWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 				daysActive: businessDays); 
 		var variations = new Variations { DefaultVariation = "after-hours" };
@@ -227,19 +229,19 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 
 		// Act & Assert - During business hours (Wednesday 2 PM)
 		var businessResult = await _evaluator.ProcessEvaluation(flagConfig,
-			new EvaluationContext(evaluationTime: new DateTime(2024, 1, 17, 14, 0, 0, DateTimeKind.Utc)));
+			new EvaluationContext(evaluationTime: new UtcDateTime(new DateTime(2024, 1, 17, 14, 0, 0, DateTimeKind.Utc))));
 		businessResult.IsEnabled.ShouldBeTrue();
 		businessResult.Reason.ShouldBe("Within time window");
 
 		// Act & Assert - After hours (Wednesday 8 PM)
 		var afterResult = await _evaluator.ProcessEvaluation(flagConfig,
-			new EvaluationContext(evaluationTime: new DateTime(2024, 1, 17, 20, 0, 0, DateTimeKind.Utc)));
+			new EvaluationContext(evaluationTime: new UtcDateTime(new DateTime(2024, 1, 17, 20, 0, 0, DateTimeKind.Utc))));
 		afterResult.IsEnabled.ShouldBeFalse();
 		afterResult.Reason.ShouldBe("Outside time window");
 
 		// Act & Assert - Weekend (Saturday 2 PM)
 		var weekendResult = await _evaluator.ProcessEvaluation(flagConfig,
-			new EvaluationContext(evaluationTime: new DateTime(2024, 1, 20, 14, 0, 0, DateTimeKind.Utc)));
+			new EvaluationContext(evaluationTime: new UtcDateTime(new DateTime(2024, 1, 20, 14, 0, 0, DateTimeKind.Utc))));
 		weekendResult.IsEnabled.ShouldBeFalse();
 		weekendResult.Reason.ShouldBe("Outside allowed days");
 	}

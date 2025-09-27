@@ -1,7 +1,6 @@
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Evaluation;
+using Propel.FeatureFlags.FlagEvaluationServices;
 using Propel.FeatureFlags.FlagEvaluators;
-using Propel.FeatureFlags.Services;
 
 namespace FeatureFlags.UnitTests.Evaluation;
 

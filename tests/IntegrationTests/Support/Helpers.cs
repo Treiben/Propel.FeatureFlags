@@ -1,4 +1,5 @@
-﻿using Propel.FeatureFlags.Domain;
+﻿using Knara.UtcStrict;
+using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
 
@@ -20,8 +21,8 @@ public class FlagConfigurationBuilder
 	private List<ITargetingRule> _targetingRules = [];
 	private EvaluationModes _evaluationModes = EvaluationModes.FlagIsDisabled;
 	private Variations _variations = Variations.OnOff;
-	private ActivationSchedule _schedule = ActivationSchedule.Unscheduled;
-	private OperationalWindow _window = OperationalWindow.AlwaysOpen;
+	private UtcSchedule _schedule = UtcSchedule.Unscheduled;
+	private UtcTimeWindow _window = UtcTimeWindow.AlwaysOpen;
 	private AccessControl _userAccessControl = AccessControl.Unrestricted;
 	private AccessControl _tenantAccessControl = AccessControl.Unrestricted;
 
@@ -57,13 +58,13 @@ public class FlagConfigurationBuilder
 		return this;
 	}
 
-	public FlagConfigurationBuilder WithSchedule(ActivationSchedule schedule)
+	public FlagConfigurationBuilder WithSchedule(UtcSchedule schedule)
 	{
 		_schedule = schedule;
 		return this;
 	}
 
-	public FlagConfigurationBuilder WithOperationalWindow(OperationalWindow window)
+	public FlagConfigurationBuilder WithOperationalWindow(UtcTimeWindow window)
 	{
 		_window = window;
 		return this;

@@ -129,12 +129,12 @@ public static class PosgreDbHelpers
 		if (flag.Schedule.EnableOn == DateTime.MinValue)
 			command.Parameters.AddWithValue("scheduled_enable_date", DBNull.Value);
 		else
-			command.Parameters.AddWithValue("scheduled_enable_date", flag.Schedule.EnableOn);
+			command.Parameters.AddWithValue("scheduled_enable_date", flag.Schedule.EnableOn.DateTime);
 
 		if (flag.Schedule.DisableOn == DateTime.MaxValue)
 			command.Parameters.AddWithValue("scheduled_disable_date", DBNull.Value);
 		else
-			command.Parameters.AddWithValue("scheduled_disable_date", flag.Schedule.DisableOn);
+			command.Parameters.AddWithValue("scheduled_disable_date", flag.Schedule.DisableOn.DateTime);
 
 		// Operational window parameters
 		command.Parameters.AddWithValue("window_start_time", flag.OperationalWindow.StartOn);

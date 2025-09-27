@@ -1,4 +1,5 @@
 using FeatureFlags.IntegrationTests.Support;
+using Knara.UtcStrict;
 using Propel.FeatureFlags.Domain;
 
 namespace FeatureFlags.IntegrationTests.EvaluationTests.Evaluator;
@@ -127,14 +128,14 @@ public class Evaluate_WithTimeWindowFlag(FlagEvaluationTestsFixture fixture) : I
 
 		var (config, flag) = new FlagConfigurationBuilder("window-flag")
 				.WithEvaluationModes(EvaluationMode.TimeWindow)
-				.WithOperationalWindow(new OperationalWindow(TimeSpan.FromHours(9), TimeSpan.FromHours(17)))
+				.WithOperationalWindow(new UtcTimeWindow(TimeSpan.FromHours(9), TimeSpan.FromHours(17)))
 				.ForFeatureFlag(defaultMode: EvaluationMode.Off)
 				.Build();
 
 		await fixture.SaveAsync(config, "window-flag", "created by integration tests");
 
 		var evaluationTime = new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc);
-		var context = new EvaluationContext(evaluationTime: evaluationTime);
+		var context = new EvaluationContext(evaluationTime: new UtcDateTime(evaluationTime));
 
 		// Act
 		var result = await fixture.Evaluator.Evaluate(flag, context);
@@ -152,14 +153,14 @@ public class Evaluate_WithTimeWindowFlag(FlagEvaluationTestsFixture fixture) : I
 
 		var (config, flag) = new FlagConfigurationBuilder("window-flag")
 					.WithEvaluationModes(EvaluationMode.TimeWindow)
-					.WithOperationalWindow(new OperationalWindow(TimeSpan.FromHours(9), TimeSpan.FromHours(17)))
+					.WithOperationalWindow(new UtcTimeWindow(TimeSpan.FromHours(9), TimeSpan.FromHours(17)))
 					.ForFeatureFlag(defaultMode: EvaluationMode.Off)
 					.Build();
 
 		await fixture.SaveAsync(config, "window-flag", "created by integration tests");
 
 		var evaluationTime = new DateTime(2024, 1, 15, 20, 0, 0, DateTimeKind.Utc);
-		var context = new EvaluationContext(evaluationTime: evaluationTime);
+		var context = new EvaluationContext(evaluationTime: new UtcDateTime(evaluationTime));
 
 		// Act
 		var result = await fixture.Evaluator.Evaluate(flag, context);

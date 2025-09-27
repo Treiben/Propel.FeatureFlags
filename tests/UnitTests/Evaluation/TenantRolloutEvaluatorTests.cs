@@ -1,5 +1,5 @@
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Evaluation;
+using Propel.FeatureFlags.FlagEvaluators;
 
 namespace FeatureFlags.UnitTests.Evaluation;
 

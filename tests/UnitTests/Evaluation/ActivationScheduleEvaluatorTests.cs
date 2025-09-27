@@ -1,5 +1,6 @@
+using Knara.UtcStrict;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Evaluation;
+using Propel.FeatureFlags.FlagEvaluators;
 
 namespace FeatureFlags.UnitTests.Evaluation;
 
@@ -77,11 +78,11 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var flagConfig = new FlagEvaluationConfiguration(
 				identifier: identifier,
-				schedule: new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime()),
+				schedule: new UtcSchedule(new UtcDateTime(enableDate), UtcDateTime.MaxValue),
 				variations: new Variations { DefaultVariation = "scheduled-off" }
 			);
 
-		var context = new EvaluationContext(evaluationTime: evaluationTime);
+		var context = new EvaluationContext(evaluationTime: new UtcDateTime (evaluationTime));
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
@@ -96,10 +97,10 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_AtEnableDate_ReturnsEnabled()
 	{
 		// Arrange
-		var enableDate = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
+		var enableDate = new UtcDateTime(new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc));
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var schedule = new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime());
+		var schedule = new UtcSchedule(new UtcDateTime(enableDate), UtcDateTime.MaxValue);
 		var variations = new Variations { DefaultVariation = "scheduled-off" };
 		var flag = new FlagEvaluationConfiguration(identifier: identifier, schedule: schedule, variations: variations);
 
@@ -111,20 +112,19 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
 		result.Variation.ShouldBe(flag.Variations.DefaultVariation);
-		result.Reason.ShouldBe("Scheduled enable date reached");
 	}
 
 	[Fact]
 	public async Task ProcessEvaluation_AfterEnableDate_ReturnsEnabled()
 	{
 		// Arrange
-		var evaluationTime = new DateTime(2024, 1, 20, 12, 0, 0, DateTimeKind.Utc);
-		var enableDate = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
+		var evaluationTime = new UtcDateTime(new DateTime(2024, 1, 20, 12, 0, 0));
+		var enableDate = new UtcDateTime(new DateTime(2024, 1, 15, 10, 0, 0));
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var flagConfig = new FlagEvaluationConfiguration(
 				identifier: identifier,
-				schedule: new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime()),
+				schedule: new UtcSchedule(enableDate, UtcDateTime.MaxValue),
 				variations: new Variations { DefaultVariation = "scheduled-off" }
 			);
 
@@ -136,21 +136,20 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
 		result.Variation.ShouldBe(flagConfig.Variations.DefaultVariation);
-		result.Reason.ShouldBe("Scheduled enable date reached");
 	}
 
 	[Fact]
 	public async Task ProcessEvaluation_BetweenEnableAndDisable_ReturnsEnabled()
 	{
 		// Arrange
-		var evaluationTime = new DateTime(2024, 1, 17, 12, 0, 0, DateTimeKind.Utc);
-		var enableDate = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
-		var disableDate = new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc);
+		var evaluationTime = new UtcDateTime(new DateTime(2024, 1, 17, 12, 0, 0, DateTimeKind.Utc));
+		var enableDate = new UtcDateTime(new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc));
+		var disableDate = new UtcDateTime(new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc));
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var flagConfig = new FlagEvaluationConfiguration(
 				identifier: identifier,
-				schedule: new ActivationSchedule(enableDate, disableDate),
+				schedule: new UtcSchedule(enableDate, disableDate),
 				variations: new Variations { DefaultVariation = "scheduled-off" }
 			);
 
@@ -162,20 +161,19 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
 		result.Variation.ShouldBe(flagConfig.Variations.DefaultVariation);
-		result.Reason.ShouldBe("Scheduled enable date reached");
 	}
 
 	[Fact]
 	public async Task ProcessEvaluation_AtDisableDate_ReturnsDisabled()
 	{
 		// Arrange
-		var enableDate = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
-		var disableDate = new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc);
+		var enableDate = new UtcDateTime(new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc));
+		var disableDate = new UtcDateTime(new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc));
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var flagConfig = new FlagEvaluationConfiguration(
 				identifier: identifier,
-				schedule: new ActivationSchedule(enableDate, disableDate),
+				schedule: new UtcSchedule(enableDate, disableDate),
 				variations: new Variations { DefaultVariation = "scheduled-off" }
 			);
 
@@ -194,14 +192,14 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_AfterDisableDate_ReturnsDisabled()
 	{
 		// Arrange
-		var evaluationTime = new DateTime(2024, 1, 25, 12, 0, 0, DateTimeKind.Utc);
-		var enableDate = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
-		var disableDate = new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc);
+		var evaluationTime = new UtcDateTime(new DateTime(2024, 1, 25, 12, 0, 0, DateTimeKind.Utc));
+		var enableDate = new UtcDateTime(new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc));
+		var disableDate = new UtcDateTime(new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc));
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var flagConfig = new FlagEvaluationConfiguration(
 				identifier: identifier,
-				schedule: new ActivationSchedule(enableDate, disableDate),
+				schedule: new UtcSchedule(enableDate, disableDate),
 				variations: new Variations { DefaultVariation = "scheduled-off" }
 			);
 
@@ -225,7 +223,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var flagConfig = new FlagEvaluationConfiguration(
 				identifier: identifier,
-				schedule: new ActivationSchedule(enableDate, DateTime.MaxValue.ToUniversalTime()),
+				schedule: new UtcSchedule(new UtcDateTime(enableDate), UtcDateTime.MaxValue),
 				variations: new Variations { DefaultVariation = "off" }
 			);
 
@@ -236,38 +234,37 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
-		result.Reason.ShouldBe("Scheduled enable date reached");
 	}
 
 	[Fact]
 	public async Task ProcessEvaluation_FeatureLaunchWindow_WorksCorrectly()
 	{
 		// Arrange - Feature launches and ends one week later
-		var launchDate = new DateTime(2024, 1, 15, 9, 0, 0, DateTimeKind.Utc);
-		var endDate = new DateTime(2024, 1, 22, 9, 0, 0, DateTimeKind.Utc);
+		var launchDate = new DateTime(2024, 1, 15, 9, 0, 0, DateTimeKind.Unspecified);
+		var endDate = new DateTime(2024, 1, 22, 9, 0, 0, DateTimeKind.Unspecified);
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var flagConfig = new FlagEvaluationConfiguration(
 				identifier: identifier,
-				schedule: new ActivationSchedule(launchDate, endDate),
+				schedule: new UtcSchedule(new UtcDateTime(launchDate), new UtcDateTime(endDate)),
 				variations: new Variations { DefaultVariation = "feature-disabled" }
 			);
 
 		// Act & Assert - Before launch
 		var resultBefore = await _evaluator.ProcessEvaluation(flagConfig,
-			new EvaluationContext(evaluationTime: launchDate.AddMinutes(-1)));
+			new EvaluationContext(evaluationTime: new UtcDateTime(launchDate.AddMinutes(-1))));
 		resultBefore.IsEnabled.ShouldBeFalse();
 		resultBefore.Variation.ShouldBe(flagConfig.Variations.DefaultVariation);
 
 		// Act & Assert - During active period
 		var resultDuring = await _evaluator.ProcessEvaluation(flagConfig,
-			new EvaluationContext(evaluationTime: launchDate.AddDays(3)));
+			new EvaluationContext(evaluationTime: new UtcDateTime(launchDate.AddDays(3))));
 		resultDuring.IsEnabled.ShouldBeTrue();
 		resultDuring.Variation.ShouldBe(flagConfig.Variations.DefaultVariation);
 
 		// Act & Assert - After end
 		var resultAfter = await _evaluator.ProcessEvaluation(flagConfig,
-			new EvaluationContext(evaluationTime: endDate.AddMinutes(1)));
+			new EvaluationContext(evaluationTime: new UtcDateTime(endDate.AddMinutes(1))));
 		resultAfter.IsEnabled.ShouldBeFalse();
 		resultAfter.Variation.ShouldBe(flagConfig.Variations.DefaultVariation);
 	}

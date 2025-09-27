@@ -1,4 +1,5 @@
 ﻿using FeatureFlags.IntegrationTests.Support;
+using Knara.UtcStrict;
 using Propel.FeatureFlags.Domain;
 
 namespace FeatureFlags.IntegrationTests.SqlServerTests;
@@ -12,8 +13,8 @@ public class GetAsync_WithColumnMapping(SqlServerTestsFixture fixture) : IClassF
 		await fixture.ClearAllData();
 		var (flag, _) = new FlagConfigurationBuilder("complex-eval-flag")
 				.WithEvaluationModes(EvaluationMode.UserTargeted)
-				.WithSchedule(ActivationSchedule.CreateSchedule(DateTime.UtcNow.AddDays(1), DateTime.UtcNow.AddDays(7)))
-				.WithOperationalWindow(new OperationalWindow(
+				.WithSchedule(UtcSchedule.CreateSchedule(DateTimeOffset.UtcNow.AddDays(1), DateTimeOffset.UtcNow.AddDays(7)))
+				.WithOperationalWindow(new UtcTimeWindow(
 					TimeSpan.FromHours(9),
 					TimeSpan.FromHours(17),
 					"America/New_York",
@@ -47,8 +48,8 @@ public class GetAsync_WithColumnMapping(SqlServerTestsFixture fixture) : IClassF
 		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.UserTargeted]).ShouldBeTrue();
 
 		// Schedule mapping
-		result.Schedule.EnableOn.Date.ShouldBe(flag.Schedule.EnableOn.Date);
-		result.Schedule.DisableOn.Date.ShouldBe(flag.Schedule.DisableOn.Date);
+		result.Schedule.EnableOn.ShouldBe(flag.Schedule.EnableOn);
+			result.Schedule.DisableOn.ShouldBe(flag.Schedule.DisableOn);
 
 		// Operational window mapping
 		result.OperationalWindow.StartOn.ShouldBe(flag.OperationalWindow.StartOn);

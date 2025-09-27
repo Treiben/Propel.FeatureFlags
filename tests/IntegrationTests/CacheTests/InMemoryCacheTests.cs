@@ -1,4 +1,5 @@
 ﻿using FeatureFlags.IntegrationTests.Support;
+using Knara.UtcStrict;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
@@ -164,8 +165,8 @@ public class GetAsync_WhenFlagExists(InMemoryTestsFixture fixture) : IClassFixtu
 		await fixture.ClearAllFlags();
 		var (flag, _) = new FlagConfigurationBuilder("time-flag")
 			.WithEvaluationModes(EvaluationMode.Scheduled, EvaluationMode.TimeWindow)
-			.WithSchedule(ActivationSchedule.CreateSchedule(DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddDays(7)))
-			.WithOperationalWindow(new OperationalWindow(
+			.WithSchedule(UtcSchedule.CreateSchedule(DateTimeOffset.UtcNow.AddHours(1), DateTimeOffset.UtcNow.AddDays(7)))
+			.WithOperationalWindow(new UtcTimeWindow(
 					TimeSpan.FromHours(9),
 					TimeSpan.FromHours(17),
 					"America/New_York",

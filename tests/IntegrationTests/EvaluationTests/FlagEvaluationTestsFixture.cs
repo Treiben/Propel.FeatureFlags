@@ -3,11 +3,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Extensions;
+using Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
 using Propel.FeatureFlags.Infrastructure.Redis.Extensions;
-using Propel.FeatureFlags.Services.ApplicationScope;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
 

@@ -131,12 +131,12 @@ public static class SqlServerDbHelpers
 		if (flag.Schedule.EnableOn == DateTime.MinValue.ToUniversalTime())
 			command.Parameters.AddWithValue("ScheduledEnableDate", DBNull.Value);
 		else
-			command.Parameters.AddWithValue("ScheduledEnableDate", flag.Schedule.EnableOn);
+			command.Parameters.AddWithValue("ScheduledEnableDate", (DateTimeOffset)flag.Schedule.EnableOn);
 
 		if (flag.Schedule.DisableOn == DateTime.MaxValue.ToUniversalTime())
 			command.Parameters.AddWithValue("ScheduledDisableDate", DBNull.Value);
 		else
-			command.Parameters.AddWithValue("ScheduledDisableDate", flag.Schedule.DisableOn);
+			command.Parameters.AddWithValue("ScheduledDisableDate", (DateTimeOffset)flag.Schedule.DisableOn);
 
 		// Operational window parameters
 		command.Parameters.AddWithValue("WindowStartTime", flag.OperationalWindow.StartOn);
