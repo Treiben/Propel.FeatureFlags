@@ -1,4 +1,5 @@
-﻿using Propel.FeatureFlags.Dashboard.Api.Domain;
+﻿using Knara.UtcStrict;
+using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Helpers;
 using System.Text.Json;
@@ -44,10 +45,22 @@ public static class Mapper
 			}
 
 			// Set retention policy
-			metadata.Retention = new RetentionPolicy(metadataEntity.IsPermanent, metadataEntity.ExpirationDate.DateTime);
+			metadata.RetentionPolicy = new RetentionPolicy(metadataEntity.ExpirationDate);
+			metadata.Created = MapAuditTrailToDomain(entity.AuditTrail.First(t => t.Action == "flag-created"));
+			metadata.LastModified = MapAuditTrailToDomain(entity.AuditTrail.OrderByDescending(t => t.Timestamp).First());
 		}
 
 		return metadata;
+	}
+
+	public static AuditTrail MapAuditTrailToDomain(Entities.FeatureFlagAudit entity)
+	{
+		return new AuditTrail(
+				timestamp: entity.Timestamp,
+				actor: entity.Actor,
+				action: entity.Action,
+				reason: entity.Reason
+			);
 	}
 
 	public static FlagEvaluationConfiguration MapConfigurationToDomain(FlagIdentifier identifier, Entities.FeatureFlag entity)
@@ -56,18 +69,16 @@ public static class Mapper
 		var evaluationModes = Parser.ParseEvaluationModes(entity.EvaluationModes);
 
 		// Parse schedule
-		var schedule = entity.ScheduledEnableDate.HasValue || entity.ScheduledDisableDate.HasValue
-			? ActivationSchedule.CreateSchedule(entity.ScheduledEnableDate?.DateTime, entity.ScheduledDisableDate?.DateTime)
-			: ActivationSchedule.Unscheduled;
+		var schedule =new  UtcSchedule(entity.ScheduledEnableDate ?? UtcDateTime.MinValue,
+													entity.ScheduledDisableDate ?? UtcDateTime.MaxValue);
 
 		// Parse operational window
-		var operationalWindow = entity.WindowStartTime.HasValue || entity.WindowEndTime.HasValue
-			? new OperationalWindow(
-				entity.WindowStartTime?.ToTimeSpan() ?? TimeSpan.Zero,
-				entity.WindowEndTime?.ToTimeSpan() ?? TimeSpan.FromHours(23).Add(TimeSpan.FromMinutes(59)),
+		var alwaysopen = UtcTimeWindow.AlwaysOpen;
+		var operationalWindow = new UtcTimeWindow(
+				entity.WindowStartTime?.ToTimeSpan() ?? alwaysopen.StartOn,
+				entity.WindowEndTime?.ToTimeSpan() ?? alwaysopen.StopOn,
 				entity.TimeZone ?? "UTC",
-				Parser.ParseWindowDays(entity.WindowDays))
-			: OperationalWindow.AlwaysOpen;
+				Parser.ParseWindowDays(entity.WindowDays));
 
 		// Parse targeting rules
 		var targetingRules = Parser.ParseTargetingRules(entity.TargetingRules);
@@ -173,45 +184,3 @@ public static class Parser
 	}
 }
 
-public static class Filtering
-{
-	public static IQueryable<Entities.FeatureFlag> ApplyFilters(IQueryable<Entities.FeatureFlag> query, FeatureFlagFilter filter)
-	{
-		// Filter by application scope
-		if (!string.IsNullOrEmpty(filter.ApplicationName))
-		{
-			query = query.Where(f => f.ApplicationName == filter.ApplicationName);
-		}
-
-		if (!string.IsNullOrEmpty(filter.ApplicationVersion))
-		{
-			query = query.Where(f => f.ApplicationVersion == filter.ApplicationVersion);
-		}
-
-		if (filter.Scope.HasValue)
-		{
-			query = query.Where(f => f.Scope == (int)filter.Scope.Value);
-		}
-
-		// Filter by evaluation modes
-		if (filter.EvaluationModes?.Length > 0)
-		{
-			query = query.Where(f => FilterByEvaluationModes(f.EvaluationModes, filter.EvaluationModes));
-		}
-
-		return query;
-	}
-
-	public static bool FilterByEvaluationModes(string evaluationModesJson, EvaluationMode[] filterModes)
-	{
-		try
-		{
-			var modes = JsonSerializer.Deserialize<int[]>(evaluationModesJson) ?? [];
-			return filterModes.Any(filterMode => modes.Contains((int)filterMode));
-		}
-		catch
-		{
-			return false;
-		}
-	}
-}

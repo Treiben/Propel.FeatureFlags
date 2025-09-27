@@ -6,8 +6,7 @@ public static class ServiceCollectionExtensions
 {
 	public static IServiceCollection AddPostgresDbContext(this IServiceCollection services, string connectionString)
 	{
-		// Assuming you have a DbContext class named DashboardDbContext
-		services.AddDbContext<DashboardDbContext, PostgresDbContext>(options =>
+		services.AddDbContext<PostgresDbContext>(options =>
 		{
 			options.UseNpgsql(connectionString, npgsqlOptions =>
 			{
@@ -16,7 +15,6 @@ public static class ServiceCollectionExtensions
 					maxRetryDelay: TimeSpan.FromSeconds(5),
 					errorCodesToAdd: null);
 			});
-
 			// Configure for development/production
 			options.EnableSensitiveDataLogging(false);
 			options.EnableDetailedErrors(false);

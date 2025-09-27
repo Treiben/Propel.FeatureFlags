@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Knara.UtcStrict;
 using Microsoft.AspNetCore.Mvc;
 using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
@@ -84,7 +85,7 @@ public sealed class UpdateTimeWindowHandler(
 		var modes = new EvaluationModes([.. source.Configuration.ActiveEvaluationModes.Modes]);
 		modes.RemoveMode(EvaluationMode.On);
 
-		OperationalWindow window = OperationalWindow.AlwaysOpen;
+		UtcTimeWindow window = UtcTimeWindow.AlwaysOpen;
 		if (request.RemoveTimeWindow)
 		{
 			modes.RemoveMode(EvaluationMode.TimeWindow);
@@ -92,7 +93,7 @@ public sealed class UpdateTimeWindowHandler(
 		else
 		{
 			modes.AddMode(EvaluationMode.TimeWindow);
-			window = new OperationalWindow(
+			window = new UtcTimeWindow(
 				request.StartOn.ToTimeSpan(),
 				request.EndOn.ToTimeSpan(),
 				request.TimeZone,

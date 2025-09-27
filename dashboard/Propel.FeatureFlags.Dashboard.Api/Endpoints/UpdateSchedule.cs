@@ -1,11 +1,11 @@
 ﻿using FluentValidation;
+using Knara.UtcStrict;
 using Microsoft.AspNetCore.Mvc;
 using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
 using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Helpers;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
@@ -96,7 +96,7 @@ public sealed class UpdateScheduleHandler(
 			configuration = new FlagEvaluationConfiguration(
 				identifier: source.Identifier,
 				activeEvaluationModes: modes,
-				schedule: ActivationSchedule.Unscheduled,
+				schedule: UtcSchedule.Unscheduled,
 				operationalWindow: srcConfig.OperationalWindow,
 				userAccessControl: srcConfig.UserAccessControl,
 				tenantAccessControl: srcConfig.TenantAccessControl,
@@ -107,10 +107,9 @@ public sealed class UpdateScheduleHandler(
 		{
 			var modes = new EvaluationModes([.. source.Configuration.ActiveEvaluationModes.Modes]);
 			modes.AddMode(EvaluationMode.Scheduled);
-			var schedule = ActivationSchedule.CreateSchedule(
-				DateTimeHelpers.NormalizeToUtc(request.EnableOn, DateTime.MinValue.ToUniversalTime()),
-				DateTimeHelpers.NormalizeToUtc(request.DisableOn, DateTime.MaxValue.ToUniversalTime())
-				);
+			var schedule = UtcSchedule.CreateSchedule(
+				request.EnableOn ?? UtcDateTime.MinValue, 
+				request.DisableOn ?? UtcDateTime.MaxValue);
 			configuration = new FlagEvaluationConfiguration(
 				identifier: source.Identifier,
 				activeEvaluationModes: modes,

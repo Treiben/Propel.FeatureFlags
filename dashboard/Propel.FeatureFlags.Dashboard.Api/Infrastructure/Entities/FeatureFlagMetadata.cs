@@ -9,4 +9,5 @@ public class FeatureFlagMetadata
     public bool IsPermanent { get; set; } = false;
     public DateTimeOffset ExpirationDate { get; set; }
     public string Tags { get; set; } = "{}";
+    public FeatureFlag FeatureFlag { get; set; } = null!;
 }

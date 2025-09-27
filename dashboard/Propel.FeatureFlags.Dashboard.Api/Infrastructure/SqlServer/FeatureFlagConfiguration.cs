@@ -26,10 +26,21 @@ public class FeatureFlagConfiguration : IEntityTypeConfiguration<FeatureFlag>
         });
 
         // Composite primary key
-        builder.HasKey(e => new { e.Key, e.ApplicationName, e.ApplicationVersion, e.Scope });
+        builder.HasKey(e => new { e.Key, e.ApplicationName, e.ApplicationVersion });
 
-        // Column mappings and constraints
-        builder.Property(e => e.Key)
+		//navigation properties - metadata
+		builder.HasOne(e => e.Metadata)
+			.WithOne(m => m.FeatureFlag)
+			.HasForeignKey<FeatureFlagMetadata>(m => new { m.FlagKey, m.ApplicationName, m.ApplicationVersion });
+
+
+		builder.HasMany(e => e.AuditTrail)
+			.WithOne(a => a.FeatureFlag)
+			.HasForeignKey(a => new { a.FlagKey, a.ApplicationName, a.ApplicationVersion });
+
+
+		// Column mappings and constraints
+		builder.Property(e => e.Key)
             .HasColumnName("Key")
             .HasMaxLength(255)
             .IsRequired();

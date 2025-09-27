@@ -4,11 +4,10 @@ using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
 using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
-using Propel.FeatureFlags.Helpers;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 
-public record UpdateFlagRequest(string? Name, string? Description, Dictionary<string, string>? Tags, bool IsPermanent, DateTimeOffset? ExpirationDate);
+public record UpdateFlagRequest(string? Name, string? Description, Dictionary<string, string>? Tags, DateTimeOffset? ExpirationDate);
 
 public sealed class UpdateFlagEndpoint : IEndpoint
 {
@@ -84,9 +83,8 @@ public sealed class UpdateFlagHandler(
 		else
 			metadata.Tags = sourceFlag.Metadata.Tags;
 
-		metadata.Retention = new RetentionPolicy(
-					isPermanent: requestData.IsPermanent,
-					expirationDate: DateTimeHelpers.NormalizeToUtc(requestData.ExpirationDate, sourceFlag.Metadata.Retention.ExpirationDate));
+		if (requestData.ExpirationDate.HasValue)
+			metadata.RetentionPolicy = new RetentionPolicy(requestData.ExpirationDate.Value);
 
 		return new FeatureFlag(Identifier: sourceFlag.Identifier,
 			Metadata: metadata,
@@ -109,7 +107,7 @@ public sealed class UpdateFlagRequestValidator : AbstractValidator<UpdateFlagReq
 			.WithMessage("Feature flag description cannot exceed 1000 characters");
 
 		RuleFor(c => c.ExpirationDate)
-			.GreaterThan(DateTime.UtcNow)
+			.GreaterThan(DateTimeOffset.UtcNow)
 			.When(c => c.ExpirationDate.HasValue)
 			.WithMessage("Expiration date must be in the future");
 	}

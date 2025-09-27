@@ -1,18 +1,21 @@
-﻿using Propel.FeatureFlags.Helpers;
+﻿using Knara.UtcStrict;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Domain;
 
-public class RetentionPolicy(bool isPermanent, DateTime expirationDate)
+public class RetentionPolicy
 {
-	public DateTime ExpirationDate { get; } = 
-		isPermanent ? DateTime.MaxValue.ToUniversalTime() 
-					: DateTimeHelpers.NormalizeToUtc(expirationDate, DateTime.UtcNow.AddDays(30));
-	public bool IsPermanent { get; } = isPermanent;
+	public DateTime ExpirationDate { get; }
+	public bool IsPermanent { get; }
 
-	public static RetentionPolicy ApplicationDefault => new(isPermanent: false,
-		expirationDate: DateTime.UtcNow.AddDays(30));
+	public RetentionPolicy(UtcDateTime expirationDate)
+	{
+		ExpirationDate = expirationDate;
+		IsPermanent = expirationDate == UtcDateTime.MaxValue;
+	}
 
-	public static RetentionPolicy Global => new(isPermanent: true, DateTime.MaxValue.ToUniversalTime());
+	public static RetentionPolicy OneMonthRetentionPolicy => new(expirationDate: DateTimeOffset.UtcNow.AddDays(30));
+
+	public static RetentionPolicy GlobalPolicy => new(UtcDateTime.MaxValue);
 
 	public bool CanBeDeleted => !IsPermanent && ExpirationDate <= DateTime.UtcNow;
 }

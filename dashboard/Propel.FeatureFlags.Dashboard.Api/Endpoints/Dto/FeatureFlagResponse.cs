@@ -1,4 +1,5 @@
-﻿using Propel.FeatureFlags.Dashboard.Api.Domain;
+﻿using Knara.UtcStrict;
+using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Helpers;
 using System.Text.Json;
@@ -43,7 +44,7 @@ public record FeatureFlagResponse
 		var identifier = flag.Identifier ?? throw new ArgumentNullException(nameof(flag.Identifier));
 		var metadata = flag.Metadata ?? throw new ArgumentNullException(nameof(flag.Metadata));
 		var configuration = flag.Configuration ?? throw new ArgumentNullException(nameof(flag.Configuration));
-		var retention = metadata.Retention ?? throw new ArgumentNullException(nameof(metadata.Retention));
+		var retention = metadata.RetentionPolicy ?? throw new ArgumentNullException(nameof(metadata.RetentionPolicy));
 
 		Key = identifier.Key;
 		ApplicationName = identifier.ApplicationName;
@@ -74,16 +75,16 @@ public record FeatureFlagResponse
 
 	}
 
-	private static FlagSchedule? MapSchedule(ActivationSchedule schedule)
+	private static FlagSchedule? MapSchedule(UtcSchedule schedule)
 	{
 		if (schedule == null || !schedule.HasSchedule())
 		{
 			return null;
 		}
-		return new FlagSchedule(new DateTimeOffset(schedule.EnableOn), new DateTimeOffset(schedule.DisableOn));
+		return new FlagSchedule(schedule.EnableOn, schedule.DisableOn);
 	}
 
-	private static TimeWindow? MapTimeWindow(OperationalWindow window)
+	private static TimeWindow? MapTimeWindow(UtcTimeWindow window)
 	{
 		if (window == null || !window.HasWindow())
 		{
@@ -102,6 +103,6 @@ public record FeatureFlagResponse
 		{
 			return null;
 		}
-		return new AuditInfo(new DateTimeOffset(audit.Timestamp), audit.Actor);
+		return new AuditInfo(audit.Timestamp, audit.Actor);
 	}
 }

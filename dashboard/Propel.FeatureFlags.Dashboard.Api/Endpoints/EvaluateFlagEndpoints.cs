@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Services;
+using Propel.FeatureFlags.FlagEvaluationServices;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 
@@ -75,8 +75,7 @@ public sealed class FlagEvaluationHandler(
 			var context = new EvaluationContext(
 					tenantId: tenantId,
 					userId: userId,
-					attributes: attributeDict,
-					timeZone: "UTC");
+					attributes: attributeDict);
 
 			var evaluationResult = await evaluationManager.ProcessEvaluation(flag!.Configuration, context);
 

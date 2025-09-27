@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.Postgres;
 
-public class PostgresDbContext(DbContextOptions<DashboardDbContext> options) : DashboardDbContext(options)
+public class PostgresDbContext(DbContextOptions<PostgresDbContext> options) : DashboardDbContext(options)
 {
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
@@ -15,84 +15,15 @@ public class PostgresDbContext(DbContextOptions<DashboardDbContext> options) : D
 	}
 }
 
-public class DashboardRepository(DashboardDbContext context) : IDashboardRepository
+public class DashboardRepository(PostgresDbContext context) : BaseRepository(context), IDashboardRepository
 {
-	public async Task<FeatureFlag?> GetAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default)
-	{
-		var entity = await context.FeatureFlags
-			.AsNoTracking()
-			.Include(f => f.Metadata)
-			.Include(f => f.AuditTrail)
-			.FirstOrDefaultAsync(f =>
-				f.Key == identifier.Key &&
-				f.ApplicationName == (identifier.ApplicationName ?? "global") &&
-				f.ApplicationVersion == (identifier.ApplicationVersion ?? "0.0.0.0") &&
-				f.Scope == (int)identifier.Scope,
-				cancellationToken);
-
-		if (entity == null)
-			return null;
-
-		return Mapper.MapToDomain(entity);
-	}
-
-	public async Task<List<FeatureFlag>> GetAllAsync(CancellationToken cancellationToken = default)
-	{
-		var entities = await context.FeatureFlags
-						.AsNoTracking()
-						.Include(f => f.Metadata)
-						.Include(f => f.AuditTrail)
-						.OrderBy(f => f.Name)
-						.ThenBy(f => f.Key)
-						.ToListAsync(cancellationToken);
-
-		return [.. entities.Select(Mapper.MapToDomain)];
-	}
-
-	public async Task<PagedResult<FeatureFlag>> GetPagedAsync(int page, int pageSize, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default)
-	{
-		// Normalize page parameters
-		page = Math.Max(1, page);
-		pageSize = Math.Clamp(pageSize, 1, 100);
-
-		var query = context.FeatureFlags.AsQueryable();
-
-		// Apply filters
-		if (filter != null)
-		{
-			query = Filtering.ApplyFilters(query, filter);
-		}
-
-		// Get total count before pagination
-		var totalCount = await query.CountAsync(cancellationToken);
-
-		// Apply pagination and ordering
-		var entities = await query
-			.AsNoTracking()
-			.Include(f => f.Metadata)
-			.Include(f => f.AuditTrail)
-			.OrderBy(f => f.Name)
-			.ThenBy(f => f.Key)
-			.Skip((page - 1) * pageSize)
-			.Take(pageSize)
-			.ToListAsync(cancellationToken);
-
-		return new PagedResult<FeatureFlag>
-		{
-			Items = [.. entities.Select(Mapper.MapToDomain)],
-			TotalCount = totalCount,
-			Page = page,
-			PageSize = pageSize
-		};
-	}
-
 	public async Task<FeatureFlag> CreateAsync(FeatureFlag flag, CancellationToken cancellationToken = default)
 	{
 		var identifier = flag.Identifier;
 		var metadata = flag.Metadata;
 		var config = flag.Configuration;
 
-		await context.Database.ExecuteSqlRawAsync(@"
+		await Context.Database.ExecuteSqlRawAsync(@"
         INSERT INTO feature_flags (
             key, application_name, application_version, scope, name, description,
             evaluation_modes, scheduled_enable_date, scheduled_disable_date,
@@ -121,11 +52,11 @@ public class DashboardRepository(DashboardDbContext context) : IDashboardReposit
 		metadata.Name,
 		metadata.Description,
 		JsonSerializer.Serialize(config.ActiveEvaluationModes.Modes.Select(m => (int)m).ToArray()),
-		config.Schedule.HasSchedule() ? config.Schedule.EnableOn : DBNull.Value,
-		config.Schedule.HasSchedule() ? config.Schedule.DisableOn : DBNull.Value,
-		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StartOn : DBNull.Value,
-		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StopOn : DBNull.Value,
-		config.OperationalWindow.HasWindow() ? config.OperationalWindow.TimeZone : DBNull.Value,
+		config.Schedule.HasSchedule() ? config.Schedule.EnableOn.DateTime : null!,
+		config.Schedule.HasSchedule() ? config.Schedule.DisableOn.DateTime : null!,
+		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StartOn : null!,
+		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StopOn : null!,
+		config.OperationalWindow.HasWindow() ? config.OperationalWindow.TimeZone : null!,
 		JsonSerializer.Serialize(config.OperationalWindow.DaysActive.Select(d => (int)d).ToArray()),
 		JsonSerializer.Serialize(config.TargetingRules),
 		JsonSerializer.Serialize(config.UserAccessControl.Allowed),
@@ -136,12 +67,12 @@ public class DashboardRepository(DashboardDbContext context) : IDashboardReposit
 		config.TenantAccessControl.RolloutPercentage,
 		JsonSerializer.Serialize(config.Variations.Values),
 		config.Variations.DefaultVariation,
-		metadata.Retention.IsPermanent,
-		metadata.Retention.ExpirationDate,
+		metadata.RetentionPolicy.IsPermanent,
+		(DateTimeOffset)metadata.RetentionPolicy.ExpirationDate,
 		JsonSerializer.Serialize(metadata.Tags),
 		metadata.Created.Actor ?? "anonymous",
 		metadata.Created.Reason ?? "Flag created from the website",
-		metadata.Created.Timestamp);
+		(DateTimeOffset)metadata.Created.Timestamp);
 
 		return flag;
 	}
@@ -152,7 +83,7 @@ public class DashboardRepository(DashboardDbContext context) : IDashboardReposit
 		var metadata = flag.Metadata;
 		var config = flag.Configuration;
 
-		var updatedRows = await context.Database.ExecuteSqlRawAsync(@"
+		var updatedRows = await Context.Database.ExecuteSqlRawAsync(@"
         UPDATE feature_flags SET
             name = {4}, description = {5}, evaluation_modes = {6}::jsonb,
             scheduled_enable_date = {7}, scheduled_disable_date = {8},
@@ -174,11 +105,11 @@ public class DashboardRepository(DashboardDbContext context) : IDashboardReposit
 		metadata.Name,
 		metadata.Description,
 		JsonSerializer.Serialize(config.ActiveEvaluationModes.Modes.Select(m => (int)m).ToArray()),
-		config.Schedule.HasSchedule() ? config.Schedule.EnableOn : DBNull.Value,
-		config.Schedule.HasSchedule() ? config.Schedule.DisableOn : DBNull.Value,
-		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StartOn : DBNull.Value,
-		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StopOn : DBNull.Value,
-		config.OperationalWindow.HasWindow() ? config.OperationalWindow.TimeZone : DBNull.Value,
+		config.Schedule.HasSchedule() ? config.Schedule.EnableOn.DateTime : null!,
+		config.Schedule.HasSchedule() ? config.Schedule.DisableOn.DateTime : null!,
+		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StartOn : null!,
+		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StopOn : null!,
+		config.OperationalWindow.HasWindow() ? config.OperationalWindow.TimeZone : null!,
 		JsonSerializer.Serialize(config.OperationalWindow.DaysActive.Select(d => (int)d).ToArray()),
 		JsonSerializer.Serialize(config.TargetingRules),
 		JsonSerializer.Serialize(config.UserAccessControl.Allowed),
@@ -189,10 +120,10 @@ public class DashboardRepository(DashboardDbContext context) : IDashboardReposit
 		config.TenantAccessControl.RolloutPercentage,
 		JsonSerializer.Serialize(config.Variations.Values),
 		config.Variations.DefaultVariation,
+		metadata.LastModified?.Action ?? "flag-modified",
 		metadata.LastModified?.Actor ?? "anonymous",
-		metadata.LastModified?.Action ?? "flag-updated",
 		metadata.LastModified?.Reason ?? "not specified",
-		metadata.LastModified?.Timestamp ?? DateTimeOffset.UtcNow);
+		metadata.LastModified?.Timestamp.DateTime ?? DateTimeOffset.UtcNow);
 
 		if (updatedRows == 0)
 		{
@@ -207,7 +138,7 @@ public class DashboardRepository(DashboardDbContext context) : IDashboardReposit
 		var identifier = flag.Identifier;
 		var metadata = flag.Metadata;
 
-		await context.Database.ExecuteSqlRawAsync(@"
+		await Context.Database.ExecuteSqlRawAsync(@"
         INSERT INTO feature_flags_metadata (
             flag_key, application_name, application_version,
             is_permanent, expiration_date, tags
@@ -225,37 +156,57 @@ public class DashboardRepository(DashboardDbContext context) : IDashboardReposit
 			identifier.Key,
 			identifier.ApplicationName ?? "global",
 			identifier.ApplicationVersion ?? "0.0.0.0",
-			metadata.Retention.IsPermanent,
-			metadata.Retention.ExpirationDate,
+			metadata.RetentionPolicy.IsPermanent,
+			(DateTimeOffset)metadata.RetentionPolicy.ExpirationDate,
 			JsonSerializer.Serialize(metadata.Tags),
 			metadata.LastModified?.Actor ?? "anonymous",
 			metadata.LastModified?.Reason ?? "Metadata updated",
-			metadata.LastModified?.Timestamp ?? DateTimeOffset.UtcNow);
+			(DateTimeOffset)(metadata.LastModified?.Timestamp ?? DateTimeOffset.UtcNow));
 
 		return flag;
 	}
 
 	public async Task<bool> DeleteAsync(FlagIdentifier identifier, string userid, string reason, CancellationToken cancellationToken = default)
 	{
-		var deletedRows = await context.Database.ExecuteSqlRawAsync(@"
+		var sql = $@"
+DO $$
+BEGIN
+    -- Check if the record exists
+    IF EXISTS (
+        SELECT 1 FROM feature_flags
+        WHERE key = '{identifier.Key}'
+          AND application_name = '{identifier.ApplicationName ?? "global"}'
+          AND application_version = '{identifier.ApplicationVersion ?? "0.0.0.0"}'
+          AND scope = {(int)identifier.Scope}
+    ) THEN
+        -- Execute the DELETE and INSERT statements if the record exists
+        DELETE FROM feature_flags_metadata
+        WHERE flag_key = '{identifier.Key}'
+          AND application_name = '{identifier.ApplicationName ?? "global"}'
+          AND application_version = '{identifier.ApplicationVersion ?? "0.0.0.0"}';
+
+        DELETE FROM feature_flags
+        WHERE key = '{identifier.Key}'
+          AND application_name = '{identifier.ApplicationName ?? "global"}'
+          AND application_version = '{identifier.ApplicationVersion ?? "0.0.0.0"}'
+          AND scope = {(int)identifier.Scope};
+
         INSERT INTO feature_flags_audit (
             flag_key, application_name, application_version,
             action, actor, reason, timestamp
-        ) VALUES ({0}, {1}, {2}, 'flag-deleted', {3}, {4}, {5});
+        ) VALUES (
+            '{identifier.Key}',
+            '{identifier.ApplicationName ?? "global"}',
+            '{identifier.ApplicationVersion ?? "0.0.0.0"}',
+            'flag-deleted',
+            '{userid}',
+            '{reason}',
+            '{DateTimeOffset.UtcNow}'
+        );
+    END IF;
+END $$;";
 
-        DELETE FROM feature_flags_metadata 
-        WHERE flag_key = {0} AND application_name = {1} AND application_version = {2};
-
-        DELETE FROM feature_flags 
-        WHERE key = {0} AND application_name = {1} AND application_version = {2} AND scope = {6};",
-		identifier.Key,
-		identifier.ApplicationName ?? "global",
-		identifier.ApplicationVersion ?? "0.0.0.0",
-		userid,
-		reason,
-		DateTimeOffset.UtcNow,
-		(int)identifier.Scope);
-
-		return deletedRows > 0;
+		var deletedRows = await Context.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+		return true;
 	}
 }

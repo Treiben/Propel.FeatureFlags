@@ -1,26 +1,25 @@
-﻿using Propel.FeatureFlags.Helpers;
+﻿using Knara.UtcStrict;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Domain;
 
 public class AuditTrail
 {
-	public DateTime Timestamp { get; }
+	public UtcDateTime Timestamp { get; }
 	public string Actor { get; }
 	public string Action { get; }
 	public string Reason { get; set; }
 
 	// This method is used to create new audit records in valid state
-	public AuditTrail(DateTime timestamp, string actor, string? action = null, string reason = "Not specified")
+	public AuditTrail(UtcDateTime timestamp, string actor,
+		string? action = null, string reason = "Not specified")
 	{
-		var utcChangedAt = DateTimeHelpers.NormalizeToUtc(dateTime: timestamp, utcReplacementDt: DateTime.UtcNow);
-
 		// Validate creation timestamp
-		if (utcChangedAt > DateTime.UtcNow.AddMinutes(1))
+		if (timestamp > UtcDateTime.UtcNow)
 		{
 			throw new ArgumentException("Change timestamp must be a valid past or current time.", nameof(timestamp));
 		}
 
-		Timestamp = utcChangedAt;
+		Timestamp = timestamp;
 		Actor = ValidateAndNormalize(actor);
 		Action = ValidateAndNormalize(action ?? string.Empty);
 		Reason = ValidateAndNormalize(reason);
@@ -28,7 +27,7 @@ public class AuditTrail
 
 	public static AuditTrail FlagCreated(string? createdBy = null)
 	{
-		var timestamp = DateTime.UtcNow;
+		var timestamp = UtcDateTime.UtcNow;
 		var action = "flag-created";
 		var creator = createdBy ?? "system";
 

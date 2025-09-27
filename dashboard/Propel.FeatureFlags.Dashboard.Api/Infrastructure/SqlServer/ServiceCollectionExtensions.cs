@@ -6,7 +6,7 @@ public static class ServiceCollectionExtensions
 {
 	public static IServiceCollection AddSqlServerDbContext(this IServiceCollection services, string connectionString)
 	{
-		services.AddDbContext<DashboardDbContext, SqlServerDbContext>(options =>
+		services.AddDbContext<SqlServerDbContext>(options =>
 		{
 			options.UseSqlServer(connectionString, sqlOptions =>
 			{

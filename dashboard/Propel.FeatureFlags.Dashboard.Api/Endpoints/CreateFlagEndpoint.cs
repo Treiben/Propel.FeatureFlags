@@ -48,7 +48,7 @@ public sealed class CreateGlobalFlagHandler(
 		{
 			var identifier = new FlagIdentifier(request.Key, Scope.Global);
 			var metadata = Metadata.Create(identifier, request.Name, request.Description ?? string.Empty);
-			metadata.Retention = RetentionPolicy.Global;
+			metadata.RetentionPolicy = RetentionPolicy.GlobalPolicy;
 			metadata.Tags = request.Tags ?? [];
 			metadata.Created = AuditTrail.FlagCreated(currentUserService.UserName!);
 
