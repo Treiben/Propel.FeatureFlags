@@ -5,20 +5,14 @@ namespace Propel.FeatureFlags.Domain;
 public class FlagEvaluationConfiguration
 {
 	public FlagIdentifier Identifier { get; } 
-
-	public EvaluationModes ActiveEvaluationModes { get; } = EvaluationModes.FlagIsDisabled;
-
-	public UtcSchedule Schedule { get;} = UtcSchedule.Unscheduled;
-	public UtcTimeWindow OperationalWindow { get; } = UtcTimeWindow.AlwaysOpen;
-
-	// Targeting
-	public List<ITargetingRule> TargetingRules { get; } = [];
-
-	public AccessControl UserAccessControl { get; } = AccessControl.Unrestricted;
-	public AccessControl TenantAccessControl { get; } = AccessControl.Unrestricted;
-
+	public EvaluationModes ActiveEvaluationModes { get; }
+	public UtcSchedule Schedule { get;}
+	public UtcTimeWindow OperationalWindow { get; }
+	public List<ITargetingRule> TargetingRules { get; }
+	public AccessControl UserAccessControl { get; }
+	public AccessControl TenantAccessControl { get; } 
 	// Variations for A/B testing
-	public Variations Variations { get; } = Variations.OnOff;
+	public Variations Variations { get; }
 
 	public FlagEvaluationConfiguration(FlagIdentifier identifier,
 		EvaluationModes? activeEvaluationModes = null,
