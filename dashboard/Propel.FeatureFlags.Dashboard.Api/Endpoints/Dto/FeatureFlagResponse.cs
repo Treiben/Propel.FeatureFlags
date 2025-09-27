@@ -43,7 +43,7 @@ public record FeatureFlagResponse
 	{
 		var identifier = flag.Identifier ?? throw new ArgumentNullException(nameof(flag.Identifier));
 		var metadata = flag.Metadata ?? throw new ArgumentNullException(nameof(flag.Metadata));
-		var configuration = flag.Configuration ?? throw new ArgumentNullException(nameof(flag.Configuration));
+		var configuration = flag.EvalConfig ?? throw new ArgumentNullException(nameof(flag.EvalConfig));
 		var retention = metadata.RetentionPolicy ?? throw new ArgumentNullException(nameof(metadata.RetentionPolicy));
 
 		Key = identifier.Key;
@@ -54,10 +54,9 @@ public record FeatureFlagResponse
 		Name = metadata.Name;
 		Description = metadata.Description;
 
-		Created = MapAudit(metadata.Created)!;
-		Updated = MapAudit(metadata.LastModified);
+		(Created, Updated) = MapChangeHistory(metadata.ChangeHistory);
 
-		Modes = [.. configuration.ActiveEvaluationModes.Modes];
+		Modes = [.. configuration.Modes.Modes];
 
 		Schedule = MapSchedule(configuration.Schedule);
 
@@ -97,12 +96,18 @@ public record FeatureFlagResponse
 			window.DaysActive);
 	}
 
-	private static AuditInfo? MapAudit(AuditTrail? audit)
+	private static (AuditInfo, AuditInfo) MapChangeHistory(List<AuditTrail> changeHistory)
 	{
-		if (audit == null)
+		if (changeHistory == null || changeHistory.Count == 0)
 		{
-			return null;
+			throw new ArgumentException("Change history cannot be null or empty.", nameof(changeHistory));
 		}
-		return new AuditInfo(audit.Timestamp, audit.Actor);
+
+		AuditTrail created = changeHistory[0];
+		AuditTrail? updated = changeHistory.Count > 1 ? changeHistory[^1] : null;
+
+		var createdInfo = new AuditInfo(created.Timestamp, created.Actor);
+		var updatedInfo = updated != null ? new AuditInfo(updated.Timestamp, updated.Actor) : createdInfo;
+		return (createdInfo!, updatedInfo!);
 	}
 }

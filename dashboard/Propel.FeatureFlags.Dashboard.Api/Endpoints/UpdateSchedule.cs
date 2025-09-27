@@ -10,7 +10,7 @@ using System.Text.Json;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 
-public record UpdateScheduleRequest(DateTimeOffset? EnableOn, DateTimeOffset? DisableOn);
+public record UpdateScheduleRequest(DateTimeOffset? EnableOn, DateTimeOffset? DisableOn, string? Notes);
 
 public sealed class UpdateScheduleEndpoint : IEndpoint
 {
@@ -53,21 +53,19 @@ public sealed class UpdateScheduleHandler(
 
 		try
 		{
-			var (isValid, result, source) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
+			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
 			if (!isValid) return result;
 
 			bool isScheduleRemoval = request.EnableOn == null && request.DisableOn == null;
 
-			var flagWithUpdatedSchedule = CreateFlagWithUpdatedSchedule(request, source!);
-			flagWithUpdatedSchedule!.UpdateAuditTrail(action: isScheduleRemoval ? "schedule-removed" : "schedule-changed", 
-				username: currentUserService.UserName!);
+			var flagWithUpdatedSchedule = CreateFlagWithUpdatedSchedule(request, flag!, currentUserService.UserName!);
 
 			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedSchedule, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);
 
 			var scheduleInfo = isScheduleRemoval
 				? "removed schedule"
-				: $"enable at {updatedFlag.Configuration.Schedule.EnableOn:yyyy-MM-dd HH:mm} UTC, disable at {updatedFlag.Configuration.Schedule.DisableOn:yyyy-MM-dd HH:mm} UTC";
+				: $"enable at {updatedFlag.EvalConfig.Schedule.EnableOn:yyyy-MM-dd HH:mm} UTC, disable at {updatedFlag.EvalConfig.Schedule.DisableOn:yyyy-MM-dd HH:mm} UTC";
 			logger.LogInformation("Feature flag {Key} schedule updated by {User}: {ScheduleInfo}",
 				key, currentUserService.UserName, JsonSerializer.Serialize(scheduleInfo));
 
@@ -83,48 +81,63 @@ public sealed class UpdateScheduleHandler(
 		}
 	}
 
-	private FeatureFlag CreateFlagWithUpdatedSchedule(UpdateScheduleRequest request, FeatureFlag source)
+	private FeatureFlag CreateFlagWithUpdatedSchedule(UpdateScheduleRequest request, FeatureFlag flag, string username)
 	{
-		var srcConfig = source!.Configuration;
-		bool isScheduleRemoval = request.EnableOn == null && request.DisableOn == null;
-		FlagEvaluationConfiguration configuration;
-		if (isScheduleRemoval)
-		{
-			var modes = new EvaluationModes([.. source.Configuration.ActiveEvaluationModes.Modes]);
-			modes.RemoveMode(EvaluationMode.Scheduled);
+		var oldconfig = flag!.EvalConfig;
+		bool removeSchedule = request.EnableOn == null && request.DisableOn == null;
 
-			configuration = new FlagEvaluationConfiguration(
-				identifier: source.Identifier,
-				activeEvaluationModes: modes,
-				schedule: UtcSchedule.Unscheduled,
-				operationalWindow: srcConfig.OperationalWindow,
-				userAccessControl: srcConfig.UserAccessControl,
-				tenantAccessControl: srcConfig.TenantAccessControl,
-				targetingRules: srcConfig.TargetingRules,
-				variations: srcConfig.Variations);
+		// Remove enabled/disabled modes as we're configuring specific scheduling
+		var modes = new EvaluationModes([.. oldconfig.Modes.Modes]);
+		modes.RemoveMode(EvaluationMode.On);
+		modes.RemoveMode(EvaluationMode.Off);
+
+		EvalConfiguration configuration;
+		Metadata metadata;
+
+		if (removeSchedule)
+		{
+			// Remove scheduled mode as we're removing scheduling
+			modes.RemoveMode(EvaluationMode.Scheduled);
+			// Reset schedule to unscheduled
+			configuration = oldconfig with
+			{
+				Modes = modes,
+				Schedule = UtcSchedule.Unscheduled
+			};
+			// Add to change history
+			metadata = flag.Metadata with
+			{
+				ChangeHistory =
+				[
+					.. flag.Metadata.ChangeHistory,
+					AuditTrail.FlagModified(username: username, notes: request.Notes ?? "Removed flag schedule"),
+				]
+			};
 		}
 		else
 		{
-			var modes = new EvaluationModes([.. source.Configuration.ActiveEvaluationModes.Modes]);
+			// Ensure the Scheduled mode is included
 			modes.AddMode(EvaluationMode.Scheduled);
-			var schedule = UtcSchedule.CreateSchedule(
-				request.EnableOn ?? UtcDateTime.MinValue, 
-				request.DisableOn ?? UtcDateTime.MaxValue);
-			configuration = new FlagEvaluationConfiguration(
-				identifier: source.Identifier,
-				activeEvaluationModes: modes,
-				schedule: schedule,
-				operationalWindow: srcConfig.OperationalWindow,
-				userAccessControl: srcConfig.UserAccessControl,
-				tenantAccessControl: srcConfig.TenantAccessControl,
-				targetingRules: srcConfig.TargetingRules,
-				variations: srcConfig.Variations);
+			// Update the schedule
+			configuration = oldconfig with
+			{
+				Modes = modes,
+				Schedule = UtcSchedule.CreateSchedule(
+					request.EnableOn ?? UtcDateTime.MinValue,
+					request.DisableOn ?? UtcDateTime.MaxValue)
+			};
+			// Add to change history
+			metadata = flag.Metadata with
+			{
+				ChangeHistory =
+				[
+					.. flag.Metadata.ChangeHistory,
+					AuditTrail.FlagModified(username: username, notes: request.Notes ?? "Updated flag schedule"),
+				]
+			};
 		}
 
-		return new FeatureFlag(
-					Identifier: source.Identifier,
-					Metadata: source.Metadata,
-					Configuration: configuration);
+		return flag with { EvalConfig = configuration, Metadata = metadata };
 	}
 }
 

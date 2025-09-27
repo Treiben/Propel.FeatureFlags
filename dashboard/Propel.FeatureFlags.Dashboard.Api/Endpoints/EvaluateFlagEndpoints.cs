@@ -77,7 +77,17 @@ public sealed class FlagEvaluationHandler(
 					userId: userId,
 					attributes: attributeDict);
 
-			var evaluationResult = await evaluationManager.ProcessEvaluation(flag!.Configuration, context);
+			var evaluationResult = await evaluationManager.ProcessEvaluation(
+				new FlagEvaluationConfiguration(
+						identifier: flag!.Identifier,
+						activeEvaluationModes: flag.EvalConfig.Modes,
+						schedule: flag.EvalConfig.Schedule,
+						operationalWindow: flag.EvalConfig.OperationalWindow,
+						targetingRules: flag.EvalConfig.TargetingRules,
+						userAccessControl: flag.EvalConfig.UserAccessControl,
+						tenantAccessControl: flag.EvalConfig.TenantAccessControl,
+						variations: flag.EvalConfig.Variations), 
+				context);
 
 			return Results.Ok(evaluationResult);
 		}

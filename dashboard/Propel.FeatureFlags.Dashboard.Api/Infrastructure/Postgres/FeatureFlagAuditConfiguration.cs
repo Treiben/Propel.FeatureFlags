@@ -50,7 +50,7 @@ public class FeatureFlagAuditConfiguration : IEntityTypeConfiguration<FeatureFla
 			.HasDefaultValueSql("NOW()") // PostgreSQL function
 			.IsRequired();
 
-		builder.Property(e => e.Reason)
-			.HasColumnName("reason");
+		builder.Property(e => e.Notes)
+			.HasColumnName("notes");
 	}
 }

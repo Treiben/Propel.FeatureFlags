@@ -47,15 +47,13 @@ public sealed class CreateGlobalFlagHandler(
 		try
 		{
 			var identifier = new FlagIdentifier(request.Key, Scope.Global);
-			var metadata = Metadata.Create(identifier, request.Name, request.Description ?? string.Empty);
-			metadata.RetentionPolicy = RetentionPolicy.GlobalPolicy;
-			metadata.Tags = request.Tags ?? [];
-			metadata.Created = AuditTrail.FlagCreated(currentUserService.UserName!);
+			var metadata = Metadata.Create(
+				Scope.Global,
+				request.Name,
+				request.Description ?? string.Empty,
+				AuditTrail.FlagCreated(currentUserService.UserName!)) with { Tags = request.Tags ?? [] };
 
-			var globalFlag = new FeatureFlag(
-				identifier,
-				metadata,
-				new FlagEvaluationConfiguration(identifier, EvaluationModes.FlagIsDisabled));
+			var globalFlag = new FeatureFlag(identifier, metadata, EvalConfiguration.DefaultConfiguration);
 
 			logger.LogInformation("Feature flag {Key} created successfully by {User}",
 				identifier.Key, currentUserService.UserName);

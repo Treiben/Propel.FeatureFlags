@@ -51,8 +51,8 @@ public class FeatureFlagAuditConfiguration : IEntityTypeConfiguration<FeatureFla
             .HasDefaultValueSql("GETUTCDATE()") // SQL Server function
             .IsRequired();
 
-        builder.Property(e => e.Reason)
-            .HasColumnName("Reason")
+        builder.Property(e => e.Notes)
+            .HasColumnName("Notes")
             .HasColumnType("NVARCHAR(MAX)");
     }
 }

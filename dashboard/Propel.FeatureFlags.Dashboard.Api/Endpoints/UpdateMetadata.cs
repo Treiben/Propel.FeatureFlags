@@ -7,9 +7,9 @@ using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 
-public record UpdateFlagRequest(string? Name, string? Description, Dictionary<string, string>? Tags, DateTimeOffset? ExpirationDate);
+public record UpdateFlagRequest(string? Name, string? Description, Dictionary<string, string>? Tags, DateTimeOffset? ExpirationDate, string? Notes);
 
-public sealed class UpdateFlagEndpoint : IEndpoint
+public sealed class UpdateMetadataEndpoint : IEndpoint
 {
 	public void AddEndpoint(IEndpointRouteBuilder app)
 	{
@@ -48,11 +48,10 @@ public sealed class UpdateFlagHandler(
 
 		try
 		{	
-			var (isValid, result, source) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
+			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
 			if (!isValid) return result;
 
-			var flagWithUpdatedMeta = CreateFlagWithUpdatedMetadata(request, source!);
-			flagWithUpdatedMeta!.UpdateAuditTrail(action: "metadata-changed", username: currentUserService.UserName!);
+			var flagWithUpdatedMeta = CreateFlagWithUpdatedMetadata(request, flag!, currentUserService.UserName!);
 
 			var updatedFlag = await repository.UpdateMetadataAsync(flagWithUpdatedMeta!, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);
@@ -70,25 +69,22 @@ public sealed class UpdateFlagHandler(
 		}
 	}
 
-	public static FeatureFlag CreateFlagWithUpdatedMetadata(UpdateFlagRequest requestData, FeatureFlag sourceFlag)
+	public static FeatureFlag CreateFlagWithUpdatedMetadata(UpdateFlagRequest request, FeatureFlag flag, string username)
 	{
-		// Update only non-null properties from the request
-		var metadata = Metadata.Create(
-			identifier: sourceFlag.Identifier,
-			name: string.IsNullOrWhiteSpace(requestData.Name) ? sourceFlag.Metadata.Name : requestData.Name,
-			description: string.IsNullOrWhiteSpace(requestData.Description) ? sourceFlag.Metadata.Description : requestData.Description);
+		var metadata = flag.Metadata with
+		{
+			Name = string.IsNullOrWhiteSpace(request.Name) ? flag.Metadata.Name : request.Name!.Trim(),
+			Description = string.IsNullOrWhiteSpace(request.Description) ? flag.Metadata.Description : request.Description!.Trim(),
+			Tags = request.Tags ?? flag.Metadata.Tags,
+			RetentionPolicy = request.ExpirationDate.HasValue ? new RetentionPolicy(request.ExpirationDate.Value) : flag.Metadata.RetentionPolicy,
+			ChangeHistory =
+			[
+				.. flag.Metadata.ChangeHistory,
+				AuditTrail.FlagModified(username: username, notes: request.Notes ?? "Flag metadata updated"),
+			]
+		};
 
-		if (requestData.Tags != null)
-			metadata.Tags = requestData.Tags;
-		else
-			metadata.Tags = sourceFlag.Metadata.Tags;
-
-		if (requestData.ExpirationDate.HasValue)
-			metadata.RetentionPolicy = new RetentionPolicy(requestData.ExpirationDate.Value);
-
-		return new FeatureFlag(Identifier: sourceFlag.Identifier,
-			Metadata: metadata,
-			Configuration: sourceFlag.Configuration);
+		return flag with { Metadata = metadata };
 	}
 }
 

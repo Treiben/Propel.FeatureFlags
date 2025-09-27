@@ -2,7 +2,6 @@ using Knara.UtcStrict;
 using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 using Propel.FeatureFlags.Domain;
-using Shouldly;
 
 namespace FeatureFlags.IntegrationTests.PostgreTests;
 
@@ -14,40 +13,36 @@ public class GetAsync_WithDashboardRepository(PostgresTestsFixture fixture) : IC
 		// Arrange
 		await fixture.ClearAllData();
 		var flagIdentifier = new FlagIdentifier("comprehensive-flag", Scope.Application, "test-app", "2.1.0");
-		var metadata = new Metadata
-		{
-			FlagIdentifier = flagIdentifier,
-			Name = "Comprehensive Test Flag",
-			Description = "Complete field mapping test with all possible values",
-			Tags = new Dictionary<string, string> { { "category", "testing" }, { "priority", "high" }, { "env", "staging" } },
-			RetentionPolicy = new RetentionPolicy(DateTimeOffset.UtcNow.AddDays(45)),
-			Created = new AuditTrail(DateTimeOffset.UtcNow.AddDays(-5), "test-creator", "flag-created", "Initial creation with full details")
-		};
+		var metadata = new Metadata(Name:"Comprehensive Test Flag",
+			Description: "Complete field mapping test with all possible values",
+			Tags: new Dictionary<string, string> { { "category", "testing" }, { "priority", "high" }, { "env", "staging" } },
+			RetentionPolicy: new RetentionPolicy(DateTimeOffset.UtcNow.AddDays(45)),
+			ChangeHistory: [new AuditTrail(DateTimeOffset.UtcNow.AddDays(-5), "test-creator", "flag-created", "Initial creation with full details")]
+		);
 
 		var scheduleBase = DateTimeOffset.UtcNow;
-		var configuration = new FlagEvaluationConfiguration(
-			identifier: flagIdentifier,
-			activeEvaluationModes: new EvaluationModes([EvaluationMode.UserTargeted, EvaluationMode.Scheduled, EvaluationMode.TenantTargeted]),
-			schedule: UtcSchedule.CreateSchedule(scheduleBase.AddDays(2), scheduleBase.AddDays(10)),
-			operationalWindow: new UtcTimeWindow(
+		var configuration = new EvalConfiguration(
+			Modes: new EvaluationModes([EvaluationMode.UserTargeted, EvaluationMode.Scheduled, EvaluationMode.TenantTargeted]),
+			Schedule: UtcSchedule.CreateSchedule(scheduleBase.AddDays(2), scheduleBase.AddDays(10)),
+			OperationalWindow: new UtcTimeWindow(
 				TimeSpan.FromHours(8),
 				TimeSpan.FromHours(18),
 				"America/New_York",
 				[DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday]),
-			targetingRules: [
+			TargetingRules: [
 				TargetingRuleFactory.CreateTargetingRule("environment", TargetingOperator.Equals, ["production"], "prod-variant"),
 				TargetingRuleFactory.CreateTargetingRule("region", TargetingOperator.In, ["US", "CA", "UK"], "regional-variant"),
 				TargetingRuleFactory.CreateTargetingRule("version", TargetingOperator.GreaterThan, ["2.0"], "new-version-variant")
 			],
-			userAccessControl: new AccessControl(
+			UserAccessControl: new AccessControl(
 				allowed: ["user1", "user2", "user3", "admin-user"],
 				blocked: ["blocked-user1", "blocked-user2", "suspended-user"],
 				rolloutPercentage: 75),
-			tenantAccessControl: new AccessControl(
+			TenantAccessControl: new AccessControl(
 				allowed: ["tenant-alpha", "tenant-beta", "tenant-gamma"],
 				blocked: ["blocked-tenant", "suspended-tenant"],
 				rolloutPercentage: 60),
-			variations: new Variations
+			Variations: new Variations
 			{
 				Values = new Dictionary<string, object>
 				{
@@ -85,64 +80,63 @@ public class GetAsync_WithDashboardRepository(PostgresTestsFixture fixture) : IC
 		result.Metadata.Tags["env"].ShouldBe("staging");
 
 		result.Metadata.RetentionPolicy.IsPermanent.ShouldBeFalse();
-		result.Metadata.RetentionPolicy.ExpirationDate.Date.ShouldBe(DateTime.UtcNow.AddDays(45).Date);
+		result.Metadata.RetentionPolicy.ExpirationDate.DateTime
+			.ShouldBeInRange(
+				metadata.RetentionPolicy.ExpirationDate.DateTime.AddSeconds(-1),
+				metadata.RetentionPolicy.ExpirationDate.DateTime.AddSeconds(1));
 
-		result.Metadata.Created.Actor.ShouldBe("test-creator");
-		result.Metadata.Created.Action.ShouldBe("flag-created");
-		result.Metadata.Created.Reason.ShouldBe("Initial creation with full details");
-
-		result.Metadata.LastModified.ShouldNotBeNull();
-		result.Metadata.LastModified.Actor.ShouldBe("test-creator");
-		result.Metadata.LastModified.Action.ShouldBe("flag-created");
-		result.Metadata.LastModified.Reason.ShouldBe("Initial creation with full details");
+		var lastHistoryItem = result.Metadata.ChangeHistory[^1];
+		lastHistoryItem.Actor.ShouldBe("test-creator");
+		lastHistoryItem.Action.ShouldBe("flag-created");
+		lastHistoryItem.Notes.ShouldBe("Initial creation with full details");
 		
 		// Configuration - Evaluation modes
-		result.Configuration.ActiveEvaluationModes.ContainsModes([EvaluationMode.UserTargeted]).ShouldBeTrue();
-		result.Configuration.ActiveEvaluationModes.ContainsModes([EvaluationMode.Scheduled]).ShouldBeTrue();
-		result.Configuration.ActiveEvaluationModes.ContainsModes([EvaluationMode.TenantTargeted]).ShouldBeTrue();
+		result.EvalConfig.Modes.ContainsModes([EvaluationMode.UserTargeted]).ShouldBeTrue();
+		result.EvalConfig.Modes.ContainsModes([EvaluationMode.Scheduled]).ShouldBeTrue();
+		result.EvalConfig.Modes.ContainsModes([EvaluationMode.TenantTargeted]).ShouldBeTrue();
 		
 		// Schedule mapping
-		result.Configuration.Schedule.EnableOn.DateTime.ShouldBeInRange(
+		result.EvalConfig.Schedule.EnableOn.DateTime.ShouldBeInRange(
 			configuration.Schedule.EnableOn.DateTime.AddSeconds(-1), configuration.Schedule.EnableOn.DateTime.AddSeconds(1));
-		result.Configuration.Schedule.DisableOn.DateTime.ShouldBeInRange(
+		result.EvalConfig.Schedule.DisableOn.DateTime.ShouldBeInRange(
 			configuration.Schedule.DisableOn.DateTime.AddSeconds(-1), configuration.Schedule.DisableOn.DateTime.AddSeconds(1));
 		
 		// Operational window mapping
-		result.Configuration.OperationalWindow.StartOn.ShouldBe(TimeSpan.FromHours(8));
-		result.Configuration.OperationalWindow.StopOn.ShouldBe(TimeSpan.FromHours(18));
-		result.Configuration.OperationalWindow.TimeZone.ShouldBe("America/New_York");
-		result.Configuration.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Monday);
-		result.Configuration.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Wednesday);
-		result.Configuration.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Friday);
-		result.Configuration.OperationalWindow.DaysActive.ShouldNotContain(DayOfWeek.Saturday);
-		result.Configuration.OperationalWindow.DaysActive.ShouldNotContain(DayOfWeek.Sunday);
+		result.EvalConfig.OperationalWindow.StartOn.ShouldBe(TimeSpan.FromHours(8));
+		result.EvalConfig.OperationalWindow.StopOn.ShouldBe(TimeSpan.FromHours(18));
+		result.EvalConfig.OperationalWindow.TimeZone.ShouldBe("America/New_York");
+		result.EvalConfig.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Monday);
+		result.EvalConfig.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Wednesday);
+		result.EvalConfig.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Friday);
+		result.EvalConfig.OperationalWindow.DaysActive.ShouldNotContain(DayOfWeek.Saturday);
+		result.EvalConfig.OperationalWindow.DaysActive.ShouldNotContain(DayOfWeek.Sunday);
 		
 		// Access control mapping
-		result.Configuration.UserAccessControl.Allowed.ShouldContain("user1");
-		result.Configuration.UserAccessControl.Allowed.ShouldContain("admin-user");
-		result.Configuration.UserAccessControl.Blocked.ShouldContain("blocked-user1");
-		result.Configuration.UserAccessControl.Blocked.ShouldContain("suspended-user");
-		result.Configuration.UserAccessControl.RolloutPercentage.ShouldBe(75);
-		result.Configuration.TenantAccessControl.Allowed.ShouldContain("tenant-alpha");
-		result.Configuration.TenantAccessControl.Allowed.ShouldContain("tenant-gamma");
-		result.Configuration.TenantAccessControl.Blocked.ShouldContain("blocked-tenant");
-		result.Configuration.TenantAccessControl.RolloutPercentage.ShouldBe(60);
+		result.EvalConfig.UserAccessControl.Allowed.ShouldContain("user1");
+		result.EvalConfig.UserAccessControl.Allowed.ShouldContain("admin-user");
+		result.EvalConfig.UserAccessControl.Blocked.ShouldContain("blocked-user1");
+		result.EvalConfig.UserAccessControl.Blocked.ShouldContain("suspended-user");
+		result.EvalConfig.UserAccessControl.RolloutPercentage.ShouldBe(75);
+		result.EvalConfig.TenantAccessControl.Allowed.ShouldContain("tenant-alpha");
+		result.EvalConfig.TenantAccessControl.Allowed.ShouldContain("tenant-gamma");
+		result.EvalConfig.TenantAccessControl.Blocked.ShouldContain("blocked-tenant");
+		result.EvalConfig.TenantAccessControl.RolloutPercentage.ShouldBe(60);
 		
 		// Variations mapping
-		result.Configuration.Variations.Values.Count.ShouldBe(5);
-		result.Configuration.Variations.Values.ShouldContainKey("control");
-		result.Configuration.Variations.Values.ShouldContainKey("treatment");
-		result.Configuration.Variations.Values.ShouldContainKey("percentage");
-		result.Configuration.Variations.Values.ShouldContainKey("config");
-		result.Configuration.Variations.Values.ShouldContainKey("colors");
-		result.Configuration.Variations.DefaultVariation.ShouldBe("control");
+		result.EvalConfig.Variations.Values.Count.ShouldBe(5);
+		result.EvalConfig.Variations.Values.ShouldContainKey("control");
+		result.EvalConfig.Variations.Values.ShouldContainKey("treatment");
+		result.EvalConfig.Variations.Values.ShouldContainKey("percentage");
+		result.EvalConfig.Variations.Values.ShouldContainKey("config");
+		result.EvalConfig.Variations.Values.ShouldContainKey("colors");
+		result.EvalConfig.Variations.DefaultVariation.ShouldBe("control");
 		
 		// Targeting rules mapping
-		result.Configuration.TargetingRules.Count.ShouldBe(3);
-		var envRule = result.Configuration.TargetingRules.FirstOrDefault(r => r.Attribute == "environment");
+		result.EvalConfig.TargetingRules.Count.ShouldBe(3);
+		var envRule = result.EvalConfig.TargetingRules.FirstOrDefault(r => r.Attribute == "environment");
 		envRule.ShouldNotBeNull();
 		envRule.Variation.ShouldBe("prod-variant");
-		var regionRule = result.Configuration.TargetingRules.FirstOrDefault(r => r.Attribute == "region");
+		var regionRule = result.EvalConfig.TargetingRules.FirstOrDefault(r => r.Attribute == "region");
 		regionRule.ShouldNotBeNull();
 		regionRule.Variation.ShouldBe("regional-variant");
 	}
@@ -201,14 +195,21 @@ public class GetAllAsync_WithDashboardRepository(PostgresTestsFixture fixture) :
 	private static FeatureFlag CreateTestFlag(string key, string name)
 	{
 		var identifier = new FlagIdentifier(key, Scope.Global);
-		var metadata = new Metadata
-		{
-			FlagIdentifier = identifier,
-			Name = name,
-			Description = "Test description",
-			Created = AuditTrail.FlagCreated("test-user")
-		};
-		var configuration = new FlagEvaluationConfiguration(identifier, new EvaluationModes([EvaluationMode.On]));
+		var metadata = new Metadata(
+			Name: name,
+			Description: "Test description",
+			RetentionPolicy: RetentionPolicy.GlobalPolicy,
+			Tags: [],
+			ChangeHistory: [AuditTrail.FlagCreated("test-user")]);
+
+		var configuration = new EvalConfiguration(
+			Modes: new EvaluationModes([EvaluationMode.On]),
+			Schedule: UtcSchedule.Unscheduled,
+			OperationalWindow: UtcTimeWindow.AlwaysOpen,
+			TargetingRules: [],
+			UserAccessControl: AccessControl.Unrestricted,
+			TenantAccessControl: AccessControl.Unrestricted,
+			Variations: Variations.OnOff);
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
 }
@@ -262,14 +263,22 @@ public class GetPagedAsync_WithDashboardRepository(PostgresTestsFixture fixture)
 	private static FeatureFlag CreateTestFlag(string key, string name, Scope scope = Scope.Global, string? appName = null)
 	{
 		var identifier = new FlagIdentifier(key, scope, appName);
-		var metadata = new Metadata
-		{
-			FlagIdentifier = identifier,
-			Name = name,
-			Description = "Test description",
-			Created = AuditTrail.FlagCreated("test-user")
-		};
-		var configuration = new FlagEvaluationConfiguration(identifier, new EvaluationModes([EvaluationMode.On]));
+		var metadata = new Metadata(
+					Name: name,
+					Description: "Test description",
+					RetentionPolicy: RetentionPolicy.GlobalPolicy,
+					Tags: [],
+					ChangeHistory: [AuditTrail.FlagCreated("test-user")]);
+
+		var configuration = new EvalConfiguration(
+			Modes: new EvaluationModes([EvaluationMode.On]),
+			Schedule: UtcSchedule.Unscheduled,
+			OperationalWindow: UtcTimeWindow.AlwaysOpen,
+			TargetingRules: [],
+			UserAccessControl: AccessControl.Unrestricted,
+			TenantAccessControl: AccessControl.Unrestricted,
+			Variations: Variations.OnOff);
+
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
 }
@@ -282,14 +291,21 @@ public class CreateAsync_WithDashboardRepository(PostgresTestsFixture fixture) :
 		// Arrange
 		await fixture.ClearAllData();
 		var identifier = new FlagIdentifier("create-test-flag", Scope.Global);
-		var metadata = new Metadata
-		{
-			FlagIdentifier = identifier,
-			Name = "Create Test Flag",
-			Description = "Test flag creation",
-			Created = AuditTrail.FlagCreated("creator")
-		};
-		var configuration = new FlagEvaluationConfiguration(identifier, new EvaluationModes([EvaluationMode.On]));
+		var metadata = new Metadata(
+			Name: "Create Test Flag",
+			Description:"Test flag creation",
+			RetentionPolicy: RetentionPolicy.GlobalPolicy,
+			Tags: [],
+			ChangeHistory: [AuditTrail.FlagCreated("test-creator")]);
+		
+		var configuration = new EvalConfiguration(
+			Modes: new EvaluationModes([EvaluationMode.On]),
+			Schedule: UtcSchedule.Unscheduled,
+			OperationalWindow: UtcTimeWindow.AlwaysOpen,
+			TargetingRules: [],
+			UserAccessControl: AccessControl.Unrestricted,
+			TenantAccessControl: AccessControl.Unrestricted,
+			Variations: Variations.OnOff);
 		var flag = new FeatureFlag(identifier, metadata, configuration);
 
 		// Act
@@ -300,7 +316,9 @@ public class CreateAsync_WithDashboardRepository(PostgresTestsFixture fixture) :
 		var retrieved = await fixture.DashboardRepository.GetAsync(identifier);
 		retrieved.ShouldNotBeNull();
 		retrieved.Metadata.Name.ShouldBe("Create Test Flag");
-		retrieved.Metadata.Created.Action.ShouldBe("flag-created");
+
+		var lastHistoryItem = result.Metadata.ChangeHistory[^1];
+		lastHistoryItem.Action.ShouldBe("flag-created");
 	}
 
 	[Fact]
@@ -309,25 +327,34 @@ public class CreateAsync_WithDashboardRepository(PostgresTestsFixture fixture) :
 		// Arrange
 		await fixture.ClearAllData();
 		var identifier = new FlagIdentifier("complex-create-flag", Scope.Application, "test-app");
-		var metadata = new Metadata
-		{
-			FlagIdentifier = identifier,
-			Name = "Complex Create Flag",
-			Description = "Testing complex flag creation",
-			Tags = new Dictionary<string, string> { { "env", "staging" }, { "team", "devops" } },
-			Created = AuditTrail.FlagCreated("creator")
-		};
-		var configuration = new FlagEvaluationConfiguration(
-				identifier,
-				new EvaluationModes([EvaluationMode.UserTargeted, EvaluationMode.Scheduled]),
-						UtcSchedule.CreateSchedule(DateTimeOffset.UtcNow.AddDays(1), DateTimeOffset.UtcNow.AddDays(7)),
-						new UtcTimeWindow(TimeSpan.FromHours(9), TimeSpan.FromHours(17)),
-						userAccessControl: new AccessControl(["user1"], rolloutPercentage: 50),
-						variations: new Variations
-						{
-							Values = new Dictionary<string, object> { { "variant1", "red" }, { "variant2", "blue" } },
-							DefaultVariation = "variant1"
-						});
+		var metadata = new Metadata(
+				Name: "Complex Create Flag",
+				Description: "Testing complex flag creation",
+				RetentionPolicy: RetentionPolicy.GlobalPolicy,
+				Tags: new Dictionary<string, string> { { "env", "staging" }, { "team", "devops" } },
+				ChangeHistory: [AuditTrail.FlagCreated("test-creator")]);
+
+		var configuration = new EvalConfiguration(
+				Modes: new EvaluationModes([EvaluationMode.UserTargeted,
+											EvaluationMode.Scheduled,
+											EvaluationMode.UserRolloutPercentage,
+											EvaluationMode.TenantRolloutPercentage,
+											EvaluationMode.TenantTargeted,
+											EvaluationMode.TimeWindow,
+											EvaluationMode.TargetingRules]),
+				UtcSchedule.CreateSchedule(DateTimeOffset.UtcNow.AddDays(1), DateTimeOffset.UtcNow.AddDays(7)),
+				OperationalWindow: new UtcTimeWindow(TimeSpan.FromHours(9), TimeSpan.FromHours(17), daysActive: [DayOfWeek.Monday, DayOfWeek.Wednesday]),
+				UserAccessControl: new AccessControl(allowed: ["user1"], blocked: ["user2"], rolloutPercentage: 50),
+				TenantAccessControl: new AccessControl(allowed: ["tenant1"], blocked: ["tenant2"], rolloutPercentage: 50),
+				TargetingRules: [
+					TargetingRuleFactory.CreateTargetingRule("role", TargetingOperator.Equals, ["admin", "superuser"], "admin-variant"),
+					TargetingRuleFactory.CreateTargetingRule("department", TargetingOperator.In, ["sales", "marketing"], "sales-variant")
+				],
+				Variations: new Variations
+				{
+					Values = new Dictionary<string, object> { { "variant1", "red" }, { "variant2", "blue" } },
+					DefaultVariation = "variant1"
+				});
 		var flag = new FeatureFlag(identifier, metadata, configuration);
 
 		// Act
@@ -335,10 +362,76 @@ public class CreateAsync_WithDashboardRepository(PostgresTestsFixture fixture) :
 
 		// Assert
 		result.ShouldNotBeNull();
+
 		var retrieved = await fixture.DashboardRepository.GetAsync(identifier);
+
 		retrieved.ShouldNotBeNull();
-		retrieved.Configuration.ActiveEvaluationModes.ContainsModes([EvaluationMode.UserTargeted]).ShouldBeTrue();
-		retrieved.Configuration.UserAccessControl.RolloutPercentage.ShouldBe(50);
+		//verify all metadata fields mapped correctly
+		retrieved.Metadata.Name.ShouldBe(metadata.Name);
+		retrieved.Metadata.Description.ShouldBe(metadata.Description);
+		retrieved.Metadata.Tags.Count.ShouldBe(2);
+		retrieved.Metadata.Tags["env"].ShouldBe("staging");
+		retrieved.Metadata.Tags["team"].ShouldBe("devops");
+		retrieved.Metadata.RetentionPolicy.IsPermanent.ShouldBeTrue();
+		retrieved.Metadata.ChangeHistory.Count.ShouldBe(1);
+		retrieved.Metadata.ChangeHistory[0].Action.ShouldBe("flag-created");
+
+		//verify all configuration fields mapped correctly
+		retrieved.EvalConfig.Modes.ContainsModes(
+			[EvaluationMode.UserTargeted,
+			EvaluationMode.Scheduled,
+			EvaluationMode.UserTargeted, 
+			EvaluationMode.UserRolloutPercentage, 
+			EvaluationMode.TenantRolloutPercentage, 
+			EvaluationMode.TenantTargeted,
+			EvaluationMode.TimeWindow,
+			EvaluationMode.TargetingRules]).ShouldBeTrue();
+
+		// verify schedule with slight tolerance for time differences
+		retrieved.EvalConfig.Schedule.EnableOn.DateTime
+			.ShouldBeInRange(configuration.Schedule.EnableOn.DateTime.AddSeconds(-1),
+			configuration.Schedule.EnableOn.DateTime.AddSeconds(1));
+		retrieved.EvalConfig.Schedule.DisableOn.DateTime
+			.ShouldBeInRange(configuration.Schedule.DisableOn.DateTime.AddSeconds(-1),
+			configuration.Schedule.DisableOn.DateTime.AddSeconds(1));
+
+		// operational window
+		retrieved.EvalConfig.OperationalWindow.StartOn.ShouldBe(configuration.OperationalWindow.StartOn);
+		retrieved.EvalConfig.OperationalWindow.StopOn.ShouldBe(configuration.OperationalWindow.StopOn);
+		retrieved.EvalConfig.OperationalWindow.TimeZone.ShouldBe("UTC");
+		retrieved.EvalConfig.OperationalWindow.DaysActive.Length.ShouldBe(2);
+		retrieved.EvalConfig.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Monday);
+		retrieved.EvalConfig.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Wednesday);
+
+		// targeting rules
+		retrieved.EvalConfig.TargetingRules.Count.ShouldBe(2);
+		retrieved.EvalConfig.TargetingRules[0].Attribute.ShouldBe("role");
+		retrieved.EvalConfig.TargetingRules[0].Operator.ShouldBe(TargetingOperator.Equals);
+		retrieved.EvalConfig.TargetingRules[0].Variation.ShouldBe("admin-variant");
+
+		retrieved.EvalConfig.TargetingRules[1].Attribute.ShouldBe("department");
+		retrieved.EvalConfig.TargetingRules[1].Operator.ShouldBe(TargetingOperator.In);
+		retrieved.EvalConfig.TargetingRules[1].Variation.ShouldBe("sales-variant");
+
+		// variations
+		retrieved.EvalConfig.Variations.Values.Count.ShouldBe(2);
+		retrieved.EvalConfig.Variations.Values["variant1"].ToString().ShouldBe("red");
+		retrieved.EvalConfig.Variations.Values["variant2"].ToString().ShouldBe("blue");
+		retrieved.EvalConfig.Variations.DefaultVariation.ShouldBe("variant1");
+
+		// user access control
+		retrieved.EvalConfig.UserAccessControl.Allowed.Count.ShouldBe(1);
+		retrieved.EvalConfig.UserAccessControl.Allowed.ShouldContain("user1");
+		retrieved.EvalConfig.UserAccessControl.Blocked.Count.ShouldBe(1);
+		retrieved.EvalConfig.UserAccessControl.Blocked.ShouldContain("user2");
+		retrieved.EvalConfig.UserAccessControl.RolloutPercentage.ShouldBe(50);
+
+		// tenant access control
+		retrieved.EvalConfig.TenantAccessControl.Allowed.Count.ShouldBe(1);
+		retrieved.EvalConfig.TenantAccessControl.Allowed.ShouldContain("tenant1");
+		retrieved.EvalConfig.TenantAccessControl.Blocked.Count.ShouldBe(1);
+		retrieved.EvalConfig.TenantAccessControl.Blocked.ShouldContain("tenant2");
+		retrieved.EvalConfig.TenantAccessControl.RolloutPercentage.ShouldBe(50);
 	}
 }
 
@@ -353,10 +446,11 @@ public class UpdateAsync_WithDashboardRepository(PostgresTestsFixture fixture) :
 		var originalFlag = CreateTestFlag(flagIdentifier, "Original Name");
 		await fixture.DashboardRepository.CreateAsync(originalFlag);
 
-		var updatedFlag = originalFlag;
-		updatedFlag.Metadata.Name = "Updated Name";
-		updatedFlag.Metadata.Description = "Updated description";
-		updatedFlag.Metadata.LastModified = new AuditTrail(DateTimeOffset.UtcNow, "updater", "flag-updated", "Updated for test");
+		var updatedFlag = originalFlag with { Metadata = new Metadata(Name: "Updated Name", 
+				Description: "Updated Description", 
+				RetentionPolicy: RetentionPolicy.GlobalPolicy, 
+				Tags: originalFlag.Metadata.Tags, 
+				ChangeHistory: [.. originalFlag.Metadata.ChangeHistory, AuditTrail.FlagModified("updater", "Updated for test")]) };
 
 		// Act
 		var result = await fixture.DashboardRepository.UpdateAsync(updatedFlag);
@@ -366,19 +460,27 @@ public class UpdateAsync_WithDashboardRepository(PostgresTestsFixture fixture) :
 		var retrieved = await fixture.DashboardRepository.GetAsync(flagIdentifier);
 		retrieved.ShouldNotBeNull();
 		retrieved.Metadata.Name.ShouldBe("Updated Name");
-		retrieved.Metadata.LastModified.Action.ShouldBe("flag-updated");
+		retrieved.Metadata.ChangeHistory.Count.ShouldBe(2);
+		retrieved.Metadata.ChangeHistory[0].Actor.ShouldBe("updater");
 	}
 
 	private static FeatureFlag CreateTestFlag(FlagIdentifier identifier, string name)
 	{
-		var metadata = new Metadata
-		{
-			FlagIdentifier = identifier,
-			Name = name,
-			Description = "Test description",
-			Created = AuditTrail.FlagCreated("test-user")
-		};
-		var configuration = new FlagEvaluationConfiguration(identifier, new EvaluationModes([EvaluationMode.On]));
+		var metadata = new Metadata(
+			Name: name,
+			Description: "Test description",
+			RetentionPolicy: RetentionPolicy.GlobalPolicy,
+			Tags: new Dictionary<string, string> { { "env", "staging" }, { "team", "devops" } },
+			ChangeHistory: [AuditTrail.FlagCreated("test-creator")]);
+
+		var configuration = new EvalConfiguration(
+				Modes: new EvaluationModes([EvaluationMode.On]),
+				Schedule: UtcSchedule.Unscheduled,
+				OperationalWindow: UtcTimeWindow.AlwaysOpen,
+				TargetingRules: [],
+				UserAccessControl: AccessControl.Unrestricted,
+				TenantAccessControl: AccessControl.Unrestricted,
+				Variations: Variations.OnOff);
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
 }
@@ -405,14 +507,21 @@ public class DeleteAsync_WithDashboardRepository(PostgresTestsFixture fixture) :
 
 	private static FeatureFlag CreateTestFlag(FlagIdentifier identifier, string name)
 	{
-		var metadata = new Metadata
-		{
-			FlagIdentifier = identifier,
-			Name = name,
-			Description = "Test description",
-			Created = AuditTrail.FlagCreated("test-user")
-		};
-		var configuration = new FlagEvaluationConfiguration(identifier, new EvaluationModes([EvaluationMode.On]));
+		var metadata = new Metadata(
+			Name: name,
+			Description: "Test description",
+			RetentionPolicy: RetentionPolicy.GlobalPolicy,
+			Tags: new Dictionary<string, string> { { "env", "staging" }, { "team", "devops" } },
+			ChangeHistory: [AuditTrail.FlagCreated("test-creator")]);
+
+		var configuration = new EvalConfiguration(
+				Modes: new EvaluationModes([EvaluationMode.On]),
+				Schedule: UtcSchedule.Unscheduled,
+				OperationalWindow: UtcTimeWindow.AlwaysOpen,
+				TargetingRules: [],
+				UserAccessControl: AccessControl.Unrestricted,
+				TenantAccessControl: AccessControl.Unrestricted,
+				Variations: Variations.OnOff);
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
 }
@@ -425,18 +534,23 @@ public class FeatureFlagRepositoryComprehensiveTests(PostgresTestsFixture fixtur
 		// Arrange
 		await fixture.ClearAllData();
 		var flagIdentifier = new FlagIdentifier("minmax-datetime-flag", Scope.Global);
-		var metadata = new Metadata
-		{
-			FlagIdentifier = flagIdentifier,
-			Name = "Min/Max DateTime Test Flag",
-			Description = "Testing min/max datetime boundary values",
-			RetentionPolicy = new RetentionPolicy(UtcDateTime.MaxValue),
-			Created = new AuditTrail(new UtcDateTime(DateTime.MinValue.AddYears(1970)), "system", "flag-created", "Created with min datetime")
-		};
-		var configuration = new FlagEvaluationConfiguration(
-			identifier: flagIdentifier,
-			activeEvaluationModes: new EvaluationModes([EvaluationMode.Scheduled]),
-			schedule: UtcSchedule.CreateSchedule(new UtcDateTime(DateTime.MinValue.AddYears(3000)), new UtcDateTime(DateTime.MaxValue.AddYears(-1))));
+
+		var metadata = new Metadata(
+				Name: "Min/Max DateTime Test Flag",
+				Description: "Testing min/max datetime boundary values",
+				RetentionPolicy: RetentionPolicy.GlobalPolicy,
+				Tags: new Dictionary<string, string> { { "env", "staging" }, { "team", "devops" } },
+				ChangeHistory: [new AuditTrail(new UtcDateTime(DateTime.MinValue.AddYears(1970)), "system", "flag-created", "Created with min datetime")]);
+
+		var configuration = new EvalConfiguration(
+				Modes: new EvaluationModes([EvaluationMode.Scheduled]),
+				Schedule: UtcSchedule.CreateSchedule(new UtcDateTime(DateTime.MinValue.AddYears(3000)), new UtcDateTime(DateTime.MaxValue.AddYears(-1))),
+				OperationalWindow: UtcTimeWindow.AlwaysOpen,
+				TargetingRules: [],
+				UserAccessControl: AccessControl.Unrestricted,
+				TenantAccessControl: AccessControl.Unrestricted,
+				Variations: Variations.OnOff);
+
 		var flag = new FeatureFlag(flagIdentifier, metadata, configuration);
 
 		await fixture.DashboardRepository.CreateAsync(flag);
@@ -446,11 +560,11 @@ public class FeatureFlagRepositoryComprehensiveTests(PostgresTestsFixture fixtur
 
 		// Assert - Verify min/max datetime handling
 		result.ShouldNotBeNull();
-		result.Configuration.Schedule.EnableOn.DateTime.Year.ShouldBe(3001);
-		result.Configuration.Schedule.DisableOn.DateTime.Year.ShouldBeGreaterThan(9000);
+		result.EvalConfig.Schedule.EnableOn.DateTime.Year.ShouldBe(3001);
+		result.EvalConfig.Schedule.DisableOn.DateTime.Year.ShouldBeGreaterThan(9000);
 		result.Metadata.RetentionPolicy.IsPermanent.ShouldBeTrue();
-		result.Metadata.RetentionPolicy.ExpirationDate.ShouldBe(DateTime.MaxValue.ToUniversalTime());
-		result.Metadata.Created.Timestamp.DateTime.Year.ShouldBe(1971);
+		result.Metadata.RetentionPolicy.ExpirationDate.DateTime.ShouldBe(DateTime.MaxValue.ToUniversalTime());
+		result.Metadata.ChangeHistory[^1].Timestamp.DateTime.Year.ShouldBe(1971);
 	}
 
 	[Fact]
@@ -459,17 +573,23 @@ public class FeatureFlagRepositoryComprehensiveTests(PostgresTestsFixture fixtur
 		// Arrange
 		await fixture.ClearAllData();
 		var flagIdentifier = new FlagIdentifier("minimal-nullable-flag", Scope.Global);
-		var metadata = new Metadata
-		{
-			FlagIdentifier = flagIdentifier,
-			Name = "Minimal Nullable Flag",
-			Description = "Testing null/default values for optional fields",
-			Tags = [],
-			Created = AuditTrail.FlagCreated("test-user")
-		};
-		var configuration = new FlagEvaluationConfiguration(
-			identifier: flagIdentifier,
-			activeEvaluationModes: new EvaluationModes([EvaluationMode.On]));
+		var metadata = new Metadata(
+								Name: "Minimal Nullable Flag",
+								Description: "Testing null/default values for optional fields",
+								RetentionPolicy: RetentionPolicy.GlobalPolicy,
+								Tags: [],
+								ChangeHistory: [AuditTrail.FlagCreated("test-user")]
+							);
+
+		var configuration = new EvalConfiguration(
+				Modes: new EvaluationModes([EvaluationMode.On]),
+				Schedule: UtcSchedule.Unscheduled,
+				OperationalWindow: UtcTimeWindow.AlwaysOpen,
+				TargetingRules: [],
+				UserAccessControl: AccessControl.Unrestricted,
+				TenantAccessControl: AccessControl.Unrestricted,
+				Variations: Variations.OnOff);
+
 		var flag = new FeatureFlag(flagIdentifier, metadata, configuration);
 
 		await fixture.DashboardRepository.CreateAsync(flag);
@@ -481,29 +601,29 @@ public class FeatureFlagRepositoryComprehensiveTests(PostgresTestsFixture fixtur
 		result.ShouldNotBeNull();
 		result.Metadata.Tags.ShouldBeEmpty();
 
-		result.Metadata.LastModified.ShouldNotBeNull();
-		result.Metadata.LastModified.Actor.ShouldBe(metadata.Created.Actor);
-		result.Metadata.LastModified.Action.ShouldBe(metadata.Created.Action);
+		result.Metadata.ChangeHistory[^1].ShouldNotBeNull();
+		result.Metadata.ChangeHistory[^1].Actor.ShouldBe(metadata.ChangeHistory[^1].Actor);
+		result.Metadata.ChangeHistory[^1].Action.ShouldBe(metadata.ChangeHistory[^1].Action);
 
-		result.Configuration.Schedule.ShouldBe(UtcSchedule.Unscheduled);
+		result.EvalConfig.Schedule.ShouldBe(UtcSchedule.Unscheduled);
 
-		result.Configuration.OperationalWindow.TimeZone.ShouldBe("UTC");
-		result.Configuration.OperationalWindow.StartOn.ShouldBe(TimeSpan.Zero);
-		result.Configuration.OperationalWindow.StopOn.ShouldBe(new TimeSpan(23, 59, 59));
-		result.Configuration.OperationalWindow.DaysActive.Length.ShouldBe(7);
+		result.EvalConfig.OperationalWindow.TimeZone.ShouldBe("UTC");
+		result.EvalConfig.OperationalWindow.StartOn.ShouldBe(TimeSpan.Zero);
+		result.EvalConfig.OperationalWindow.StopOn.ShouldBe(new TimeSpan(23, 59, 59));
+		result.EvalConfig.OperationalWindow.DaysActive.Length.ShouldBe(7);
 
-		result.Configuration.TargetingRules.ShouldBeEmpty();
+		result.EvalConfig.TargetingRules.ShouldBeEmpty();
 
-		result.Configuration.UserAccessControl.Allowed.ShouldBeEmpty();
-		result.Configuration.UserAccessControl.Blocked.ShouldBeEmpty();
-		result.Configuration.UserAccessControl.RolloutPercentage.ShouldBe(100);
+		result.EvalConfig.UserAccessControl.Allowed.ShouldBeEmpty();
+		result.EvalConfig.UserAccessControl.Blocked.ShouldBeEmpty();
+		result.EvalConfig.UserAccessControl.RolloutPercentage.ShouldBe(100);
 
-		result.Configuration.TenantAccessControl.Allowed.ShouldBeEmpty();
-		result.Configuration.TenantAccessControl.Blocked.ShouldBeEmpty();
-		result.Configuration.TenantAccessControl.RolloutPercentage.ShouldBe(100);
+		result.EvalConfig.TenantAccessControl.Allowed.ShouldBeEmpty();
+		result.EvalConfig.TenantAccessControl.Blocked.ShouldBeEmpty();
+		result.EvalConfig.TenantAccessControl.RolloutPercentage.ShouldBe(100);
 
-		result.Configuration.Variations.DefaultVariation.ShouldBe("off");
-		result.Configuration.Variations.Values.ShouldContainKey("on");
-		result.Configuration.Variations.Values.ShouldContainKey("off");
+		result.EvalConfig.Variations.DefaultVariation.ShouldBe("off");
+		result.EvalConfig.Variations.Values.ShouldContainKey("on");
+		result.EvalConfig.Variations.Values.ShouldContainKey("off");
 	}
 }

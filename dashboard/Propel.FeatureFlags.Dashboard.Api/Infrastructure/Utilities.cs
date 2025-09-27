@@ -18,52 +18,31 @@ public static class Mapper
 			entity.ApplicationVersion);
 
 		// Create metadata
-		var metadata = MapMetadataToDomain(identifier, entity);
+		var metadata = MapMetadataToDomain(entity);
 
 		// Create configuration
-		var configuration = MapConfigurationToDomain(identifier, entity);
+		var configuration = MapConfigurationToDomain(entity);
 
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
 
-	public static Metadata MapMetadataToDomain(FlagIdentifier identifier, Entities.FeatureFlag entity)
-	{
-		var metadata = Metadata.Create(identifier, entity.Name, entity.Description);
+	public static Metadata MapMetadataToDomain(Entities.FeatureFlag entity) => new(
+			Name: entity.Name,
+			Description: entity.Description ?? string.Empty,
+			RetentionPolicy: new RetentionPolicy(entity.Metadata.ExpirationDate),
+			Tags: JsonSerializer.Deserialize<Dictionary<string, string>>(entity.Metadata.Tags) ?? [],
+			ChangeHistory: [.. entity.AuditTrail
+				.OrderByDescending(t => t.Timestamp)
+				.Select(MapAuditTrailToDomain)]);
 
-		var metadataEntity = entity.Metadata;
-		if (metadataEntity != null)
-		{
-			// Parse tags
-			try
-			{
-				var tags = JsonSerializer.Deserialize<Dictionary<string, string>>(metadataEntity.Tags) ?? [];
-				metadata.Tags = tags;
-			}
-			catch
-			{
-				metadata.Tags = [];
-			}
-
-			// Set retention policy
-			metadata.RetentionPolicy = new RetentionPolicy(metadataEntity.ExpirationDate);
-			metadata.Created = MapAuditTrailToDomain(entity.AuditTrail.First(t => t.Action == "flag-created"));
-			metadata.LastModified = MapAuditTrailToDomain(entity.AuditTrail.OrderByDescending(t => t.Timestamp).First());
-		}
-
-		return metadata;
-	}
-
-	public static AuditTrail MapAuditTrailToDomain(Entities.FeatureFlagAudit entity)
-	{
-		return new AuditTrail(
-				timestamp: entity.Timestamp,
-				actor: entity.Actor,
-				action: entity.Action,
-				reason: entity.Reason
+	public static AuditTrail MapAuditTrailToDomain(Entities.FeatureFlagAudit entity) => new(
+				Timestamp: entity.Timestamp,
+				Actor: entity.Actor,
+				Action: entity.Action,
+				Notes: entity.Notes
 			);
-	}
 
-	public static FlagEvaluationConfiguration MapConfigurationToDomain(FlagIdentifier identifier, Entities.FeatureFlag entity)
+	public static EvalConfiguration MapConfigurationToDomain(Entities.FeatureFlag entity)
 	{
 		// Parse evaluation modes
 		var evaluationModes = Parser.ParseEvaluationModes(entity.EvaluationModes);
@@ -98,8 +77,7 @@ public static class Mapper
 		// Parse variations
 		var variations = Parser.ParseVariations(entity.Variations, entity.DefaultVariation);
 
-		return new FlagEvaluationConfiguration(
-			identifier,
+		return new EvalConfiguration(
 			evaluationModes,
 			schedule,
 			operationalWindow,

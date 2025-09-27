@@ -12,14 +12,13 @@ public sealed class DeleteFlagEndpoint : IEndpoint
 	{
 		app.MapDelete("/api/feature-flags/{key}",
 			async (string key,
-					string? reason,
 					[FromHeader(Name = "X-Scope")] string scope,
 					[FromHeader(Name = "X-Application-Name")] string? applicationName,
 					[FromHeader(Name = "X-Application-Version")] string? applicationVersion,
 					DeleteFlagHandler deleteFlagHandler,
 					CancellationToken cancellationToken) =>
 			{
-				return await deleteFlagHandler.HandleAsync(key, new FlagRequestHeaders(scope, applicationName, applicationVersion), reason, cancellationToken);
+				return await deleteFlagHandler.HandleAsync(key, new FlagRequestHeaders(scope, applicationName, applicationVersion), cancellationToken);
 			})
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("DeleteFeatureFlag")
@@ -37,7 +36,7 @@ public sealed class DeleteFlagHandler(
 	ICurrentUserService currentUserService,
 	ILogger<DeleteFlagHandler> logger)
 {
-	public async Task<IResult> HandleAsync(string key, FlagRequestHeaders headers, string? reason, CancellationToken cancellationToken)
+	public async Task<IResult> HandleAsync(string key, FlagRequestHeaders headers, CancellationToken cancellationToken)
 	{
 		try
 		{
@@ -53,7 +52,7 @@ public sealed class DeleteFlagHandler(
 			}
 
 			var deleteResult = await repository.DeleteAsync(flag.Identifier,
-				currentUserService.UserName, reason ?? "not specified", cancellationToken);
+				currentUserService.UserName, "Flag deleted from dashboard", cancellationToken);
 
 			await cacheInvalidationService.InvalidateFlagAsync(flag.Identifier, cancellationToken);
 

@@ -8,7 +8,7 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 
-public record ManageTenantAccessRequest(string[]? AllowedTenants, string[]? BlockedTenants, int? Percentage);
+public record ManageTenantAccessRequest(string[]? AllowedTenants, string[]? BlockedTenants, int? Percentage, string? Notes);
 
 public sealed class UpdateTenantAccessControlEndpoints : IEndpoint
 {
@@ -50,11 +50,10 @@ public sealed class ManageTenantAccessHandler(
 	{
 		try
 		{
-			var (isValid, result, source) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
+			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
 			if (!isValid) return result;
 
-			var flagWithUpdatedTenants = CreateFlagWithUpdatedTenantAccess(request, source);
-			flagWithUpdatedTenants!.UpdateAuditTrail(action: "tenant-access-changed", username:currentUserService.UserName!);
+			var flagWithUpdatedTenants = CreateFlagWithUpdatedTenantAccess(request, flag!);
 
 			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedTenants, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);
@@ -70,11 +69,16 @@ public sealed class ManageTenantAccessHandler(
 		}
 	}
 
-	private FeatureFlag CreateFlagWithUpdatedTenantAccess(ManageTenantAccessRequest request, FeatureFlag source)
+	private FeatureFlag CreateFlagWithUpdatedTenantAccess(ManageTenantAccessRequest request, FeatureFlag flag)
 	{
-		var modes = new EvaluationModes([.. source.Configuration.ActiveEvaluationModes.Modes]);
-		modes.RemoveMode(EvaluationMode.On);
+		var oldconfig = flag.EvalConfig;
 
+		// Remove enabled/disabled modes as we're configuring specific access control
+		var modes = new EvaluationModes([.. oldconfig.Modes.Modes]);
+		modes.RemoveMode(EvaluationMode.On);
+		modes.RemoveMode(EvaluationMode.Off);
+
+		// Ensure correct evaluation modes are set based on the request
 		if (request.Percentage == 0) // Special case: 0% effectively disables the flag
 		{
 			modes.RemoveMode(EvaluationMode.TenantRolloutPercentage);
@@ -88,27 +92,27 @@ public sealed class ManageTenantAccessHandler(
 		{
 			modes.AddMode(EvaluationMode.TenantTargeted);
 		}
-		else
-		{
-			// If no tenants are specified, remove the TenantTargeted mode
+		else // If no tenants are specified, remove the TenantTargeted mode
+		{			
 			modes.RemoveMode(EvaluationMode.TenantTargeted);
 		}
 
 		var accessControl = new AccessControl(
 						allowed: [.. request.AllowedTenants ?? []],
 						blocked: [.. request.BlockedTenants ?? []],
-						rolloutPercentage: request.Percentage ?? source.Configuration.TenantAccessControl.RolloutPercentage);
+						rolloutPercentage: request.Percentage ?? oldconfig.TenantAccessControl.RolloutPercentage);
 
-		var configuration = new FlagEvaluationConfiguration(
-									identifier: source.Identifier,
-									activeEvaluationModes: modes,
-									schedule: source.Configuration.Schedule,
-									operationalWindow: source.Configuration.OperationalWindow,
-									userAccessControl: source.Configuration.UserAccessControl,
-									tenantAccessControl: accessControl,
-									targetingRules: source.Configuration.TargetingRules,
-									variations: source.Configuration.Variations);
-		return new FeatureFlag(source.Identifier, Metadata: source.Metadata, Configuration: configuration);
+		var configuration = oldconfig with { Modes = modes, TenantAccessControl = accessControl };
+		var metadata = flag.Metadata with
+		{
+			ChangeHistory = [.. flag.Metadata.ChangeHistory,
+				AuditTrail.FlagModified(currentUserService.UserName!, notes: request.Notes ??  $"Updated tenant access control: " +
+					$"AllowedTenants=[{string.Join(", ", accessControl.Allowed)}], " +
+					$"BlockedTenants=[{string.Join(", ", accessControl.Blocked)}], " +
+					$"RolloutPercentage={accessControl.RolloutPercentage}%")]
+		};
+
+		return flag with { EvalConfig = configuration, Metadata = metadata };
 	}
 }
 

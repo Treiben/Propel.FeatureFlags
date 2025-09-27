@@ -9,7 +9,7 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 
-public record UpdateTargetingRulesRequest(List<TargetingRuleRequest>? TargetingRules, bool RemoveTargetingRules);
+public record UpdateTargetingRulesRequest(List<TargetingRuleRequest>? TargetingRules, bool RemoveTargetingRules, string? Notes);
 
 public record TargetingRuleRequest(string Attribute, TargetingOperator Operator, List<string> Values, string Variation);
 
@@ -53,11 +53,10 @@ public sealed class UpdateTargetingRulesHandler(
 	{
 		try
 		{
-			var (isValid, result, source) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
+			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
 			if (!isValid) return result;
 
-			var flagWithUpdatedRules = CreateFlagWithUpdatedRules(request, source!);
-			flagWithUpdatedRules!.UpdateAuditTrail(action: "targeting-rules-changed", username:currentUserService.UserName!);
+			var flagWithUpdatedRules = CreateFlagWithUpdatedRules(request, flag!);
 
 			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedRules, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);
@@ -77,41 +76,54 @@ public sealed class UpdateTargetingRulesHandler(
 		}
 	}
 
-	public FeatureFlag CreateFlagWithUpdatedRules(UpdateTargetingRulesRequest request, FeatureFlag source)
+	public FeatureFlag CreateFlagWithUpdatedRules(UpdateTargetingRulesRequest request, FeatureFlag flag)
 	{
-		var srcConfig = source.Configuration;
-		// Remove enabled mode as we're configuring specific targeting
-		var modes = new EvaluationModes([.. source.Configuration.ActiveEvaluationModes.Modes]);
-		modes.RemoveMode(EvaluationMode.On);
+		var oldconfig = flag.EvalConfig;
 
-		var configuration = new FlagEvaluationConfiguration(
-									identifier: source.Identifier,
-									activeEvaluationModes: modes,
-									schedule: srcConfig.Schedule,
-									operationalWindow: srcConfig.OperationalWindow,
-									userAccessControl: srcConfig.UserAccessControl,
-									tenantAccessControl: srcConfig.TenantAccessControl,
-									variations: srcConfig.Variations);
+		// Remove enabled/disabled modes as we're configuring specific targeting
+		var modes = new EvaluationModes([.. oldconfig.Modes.Modes]);
+		modes.RemoveMode(EvaluationMode.On);
+		modes.RemoveMode(EvaluationMode.Off);
+
+		EvalConfiguration configuration;
+		Metadata metadata;
 		if (request.RemoveTargetingRules || request.TargetingRules == null || request.TargetingRules.Count == 0)
 		{
-			// remove the TargetingRules mode
+			// Remove the TargetingRules mode
 			modes.RemoveMode(EvaluationMode.TargetingRules);
+			// Clear existing targeting rules
+			configuration = oldconfig with { Modes = modes, TargetingRules = [] };
+			// add to change history
+			metadata = flag.Metadata with
+			{
+				ChangeHistory = [.. flag.Metadata.ChangeHistory,
+					AuditTrail.FlagModified(currentUserService.UserName!, request.Notes ?? "All targeting rules removed")]
+			};
 		}
 		else
 		{
-			// Replace existing targeting rules with new ones
-			configuration.TargetingRules.AddRange([.. request.TargetingRules.Select(dto =>
-							TargetingRuleFactory.CreateTargetingRule(
-															dto.Attribute,
-															dto.Operator,
-															dto.Values,
-															dto.Variation))]);
-
-			// Add the TargetingRules evaluation mode
+			// Ensure TargetingRules mode is active
 			modes.AddMode(EvaluationMode.TargetingRules);
+			// Replace existing targeting rules with new ones
+			configuration = oldconfig with
+			{
+				Modes = modes,
+				TargetingRules = [.. request.TargetingRules.Select(dto =>
+					TargetingRuleFactory.CreateTargetingRule(
+													dto.Attribute,
+													dto.Operator,
+													dto.Values,
+													dto.Variation))]
+			};
+			// add to change history
+			metadata = flag.Metadata with
+			{
+				ChangeHistory = [.. flag.Metadata.ChangeHistory,
+					AuditTrail.FlagModified(currentUserService.UserName!, request.Notes ?? "Targeting rules updated")]
+			};
 		}
 
-		return new FeatureFlag(Identifier: source.Identifier, Metadata: source.Metadata, Configuration: configuration);
+		return flag with { EvalConfig = configuration };
 	}
 }
 

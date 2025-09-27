@@ -8,7 +8,7 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 
-public record ManageUserAccessRequest(string[]? AllowedUsers, string[]? BlockedUsers, int? Percentage);
+public record ManageUserAccessRequest(string[]? AllowedUsers, string[]? BlockedUsers, int? Percentage, string? Notes);
 
 public sealed class UpdateUserAccessControlEndpoints : IEndpoint
 {
@@ -50,11 +50,10 @@ public sealed class ManageUserAccessHandler(
 	{
 		try
 		{
-			var (isValid, result, source) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
+			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
 			if (!isValid) return result;
 
-			var flagWithUpdatedUsers = CreateFlagWithUpdatedUsers(request, source!);
-			flagWithUpdatedUsers!.UpdateAuditTrail(action: "user-access-changed", username: currentUserService.UserName!);
+			var flagWithUpdatedUsers = CreateFlagWithUpdatedUsersAccess(request, flag!);
 
 			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedUsers, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);
@@ -70,11 +69,16 @@ public sealed class ManageUserAccessHandler(
 		}
 	}
 
-	private FeatureFlag CreateFlagWithUpdatedUsers(ManageUserAccessRequest request, FeatureFlag source)
+	private FeatureFlag CreateFlagWithUpdatedUsersAccess(ManageUserAccessRequest request, FeatureFlag flag)
 	{
-		var modes = new EvaluationModes([.. source.Configuration.ActiveEvaluationModes.Modes]);
-		modes.RemoveMode(EvaluationMode.On);
+		var oldconfig = flag.EvalConfig;
 
+		// Remove enabled/disabled modes as we're configuring specific access control
+		var modes = new EvaluationModes([.. oldconfig.Modes.Modes]);
+		modes.RemoveMode(EvaluationMode.On);
+		modes.RemoveMode(EvaluationMode.Off);
+
+		// Ensure correct evaluation modes are set based on the request
 		if (request.Percentage == 0) // Special case: 0% effectively disables the flag
 		{
 			modes.RemoveMode(EvaluationMode.UserRolloutPercentage);
@@ -88,28 +92,27 @@ public sealed class ManageUserAccessHandler(
 		{
 			modes.AddMode(EvaluationMode.UserTargeted);
 		}
-		else
+		else // If no users are specified, remove the UserTargeted mode
 		{
-			// If no users are specified, remove the UserTargeted mode
 			modes.RemoveMode(EvaluationMode.UserTargeted);
 		}
 
 		var accessControl = new AccessControl(
-							allowed: [.. request.AllowedUsers ?? []],
-							blocked: [.. request.BlockedUsers ?? []],
-							rolloutPercentage: request.Percentage ?? source.Configuration.UserAccessControl.RolloutPercentage);
+						allowed: [.. request.AllowedUsers ?? []],
+						blocked: [.. request.BlockedUsers ?? []],
+						rolloutPercentage: request.Percentage ?? oldconfig.UserAccessControl.RolloutPercentage);
 
-		var configuration = new FlagEvaluationConfiguration(
-									identifier: source.Identifier,
-									activeEvaluationModes: modes,
-									schedule: source.Configuration.Schedule,
-									operationalWindow: source.Configuration.OperationalWindow,
-									userAccessControl: accessControl,
-									tenantAccessControl: source.Configuration.TenantAccessControl,
-									targetingRules: source.Configuration.TargetingRules,
-									variations: source.Configuration.Variations);
+		var configuration = oldconfig with { Modes = modes, UserAccessControl = accessControl };
+		var metadata = flag.Metadata with
+		{
+			ChangeHistory = [.. flag.Metadata.ChangeHistory,
+				AuditTrail.FlagModified(currentUserService.UserName!, notes: request.Notes ??  $"Updated user access control: " +
+					$"AllowedUsers=[{string.Join(", ", accessControl.Allowed)}], " +
+					$"BlockedUsers=[{string.Join(", ", accessControl.Blocked)}], " +
+					$"RolloutPercentage={accessControl.RolloutPercentage}%")]
+		};
 
-		return new FeatureFlag(Identifier: source.Identifier, Metadata: source.Metadata, Configuration: configuration);
+		return flag with { EvalConfig = configuration, Metadata = metadata };
 	}
 }
 

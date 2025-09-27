@@ -14,7 +14,8 @@ public record UpdateTimeWindowRequest(
 	TimeOnly EndOn, 
 	string TimeZone, 
 	List<DayOfWeek> DaysActive,
-	bool RemoveTimeWindow);
+	bool RemoveTimeWindow,
+	string? Notes);
 
 public sealed class UpdateTimeWindowEndpoint : IEndpoint
 {
@@ -56,11 +57,10 @@ public sealed class UpdateTimeWindowHandler(
 	{
 		try
 		{
-			var (isValid, result, source) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
+			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
 			if (!isValid) return result;
 
-			var flagWithUpdatedWindow = CreateFlagWithUpdatedTimeWindow(request, source!);
-			flagWithUpdatedWindow!.UpdateAuditTrail(action: "timewindow-changed", username:currentUserService.UserName!);
+			var flagWithUpdatedWindow = CreateFlagWithUpdatedTimeWindow(request, flag!);
 
 			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedWindow, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);
@@ -80,37 +80,52 @@ public sealed class UpdateTimeWindowHandler(
 		}
 	}
 
-	private FeatureFlag CreateFlagWithUpdatedTimeWindow(UpdateTimeWindowRequest request, FeatureFlag source)
+	private FeatureFlag CreateFlagWithUpdatedTimeWindow(UpdateTimeWindowRequest request, FeatureFlag flag)
 	{
-		var modes = new EvaluationModes([.. source.Configuration.ActiveEvaluationModes.Modes]);
-		modes.RemoveMode(EvaluationMode.On);
+		var oldconfig = flag.EvalConfig;
 
-		UtcTimeWindow window = UtcTimeWindow.AlwaysOpen;
+		// Remove enabled/disabled modes as we're configuring specific time window
+		var modes = new EvaluationModes([.. oldconfig.Modes.Modes]);
+		modes.RemoveMode(EvaluationMode.On);
+		modes.RemoveMode(EvaluationMode.Off);
+
+
+		EvalConfiguration configuration;
+		Metadata metadata;
 		if (request.RemoveTimeWindow)
 		{
+			// If removing the time window, just remove the mode and clear the window
 			modes.RemoveMode(EvaluationMode.TimeWindow);
+			configuration = oldconfig with { Modes = modes, OperationalWindow = UtcTimeWindow.AlwaysOpen };
+			// Add to change history
+			metadata = flag.Metadata with
+			{
+				ChangeHistory = [.. flag.Metadata.ChangeHistory,
+					AuditTrail.FlagModified(currentUserService.UserName!, 
+									request.Notes ?? (request.DaysActive.Count > 0 ? "Time window removed, days active updated" : "Time window removed"))]
+			};
 		}
 		else
 		{
+			// Ensure TimeWindow mode is active
 			modes.AddMode(EvaluationMode.TimeWindow);
-			window = new UtcTimeWindow(
-				request.StartOn.ToTimeSpan(),
-				request.EndOn.ToTimeSpan(),
-				request.TimeZone,
-				[.. request.DaysActive]);
+			var window = new UtcTimeWindow(
+					request.StartOn.ToTimeSpan(),
+					request.EndOn.ToTimeSpan(),
+					request.TimeZone,
+					[.. request.DaysActive]);
+			configuration = oldconfig with { Modes = modes, OperationalWindow = window };
+			// Add to change history
+			metadata = flag.Metadata with
+			{
+				ChangeHistory = [.. flag.Metadata.ChangeHistory,
+					AuditTrail.FlagModified(currentUserService.UserName!, 
+									notes: request.Notes ??  $"Time window updated: StartOn={request.StartOn:HH:mm}, EndOn={request.EndOn:HH:mm}, TimeZone={request.TimeZone}, DaysActive=[{string.Join(", ", request.DaysActive)}]" +
+																(request.DaysActive.Count == 0 ? " (no days active - flag will never be active)" : ""))]
+			};
 		}
 
-		var configuration = new FlagEvaluationConfiguration(
-									identifier: source.Identifier,
-									activeEvaluationModes: modes,
-									schedule: source.Configuration.Schedule,
-									operationalWindow: window,
-									userAccessControl: source.Configuration.UserAccessControl,
-									tenantAccessControl: source.Configuration.TenantAccessControl,
-									targetingRules: source.Configuration.TargetingRules,
-									variations: source.Configuration.Variations);
-
-		return new FeatureFlag(Identifier: source.Identifier, Metadata: source.Metadata, Configuration: configuration);
+		return flag with { EvalConfig = configuration, Metadata = metadata };
 	}
 }
 

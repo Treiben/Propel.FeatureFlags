@@ -21,7 +21,8 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 	{
 		var identifier = flag.Identifier;
 		var metadata = flag.Metadata;
-		var config = flag.Configuration;
+		var config = flag.EvalConfig;
+		var lastModified = metadata.ChangeHistory[^1];
 
 		await Context.Database.ExecuteSqlRawAsync(@"
         INSERT INTO feature_flags (
@@ -43,17 +44,17 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 
         INSERT INTO feature_flags_audit (
             flag_key, application_name, application_version,
-            action, actor, reason, timestamp
-        ) VALUES ({0}, {1}, {2}, 'flag-created', {25}, {26}, {27});",
+            action, actor, notes, timestamp
+        ) VALUES ({0}, {1}, {2}, {25}, {26}, {27}, {28});",
 		identifier.Key,
 		identifier.ApplicationName ?? "global",
 		identifier.ApplicationVersion ?? "0.0.0.0",
 		(int)identifier.Scope,
 		metadata.Name,
 		metadata.Description,
-		JsonSerializer.Serialize(config.ActiveEvaluationModes.Modes.Select(m => (int)m).ToArray()),
-		config.Schedule.HasSchedule() ? config.Schedule.EnableOn.DateTime : null!,
-		config.Schedule.HasSchedule() ? config.Schedule.DisableOn.DateTime : null!,
+		JsonSerializer.Serialize(config.Modes.Modes.Select(m => (int)m).ToArray()),
+		config.Schedule.HasSchedule() ? (DateTimeOffset)config.Schedule.EnableOn : null!,
+		config.Schedule.HasSchedule() ? (DateTimeOffset)config.Schedule.DisableOn : null!,
 		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StartOn : null!,
 		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StopOn : null!,
 		config.OperationalWindow.HasWindow() ? config.OperationalWindow.TimeZone : null!,
@@ -70,9 +71,10 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 		metadata.RetentionPolicy.IsPermanent,
 		(DateTimeOffset)metadata.RetentionPolicy.ExpirationDate,
 		JsonSerializer.Serialize(metadata.Tags),
-		metadata.Created.Actor ?? "anonymous",
-		metadata.Created.Reason ?? "Flag created from the website",
-		(DateTimeOffset)metadata.Created.Timestamp);
+		lastModified.Action,
+		lastModified.Actor,
+		lastModified.Notes,
+		(DateTimeOffset)lastModified.Timestamp);
 
 		return flag;
 	}
@@ -81,7 +83,8 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 	{
 		var identifier = flag.Identifier;
 		var metadata = flag.Metadata;
-		var config = flag.Configuration;
+		var config = flag.EvalConfig;
+		var lastModified = metadata.ChangeHistory[^1];
 
 		var updatedRows = await Context.Database.ExecuteSqlRawAsync(@"
         UPDATE feature_flags SET
@@ -96,7 +99,7 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 
         INSERT INTO feature_flags_audit (
             flag_key, application_name, application_version,
-            action, actor, reason, timestamp
+            action, actor, notes, timestamp
         ) VALUES ({0}, {1}, {2}, {22}, {23}, {24}, {25});",
 		identifier.Key,
 		identifier.ApplicationName ?? "global",
@@ -104,9 +107,9 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 		(int)identifier.Scope,
 		metadata.Name,
 		metadata.Description,
-		JsonSerializer.Serialize(config.ActiveEvaluationModes.Modes.Select(m => (int)m).ToArray()),
-		config.Schedule.HasSchedule() ? config.Schedule.EnableOn.DateTime : null!,
-		config.Schedule.HasSchedule() ? config.Schedule.DisableOn.DateTime : null!,
+		JsonSerializer.Serialize(config.Modes.Modes.Select(m => (int)m).ToArray()),
+		config.Schedule.HasSchedule() ? (DateTimeOffset)config.Schedule.EnableOn : null!,
+		config.Schedule.HasSchedule() ? (DateTimeOffset)config.Schedule.DisableOn : null!,
 		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StartOn : null!,
 		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StopOn : null!,
 		config.OperationalWindow.HasWindow() ? config.OperationalWindow.TimeZone : null!,
@@ -120,10 +123,10 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 		config.TenantAccessControl.RolloutPercentage,
 		JsonSerializer.Serialize(config.Variations.Values),
 		config.Variations.DefaultVariation,
-		metadata.LastModified?.Action ?? "flag-modified",
-		metadata.LastModified?.Actor ?? "anonymous",
-		metadata.LastModified?.Reason ?? "not specified",
-		metadata.LastModified?.Timestamp.DateTime ?? DateTimeOffset.UtcNow);
+		lastModified.Action,
+		lastModified.Actor,
+		lastModified.Notes,
+		(DateTimeOffset)lastModified.Timestamp);
 
 		if (updatedRows == 0)
 		{
@@ -137,6 +140,7 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 	{
 		var identifier = flag.Identifier;
 		var metadata = flag.Metadata;
+		var lastModified = metadata.ChangeHistory[^1];
 
 		await Context.Database.ExecuteSqlRawAsync(@"
         INSERT INTO feature_flags_metadata (
@@ -151,22 +155,23 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 
         INSERT INTO feature_flags_audit (
             flag_key, application_name, application_version,
-            action, actor, reason, timestamp
-        ) VALUES ({0}, {1}, {2}, 'metadata-updated', {6}, {7}, {8});",
+            action, actor, notes, timestamp
+        ) VALUES ({0}, {1}, {2}, {6}, {7}, {8}, {9});",
 			identifier.Key,
 			identifier.ApplicationName ?? "global",
 			identifier.ApplicationVersion ?? "0.0.0.0",
 			metadata.RetentionPolicy.IsPermanent,
 			(DateTimeOffset)metadata.RetentionPolicy.ExpirationDate,
 			JsonSerializer.Serialize(metadata.Tags),
-			metadata.LastModified?.Actor ?? "anonymous",
-			metadata.LastModified?.Reason ?? "Metadata updated",
-			(DateTimeOffset)(metadata.LastModified?.Timestamp ?? DateTimeOffset.UtcNow));
+			lastModified.Action,
+			lastModified.Actor,
+			lastModified.Notes,
+			(DateTimeOffset)lastModified.Timestamp);
 
 		return flag;
 	}
 
-	public async Task<bool> DeleteAsync(FlagIdentifier identifier, string userid, string reason, CancellationToken cancellationToken = default)
+	public async Task<bool> DeleteAsync(FlagIdentifier identifier, string userid, string notes, CancellationToken cancellationToken = default)
 	{
 		var sql = $@"
 DO $$
@@ -193,20 +198,19 @@ BEGIN
 
         INSERT INTO feature_flags_audit (
             flag_key, application_name, application_version,
-            action, actor, reason, timestamp
+            action, actor, notes, timestamp
         ) VALUES (
             '{identifier.Key}',
             '{identifier.ApplicationName ?? "global"}',
             '{identifier.ApplicationVersion ?? "0.0.0.0"}',
             'flag-deleted',
             '{userid}',
-            '{reason}',
+            '{notes}',
             '{DateTimeOffset.UtcNow}'
         );
     END IF;
 END $$;";
-
-		var deletedRows = await Context.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+		_ = await Context.Database.ExecuteSqlRawAsync(sql, cancellationToken);
 		return true;
 	}
 }

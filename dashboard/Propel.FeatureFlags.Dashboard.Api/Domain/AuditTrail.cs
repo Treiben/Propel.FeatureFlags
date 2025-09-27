@@ -2,36 +2,36 @@
 
 namespace Propel.FeatureFlags.Dashboard.Api.Domain;
 
-public class AuditTrail
+public record AuditTrail(UtcDateTime Timestamp, string Actor, string Action, string Notes)
 {
-	public UtcDateTime Timestamp { get; }
-	public string Actor { get; }
-	public string Action { get; }
-	public string Reason { get; set; }
-
-	// This method is used to create new audit records in valid state
-	public AuditTrail(UtcDateTime timestamp, string actor,
-		string? action = null, string reason = "Not specified")
-	{
-		// Validate creation timestamp
-		if (timestamp > UtcDateTime.UtcNow)
-		{
-			throw new ArgumentException("Change timestamp must be a valid past or current time.", nameof(timestamp));
-		}
-
-		Timestamp = timestamp;
-		Actor = ValidateAndNormalize(actor);
-		Action = ValidateAndNormalize(action ?? string.Empty);
-		Reason = ValidateAndNormalize(reason);
-	}
-
-	public static AuditTrail FlagCreated(string? createdBy = null)
+	public static AuditTrail FlagCreated(string? username = null, string? notes = null)
 	{
 		var timestamp = UtcDateTime.UtcNow;
 		var action = "flag-created";
-		var creator = createdBy ?? "system";
+		var creator = username ?? "system";
 
-		return new AuditTrail(timestamp: timestamp, actor: creator, action: action, reason: "Flag created");
+		notes = ValidateAndNormalize(notes ?? "Flag added to the system from the dashboard");
+		return new AuditTrail(Timestamp: timestamp, Actor: creator, Action: action, Notes: notes);
+	}
+
+	public static AuditTrail FlagModified(string? username = null, string? notes = null)
+	{
+		var timestamp = UtcDateTime.UtcNow;
+		var action = "flag-modified";
+		var creator = username ?? "system";
+
+		notes = ValidateAndNormalize(notes ?? "Flag modified from the dashboard");
+		return new AuditTrail(Timestamp: timestamp, Actor: creator, Action: action, Notes: notes);
+	}
+
+	public static AuditTrail FlagDeleted(string? username = null, string? notes = null)
+	{
+		var timestamp = UtcDateTime.UtcNow;
+		var action = "flag-deleted";
+		var creator = username ?? "system";
+
+		notes = ValidateAndNormalize(notes ?? "Flag deleted from the dashboard");
+		return new AuditTrail(Timestamp: timestamp, Actor: creator, Action: action, Notes: notes);
 	}
 
 	public static bool operator >=(AuditTrail left, AuditTrail right) => left.Timestamp >= right.Timestamp;
@@ -54,5 +54,4 @@ public class AuditTrail
 
 		return normalizedUser;
 	}
-
 }

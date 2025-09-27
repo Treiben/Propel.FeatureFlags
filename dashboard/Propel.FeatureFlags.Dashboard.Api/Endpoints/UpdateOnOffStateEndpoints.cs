@@ -9,7 +9,7 @@ using System.Text.Json;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 
-public record ToggleFlagRequest(EvaluationMode EvaluationMode, string Reason);
+public record ToggleFlagRequest(EvaluationMode EvaluationMode, string? Notes);
 
 public sealed class ToggleFlagEndpoint : IEndpoint
 {
@@ -51,36 +51,48 @@ public sealed class ToggleFlagHandler(
 		var evaluationMode = request.EvaluationMode;
 		try
 		{
-			var (isValid, result, source) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
+			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
 			if (!isValid) return result;
 
 			// Check if the flag is already in the requested state
-			if (source!.Configuration.ActiveEvaluationModes.ContainsModes([evaluationMode]))
+			if (flag!.EvalConfig.Modes.ContainsModes([evaluationMode]))
 			{
 				logger.LogInformation("Feature flag {Key} is already {Status} - no change needed", key, evaluationMode);
-				return Results.Ok(new FeatureFlagResponse(source));
+				return Results.Ok(new FeatureFlagResponse(flag));
 			}
 
 			// Store previous state for logging
-			var previousModes = source.Configuration.ActiveEvaluationModes.Modes;
+			var previousModes = flag.EvalConfig.Modes;
+
+			var notes = request.Notes ?? (evaluationMode == EvaluationMode.On ? "Flag enabled" : "Flag disabled");
 
 			// Reset scheduling, time window, and user/tenant access when manually toggling
-			var config = new FlagEvaluationConfiguration(
-				identifier: source.Identifier,
-				activeEvaluationModes: new EvaluationModes([evaluationMode]),
-				userAccessControl: new AccessControl(rolloutPercentage: evaluationMode == EvaluationMode.On ? 100 : 0),
-				tenantAccessControl: new AccessControl(rolloutPercentage: evaluationMode == EvaluationMode.On ? 100 : 0));
+			var config = flag.EvalConfig with
+			{
+				Modes = new EvaluationModes([evaluationMode]),
+				UserAccessControl = new AccessControl(rolloutPercentage: evaluationMode == EvaluationMode.On ? 100 : 0),
+				TenantAccessControl = new AccessControl(rolloutPercentage: evaluationMode == EvaluationMode.On ? 100 : 0),
+				OperationalWindow = Knara.UtcStrict.UtcTimeWindow.AlwaysOpen,
+				Schedule = Knara.UtcStrict.UtcSchedule.Unscheduled
+			};
 
-			var flagWithUpdatedModes = new FeatureFlag(Identifier: source.Identifier, Metadata: source.Metadata, Configuration: config);
-			flagWithUpdatedModes!.UpdateAuditTrail(action: evaluationMode == EvaluationMode.On ? "flag-enabled": "flag-disabled", 
-				username: currentUserService.UserName!);
+			// add change history
+			var metadata = flag.Metadata with
+			{
+				ChangeHistory =
+				[
+					.. flag.Metadata.ChangeHistory,
+					AuditTrail.FlagModified(username: currentUserService.UserName!, notes: notes),
+				]
+			};
+			var flagWithUpdatedModes = flag with { Metadata = metadata, EvalConfig = config };
 
 			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedModes, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);
 
 			var action = Enum.GetName(evaluationMode);
 			logger.LogInformation("Feature flag {Key} {Action} by {User} (changed from {PreviousStatus}). Reason: {Reason}",
-				key, action, currentUserService.UserName, JsonSerializer.Serialize(previousModes), request.Reason);
+				key, action, currentUserService.UserName, JsonSerializer.Serialize(previousModes), notes);
 
 			return Results.Ok(new FeatureFlagResponse(updatedFlag));
 		}
@@ -103,7 +115,7 @@ public sealed class ToggleFlagRequestValidator : AbstractValidator<ToggleFlagReq
 			.IsInEnum()
 			.WithMessage("EvaluationMode must be a valid value (Enabled or Disabled)");
 
-		RuleFor(x => x.Reason)
+		RuleFor(x => x.Notes)
 			.NotEmpty()
 			.WithMessage("Reason for toggling the flag is required")
 			.MaximumLength(500)

@@ -9,6 +9,6 @@ public class FeatureFlagAudit
     public string Action { get; set; } = string.Empty;
     public string Actor { get; set; } = string.Empty;
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
-    public string? Reason { get; set; }
+    public string? Notes { get; set; }
 	public FeatureFlag FeatureFlag { get; set; } = null!;
 }
