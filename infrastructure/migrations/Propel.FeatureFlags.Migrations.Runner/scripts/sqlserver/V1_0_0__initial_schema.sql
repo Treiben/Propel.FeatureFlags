@@ -104,7 +104,7 @@ BEGIN
         [Action] NVARCHAR(50) NOT NULL,
         Actor NVARCHAR(255) NOT NULL,
         [Timestamp] DATETIMEOFFSET NOT NULL DEFAULT GETUTCDATE(),
-        Reason NVARCHAR(MAX) NULL,
+        Notes NVARCHAR(MAX) NULL,
     )
     
     PRINT 'Table FeatureFlagsAudit created successfully'

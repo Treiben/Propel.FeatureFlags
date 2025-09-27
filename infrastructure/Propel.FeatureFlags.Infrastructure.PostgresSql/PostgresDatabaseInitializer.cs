@@ -224,7 +224,7 @@ CREATE TABLE feature_flags_audit (
 	action VARCHAR(50) NOT NULL,
 	actor VARCHAR(255) NOT NULL,
 	timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-	reason TEXT NULL
+	notes TEXT NULL
 );
 
 -- Create indexes for feature_flags table

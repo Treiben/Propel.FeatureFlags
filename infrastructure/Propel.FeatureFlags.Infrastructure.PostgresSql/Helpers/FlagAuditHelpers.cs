@@ -12,7 +12,7 @@ public static class FlagAuditHelpers
 	{
 		const string sql = @"-- Audit log entry
 					INSERT INTO feature_flags_audit (
-						flag_key, application_name, application_version, action, actor, timestamp, reason
+						flag_key, application_name, application_version, action, actor, timestamp, notes
 					) VALUES (
 						@key, @application_name, @application_version, @action, 'Application', @timestamp, 'Auto-registered by the application'
 					);";
