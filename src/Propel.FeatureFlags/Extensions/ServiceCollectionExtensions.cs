@@ -25,15 +25,7 @@ public static class ServiceCollectionExtensions
 		services.AddSingleton<IGlobalFlagClient, GlobalFlagClient>();
 
 		// Register evaluation manager with all handlers
-		services.AddSingleton<IFlagEvaluationManager>(_ => new FlagEvaluationManager(
-			new HashSet<IOrderedEvaluator>(
-				[	new ActivationScheduleEvaluator(),
-					new OperationalWindowEvaluator(),
-					new TargetingRulesEvaluator(),
-					new TenantRolloutEvaluator(),
-					new TerminalStateEvaluator(),
-					new UserRolloutEvaluator(),
-				])));
+		services.RegisterEvaluators();
 
 		return services;
 	}
@@ -42,6 +34,21 @@ public static class ServiceCollectionExtensions
 	{
 		services.AddMemoryCache();
 		services.TryAddSingleton<IFeatureFlagCache, InMemoryFlagCache>();
+		return services;
+	}
+
+	public static IServiceCollection RegisterEvaluators(this IServiceCollection services)
+	{
+		// Register evaluation manager with all handlers
+		services.AddSingleton<IFlagEvaluationManager>(_ => new FlagEvaluationManager(
+			new HashSet<IOrderedEvaluator>(
+				[   new ActivationScheduleEvaluator(),
+					new OperationalWindowEvaluator(),
+					new TargetingRulesEvaluator(),
+					new TenantRolloutEvaluator(),
+					new TerminalStateEvaluator(),
+					new UserRolloutEvaluator(),
+				])));
 		return services;
 	}
 

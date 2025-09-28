@@ -25,10 +25,10 @@ builder.ConfigureFeatureFlags(options =>
 	{
 		EnableInMemoryCache = false,
 		EnableDistributedCache = false,
-		Connection = builder.Configuration.GetConnectionString("RedisConnection"),
+		Connection = builder.Configuration.GetConnectionString("RedisConnection")!,
 	};
 
-	options.Database.ConnectionString = builder.Configuration.GetConnectionString("DefaultConnection"); 
+	options.Database.ConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")!; 
 	options.AttributeIntercepting.EnableHttpIntercepter = true; // automatically add interceptors for attribute-based flags
 });
 

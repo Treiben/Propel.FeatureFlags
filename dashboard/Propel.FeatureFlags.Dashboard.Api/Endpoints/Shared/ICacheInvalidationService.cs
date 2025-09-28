@@ -8,7 +8,7 @@ public interface ICacheInvalidationService
 	Task InvalidateFlagAsync(FlagIdentifier identifier, CancellationToken cancellationToken);
 }
 
-public sealed class CacheInvalidationService(IFeatureFlagCache? cache) : ICacheInvalidationService
+public sealed class CacheInvalidationService(IFeatureFlagCache? cache = null) : ICacheInvalidationService
 {
 	public async Task InvalidateFlagAsync(FlagIdentifier identifier, CancellationToken cancellationToken)
 	{

@@ -6,7 +6,7 @@ namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddDashboardPersistence(this IServiceCollection services, PropelOptions options)
+	public static IServiceCollection AddDatabase(this IServiceCollection services, PropelOptions options)
 	{
 		var connectionString = options.Database.ConnectionString
 			?? throw new InvalidOperationException("Database connection string is required");

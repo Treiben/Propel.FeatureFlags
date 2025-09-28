@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Propel.FeatureFlags.Infrastructure.SqlServer.Extensions;
 using Propel.FeatureFlags.Migrations;
+using Propel.FeatureFlags.Infrastructure.Extensions;
 
 var builder = Host.CreateApplicationBuilder(args);
 

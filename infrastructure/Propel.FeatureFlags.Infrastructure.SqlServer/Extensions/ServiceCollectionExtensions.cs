@@ -2,9 +2,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Propel.FeatureFlags.Infrastructure.SqlServer;
 using Propel.FeatureFlags.Migrations;
 
-namespace Propel.FeatureFlags.Infrastructure.SqlServer.Extensions;
+namespace Propel.FeatureFlags.Infrastructure.Extensions;
 
 public static class ServiceCollectionExtensions
 {
@@ -28,11 +29,15 @@ public static class ServiceCollectionExtensions
 				configuredConnectionString,
 				sp.GetRequiredService<ILogger<SqlFeatureFlagRepository>>()));
 
-		services.AddSingleton(sp =>
-			new SqlDatabaseInitializer(
-				sqlServerConnectionString ?? throw new InvalidOperationException("SQL Server connection string required"),
-				sp.GetRequiredService<ILogger<SqlDatabaseInitializer>>()));
+		services.AddDatabaseInitializer(configuredConnectionString);
 
+		return services;
+	}
+
+	public static IServiceCollection AddDatabaseInitializer(this IServiceCollection services, string connectionString)
+	{
+		services.AddSingleton(sp =>
+			new SqlDatabaseInitializer(connectionString, sp.GetRequiredService<ILogger<SqlDatabaseInitializer>>()));
 		return services;
 	}
 

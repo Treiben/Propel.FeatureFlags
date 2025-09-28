@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
-    <ProjectReference Include="..\migrations\Propel.FeatureFlags.Migraions\Propel.FeatureFlags.Migrations.csproj" />
+    <ProjectReference Include="..\migrations\Propel.FeatureFlags.Migrations\Propel.FeatureFlags.Migrations.csproj" />
   </ItemGroup>
 
 </Project>

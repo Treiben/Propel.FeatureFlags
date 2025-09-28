@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Propel.FeatureFlags.Infrastructure.SqlServer\Propel.FeatureFlags.Infrastructure.SqlServer.csproj" />
-    <ProjectReference Include="..\Propel.FeatureFlags.Migraions\Propel.FeatureFlags.Migrations.csproj" />
+    <ProjectReference Include="..\..\Propel.FeatureFlags.Infrastructure.PostgresSql\Propel.FeatureFlags.Infrastructure.PostgresSql.csproj" />
+    <ProjectReference Include="..\Propel.FeatureFlags.Migrations\Propel.FeatureFlags.Migrations.csproj" />
   </ItemGroup>
 
   <ItemGroup>

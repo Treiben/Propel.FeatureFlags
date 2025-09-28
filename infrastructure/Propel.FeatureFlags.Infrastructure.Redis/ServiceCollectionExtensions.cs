@@ -3,9 +3,10 @@ using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Propel.FeatureFlags.Infrastructure.Cache;
+using Propel.FeatureFlags.Infrastructure.Redis;
 using StackExchange.Redis;
 
-namespace Propel.FeatureFlags.Infrastructure.Redis.Extensions;
+namespace Propel.FeatureFlags.Infrastructure.Extensions;
 
 public static class ServiceCollectionExtensions
 {

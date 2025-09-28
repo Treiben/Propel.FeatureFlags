@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS feature_flags (
     
     -- Variations
     variations JSONB NOT NULL DEFAULT '{}',
-    default_variation VARCHAR(255) NOT NULL DEFAULT 'off'
+    default_variation VARCHAR(255) NOT NULL DEFAULT 'off',
 
     CONSTRAINT pk_feature_flags PRIMARY KEY (key, application_name, application_version)
 );

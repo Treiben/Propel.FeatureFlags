@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using Npgsql;
-using Propel.FeatureFlags.Infrastructure.SqlServer;
 using Propel.FeatureFlags.Migrations;
 using System.Data;
 

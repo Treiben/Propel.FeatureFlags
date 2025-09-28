@@ -2,14 +2,14 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
-using Propel.FeatureFlags.Infrastructure.SqlServer;
+using Propel.FeatureFlags.Infrastructure.PostgresSql;
 using Propel.FeatureFlags.Migrations;
 
-namespace Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
+namespace Propel.FeatureFlags.Infrastructure.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddFeatureFlagPersistence(this IServiceCollection services, string pgConnectionString)
+	public static IServiceCollection AddFeatureFlagDatabase(this IServiceCollection services, string pgConnectionString)
 	{
 		// Configure connection string with resilience settings here
 		var builder = new NpgsqlConnectionStringBuilder(pgConnectionString)
@@ -31,11 +31,15 @@ public static class ServiceCollectionExtensions
 				configuredConnectionString,
 				sp.GetRequiredService<ILogger<PostgresFeatureFlagRepository>>()));
 
-		services.AddSingleton(sp =>
-			new PostgresDatabaseInitializer(
-				pgConnectionString ?? throw new InvalidOperationException("PostgreSQL connection string required"),
-				sp.GetRequiredService<ILogger<PostgresDatabaseInitializer>>()));
+		services.AddDatabaseInitializer(configuredConnectionString);
 
+		return services;
+	}
+
+	public static IServiceCollection AddDatabaseInitializer(this IServiceCollection services, string connectionString)
+	{
+		services.AddSingleton(sp =>
+			new PostgresDatabaseInitializer(connectionString, sp.GetRequiredService<ILogger<PostgresDatabaseInitializer>>()));
 		return services;
 	}
 

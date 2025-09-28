@@ -5,8 +5,7 @@ using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Extensions;
 
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
-using Propel.FeatureFlags.Infrastructure.Redis.Extensions;
+using Propel.FeatureFlags.Infrastructure.Extensions;
 using System.Reflection;
 
 namespace WebClientDemo;
@@ -31,7 +30,7 @@ public static class BuilderExtensions
 		}
 
 		var dbOptions = options.Database;
-		builder.Services.AddFeatureFlagPersistence(dbOptions.ConnectionString);
+		builder.Services.AddFeatureFlagDatabase(dbOptions.ConnectionString);
 
 		if (options.RegisterFlagsWithContainer)
 		{
