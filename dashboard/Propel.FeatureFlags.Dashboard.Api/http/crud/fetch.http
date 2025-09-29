@@ -34,6 +34,9 @@ Authorization: Bearer {{active_token}}
 # Expected: First page with large pageSize should match /all results
 GET {{baseUrl}}/feature-flags?page=1&pageSize=1000
 Authorization: Bearer {{active_token}}
+X-Scope: Application
+X-Application-Name:
+X-Application-Version: 1.0.0.0
 
 ###
 ### 3. Get Specific Feature Flag
@@ -41,6 +44,9 @@ Authorization: Bearer {{active_token}}
 # Expected: 200 OK with FeatureFlagDto for the requested flag
 GET {{baseUrl}}/feature-flags/{{testFlagKey}}
 Authorization: Bearer {{active_token}}
+X-Scope: Application
+X-Application-Name:
+X-Application-Version: 1.0.0.0
 
 ###
 ### 4. Get Non-existent Feature Flag
@@ -48,3 +54,6 @@ Authorization: Bearer {{active_token}}
 # Expected: 404 Not Found with problem details
 GET {{baseUrl}}/feature-flags/non-existent-flag
 Authorization: Bearer {{active_token}}
+X-Scope: Application
+X-Application-Name:
+X-Application-Version: 1.0.0.0

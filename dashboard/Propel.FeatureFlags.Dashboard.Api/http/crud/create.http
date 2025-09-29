@@ -167,25 +167,3 @@ Authorization: Bearer {{active_token}}
   "name": "Invalid Key Flag",
   "description": "Should fail validation due to special characters"
 }
-
-
-###
-### 8. Cleanup - Delete Test Flags (Run at the end)
-# Test: Clean up created test flags
-# Expected: 204 No Content
-DELETE {{baseUrl}}/feature-flags/{{testFlagKey}}
-Authorization: Bearer {{active_token}}
-
-###
-### 9. Cleanup - Delete Permanent Flag (Should be done manually)
-# Test: Verify test flag was deleted
-# Expected: 404 Not Found
-GET {{baseUrl}}/flags/{{testFlagKey}}
-Authorization: Bearer {{active_token}}
-
-###
-### 10. Verify Deletion
-# Test: Confirm flag no longer exists
-# Expected: 404 Not Found with problem details
-GET {{baseUrl}}/flags/{{testFlagKey}}
-Authorization: Bearer {{active_token}}

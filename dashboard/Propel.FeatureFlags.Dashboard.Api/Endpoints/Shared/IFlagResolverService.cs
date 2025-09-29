@@ -17,20 +17,39 @@ public class FlagResolverService(IDashboardRepository repository, ILogger<FlagRe
 		// Validate key parameter
 		if (string.IsNullOrWhiteSpace(key))
 		{
-			return (false, HttpProblemFactory.BadRequest("Feature flag key cannot be empty or null", logger), null);
+			return (false, HttpProblemFactory.BadRequest(
+				"No feature flag key provided",
+				"Feature flag key is required and cannot be empty or null.", logger), null);
 		}
 
 		// Validate required scope header
 		if (string.IsNullOrWhiteSpace(headers.Scope))
 		{
-			return (false, HttpProblemFactory.BadRequest("Scope header (X-Scope) is required", logger), null);
+			return (false, HttpProblemFactory.BadRequest(
+				"No feature flag scope provided", 
+				"Feature flag scope is required. Use request header X-Scope: Application for application flags or X-Scope: Global for global flags.", logger), null);
 		}
 
 		// Parse scope enum
 		if (!Enum.TryParse<Scope>(headers.Scope, true, out var parsedScope))
 		{
-			return (false, HttpProblemFactory.BadRequest("Invalid scope value", $"'{headers.Scope}' is not a valid scope value", logger), null);
+			return (false, HttpProblemFactory.BadRequest(
+				$"Invalid feature flag scope '{headers.Scope}'", 
+				"Use request header X-Scope: Application for application flags or X-Scope: Global for global flags.", logger), null);
 		}
+
+		string application = headers.ApplicationName ?? "";
+		string version = headers.ApplicationVersion ?? "";
+		if (parsedScope == Scope.Global)
+		{
+			application = "global";
+			version = "0.0.0.0";
+		}
+
+		if (string.IsNullOrWhiteSpace(application))
+			return (false, HttpProblemFactory.BadRequest(
+				"No application name or version provided",
+				"Application name with or without version required for Application scope requests. Pass name and version in headers X-Application-Name, X-Application-Version", logger), null);
 
 		// Resolve flag
 		var identifier = new FlagIdentifier(key, parsedScope, headers.ApplicationName, headers.ApplicationVersion);

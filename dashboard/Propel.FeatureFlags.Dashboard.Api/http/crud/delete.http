@@ -25,6 +25,9 @@
 POST {{baseUrl}}/feature-flags
 Content-Type: application/json
 Authorization: Bearer {{active_token}}
+X-Scope: Application
+X-Application-Name:
+X-Application-Version: 1.0.0.0
 
 {
   "key": "delete-test-flag",
@@ -39,6 +42,9 @@ Authorization: Bearer {{active_token}}
 # Expected: 204 No Content
 DELETE {{baseUrl}}/feature-flags/delete-test-flag
 Authorization: Bearer {{active_token}}
+X-Scope: Application
+X-Application-Name:
+X-Application-Version: 1.0.0.0
 
 ###
 ### 3. Delete Non-existent Flag
@@ -54,7 +60,9 @@ Authorization: Bearer {{active_token}}
 POST {{baseUrl}}/feature-flags
 Content-Type: application/json
 Authorization: Bearer {{active_token}}
-
+X-Scope: Application
+X-Application-Name:
+X-Application-Version: 1.0.0.0
 {
   "key": "permanent-test-flag",
   "name": "Permanent Flag",
@@ -68,3 +76,6 @@ Authorization: Bearer {{active_token}}
 # Expected: 400 Bad Request with problem details about permanent flag
 DELETE {{baseUrl}}/feature-flags/permanent-test-flag
 Authorization: Bearer {{active_token}}
+X-Scope: Application
+X-Application-Name:
+X-Application-Version: 1.0.0.0

@@ -109,7 +109,7 @@ public static class Parser
 		try
 		{
 			var days = JsonSerializer.Deserialize<int[]>(json, JsonDefaults.JsonOptions) ?? [];
-			return [.. days.Select(d => (DayOfWeek)d)];
+			return [.. days.Select(d => Enum.IsDefined<DayOfWeek>((DayOfWeek)d) ? (DayOfWeek)d : throw new ArgumentException())];
 		}
 		catch
 		{
