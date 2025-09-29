@@ -25,20 +25,29 @@ public sealed class FeatureFlagEvaluator(
 
 	public async Task<EvaluationResult?> Evaluate(IFeatureFlag applicationFlag, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
-		var flagConfig = await GetFlagConfiguration(applicationFlag.Key, cancellationToken);
-
-		if (flagConfig == null)
+		try
 		{
-			// Auto-create flag in disabled state for deployment scenarios
-			await RegisterApplicationFlag(applicationFlag, cancellationToken);
-			return new EvaluationResult
-			(
-				isEnabled: applicationFlag.OnOffMode == EvaluationMode.On,
-				reason: $"An application flag created in the database with specified mode {applicationFlag.OnOffMode} by {ApplicationName} application"
-			);
-		}
+			var flagConfig = await GetFlagConfiguration(applicationFlag.Key, cancellationToken);
+			if (flagConfig == null)
+			{
+				// Auto-create flag in disabled state for deployment scenarios
+				await RegisterApplicationFlag(applicationFlag, cancellationToken);
+				return new EvaluationResult
+				(
+					isEnabled: applicationFlag.OnOffMode == EvaluationMode.On,
+					reason: $"An application flag created in the database with specified mode {applicationFlag.OnOffMode} by {ApplicationName} application"
+				);
+			}
 
-		return await _evaluationManager.ProcessEvaluation(flagConfig, context);
+			return await _evaluationManager.ProcessEvaluation(flagConfig, context);
+		}
+		catch (Exception ex)
+		{
+			if (ex is OperationCanceledException)
+				throw;
+			// On any error, return disabled result
+			return new EvaluationResult(isEnabled: false, reason: $"Error during evaluation: {ex.Message}");
+		}
 	}
 
 	public async Task<T> GetVariation<T>(IFeatureFlag applicationFlag, T defaultVariation, EvaluationContext context, CancellationToken cancellationToken = default)
@@ -108,7 +117,7 @@ public sealed class FeatureFlagEvaluator(
 				applicationName: ApplicationName,
 				applicationVersion: ApplicationVersion
 			), cancellationToken);
-			
+
 			// Cache for future requests if found
 			if (flagData != null && cache != null)
 			{
@@ -134,7 +143,7 @@ public sealed class FeatureFlagEvaluator(
 			{
 				// Create composite key for uniqueness per application
 				var cacheKey = new ApplicationCacheKey(applicationFlag.Key, ApplicationName, ApplicationVersion);
-				await cache.SetAsync(cacheKey, 
+				await cache.SetAsync(cacheKey,
 					new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: new EvaluationModes([activationMode])),
 					cancellationToken);
 			}
