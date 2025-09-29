@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using Propel.FeatureFlags.Infrastructure.PostgresSql;
-using Propel.FeatureFlags.Migrations;
 
 namespace Propel.FeatureFlags.Infrastructure.Extensions;
 
@@ -40,19 +39,6 @@ public static class ServiceCollectionExtensions
 	{
 		services.AddSingleton(sp =>
 			new PostgresDatabaseInitializer(connectionString, sp.GetRequiredService<ILogger<PostgresDatabaseInitializer>>()));
-		return services;
-	}
-
-	public static IServiceCollection AddMigrationServices(this IServiceCollection services, IConfiguration configuration)
-	{
-		var optionsSection = configuration.GetSection("SqlMigrationOptions");
-		var options = optionsSection.Get<SqlMigrationOptions>();
-
-		services.AddSingleton(options!);
-		services.AddSingleton<IMigrationEngine, MigrationEngine>();
-		services.AddSingleton<IMigrationRepository, PostgreMigrationRepository>();
-		services.AddSingleton<Migrator>();
-
 		return services;
 	}
 

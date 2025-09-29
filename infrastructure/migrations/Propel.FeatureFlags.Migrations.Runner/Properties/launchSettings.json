@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "Propel.FeatureFlags.Migrations.Runner": {
-      "commandName": "Project",
-      "commandLineArgs": "--action migrate --path \"scripts/postgresql\""
-    }
-  }
-}

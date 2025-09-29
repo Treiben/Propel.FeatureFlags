@@ -5,27 +5,22 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
+    <AssemblyName>propel-cli</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.9" />
+    <PackageReference Include="Npgsql" Version="9.0.3" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-rc.1.25451.107" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Propel.FeatureFlags.Infrastructure.PostgresSql\Propel.FeatureFlags.Infrastructure.PostgresSql.csproj" />
-    <ProjectReference Include="..\Propel.FeatureFlags.Migrations\Propel.FeatureFlags.Migrations.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="appsettings.json">
+    <None Update="scripts\postgresql\rollback\v1_0.0.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="scripts\postgresql\rollback\V1_0_0__initial_schema.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="scripts\postgresql\V1_0_0__initial_schema.sql">
+    <None Update="scripts\postgresql\migrations\20250928033300_Initial.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="scripts\sqlserver\manual-setup.sql">

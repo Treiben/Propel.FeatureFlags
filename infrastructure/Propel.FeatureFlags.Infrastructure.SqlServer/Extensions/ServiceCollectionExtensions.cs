@@ -3,7 +3,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Propel.FeatureFlags.Infrastructure.SqlServer;
-using Propel.FeatureFlags.Migrations;
 
 namespace Propel.FeatureFlags.Infrastructure.Extensions;
 
@@ -38,19 +37,6 @@ public static class ServiceCollectionExtensions
 	{
 		services.AddSingleton(sp =>
 			new SqlDatabaseInitializer(connectionString, sp.GetRequiredService<ILogger<SqlDatabaseInitializer>>()));
-		return services;
-	}
-
-	public static IServiceCollection AddMigrationServices(this IServiceCollection services, IConfiguration configuration)
-	{
-		var optionsSection = configuration.GetSection("SqlMigrationOptions");
-		var options = optionsSection.Get<SqlMigrationOptions>();
-
-		services.AddSingleton(options!);
-		services.AddSingleton<IMigrationEngine, MigrationEngine>();
-		services.AddSingleton<IMigrationRepository, SqlMigrationRepository>();
-		services.AddSingleton<Migrator>();
-
 		return services;
 	}
 

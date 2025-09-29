@@ -68,7 +68,7 @@ VALUES (
         }
     ]'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -92,7 +92,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"category": "security", "impact": "high", "team": "platform", "environment": "all"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 
 ------------------------------------------------------------------------
@@ -114,7 +114,7 @@ INSERT INTO feature_flags (
     'v1',
     33 -- 33% get v2/v3 variations
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -138,7 +138,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"category": "performance", "type": "a-b-test", "impact": "medium", "team": "checkout", "variations": "v1,v2,v3"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 
 ------------------------------------------------------------------------
@@ -159,7 +159,7 @@ INSERT INTO feature_flags (
     '{"on": true, "off": false}',
     'off'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -183,7 +183,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"category": "payment", "type": "implementation-toggle", "impact": "high", "team": "payments", "rollback": "automatic", "critical": "true"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'new-product-api';
@@ -203,7 +203,7 @@ INSERT INTO feature_flags (
     '{"on": true, "off": false}',
     'off'
 )
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -227,7 +227,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"category": "api", "type": "implementation-toggle", "impact": "medium", "team": "product", "rollback": "instant"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'featured-products-launch';
@@ -249,7 +249,7 @@ INSERT INTO feature_flags (
     NOW() + INTERVAL '1 hour', -- Enable in 1 hour
     NOW() + INTERVAL '30 days' -- Disable after 30 days
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -273,7 +273,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"category": "marketing", "type": "scheduled-launch", "impact": "high", "team": "product-marketing", "coordination": "required"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'enhanced-catalog-ui';
@@ -299,7 +299,7 @@ INSERT INTO feature_flags (
     'America/Chicago',
     '[1, 2, 3, 4, 5]' -- Monday to Friday
 )
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -323,7 +323,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"category": "ui", "type": "time-window", "impact": "medium", "team": "frontend", "support-dependent": "true"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'recommendation-algorithm';
@@ -360,7 +360,7 @@ INSERT INTO feature_flags (
     '["user123", "alice.johnson", "premium-user-456", "ml-tester-789", "data-scientist-001"]',
     '["blocked-user-999", "test-account-disabled", "spam-user-123", "violator-456"]'
 )
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -384,7 +384,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"category": "algorithm", "type": "variation-test", "impact": "medium", "team": "recommendations", "variations": "ml,content-based,collaborative-filtering", "default": "collaborative-filtering"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 
 ------------------------------------------------------------------------
@@ -409,7 +409,7 @@ INSERT INTO feature_flags (
     'America/New_York', -- EST timezone
     '[1, 2, 3, 4, 5]' -- Monday through Friday (1=Monday, 7=Sunday)
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -433,7 +433,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"service": "products", "type": "time-window", "component": "flash-sale", "promotion": "business-hours", "status": "time-window"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'tenant-percentage-rollout';
@@ -454,7 +454,7 @@ INSERT INTO feature_flags (
     'off',
     60 -- 60% of tenants
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -478,7 +478,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"tenant": "rollout", "type": "percentage", "component": "dashboard", "status": "tenant-percentage"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'holiday-promotions';
@@ -506,7 +506,7 @@ INSERT INTO feature_flags (
     'America/New_York',
     '[1, 2, 3, 4, 5, 6]' -- Monday through Saturday
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -530,7 +530,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"event": "holidays", "type": "promotional", "constraint": "business-hours", "status": "scheduled-with-time-window"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'beta-features-preview';
@@ -570,7 +570,7 @@ INSERT INTO feature_flags (
     '["beta-tester-001", "power-user-alice", "early-adopter-bob", "qa-engineer-charlie", "product-manager-diana"]',
     '["conservative-user-001", "stability-focused-eve", "production-only-frank", "risk-averse-grace"]'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -594,7 +594,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"type": "beta-preview", "audience": "targeted", "status": "scheduled-with-user-targeting"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'premium-features-rollout';
@@ -618,7 +618,7 @@ INSERT INTO feature_flags (
     NOW() + INTERVAL '60 days', -- Complete rollout in 60 days
     40 -- Start with 40% of users
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -642,7 +642,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"service": "premium", "type": "scheduled-rollout", "status": "scheduled-with-user-percentage"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'vip-event-access';
@@ -687,7 +687,7 @@ INSERT INTO feature_flags (
     '["vip-member-001", "gold-tier-alice", "platinum-user-bob", "diamond-member-charlie", "event-organizer-diana", "special-guest-eve"]',
     '["banned-user-001", "policy-violator-frank", "restricted-account-grace", "underage-user-henry"]'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -711,7 +711,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"event": "vip-exclusive", "type": "access-control", "constraint": "scheduled-hours", "status": "scheduled-time-window-user-targeted"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'ultimate-premium-experience';
@@ -764,7 +764,7 @@ INSERT INTO feature_flags (
     '["enterprise-admin-001", "platinum-member-alice", "high-value-bob", "beta-champion-charlie", "product-evangelist-diana"]',
     '["budget-user-001", "basic-tier-eve", "trial-expired-frank", "inactive-account-grace"]'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -788,7 +788,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"tier": "ultimate", "complexity": "maximum", "showcase": "complete", "status": "all-modes-combined"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'tenant-premium-features';
@@ -809,7 +809,7 @@ INSERT INTO feature_flags (
     'off',
     '["premium-corp", "enterprise-solutions", "vip-client-alpha", "mega-corp-beta"]'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -833,7 +833,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"tenant": "premium", "type": "access-control", "tier": "premium", "status": "enabled-for-tenants"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'tenant-beta-program';
@@ -856,7 +856,7 @@ INSERT INTO feature_flags (
     '["conservative-corp", "legacy-systems-ltd", "security-first-org", "compliance-strict-co"]',
     40 -- 40% of remaining tenants (after explicit inclusions/exclusions)
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -880,7 +880,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"tenant": "multi", "type": "beta-program", "phase": "phase1", "status": "tenant-percentage-with-lists"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'legacy-checkout-v1';
@@ -900,7 +900,7 @@ INSERT INTO feature_flags (
     '{"on": true, "off": false}',
     'off'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -924,7 +924,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"service": "checkout", "type": "legacy", "status": "expired", "deprecated": "true"}', NOW() - INTERVAL '1 day');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'old-search-algorithm';
@@ -945,7 +945,7 @@ INSERT INTO feature_flags (
     'legacy',
     15 -- Was at 15% rollout when expired
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -969,7 +969,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"service": "search", "type": "algorithm", "status": "expired", "rollout": "partial"}', NOW() - INTERVAL '1 day');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'experimental-analytics';
@@ -990,7 +990,7 @@ INSERT INTO feature_flags (
     'off',
     '["pilot-tenant-1", "beta-analytics-corp", "test-organization"]'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -1014,7 +1014,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"service": "analytics", "type": "experimental", "status": "expired", "phase": "pilot"}', NOW() - INTERVAL '1 day');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'mobile-app-redesign-pilot';
@@ -1051,7 +1051,7 @@ INSERT INTO feature_flags (
     '["mobile-tester-001", "ui-designer-alice", "beta-user-bob", "app-developer-charlie"]',
     '["old-device-user-001", "stability-user-diana", "conservative-mobile-eve"]'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -1075,7 +1075,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"service": "mobile", "type": "redesign", "status": "expired", "platform": "ios-android"}', NOW() - INTERVAL '1 day');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'weekend-flash-sale-q3';
@@ -1101,9 +1101,9 @@ INSERT INTO feature_flags (
     '00:00:00', -- Midnight
     '23:59:59', -- End of day
     'UTC',
-    '[6, 7]' -- Weekends only
+    '[5, 6]' -- Weekends only
 )
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -1127,7 +1127,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"campaign": "q3-flash-sale", "type": "promotional", "status": "expired", "period": "weekend"}', NOW() - INTERVAL '1 day');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'enterprise-analytics-suite';
@@ -1150,7 +1150,7 @@ INSERT INTO feature_flags (
     '["acme-corp", "global-industries", "tech-giants-inc", "innovation-labs", "enterprise-solutions-ltd"]',
     '["startup-company", "small-business-co", "trial-tenant", "free-tier-org"]'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -1174,7 +1174,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"service": "analytics", "type": "enterprise", "tier": "advanced", "status": "tenant-targeted"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'white-label-branding';
@@ -1197,7 +1197,7 @@ INSERT INTO feature_flags (
     '["partner-alpha", "partner-beta", "white-label-corp", "custom-brand-inc", "enterprise-partner-solutions", "mega-client-xyz"]',
     '["competitor-company", "unauthorized-reseller", "blocked-partner"]'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -1221,7 +1221,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"service": "branding", "type": "white-label", "partner": "enterprise", "status": "tenant-targeted"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'compliance-reporting-module';
@@ -1244,7 +1244,7 @@ INSERT INTO feature_flags (
     '["healthcare-corp", "financial-services-inc", "pharma-company", "bank-holdings", "insurance-giant", "government-agency"]',
     '["non-regulated-startup", "consumer-app-company", "entertainment-corp"]'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -1268,7 +1268,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"service": "compliance", "type": "reporting", "regulation": "multi", "status": "tenant-targeted"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'advanced-search-engine';
@@ -1289,7 +1289,7 @@ INSERT INTO feature_flags (
     'legacy',
     75 -- 75% of tenants
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -1313,7 +1313,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, application_name, application_version, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), '{"service": "search", "type": "engine-upgrade", "performance": "enhanced", "status": "tenant-percentage"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, application_name, application_version, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), current_setting('my.app_name'), current_setting('my.app_version'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 
 ------------------------------------------------------------------------
@@ -1338,7 +1338,7 @@ INSERT INTO feature_flags (
     'polling',
     45 -- 45% of tenants
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -1362,7 +1362,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), '{"service": "notifications", "type": "realtime", "transport": "websocket", "status": "tenant-percentage"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 
 ------------------------------------------------------------------------
@@ -1384,7 +1384,7 @@ INSERT INTO feature_flags (
     'single-region',
     30 -- 30% of tenants for careful rollout of critical backup feature
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -1408,7 +1408,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), '{"service": "backup", "type": "multi-region", "reliability": "high", "status": "tenant-percentage"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 
 ------------------------------------------------------------------------
@@ -1430,7 +1430,7 @@ INSERT INTO feature_flags (
     'v1',
     85 -- 85% rollout for monitoring improvements
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -1454,7 +1454,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), '{"service": "monitoring", "type": "performance", "version": "v2", "status": "tenant-percentage"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'),  'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 
 ------------------------------------------------------------------------
@@ -1497,7 +1497,7 @@ INSERT INTO feature_flags (
     '["premium-customer-001", "enterprise-admin-alice", "gold-support-bob", "platinum-user-charlie", "vip-customer-diana"]',
     '["basic-user-001", "free-tier-eve", "trial-account-frank", "suspended-user-grace"]'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -1521,7 +1521,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), '{"service": "support", "type": "priority", "constraint": "business-hours", "status": "time-window-with-user-targeting"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 ------------------------------------------------------------------------
 SET my.flag_key = 'peak-hours-optimization';
@@ -1548,7 +1548,7 @@ INSERT INTO feature_flags (
     '[1, 2, 3, 4, 5]', -- Weekdays only
     60 -- 60% of users during peak hours
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -1572,7 +1572,7 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, tags, expiration_date)
 VALUES (current_setting('my.flag_key'), '{"service": "performance", "type": "optimization", "constraint": "peak-hours", "status": "time-window-with-user-percentage"}', NOW() + INTERVAL '1 year');
 
-INSERT INTO feature_flags_audit (flag_key, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
 
 ------------------------------------------------------------------------
@@ -1593,7 +1593,7 @@ INSERT INTO feature_flags (
     '{"on": true, "off": false}',
     'off'
 ) 
-ON CONFLICT (key, application_name, application_version, scope)
+ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
 	name = excluded.name,
 	description = excluded.description,
@@ -1617,5 +1617,5 @@ DO UPDATE SET
 INSERT INTO feature_flags_metadata (flag_key, tags, is_permanent, expiration_date)
 VALUES (current_setting('my.flag_key'), '{"service": "api", "type": "maintenance", "status": "disabled"}', true, NOW() + INTERVAL '10 years');
 
-INSERT INTO feature_flags_audit (flag_key, action, actor, timestamp, reason)
+INSERT INTO feature_flags_audit (flag_key, action, actor, timestamp, notes)
 VALUES(current_setting('my.flag_key'), 'flag-created', current_setting('my.app_name'), NOW(), 'Initial creation from seed script');
