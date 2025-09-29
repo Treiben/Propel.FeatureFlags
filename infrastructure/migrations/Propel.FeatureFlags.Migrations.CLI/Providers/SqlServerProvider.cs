@@ -1,9 +1,8 @@
-using System.Data;
-using DbMigrationCli.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using System.Data;
 
-namespace Propel.FeatureFlags.Migrations.CLI.Providers;
+namespace Propel.FeatureFlags.MigrationsCLI.Providers;
 
 public class SqlServerProvider : IDatabaseProvider
 {

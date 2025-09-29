@@ -1,6 +1,4 @@
-using DbMigrationCli.Models;
-
-namespace Propel.FeatureFlags.Migrations.CLI.Providers;
+namespace Propel.FeatureFlags.MigrationsCLI.Providers;
 
 public interface IDatabaseProvider
 {

@@ -1,9 +1,8 @@
-using DbMigrationCli.Models;
 using Microsoft.Extensions.Logging;
-using Propel.FeatureFlags.Migrations.CLI.Providers;
+using Propel.FeatureFlags.MigrationsCLI.Providers;
 using System.Text.RegularExpressions;
 
-namespace Propel.FeatureFlags.Migrations.CLI.Services;
+namespace Propel.FeatureFlags.MigrationsCLI.Services;
 
 public interface ISeedService
 {

@@ -1,4 +1,4 @@
-namespace DbMigrationCli.Models;
+namespace Propel.FeatureFlags.MigrationsCLI;
 
 public class AppliedMigration
 {

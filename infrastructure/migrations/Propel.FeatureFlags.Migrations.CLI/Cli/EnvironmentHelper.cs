@@ -1,4 +1,4 @@
-namespace Propel.FeatureFlags.Migrations.CLI.Cli;
+namespace Propel.FeatureFlags.MigrationsCLI.Cli;
 
 public static class EnvironmentHelper
 {

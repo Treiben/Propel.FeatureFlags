@@ -1,9 +1,8 @@
-using DbMigrationCli.Models;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using System.Data;
 
-namespace Propel.FeatureFlags.Migrations.CLI.Providers;
+namespace Propel.FeatureFlags.MigrationsCLI.Providers;
 
 public class PostgreSqlProvider : IDatabaseProvider
 {

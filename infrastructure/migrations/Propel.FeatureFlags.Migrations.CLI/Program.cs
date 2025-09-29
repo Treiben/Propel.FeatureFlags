@@ -1,12 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Propel.FeatureFlags.Migrations.CLI.Cli;
-using Propel.FeatureFlags.Migrations.CLI.Providers;
-using Propel.FeatureFlags.Migrations.CLI.Services;
+using Propel.FeatureFlags.MigrationsCLI.Cli;
+using Propel.FeatureFlags.MigrationsCLI.Providers;
+using Propel.FeatureFlags.MigrationsCLI.Services;
 using System.CommandLine;
 
-namespace DbMigrationCli;
+namespace Propel.FeatureFlags.MigrationsCLI;
 
 class Program
 {

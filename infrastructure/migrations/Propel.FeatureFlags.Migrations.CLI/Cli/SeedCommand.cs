@@ -1,9 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Propel.FeatureFlags.Migrations.CLI.Services;
+using Propel.FeatureFlags.MigrationsCLI.Services;
 using System.CommandLine;
 
-namespace Propel.FeatureFlags.Migrations.CLI.Cli;
+namespace Propel.FeatureFlags.MigrationsCLI.Cli;
 
 public class SeedCommand
 {

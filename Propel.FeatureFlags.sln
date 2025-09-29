@@ -35,8 +35,6 @@ Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "usage-dem
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Infrastructure.SqlServer", "infrastructure\Propel.FeatureFlags.Infrastructure.SqlServer\Propel.FeatureFlags.Infrastructure.SqlServer.csproj", "{CC43FA0D-174D-049D-6F91-E33C74F921E2}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "migrations", "migrations", "{A4E6A502-D6F5-4250-B66E-D058D1079AA5}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dashboard", "dashboard", "{016F2DB1-DF80-40A2-9649-0FD0AE255814}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Dashboard.Api", "dashboard\Propel.FeatureFlags.Dashboard.Api\Propel.FeatureFlags.Dashboard.Api.csproj", "{AE04054B-58BF-8B16-25F8-FF8A4DB671E1}"
@@ -47,7 +45,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTests.Redis", "t
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTests.SqlServer", "tests\IntegrationTests.SqlServer\IntegrationTests.SqlServer.csproj", "{7626062D-482D-0D95-BF7B-BB89AB93032E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Migrations.CLI", "infrastructure\migrations\Propel.FeatureFlags.Migrations.CLI\Propel.FeatureFlags.Migrations.CLI.csproj", "{39B23AD1-06BA-45E4-894D-6B76FA9D71C1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.MigrationsCLI", "infrastructure\migrations\Propel.FeatureFlags.Migrations.CLI\Propel.FeatureFlags.MigrationsCLI.csproj", "{39B23AD1-06BA-45E4-894D-6B76FA9D71C1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -125,12 +123,11 @@ Global
 		{DC458ACE-8C9C-BBB3-EEAE-8F719523A091} = {B35B9A4F-7FDA-4842-90DB-833533AD0C02}
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A} = {B35B9A4F-7FDA-4842-90DB-833533AD0C02}
 		{CC43FA0D-174D-049D-6F91-E33C74F921E2} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
-		{A4E6A502-D6F5-4250-B66E-D058D1079AA5} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{AE04054B-58BF-8B16-25F8-FF8A4DB671E1} = {016F2DB1-DF80-40A2-9649-0FD0AE255814}
 		{A2DF3483-1D53-6B15-287F-FA1E2027E366} = {1EBFCD0E-23BF-4578-B14D-40DEF03DF792}
 		{C6E728FA-E911-0CDA-04F5-BC2FE29E50D0} = {1EBFCD0E-23BF-4578-B14D-40DEF03DF792}
 		{7626062D-482D-0D95-BF7B-BB89AB93032E} = {1EBFCD0E-23BF-4578-B14D-40DEF03DF792}
-		{39B23AD1-06BA-45E4-894D-6B76FA9D71C1} = {A4E6A502-D6F5-4250-B66E-D058D1079AA5}
+		{39B23AD1-06BA-45E4-894D-6B76FA9D71C1} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B84A57E7-342F-45BE-BD70-F37A7F4D7E27}
