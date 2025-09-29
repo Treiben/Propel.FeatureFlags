@@ -3,7 +3,7 @@
 @Ui_Api_HostAddress_Docker = http://localhost:5003
 
 ### Variables
-@baseUrl = {{Ui_Api_HostAddress_Docker}}/api
+@baseUrl = {{Ui_Api_HostAddress_Http}}/api
 @testFlagKey = test-flag-4851245
 @testUserId = user-{{$randomInt}}
 
