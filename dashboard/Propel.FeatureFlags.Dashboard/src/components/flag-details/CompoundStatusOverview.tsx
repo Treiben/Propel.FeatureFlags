@@ -54,8 +54,8 @@ export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({
     };
 
     const userPercentage = flag.userAccess?.rolloutPercentage || 0;
-    const allowedUsersCount = flag.userAccess?.allowedIds?.length || 0;
-    const blockedUsersCount = flag.userAccess?.blockedIds?.length || 0;
+    const allowedUsersCount = flag.userAccess?.allowed?.length || 0;
+    const blockedUsersCount = flag.userAccess?.blocked?.length || 0;
 
     return (
         <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">

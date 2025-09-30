@@ -50,8 +50,8 @@ export interface TimeWindow {
 }
 
 export interface AccessControl {
-	allowedIds?: string[];
-	blockedIds?: string[];
+	allowed?: string[];
+	blocked?: string[];
 	rolloutPercentage?: number;
 }
 
@@ -144,16 +144,16 @@ export interface UpdateTimeWindowRequest {
 }
 
 export interface ManageUserAccessRequest {
-	allowedUsers?: string[];
-	blockedUsers?: string[];
-	percentage?: number;
+	allowed?: string[];
+	blocked?: string[];
+	rolloutPercentage?: number;
 	notes?: string;
 }
 
 export interface ManageTenantAccessRequest {
-	allowedTenants?: string[];
-	blockedTenants?: string[];
-	percentage?: number;
+	allowed?: string[];
+	blocked?: string[];
+	rolloutPercentage?: number;
 	notes?: string;
 }
 

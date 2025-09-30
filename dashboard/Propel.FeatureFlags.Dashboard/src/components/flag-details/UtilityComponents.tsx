@@ -58,8 +58,8 @@ interface UserListsProps {
 }
 
 export const UserLists: React.FC<UserListsProps> = ({ flag }) => {
-    const hasEnabledUsers = flag.userAccess?.allowedIds && flag.userAccess.allowedIds.length > 0;
-    const hasDisabledUsers = flag.userAccess?.blockedIds && flag.userAccess.blockedIds.length > 0;
+    const hasEnabledUsers = flag.userAccess?.allowed && flag.userAccess.allowed.length > 0;
+    const hasDisabledUsers = flag.userAccess?.blocked && flag.userAccess.blocked.length > 0;
 
     if (!hasEnabledUsers && !hasDisabledUsers) return null;
 
@@ -68,13 +68,13 @@ export const UserLists: React.FC<UserListsProps> = ({ flag }) => {
             {hasEnabledUsers && (
                 <div className="text-sm">
                     <span className="font-medium text-green-700">Enabled for: </span>
-                    <span className="text-gray-600">{flag.userAccess!.allowedIds!.join(', ')}</span>
+                    <span className="text-gray-600">{flag.userAccess!.allowed!.join(', ')}</span>
                 </div>
             )}
             {hasDisabledUsers && (
                 <div className="text-sm">
                     <span className="font-medium text-red-700">Disabled for: </span>
-                    <span className="text-gray-600">{flag.userAccess!.blockedIds!.join(', ')}</span>
+                    <span className="text-gray-600">{flag.userAccess!.blocked!.join(', ')}</span>
                 </div>
             )}
         </div>
@@ -290,8 +290,8 @@ export const FlagEditSection: React.FC<FlagEditSectionProps> = ({
                 <div className="text-sm text-gray-600 space-y-1">
                     <div><strong>Name:</strong> {flag.name}</div>
                     <div><strong>Description:</strong> {flag.description || 'No description'}</div>
-                    <div><strong>Allowed Users:</strong> {flag.userAccess?.allowedIds?.length ? flag.userAccess.allowedIds.join(', ') : 'None'}</div>
-                    <div><strong>Blocked Users:</strong> {flag.userAccess?.blockedIds?.length ? flag.userAccess.blockedIds.join(', ') : 'None'}</div>
+                    <div><strong>Allowed Users:</strong> {flag.userAccess?.allowed?.length ? flag.userAccess.allowed.join(', ') : 'None'}</div>
+                    <div><strong>Blocked Users:</strong> {flag.userAccess?.blocked?.length ? flag.userAccess.blocked.join(', ') : 'None'}</div>
                     <div><strong>Expiration:</strong> {formatDate(flag.expirationDate)}</div>
                     <div><strong>Permanent:</strong> {flag.isPermanent ? 'Yes' : 'No'}</div>
                 </div>

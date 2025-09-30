@@ -91,7 +91,7 @@ const FeatureFlagManager = () => {
     const handleSetPercentage = async (flag: FeatureFlagDto, percentage: number) => {
         try {
             const scopeHeaders = getScopeHeaders(flag);
-            await updateUserAccess(flag.key, { percentage }, scopeHeaders);
+            await updateUserAccess(flag.key, { rolloutPercentage: percentage }, scopeHeaders);
         } catch (error) {
             console.error('Failed to set percentage:', error);
         }
@@ -100,9 +100,9 @@ const FeatureFlagManager = () => {
     const handleEnableUsers = async (flag: FeatureFlagDto, userIds: string[]) => {
         try {
             const scopeHeaders = getScopeHeaders(flag);
-            const currentAllowedUsers = flag.userAccess?.allowedIds || [];
+            const currentAllowedUsers = flag.userAccess?.allowed || [];
             const updatedAllowedUsers = [...new Set([...currentAllowedUsers, ...userIds])];
-            await updateUserAccess(flag.key, { allowedUsers: updatedAllowedUsers }, scopeHeaders);
+            await updateUserAccess(flag.key, { allowed: updatedAllowedUsers }, scopeHeaders);
         } catch (error) {
             console.error('Failed to enable users:', error);
         }
@@ -111,9 +111,9 @@ const FeatureFlagManager = () => {
     const handleDisableUsers = async (flag: FeatureFlagDto, userIds: string[]) => {
         try {
             const scopeHeaders = getScopeHeaders(flag);
-            const currentBlockedUsers = flag.userAccess?.blockedIds || [];
+            const currentBlockedUsers = flag.userAccess?.blocked || [];
             const updatedBlockedUsers = [...new Set([...currentBlockedUsers, ...userIds])];
-            await updateUserAccess(flag.key, { blockedUsers: updatedBlockedUsers }, scopeHeaders);
+            await updateUserAccess(flag.key, { blocked: updatedBlockedUsers }, scopeHeaders);
         } catch (error) {
             console.error('Failed to disable users:', error);
         }
@@ -400,17 +400,17 @@ const FeatureFlagManager = () => {
                                 onUpdateUserAccess={(allowedUsers, blockedUsers, percentage) => {
                                     const scopeHeaders = getScopeHeaders(selectedFlag);
                                     const request: ManageUserAccessRequest = {};
-                                    if (allowedUsers !== undefined) request.allowedUsers = allowedUsers;
-                                    if (blockedUsers !== undefined) request.blockedUsers = blockedUsers;
-                                    if (percentage !== undefined) request.percentage = percentage;
+                                    if (allowedUsers !== undefined) request.allowed = allowedUsers;
+                                    if (blockedUsers !== undefined) request.blocked = blockedUsers;
+                                    if (percentage !== undefined) request.rolloutPercentage = percentage;
                                     return updateUserAccess(selectedFlag.key, request, scopeHeaders);
                                 }}
                                 onUpdateTenantAccess={(allowedTenants, blockedTenants, percentage) => {
                                     const scopeHeaders = getScopeHeaders(selectedFlag);
                                     const request: ManageTenantAccessRequest = {};
-                                    if (allowedTenants !== undefined) request.allowedTenants = allowedTenants;
-                                    if (blockedTenants !== undefined) request.blockedTenants = blockedTenants;
-                                    if (percentage !== undefined) request.percentage = percentage;
+                                    if (allowedTenants !== undefined) request.allowed = allowedTenants;
+                                    if (blockedTenants !== undefined) request.blocked = blockedTenants;
+                                    if (percentage !== undefined) request.rolloutPercentage = percentage;
                                     return updateTenantAccess(selectedFlag.key, request, scopeHeaders);
                                 }}
                                 onUpdateTargetingRules={handleUpdateTargetingRulesWrapper}

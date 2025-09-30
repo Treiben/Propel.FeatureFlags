@@ -8,7 +8,7 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 
-public record ManageTenantAccessRequest(string[]? AllowedTenants, string[]? BlockedTenants, int? Percentage, string? Notes);
+public record ManageTenantAccessRequest(string[]? Allowed, string[]? Blocked, int? RolloutPercentage, string? Notes);
 
 public sealed class UpdateTenantAccessControlEndpoints : IEndpoint
 {
@@ -59,7 +59,7 @@ public sealed class ManageTenantAccessHandler(
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);
 
 			logger.LogInformation("Feature flag {Key} tenant rollout percentage set to {Percentage}% by {User})",
-				key, request.Percentage, currentUserService.UserName);
+				key, request.RolloutPercentage, currentUserService.UserName);
 
 			return Results.Ok(new FeatureFlagResponse(updatedFlag));
 		}
@@ -79,7 +79,7 @@ public sealed class ManageTenantAccessHandler(
 		modes.RemoveMode(EvaluationMode.Off);
 
 		// Ensure correct evaluation modes are set based on the request
-		if (request.Percentage == 0) // Special case: 0% effectively disables the flag
+		if (request.RolloutPercentage == 0) // Special case: 0% effectively disables the flag
 		{
 			modes.RemoveMode(EvaluationMode.TenantRolloutPercentage);
 		}
@@ -88,7 +88,7 @@ public sealed class ManageTenantAccessHandler(
 			modes.AddMode(EvaluationMode.TenantRolloutPercentage);
 		}
 
-		if (request.AllowedTenants?.Length > 0 || request.BlockedTenants?.Length > 0)
+		if (request.Allowed?.Length > 0 || request.Blocked?.Length > 0)
 		{
 			modes.AddMode(EvaluationMode.TenantTargeted);
 		}
@@ -98,9 +98,9 @@ public sealed class ManageTenantAccessHandler(
 		}
 
 		var accessControl = new AccessControl(
-						allowed: [.. request.AllowedTenants ?? []],
-						blocked: [.. request.BlockedTenants ?? []],
-						rolloutPercentage: request.Percentage ?? oldconfig.TenantAccessControl.RolloutPercentage);
+						allowed: [.. request.Allowed ?? []],
+						blocked: [.. request.Blocked ?? []],
+						rolloutPercentage: request.RolloutPercentage ?? oldconfig.TenantAccessControl.RolloutPercentage);
 
 		var configuration = oldconfig with { Modes = modes, TenantAccessControl = accessControl };
 		var metadata = flag.Metadata with
@@ -120,21 +120,21 @@ public sealed class ManageTenantAccessRequestValidator : AbstractValidator<Manag
 {
 	public ManageTenantAccessRequestValidator()
 	{
-		RuleFor(c => c.Percentage)
+		RuleFor(c => c.RolloutPercentage)
 			.InclusiveBetween(0, 100)
 			.WithMessage("Feature flag rollout percentage must be between 0 and 100");
 
-		RuleFor(c => c.AllowedTenants)
+		RuleFor(c => c.Allowed)
 		.Must(list => list == null || list.Distinct().Count() == list.Length)
 		.WithMessage("Duplicate tenant IDs are not allowed in AllowedTenants");
 
-		RuleFor(c => c.BlockedTenants)
+		RuleFor(c => c.Blocked)
 			.Must(list => list == null || list.Distinct().Count() == list.Length)
 			.WithMessage("Duplicate tenant IDs are not allowed in BlockedTenants");
 
 		RuleFor(c => c)
-			.Must(c => c.BlockedTenants!.Any(b => c.AllowedTenants!.Contains(b)) == false)
-			.When(c => c.BlockedTenants != null && c.AllowedTenants != null)
+			.Must(c => c.Blocked!.Any(b => c.Allowed!.Contains(b)) == false)
+			.When(c => c.Blocked != null && c.Allowed != null)
 			.WithMessage("Tenants cannot be in both allowed and blocked lists");
 	}
 }

@@ -25,7 +25,7 @@ export const FlagCard: React.FC<FlagCardProps> = ({
     const targetingRulesCount = targetingRules.length;
 
     // Get percentage from userAccess or tenantAccess
-    const percentage = flag.userAccess?.percentage || flag.tenantAccess?.percentage || 0;
+    const percentage = flag.userAccess?.rolloutPercentage || flag.tenantAccess?.rolloutPercentage || 0;
 
     return (
         <div

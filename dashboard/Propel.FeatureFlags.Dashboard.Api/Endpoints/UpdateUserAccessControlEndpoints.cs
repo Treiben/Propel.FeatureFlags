@@ -8,7 +8,7 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 
-public record ManageUserAccessRequest(string[]? AllowedUsers, string[]? BlockedUsers, int? Percentage, string? Notes);
+public record ManageUserAccessRequest(string[]? Allowed, string[]? Blocked, int? RolloutPercentage, string? Notes);
 
 public sealed class UpdateUserAccessControlEndpoints : IEndpoint
 {
@@ -59,7 +59,7 @@ public sealed class ManageUserAccessHandler(
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);
 
 			logger.LogInformation("Feature flag {Key} user rollout percentage set to {Percentage}% by {User})",
-				key, request.Percentage, currentUserService.UserName);
+				key, request.RolloutPercentage, currentUserService.UserName);
 
 			return Results.Ok(new FeatureFlagResponse(updatedFlag));
 		}
@@ -79,7 +79,7 @@ public sealed class ManageUserAccessHandler(
 		modes.RemoveMode(EvaluationMode.Off);
 
 		// Ensure correct evaluation modes are set based on the request
-		if (request.Percentage == 0) // Special case: 0% effectively disables the flag
+		if (request.RolloutPercentage == 0) // Special case: 0% effectively disables the flag
 		{
 			modes.RemoveMode(EvaluationMode.UserRolloutPercentage);
 		}
@@ -88,7 +88,7 @@ public sealed class ManageUserAccessHandler(
 			modes.AddMode(EvaluationMode.UserRolloutPercentage);
 		}
 
-		if (request.AllowedUsers?.Length > 0 || request.BlockedUsers?.Length > 0)
+		if (request.Allowed?.Length > 0 || request.Blocked?.Length > 0)
 		{
 			modes.AddMode(EvaluationMode.UserTargeted);
 		}
@@ -98,9 +98,9 @@ public sealed class ManageUserAccessHandler(
 		}
 
 		var accessControl = new AccessControl(
-						allowed: [.. request.AllowedUsers ?? []],
-						blocked: [.. request.BlockedUsers ?? []],
-						rolloutPercentage: request.Percentage ?? oldconfig.UserAccessControl.RolloutPercentage);
+						allowed: [.. request.Allowed ?? []],
+						blocked: [.. request.Blocked ?? []],
+						rolloutPercentage: request.RolloutPercentage ?? oldconfig.UserAccessControl.RolloutPercentage);
 
 		var configuration = oldconfig with { Modes = modes, UserAccessControl = accessControl };
 		var metadata = flag.Metadata with
@@ -120,21 +120,21 @@ public sealed class ManageUserAccessRequestValidator : AbstractValidator<ManageU
 {
 	public ManageUserAccessRequestValidator()
 	{
-		RuleFor(c => c.Percentage)
+		RuleFor(c => c.RolloutPercentage)
 			.InclusiveBetween(0, 100)
 			.WithMessage("Feature flag rollout percentage must be between 0 and 100");
 
-		RuleFor(c => c.AllowedUsers)
+		RuleFor(c => c.Allowed)
 			.Must(list => list == null || list.Distinct().Count() == list.Length)
 			.WithMessage("Duplicate user IDs are not allowed in AllowedUsers");
 
-		RuleFor(c => c.BlockedUsers)
+		RuleFor(c => c.Blocked)
 			.Must(list => list == null || list.Distinct().Count() == list.Length)
 			.WithMessage("Duplicate user IDs are not allowed in BlockedUsers");
 
 		RuleFor(c => c)
-			.Must(c => c.BlockedUsers!.Any(b => c.AllowedUsers!.Contains(b)) == false)
-			.When(c => c.BlockedUsers != null && c.AllowedUsers != null)
+			.Must(c => c.Blocked!.Any(b => c.Allowed!.Contains(b)) == false)
+			.When(c => c.Blocked != null && c.Allowed != null)
 			.WithMessage("Users cannot be in both allowed and blocked lists");
 	}
 }

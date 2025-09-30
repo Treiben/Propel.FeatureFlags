@@ -12,8 +12,8 @@ export const UserAccessControlStatusIndicator: React.FC<UserAccessControlStatusI
 
 	if (!components.hasPercentage && !components.hasUserTargeting) return null;
 
-	const allowedCount = flag.userAccess?.allowedIds?.length || 0;
-	const blockedCount = flag.userAccess?.blockedIds?.length || 0;
+	const allowedCount = flag.userAccess?.allowed?.length || 0;
+	const blockedCount = flag.userAccess?.blocked?.length || 0;
 	const rolloutPercentage = flag.userAccess?.rolloutPercentage || 0;
 
 	return (
@@ -196,8 +196,8 @@ export const UserAccessSection: React.FC<UserAccessSectionProps> = ({
 
 	const handleUserAccessSubmit = async () => {
 		try {
-			let finalAllowedUsers = flag.userAccess?.allowedIds || [];
-			let finalBlockedUsers = flag.userAccess?.blockedIds || [];
+			let finalAllowedUsers = flag.userAccess?.allowed || [];
+			let finalBlockedUsers = flag.userAccess?.blocked || [];
 			let finalPercentage = flag.userAccess?.rolloutPercentage || 0;
 
 			if (userAccessData.rolloutPercentage !== (flag.userAccess?.rolloutPercentage || 0)) {
@@ -232,8 +232,8 @@ export const UserAccessSection: React.FC<UserAccessSectionProps> = ({
 
 	const hasUserAccessControl = components.hasUserTargeting ||
 		(flag.userAccess?.rolloutPercentage && flag.userAccess.rolloutPercentage > 0) ||
-		(flag.userAccess?.allowedIds && flag.userAccess.allowedIds.length > 0) ||
-		(flag.userAccess?.blockedIds && flag.userAccess.blockedIds.length > 0);
+		(flag.userAccess?.allowed && flag.userAccess.allowed.length > 0) ||
+		(flag.userAccess?.blocked && flag.userAccess.blocked.length > 0);
 
 	return (
 		<div className="space-y-4 mb-6">
@@ -359,8 +359,8 @@ export const UserAccessSection: React.FC<UserAccessSectionProps> = ({
 						}
 
 						const rolloutPercentage = flag.userAccess?.rolloutPercentage || 0;
-						const allowedUsers = flag.userAccess?.allowedIds || [];
-						const blockedUsers = flag.userAccess?.blockedIds || [];
+						const allowedUsers = flag.userAccess?.allowed || [];
+						const blockedUsers = flag.userAccess?.blocked || [];
 
 						if (rolloutPercentage > 0 || components.hasUserTargeting) {
 							return (

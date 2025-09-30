@@ -12,8 +12,8 @@ export const TenantAccessControlStatusIndicator: React.FC<TenantAccessControlSta
 
 	if (!components.hasPercentage && !components.hasTenantTargeting) return null;
 
-	const allowedCount = flag.tenantAccess?.allowedIds?.length || 0;
-	const blockedCount = flag.tenantAccess?.blockedIds?.length || 0;
+	const allowedCount = flag.tenantAccess?.allowed?.length || 0;
+	const blockedCount = flag.tenantAccess?.blocked?.length || 0;
 	const rolloutPercentage = flag.tenantAccess?.rolloutPercentage || 0;
 
 	return (
@@ -196,8 +196,8 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 
 	const handleTenantAccessSubmit = async () => {
 		try {
-			let finalAllowedTenants = flag.tenantAccess?.allowedIds || [];
-			let finalBlockedTenants = flag.tenantAccess?.blockedIds || [];
+			let finalAllowedTenants = flag.tenantAccess?.allowed || [];
+			let finalBlockedTenants = flag.tenantAccess?.blocked || [];
 			let finalPercentage = flag.tenantAccess?.rolloutPercentage || 0;
 
 			if (tenantAccessData.rolloutPercentage !== (flag.tenantAccess?.rolloutPercentage || 0)) {
@@ -232,8 +232,8 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 
 	const hasTenantAccessControl = components.hasTenantTargeting ||
 		(flag.tenantAccess?.rolloutPercentage && flag.tenantAccess.rolloutPercentage > 0) ||
-		(flag.tenantAccess?.allowedIds && flag.tenantAccess.allowedIds.length > 0) ||
-		(flag.tenantAccess?.blockedIds && flag.tenantAccess.blockedIds.length > 0);
+		(flag.tenantAccess?.allowed && flag.tenantAccess.allowed.length > 0) ||
+		(flag.tenantAccess?.blocked && flag.tenantAccess.blocked.length > 0);
 
 	return (
 		<div className="space-y-4 mb-6">
@@ -359,8 +359,8 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 						}
 
 						const rolloutPercentage = flag.tenantAccess?.rolloutPercentage || 0;
-						const allowedTenants = flag.tenantAccess?.allowedIds || [];
-						const blockedTenants = flag.tenantAccess?.blockedIds || [];
+						const allowedTenants = flag.tenantAccess?.allowed || [];
+						const blockedTenants = flag.tenantAccess?.blocked || [];
 
 						if (rolloutPercentage > 0 || components.hasTenantTargeting) {
 							return (
