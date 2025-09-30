@@ -36,7 +36,7 @@ public sealed class UpdateTimeWindowEndpoint : IEndpoint
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.AddEndpointFilter<ValidationFilter<UpdateTimeWindowRequest>>()
 		.WithName("SetTimeWindow")
-		.WithTags("Feature Flags", "Lifecycle Management", "Operations", "Management Api")
+		.WithTags("Feature Flags", "Lifecycle Management", "Operations", "Dashboard Api")
 		.Produces<FeatureFlagResponse>()
 		.ProducesValidationProblem();
 	}

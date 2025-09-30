@@ -29,7 +29,7 @@ public sealed class UpdateTenantAccessControlEndpoints : IEndpoint
 			.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 			.AddEndpointFilter<ValidationFilter<ManageTenantAccessRequest>>()
 			.WithName("UpdateTenantAccessControl")
-			.WithTags("Feature Flags", "Operations", "Tenant Targeting", "Rollout Percentage", "Access Control Management", "Management Api")
+			.WithTags("Feature Flags", "Operations", "Tenant Targeting", "Rollout Percentage", "Access Control Management", "Dashboard Api")
 			.Produces<FeatureFlagResponse>()
 			.ProducesValidationProblem();
 	}

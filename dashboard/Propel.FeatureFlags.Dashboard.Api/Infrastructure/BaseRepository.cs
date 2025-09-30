@@ -7,7 +7,7 @@ namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 public interface IReadOnlyRepository
 {
 	Task<bool> FlagExistsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default);
-	Task<FeatureFlag?> GetAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default);
+	Task<FeatureFlag?> GetByKeyAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default);
 	Task<List<FeatureFlag>> GetAllAsync(CancellationToken cancellationToken = default);
 	Task<PagedResult<FeatureFlag>> GetPagedAsync(int page, int pageSize, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default);
 }
@@ -24,7 +24,7 @@ public class BaseRepository(DashboardDbContext context) : IReadOnlyRepository
 {
 	public DashboardDbContext Context { get; } = context ?? throw new ArgumentNullException(nameof(context));
 
-	public async Task<FeatureFlag?> GetAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default)
+	public async Task<FeatureFlag?> GetByKeyAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default)
 	{
 		var entity = await context.FeatureFlags
 			.AsNoTracking()
@@ -101,7 +101,7 @@ public class BaseRepository(DashboardDbContext context) : IReadOnlyRepository
 				f.Key == identifier.Key &&
 				f.ApplicationName == (identifier.ApplicationName ?? "global") &&
 				f.ApplicationVersion == (identifier.ApplicationVersion ?? "0.0.0.0") &&
-				f.Scope == (int)identifier.Scope);
+				f.Scope == (int)identifier.Scope, cancellationToken);
 		return entity != null;
 	}
 }

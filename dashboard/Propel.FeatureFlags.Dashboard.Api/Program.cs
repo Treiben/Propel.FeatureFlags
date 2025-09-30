@@ -55,7 +55,7 @@ builder.Services.AddAuthorizationBuilder()
 	.AddPolicy("ApiScope", policy =>
 	{
 		policy.RequireAuthenticatedUser();
-		policy.RequireClaim("scope", "propel-management-api");
+		policy.RequireClaim("scope", "propel-dashboard-api");
 	})
 	.AddFallbackPolicy("RequiresReadRights", AuthorizationPolicies.HasReadActionPolicy);
 

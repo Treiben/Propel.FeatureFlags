@@ -27,7 +27,7 @@ public sealed class UpdateMetadataEndpoint : IEndpoint
 		.AddEndpointFilter<ValidationFilter<UpdateFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("UpdateFeatureFlag")
-		.WithTags("Feature Flags", "CRUD Operations", "Update", "Management Api")
+		.WithTags("Feature Flags", "CRUD Operations", "Update", "Dashboard Api")
 		.Produces<FeatureFlagResponse>()
 		.ProducesValidationProblem();
 	}

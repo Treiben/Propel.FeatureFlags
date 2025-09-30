@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
+using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure.Cache;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace IntegrationTests.Postgres.HandlersTests;
 
@@ -40,8 +42,16 @@ public class UpdateFlagHandlerTests(HandlersTestsFixture fixture)
 	public async Task Should_update_flag_description_successfully()
 	{
 		// Arrange
-		var flag = FlagEvaluationConfiguration.CreateGlobal("update-desc-flag");
-		await fixture.SaveAsync(flag, "Name", "Old Description");
+		var identifier = new FlagIdentifier("update-desc-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		var flag = new FeatureFlag(identifier,
+			new Metadata(Name: "Name",
+						Description: "Old Description",
+						RetentionPolicy: RetentionPolicy.GlobalPolicy,
+						Tags: [],
+						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
+			EvalConfiguration.DefaultConfiguration);
+
+		var saved = await fixture.DashboardRepository.CreateAsync(flag, CancellationToken.None);
 
 		var handler = fixture.Services.GetRequiredService<UpdateFlagHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
@@ -64,8 +74,16 @@ public class UpdateFlagHandlerTests(HandlersTestsFixture fixture)
 	public async Task Should_update_flag_tags_successfully()
 	{
 		// Arrange
-		var flag = FlagEvaluationConfiguration.CreateGlobal("update-tags-flag");
-		await fixture.SaveAsync(flag, "Name", "Description");
+		var identifier = new FlagIdentifier("update-tags-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		var flag = new FeatureFlag(identifier,
+			new Metadata(Name: "Name",
+						Description: "Description",
+						RetentionPolicy: RetentionPolicy.GlobalPolicy,
+						Tags: [],
+						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
+			EvalConfiguration.DefaultConfiguration);
+
+		var saved = await fixture.DashboardRepository.CreateAsync(flag, CancellationToken.None);
 
 		var handler = fixture.Services.GetRequiredService<UpdateFlagHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
@@ -111,8 +129,16 @@ public class UpdateFlagHandlerTests(HandlersTestsFixture fixture)
 	public async Task Should_update_multiple_fields_at_once()
 	{
 		// Arrange
-		var flag = FlagEvaluationConfiguration.CreateGlobal("update-multiple-flag");
-		await fixture.SaveAsync(flag, "Old Name", "Old Description");
+		var identifier = new FlagIdentifier("update-multiple-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		var flag = new FeatureFlag(identifier,
+			new Metadata(Name: "Old Name",
+						Description: "Old Description",
+						RetentionPolicy: RetentionPolicy.GlobalPolicy,
+						Tags: [],
+						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
+			EvalConfiguration.DefaultConfiguration);
+
+		var saved = await fixture.DashboardRepository.CreateAsync(flag, CancellationToken.None);
 
 		var handler = fixture.Services.GetRequiredService<UpdateFlagHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
@@ -136,11 +162,19 @@ public class UpdateFlagHandlerTests(HandlersTestsFixture fixture)
 	public async Task Should_invalidate_cache_after_update()
 	{
 		// Arrange
-		var flag = FlagEvaluationConfiguration.CreateGlobal("cached-update-flag");
-		await fixture.SaveAsync(flag, "Cached", "In cache");
+		var identifier = new FlagIdentifier("cached-update-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		var flag = new FeatureFlag(identifier,
+			new Metadata(Name: "Cached",
+						Description: "In cache",
+						RetentionPolicy: RetentionPolicy.GlobalPolicy,
+						Tags: [],
+						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
+			EvalConfiguration.DefaultConfiguration with { Modes = new EvaluationModes([EvaluationMode.On]) });
+
+		var saved = await fixture.DashboardRepository.CreateAsync(flag, CancellationToken.None);
 
 		var cacheKey = new GlobalCacheKey("cached-update-flag");
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, FlagEvaluationConfiguration.CreateGlobal("cached-update-flag"));
 
 		var handler = fixture.Services.GetRequiredService<UpdateFlagHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
@@ -175,8 +209,16 @@ public class UpdateFlagHandlerTests(HandlersTestsFixture fixture)
 	public async Task Should_preserve_existing_values_when_fields_are_null()
 	{
 		// Arrange
-		var flag = FlagEvaluationConfiguration.CreateGlobal("preserve-flag");
-		await fixture.SaveAsync(flag, "Original Name", "Original Description");
+		var identifier = new FlagIdentifier("preserve-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		var flag = new FeatureFlag(identifier,
+			new Metadata(Name: "Original Name",
+						Description: "Original Description",
+						RetentionPolicy: RetentionPolicy.GlobalPolicy,
+						Tags: [],
+						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
+			EvalConfiguration.DefaultConfiguration);
+
+		var saved = await fixture.DashboardRepository.CreateAsync(flag, CancellationToken.None);
 
 		var handler = fixture.Services.GetRequiredService<UpdateFlagHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);

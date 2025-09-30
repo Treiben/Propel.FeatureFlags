@@ -30,7 +30,7 @@ public sealed class ToggleFlagEndpoint : IEndpoint
 		.AddEndpointFilter<ValidationFilter<ToggleFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("ToggleFlag")
-		.WithTags("Feature Flags", "Operations", "Toggle Control", "Management Api")
+		.WithTags("Feature Flags", "Operations", "Toggle Control", "Dashboard Api")
 		.Produces<FeatureFlagResponse>()
 		.ProducesValidationProblem();
 	}

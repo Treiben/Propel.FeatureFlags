@@ -14,8 +14,19 @@ public record FeatureFlagResponse
 {
 	public string Key { get; set; } 
 	public string Name { get; set; } 
-	public string Description { get; set; } 
+	public string Description { get; set; }
 
+	/// <summary>
+	/// Off = 0,
+	/// On = 1,
+	/// Scheduled = 2,
+	/// TimeWindow = 3,
+	/// UserTargeted = 4,
+	/// UserRolloutPercentage = 5,
+	/// TenantRolloutPercentage = 6,
+	/// TenantTargeted = 7,
+	/// TargetingRules = 8,
+	/// </summary>
 	public EvaluationMode[] Modes { get; set; }
 
 	public AuditInfo Created { get; set; } 
@@ -37,6 +48,10 @@ public record FeatureFlagResponse
 	public string? ApplicationName {get;set; }
 
 	public string? ApplicationVersion { get;set; }
+	/// <summary>
+	/// Global = 0,
+	/// Application = 2,
+	/// </summary>
 	public Scope Scope { get; set; }
 
 	public FeatureFlagResponse(FeatureFlag flag)

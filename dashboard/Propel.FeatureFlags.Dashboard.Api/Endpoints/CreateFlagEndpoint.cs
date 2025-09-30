@@ -34,7 +34,7 @@ public sealed class CreateFlagEndpoint : IEndpoint
 		.AddEndpointFilter<ValidationFilter<CreateGlobalFeatureFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("CreateFeatureFlag")
-		.WithTags("Feature Flags", "CRUD Operations", "Create", "Management Api")
+		.WithTags("Feature Flags", "CRUD Operations", "Create", "Dashboard Api")
 		.Produces<FeatureFlagResponse>(StatusCodes.Status201Created);
 	}
 }
@@ -71,7 +71,7 @@ public sealed class CreateGlobalFlagHandler(
 
 			var flag = await repository.CreateAsync(globalFlag, cancellationToken);
 
-			return Results.Created($"/api/flags/{globalFlag.Identifier.Key}", new FeatureFlagResponse(globalFlag));
+			return Results.Created($"/api/feature-flags/{globalFlag.Identifier.Key}", new FeatureFlagResponse(globalFlag));
 		}
 
 		catch (ArgumentException ex)

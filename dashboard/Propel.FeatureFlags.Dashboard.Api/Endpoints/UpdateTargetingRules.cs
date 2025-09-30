@@ -1,5 +1,4 @@
-﻿using Azure.Core;
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
@@ -32,7 +31,7 @@ public sealed class UpdateTargetingRulesEndpoint : IEndpoint
 			.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 			.AddEndpointFilter<ValidationFilter<UpdateTargetingRulesRequest>>()
 			.WithName("UpdateTargetingRules")
-			.WithTags("Feature Flags", "Operations", "Custom Targeting", "Targeting Rules", "Management Api")
+			.WithTags("Feature Flags", "Operations", "Custom Targeting", "Targeting Rules", "Dashboard Api")
 			.Produces<FeatureFlagResponse>()
 			.ProducesValidationProblem();
 	}
@@ -123,7 +122,7 @@ public sealed class UpdateTargetingRulesHandler(
 			};
 		}
 
-		return flag with { EvalConfig = configuration };
+		return flag with { Metadata = metadata, EvalConfig = configuration };
 	}
 }
 

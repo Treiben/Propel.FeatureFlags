@@ -86,8 +86,12 @@ public class HandlersTestsFixture : IAsyncLifetime
 				ConnectionString = sqlConnectionString
 			}
 		};
+		services.AddSingleton(options);
+
 		services.AddFeatureFlagRedisCache(options.Cache.Connection);
 		services.AddDatabase(options);
+
+		services.AddDatabaseInitializer(sqlConnectionString);
 
 		services.RegisterEvaluators();
 		services.AddDashboardServices();

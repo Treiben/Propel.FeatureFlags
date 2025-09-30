@@ -1,9 +1,12 @@
-﻿using FluentValidation;
+﻿using Azure.Core;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
 using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 using Propel.FeatureFlags.Domain;
+using System.Threading;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 
@@ -67,7 +70,7 @@ public sealed class GetFlagEndpoints : IEndpoint
 			})
 		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
 		.WithName("GetFlag")
-		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api")
+		.WithTags("Feature Flags", "CRUD Operations", "Read", "Dashboard Api")
 		.Produces<FeatureFlagResponse>();
 
 		app.MapGet("/api/feature-flags/all",
@@ -88,61 +91,69 @@ public sealed class GetFlagEndpoints : IEndpoint
 			})
 		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
 		.WithName("GetAllFlags")
-		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api", "All Flags")
+		.WithTags("Feature Flags", "CRUD Operations", "Read", "Dashboard Api", "All Flags")
 		.Produces<List<FeatureFlagResponse>>();
 
 		app.MapGet("/api/feature-flags",
 			async ([AsParameters] GetFeatureFlagRequest request,
-					IDashboardRepository repository,
-					ILogger<GetFlagEndpoints> logger,
+					GetFilteredFlagsHandler handler,
 					CancellationToken cancellationToken) =>
 			{
-				try
-				{
-					FeatureFlagFilter? filter = null;
-					if (request.Modes?.Length > 0 || request.Tags?.Length > 0 || request.TagKeys?.Length > 0)
-					{
-						filter = new FeatureFlagFilter
-						{
-							EvaluationModes = request.Modes,
-							Tags = request.BuildTagDictionary(),
-							ExpiringInDays = request.ExpiringInDays
-						};
-					}
-
-					var result = await repository.GetPagedAsync(
-						request.Page ?? 1,
-						request.PageSize ?? 10,
-						filter,
-						cancellationToken);
-
-					var response = new PagedFeatureFlagsResponse
-					{
-						Items = [.. result.Items.Select(f => new FeatureFlagResponse(f))],
-						TotalCount = result.TotalCount,
-						Page = result.Page,
-						PageSize = result.PageSize,
-						TotalPages = result.TotalPages,
-						HasNextPage = result.HasNextPage,
-						HasPreviousPage = result.HasPreviousPage
-					};
-
-					return Results.Ok(response);
-				}
-				catch (ArgumentException ex)
-				{
-					return HttpProblemFactory.BadRequest("Invalid request parameter", ex.Message, logger);
-				}
-				catch (Exception ex)
-				{
-					return HttpProblemFactory.InternalServerError(ex, logger);
-				}
+				return await handler.HandleAsync(request, cancellationToken);
 			})
 		.AddEndpointFilter<ValidationFilter<GetFeatureFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
 		.WithName("GetFlagsWithPageOrFilter")
-		.WithTags("Feature Flags", "CRUD Operations", "Read", "Management Api", "Paging, Filtering")
+		.WithTags("Feature Flags", "CRUD Operations", "Read", "Dashboard Api", "Paging, Filtering")
 		.Produces<PagedFeatureFlagsResponse>();
+	}
+}
+
+
+public sealed class GetFilteredFlagsHandler(IDashboardRepository repository, ILogger<GetFilteredFlagsHandler> logger)
+{
+	public async Task<IResult> HandleAsync(GetFeatureFlagRequest request, CancellationToken cancellationToken)
+	{
+		try
+		{
+			FeatureFlagFilter? filter = null;
+			if (request.Modes?.Length > 0 || request.Tags?.Length > 0 || request.TagKeys?.Length > 0)
+			{
+				filter = new FeatureFlagFilter
+				{
+					EvaluationModes = request.Modes,
+					Tags = request.BuildTagDictionary(),
+					ExpiringInDays = request.ExpiringInDays
+				};
+			}
+
+			var result = await repository.GetPagedAsync(
+				request.Page ?? 1,
+				request.PageSize ?? 10,
+				filter,
+				cancellationToken);
+
+			var response = new PagedFeatureFlagsResponse
+			{
+				Items = [.. result.Items.Select(f => new FeatureFlagResponse(f))],
+				TotalCount = result.TotalCount,
+				Page = result.Page,
+				PageSize = result.PageSize,
+				TotalPages = result.TotalPages,
+				HasNextPage = result.HasNextPage,
+				HasPreviousPage = result.HasPreviousPage
+			};
+
+			return Results.Ok(response);
+		}
+		catch (ArgumentException ex)
+		{
+			return HttpProblemFactory.BadRequest("Invalid request parameter", ex.Message, logger);
+		}
+		catch (Exception ex)
+		{
+			return HttpProblemFactory.InternalServerError(ex, logger);
+		}
 	}
 }
 

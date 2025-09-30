@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
+using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
 using Propel.FeatureFlags.Domain;
@@ -94,9 +95,16 @@ public class DeleteFlagHandlerTests(HandlersTestsFixture fixture)
 	public async Task Should_not_delete_permanent_flag()
 	{
 		// Arrange
-		var flag = FlagEvaluationConfiguration.CreateGlobal("permanent-flag");
+		var identifier = new FlagIdentifier("permanent-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		var flag = new FeatureFlag(identifier, 
+			new Metadata(Name: "Permanent Flag", 
+						Description: "Cannot be deleted",
+						RetentionPolicy: RetentionPolicy.GlobalPolicy,
+						Tags: [],
+						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]), 
+			EvalConfiguration.DefaultConfiguration);
 
-		await fixture.SaveAsync(flag, "Permanent", "Cannot delete");
+		await fixture.DashboardRepository.CreateAsync(flag, CancellationToken.None);
 
 		// Mark as permanent
 		var stored = await fixture.DashboardRepository.GetByKeyAsync(

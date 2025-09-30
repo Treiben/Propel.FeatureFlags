@@ -39,7 +39,7 @@ public class FlagResolverService(IDashboardRepository repository, ILogger<FlagRe
 		}
 
 		string application = headers.ApplicationName ?? "";
-		string version = headers.ApplicationVersion ?? "";
+		string version = headers.ApplicationVersion ?? "1.0.0.0";
 		if (parsedScope == Scope.Global)
 		{
 			application = "global";
@@ -53,7 +53,7 @@ public class FlagResolverService(IDashboardRepository repository, ILogger<FlagRe
 
 		// Resolve flag
 		var identifier = new FlagIdentifier(key, parsedScope, headers.ApplicationName, headers.ApplicationVersion);
-		var flag = await repository.GetAsync(identifier, cancellationToken);
+		var flag = await repository.GetByKeyAsync(identifier, cancellationToken);
 		if (flag == null)
 		{
 			return (false, HttpProblemFactory.NotFound("Feature flag", key, logger), null);

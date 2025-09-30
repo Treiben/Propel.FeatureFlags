@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 using Propel.FeatureFlags.Dashboard.Api.Endpoints;
@@ -7,6 +8,7 @@ using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Extensions;
+using Propel.FeatureFlags.Helpers;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Extensions;
 
@@ -55,9 +57,9 @@ public static class ProgramExtensions
 
 	public static IServiceCollection AddDashboardServices(this IServiceCollection services)
 	{
-		services.AddScoped<ICurrentUserService, CurrentUserService>();
-		services.AddScoped<IFlagResolverService, FlagResolverService>();
-		services.AddScoped<ICacheInvalidationService, CacheInvalidationService>();
+		services.TryAddScoped<ICurrentUserService, CurrentUserService>();
+		services.TryAddScoped<IFlagResolverService, FlagResolverService>();
+		services.TryAddScoped<ICacheInvalidationService, CacheInvalidationService>();
 
 		services.AddValidators();
 		services.AddHandlers();
@@ -85,6 +87,7 @@ public static class ProgramExtensions
 		services.AddScoped<CreateGlobalFlagHandler>();
 		services.AddScoped<DeleteFlagHandler>();
 		services.AddScoped<FlagEvaluationHandler>();
+		services.AddScoped<GetFilteredFlagsHandler>();
 		services.AddScoped<ManageTenantAccessHandler>();
 		services.AddScoped<ManageUserAccessHandler>();
 		services.AddScoped<ToggleFlagHandler>();

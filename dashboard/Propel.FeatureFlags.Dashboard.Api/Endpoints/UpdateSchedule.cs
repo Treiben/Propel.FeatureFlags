@@ -31,7 +31,7 @@ public sealed class UpdateScheduleEndpoint : IEndpoint
 		.AddEndpointFilter<ValidationFilter<UpdateScheduleRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("SetSchedule")
-		.WithTags("Feature Flags", "Lifecycle Management", "Operations", "Management Api")
+		.WithTags("Feature Flags", "Lifecycle Management", "Operations", "Dashboard Api")
 		.Produces<FeatureFlagResponse>()
 		.ProducesValidationProblem();
 	}

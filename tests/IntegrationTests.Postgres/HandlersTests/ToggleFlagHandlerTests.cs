@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
+using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
@@ -40,8 +41,17 @@ public class ToggleFlagHandlerTests(HandlersTestsFixture fixture)
 	public async Task Should_toggle_flag_off_successfully()
 	{
 		// Arrange
-		var flag = FlagEvaluationConfiguration.CreateGlobal("toggle-off-flag");
-		await fixture.SaveAsync(flag, "Toggle Off", "Will be disabled");
+		var identifier = new FlagIdentifier("toggle-off-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		var flag = new FeatureFlag(identifier,
+			new Metadata(Name: "Toggle Off",
+						Description: "Will be disabled",
+						RetentionPolicy: RetentionPolicy.GlobalPolicy,
+						Tags: [],
+						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
+			EvalConfiguration.DefaultConfiguration);
+
+		await fixture.DashboardRepository.CreateAsync(flag, CancellationToken.None);
+
 
 		var handler = fixture.Services.GetRequiredService<ToggleFlagHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
@@ -106,8 +116,16 @@ public class ToggleFlagHandlerTests(HandlersTestsFixture fixture)
 	public async Task Should_reset_access_control_to_zero_when_toggling_off()
 	{
 		// Arrange
-		var flag = FlagEvaluationConfiguration.CreateGlobal("access-off-flag");
-		await fixture.SaveAsync(flag, "Access Off", "Will reset to zero");
+		var identifier = new FlagIdentifier("access-off-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		var flag = new FeatureFlag(identifier,
+			new Metadata(Name: "Access Off",
+						Description: "Will reset to zero",
+						RetentionPolicy: RetentionPolicy.GlobalPolicy,
+						Tags: [],
+						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
+			EvalConfiguration.DefaultConfiguration with { Modes = new EvaluationModes([EvaluationMode.On]) });
+
+		await fixture.DashboardRepository.CreateAsync(flag, CancellationToken.None);
 
 		var handler = fixture.Services.GetRequiredService<ToggleFlagHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);

@@ -34,7 +34,7 @@ public sealed class EvaluateFlagEndpoints : IEndpoint
 			})
 			.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
 			.WithName("EvaluateFeatureFlag")
-			.WithTags("Feature Flags", "Evaluations", "Management Api")
+			.WithTags("Feature Flags", "Evaluations", "Dashboard Api")
 			.Produces<EvaluationResult>();
 	}
 }

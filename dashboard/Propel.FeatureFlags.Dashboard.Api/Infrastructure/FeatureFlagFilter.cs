@@ -36,7 +36,11 @@ public static class Filtering
 		// Filter by evaluation modes
 		if (filter.EvaluationModes?.Length > 0)
 		{
-			query = query.Where(f => FilterByEvaluationModes(f.EvaluationModes, filter.EvaluationModes));
+			foreach (var mode in filter.EvaluationModes)
+			{
+				int modeValue = (int)mode;
+				query = query.Where(f => f.EvaluationModes.Contains(modeValue.ToString()));
+			}
 		}
 
 		return query;

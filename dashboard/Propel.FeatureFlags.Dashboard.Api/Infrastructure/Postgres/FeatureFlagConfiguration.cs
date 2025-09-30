@@ -1,6 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Propel.FeatureFlags.Dashboard.Api.Infrastructure.Entities;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Helpers;
+using System.Text.Json;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.Postgres;
 
@@ -66,6 +69,7 @@ public class FeatureFlagConfiguration : IEntityTypeConfiguration<FeatureFlag>
 		// JSON columns - will be configured differently per provider
 		builder.Property(e => e.EvaluationModes)
 			.HasColumnName("evaluation_modes")
+			.HasColumnType("jsonb")
 			.HasDefaultValue("[]")
 			.IsRequired();
 

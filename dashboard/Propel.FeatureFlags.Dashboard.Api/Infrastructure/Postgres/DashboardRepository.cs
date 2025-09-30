@@ -143,23 +143,26 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 		var lastModified = metadata.ChangeHistory[^1];
 
 		await Context.Database.ExecuteSqlRawAsync(@"
-        INSERT INTO feature_flags_metadata (
-            flag_key, application_name, application_version,
-            is_permanent, expiration_date, tags
-        ) VALUES ({0}, {1}, {2}, {3}, {4}, {5}::jsonb)
-        ON CONFLICT (flag_key, application_name, application_version)
-        DO UPDATE SET
-            is_permanent = EXCLUDED.is_permanent,
-            expiration_date = EXCLUDED.expiration_date,
-            tags = EXCLUDED.tags;
+		UPDATE feature_flags
+		SET name = {4}, description = {5}
+		WHERE key = {0} AND application_name = {1} AND application_version = {2} AND scope = {3};
+
+        UPDATE feature_flags_metadata 
+        SET is_permanent = {6}, 
+			expiration_date = {7}, 
+			tags = {8}::jsonb
+		 WHERE flag_key = {0} AND application_name = {1} AND application_version = {2};
 
         INSERT INTO feature_flags_audit (
             flag_key, application_name, application_version,
             action, actor, notes, timestamp
-        ) VALUES ({0}, {1}, {2}, {6}, {7}, {8}, {9});",
+        ) VALUES ({0}, {1}, {2}, {9}, {10}, {11}, {12});",
 			identifier.Key,
 			identifier.ApplicationName ?? "global",
 			identifier.ApplicationVersion ?? "0.0.0.0",
+			identifier.Scope,
+			metadata.Name,
+			metadata.Description,
 			metadata.RetentionPolicy.IsPermanent,
 			(DateTimeOffset)metadata.RetentionPolicy.ExpirationDate,
 			JsonSerializer.Serialize(metadata.Tags),

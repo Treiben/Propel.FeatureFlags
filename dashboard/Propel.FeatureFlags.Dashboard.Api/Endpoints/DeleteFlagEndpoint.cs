@@ -22,7 +22,7 @@ public sealed class DeleteFlagEndpoint : IEndpoint
 			})
 		.RequireAuthorization(AuthorizationPolicies.HasWriteActionPolicy)
 		.WithName("DeleteFeatureFlag")
-		.WithTags("Feature Flags", "CRUD Operations", "Delete", "Management Api")
+		.WithTags("Feature Flags", "CRUD Operations", "Delete", "Dashboard Api")
 		.Produces(StatusCodes.Status204NoContent)
 		.Produces(StatusCodes.Status400BadRequest)
 		.Produces(StatusCodes.Status404NotFound);
