@@ -59,7 +59,7 @@ public class GetAsync_WithDashboardRepository(SqlServerTestsFixture fixture) : I
 		await fixture.DashboardRepository.CreateAsync(flag);
 
 		// Act
-		var result = await fixture.DashboardRepository.GetAsync(flagIdentifier);
+		var result = await fixture.DashboardRepository.GetByKeyAsync(flagIdentifier);
 
 		// Assert - Comprehensive field mapping verification
 		result.ShouldNotBeNull();
@@ -149,7 +149,7 @@ public class GetAsync_WithDashboardRepository(SqlServerTestsFixture fixture) : I
 		var flagIdentifier = new FlagIdentifier("non-existent-dashboard-flag", Scope.Global);
 
 		// Act
-		var result = await fixture.DashboardRepository.GetAsync(flagIdentifier);
+		var result = await fixture.DashboardRepository.GetByKeyAsync(flagIdentifier);
 
 		// Assert
 		result.ShouldBeNull();
@@ -313,7 +313,7 @@ public class CreateAsync_WithDashboardRepository(SqlServerTestsFixture fixture) 
 
 		// Assert
 		result.ShouldNotBeNull();
-		var retrieved = await fixture.DashboardRepository.GetAsync(identifier);
+		var retrieved = await fixture.DashboardRepository.GetByKeyAsync(identifier);
 		retrieved.ShouldNotBeNull();
 		retrieved.Metadata.Name.ShouldBe("Create Test Flag");
 
@@ -363,7 +363,7 @@ public class CreateAsync_WithDashboardRepository(SqlServerTestsFixture fixture) 
 		// Assert
 		result.ShouldNotBeNull();
 
-		var retrieved = await fixture.DashboardRepository.GetAsync(identifier);
+		var retrieved = await fixture.DashboardRepository.GetByKeyAsync(identifier);
 
 		retrieved.ShouldNotBeNull();
 		//verify all metadata fields mapped correctly
@@ -460,7 +460,7 @@ public class UpdateAsync_WithDashboardRepository(SqlServerTestsFixture fixture) 
 
 		// Assert
 		result.ShouldNotBeNull();
-		var retrieved = await fixture.DashboardRepository.GetAsync(flagIdentifier);
+		var retrieved = await fixture.DashboardRepository.GetByKeyAsync(flagIdentifier);
 		retrieved.ShouldNotBeNull();
 		retrieved.Metadata.Name.ShouldBe("Updated Name");
 		retrieved.Metadata.ChangeHistory.Count.ShouldBe(2);
@@ -504,7 +504,7 @@ public class DeleteAsync_WithDashboardRepository(SqlServerTestsFixture fixture) 
 
 		// Assert
 		//result.ShouldBeTrue();
-		var retrieved = await fixture.DashboardRepository.GetAsync(flagIdentifier);
+		var retrieved = await fixture.DashboardRepository.GetByKeyAsync(flagIdentifier);
 		retrieved.ShouldBeNull();
 	}
 
@@ -559,7 +559,7 @@ public class FeatureFlagRepositoryComprehensiveTests(SqlServerTestsFixture fixtu
 		await fixture.DashboardRepository.CreateAsync(flag);
 
 		// Act
-		var result = await fixture.DashboardRepository.GetAsync(flagIdentifier);
+		var result = await fixture.DashboardRepository.GetByKeyAsync(flagIdentifier);
 
 		// Assert - Verify min/max datetime handling
 		result.ShouldNotBeNull();
@@ -598,7 +598,7 @@ public class FeatureFlagRepositoryComprehensiveTests(SqlServerTestsFixture fixtu
 		await fixture.DashboardRepository.CreateAsync(flag);
 
 		// Act
-		var result = await fixture.DashboardRepository.GetAsync(flagIdentifier);
+		var result = await fixture.DashboardRepository.GetByKeyAsync(flagIdentifier);
 
 		// Assert - Verify default/null value handling
 		result.ShouldNotBeNull();
