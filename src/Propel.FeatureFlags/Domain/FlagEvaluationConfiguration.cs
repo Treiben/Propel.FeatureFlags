@@ -32,4 +32,10 @@ public class FlagEvaluationConfiguration
 		TenantAccessControl = tenantAccessControl ?? AccessControl.Unrestricted;
 		Variations = variations ?? Variations.OnOff;
 	}
+
+	public static FlagEvaluationConfiguration CreateGlobal(string key)
+	{
+		var identifier = new FlagIdentifier(key, Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		return new FlagEvaluationConfiguration(identifier);
+	}
 }
