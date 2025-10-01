@@ -48,49 +48,49 @@ public sealed class ToggleFlagHandler(
 		ToggleFlagRequest request,
 		CancellationToken cancellationToken)
 	{
-		var evaluationMode = request.EvaluationMode;
+		var onOffMode = request.EvaluationMode;
 		try
 		{
 			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
 			if (!isValid) return result;
 
 			// Check if the flag is already in the requested state
-			if (flag!.EvalConfig.Modes.ContainsModes([evaluationMode]))
+			if (flag!.EvaluationOptions.ModeSet.Contains([onOffMode]))
 			{
-				logger.LogInformation("Feature flag {Key} is already {Status} - no change needed", key, evaluationMode);
+				logger.LogInformation("Feature flag {Key} is already {Status} - no change needed", key, onOffMode);
 				return Results.Ok(new FeatureFlagResponse(flag));
 			}
 
 			// Store previous state for logging
-			var previousModes = flag.EvalConfig.Modes;
+			var previousModes = flag.EvaluationOptions.ModeSet;
 
-			var notes = request.Notes ?? (evaluationMode == EvaluationMode.On ? "Flag enabled" : "Flag disabled");
+			var notes = request.Notes ?? (onOffMode == EvaluationMode.On ? "Flag enabled" : "Flag disabled");
 
 			// Reset scheduling, time window, and user/tenant access when manually toggling
-			var config = flag.EvalConfig with
+			var config = flag.EvaluationOptions with
 			{
-				Modes = new EvaluationModes([evaluationMode]),
-				UserAccessControl = new AccessControl(rolloutPercentage: evaluationMode == EvaluationMode.On ? 100 : 0),
-				TenantAccessControl = new AccessControl(rolloutPercentage: evaluationMode == EvaluationMode.On ? 100 : 0),
+				ModeSet = onOffMode,
+				UserAccessControl = new AccessControl(rolloutPercentage: onOffMode == EvaluationMode.On ? 100 : 0),
+				TenantAccessControl = new AccessControl(rolloutPercentage: onOffMode == EvaluationMode.On ? 100 : 0),
 				OperationalWindow = Knara.UtcStrict.UtcTimeWindow.AlwaysOpen,
 				Schedule = Knara.UtcStrict.UtcSchedule.Unscheduled
 			};
 
 			// add change history
-			var metadata = flag.Metadata with
+			var metadata = flag.Administration with
 			{
 				ChangeHistory =
 				[
-					.. flag.Metadata.ChangeHistory,
+					.. flag.Administration.ChangeHistory,
 					AuditTrail.FlagModified(username: currentUserService.UserName!, notes: notes),
 				]
 			};
-			var flagWithUpdatedModes = flag with { Metadata = metadata, EvalConfig = config };
+			var flagWithUpdatedModes = flag with { Administration = metadata, EvaluationOptions = config };
 
 			var updatedFlag = await repository.UpdateAsync(flagWithUpdatedModes, cancellationToken);
 			await cacheInvalidationService.InvalidateFlagAsync(updatedFlag.Identifier, cancellationToken);
 
-			var action = Enum.GetName(evaluationMode);
+			var action = Enum.GetName(onOffMode);
 			logger.LogInformation("Feature flag {Key} {Action} by {User} (changed from {PreviousStatus}). Reason: {Reason}",
 				key, action, currentUserService.UserName, JsonSerializer.Serialize(previousModes), notes);
 

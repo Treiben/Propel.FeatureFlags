@@ -67,7 +67,8 @@ public class BaseRepository(DashboardDbContext context) : IReadOnlyRepository
 		// Apply filters
 		if (filter != null)
 		{
-			query = Filtering.ApplyFilters(query, filter);
+			var provider = context.Database.ProviderName;
+			query = Filtering.ApplyFilters(query, filter, provider);
 		}
 
 		// Get total count before pagination

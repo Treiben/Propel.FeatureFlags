@@ -1,4 +1,6 @@
-﻿namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.Entities;
+﻿using Propel.FeatureFlags.Domain;
+
+namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.Entities;
 
 public class FeatureFlag
 {

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Helpers;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.Postgres;
@@ -20,8 +21,8 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 	public async Task<FeatureFlag> CreateAsync(FeatureFlag flag, CancellationToken cancellationToken = default)
 	{
 		var identifier = flag.Identifier;
-		var metadata = flag.Metadata;
-		var config = flag.EvalConfig;
+		var metadata = flag.Administration;
+		var config = flag.EvaluationOptions;
 		var lastModified = metadata.ChangeHistory[^1];
 
 		await Context.Database.ExecuteSqlRawAsync(@"
@@ -52,14 +53,14 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 		(int)identifier.Scope,
 		metadata.Name,
 		metadata.Description,
-		JsonSerializer.Serialize(config.Modes.Modes.Select(m => (int)m).ToArray()),
+		JsonSerializer.Serialize(config.ModeSet.Modes.Select(m => (int)m).ToArray()),
 		config.Schedule.HasSchedule() ? (DateTimeOffset)config.Schedule.EnableOn : null!,
 		config.Schedule.HasSchedule() ? (DateTimeOffset)config.Schedule.DisableOn : null!,
 		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StartOn : null!,
 		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StopOn : null!,
 		config.OperationalWindow.HasWindow() ? config.OperationalWindow.TimeZone : null!,
 		JsonSerializer.Serialize(config.OperationalWindow.DaysActive.Select(d => (int)d).ToArray()),
-		JsonSerializer.Serialize(config.TargetingRules),
+		JsonSerializer.Serialize(config.TargetingRules, JsonDefaults.JsonOptions),
 		JsonSerializer.Serialize(config.UserAccessControl.Allowed),
 		JsonSerializer.Serialize(config.UserAccessControl.Blocked),
 		config.UserAccessControl.RolloutPercentage,
@@ -82,8 +83,8 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 	public async Task<FeatureFlag> UpdateAsync(FeatureFlag flag, CancellationToken cancellationToken = default)
 	{
 		var identifier = flag.Identifier;
-		var metadata = flag.Metadata;
-		var config = flag.EvalConfig;
+		var metadata = flag.Administration;
+		var config = flag.EvaluationOptions;
 		var lastModified = metadata.ChangeHistory[^1];
 
 		var updatedRows = await Context.Database.ExecuteSqlRawAsync(@"
@@ -107,14 +108,14 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 		(int)identifier.Scope,
 		metadata.Name,
 		metadata.Description,
-		JsonSerializer.Serialize(config.Modes.Modes.Select(m => (int)m).ToArray()),
+		JsonSerializer.Serialize(config.ModeSet.Modes.Select(m => (int)m).ToArray()),
 		config.Schedule.HasSchedule() ? (DateTimeOffset)config.Schedule.EnableOn : null!,
 		config.Schedule.HasSchedule() ? (DateTimeOffset)config.Schedule.DisableOn : null!,
 		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StartOn : null!,
 		config.OperationalWindow.HasWindow() ? config.OperationalWindow.StopOn : null!,
 		config.OperationalWindow.HasWindow() ? config.OperationalWindow.TimeZone : null!,
 		JsonSerializer.Serialize(config.OperationalWindow.DaysActive.Select(d => (int)d).ToArray()),
-		JsonSerializer.Serialize(config.TargetingRules),
+		JsonSerializer.Serialize(config.TargetingRules, JsonDefaults.JsonOptions),
 		JsonSerializer.Serialize(config.UserAccessControl.Allowed),
 		JsonSerializer.Serialize(config.UserAccessControl.Blocked),
 		config.UserAccessControl.RolloutPercentage,
@@ -139,7 +140,7 @@ public class DashboardRepository(PostgresDbContext context) : BaseRepository(con
 	public async Task<FeatureFlag> UpdateMetadataAsync(FeatureFlag flag, CancellationToken cancellationToken = default)
 	{
 		var identifier = flag.Identifier;
-		var metadata = flag.Metadata;
+		var metadata = flag.Administration;
 		var lastModified = metadata.ChangeHistory[^1];
 
 		await Context.Database.ExecuteSqlRawAsync(@"

@@ -58,13 +58,13 @@ public sealed class CreateGlobalFlagHandler(
 					logger);
 			}
 
-			var metadata = Metadata.Create(
+			var metadata = FlagAdministration.Create(
 				Scope.Global,
 				request.Name,
 				request.Description ?? string.Empty,
 				AuditTrail.FlagCreated(currentUserService.UserName!)) with { Tags = request.Tags ?? [] };
 
-			var globalFlag = new FeatureFlag(identifier, metadata, EvalConfiguration.DefaultConfiguration);
+			var globalFlag = new FeatureFlag(identifier, metadata, FlagEvaluationOptions.DefaultOptions);
 
 			logger.LogInformation("Feature flag {Key} created successfully by {User}",
 				identifier.Key, currentUserService.UserName);

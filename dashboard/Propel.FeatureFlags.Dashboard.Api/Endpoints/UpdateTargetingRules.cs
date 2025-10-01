@@ -77,36 +77,38 @@ public sealed class UpdateTargetingRulesHandler(
 
 	public FeatureFlag CreateFlagWithUpdatedRules(UpdateTargetingRulesRequest request, FeatureFlag flag)
 	{
-		var oldconfig = flag.EvalConfig;
+		var oldconfig = flag.EvaluationOptions;
 
 		// Remove enabled/disabled modes as we're configuring specific targeting
-		var modes = new EvaluationModes([.. oldconfig.Modes.Modes]);
-		modes.RemoveMode(EvaluationMode.On);
-		modes.RemoveMode(EvaluationMode.Off);
+		HashSet<EvaluationMode> modes = [.. oldconfig.ModeSet.Modes];
+		modes.Remove(EvaluationMode.On);
+		modes.Remove(EvaluationMode.Off);
 
-		EvalConfiguration configuration;
-		Metadata metadata;
+		FlagEvaluationOptions configuration;
+		FlagAdministration metadata;
 		if (request.RemoveTargetingRules || request.TargetingRules == null || request.TargetingRules.Count == 0)
 		{
 			// Remove the TargetingRules mode
-			modes.RemoveMode(EvaluationMode.TargetingRules);
+			modes.Remove(EvaluationMode.TargetingRules);
 			// Clear existing targeting rules
-			configuration = oldconfig with { Modes = modes, TargetingRules = [] };
+			configuration = oldconfig with {
+				ModeSet = modes.Count == 0 ? EvaluationMode.Off : new ModeSet(modes),
+				TargetingRules = [] };
 			// add to change history
-			metadata = flag.Metadata with
+			metadata = flag.Administration with
 			{
-				ChangeHistory = [.. flag.Metadata.ChangeHistory,
+				ChangeHistory = [.. flag.Administration.ChangeHistory,
 					AuditTrail.FlagModified(currentUserService.UserName!, request.Notes ?? "All targeting rules removed")]
 			};
 		}
 		else
 		{
 			// Ensure TargetingRules mode is active
-			modes.AddMode(EvaluationMode.TargetingRules);
+			modes.Add(EvaluationMode.TargetingRules);
 			// Replace existing targeting rules with new ones
 			configuration = oldconfig with
 			{
-				Modes = modes,
+				ModeSet = new ModeSet(modes),
 				TargetingRules = [.. request.TargetingRules.Select(dto =>
 					TargetingRuleFactory.CreateTargetingRule(
 													dto.Attribute,
@@ -115,14 +117,14 @@ public sealed class UpdateTargetingRulesHandler(
 													dto.Variation))]
 			};
 			// add to change history
-			metadata = flag.Metadata with
+			metadata = flag.Administration with
 			{
-				ChangeHistory = [.. flag.Metadata.ChangeHistory,
+				ChangeHistory = [.. flag.Administration.ChangeHistory,
 					AuditTrail.FlagModified(currentUserService.UserName!, request.Notes ?? "Targeting rules updated")]
 			};
 		}
 
-		return flag with { Metadata = metadata, EvalConfig = configuration };
+		return flag with { Administration = metadata, EvaluationOptions = configuration };
 	}
 }
 

@@ -5,11 +5,11 @@ namespace Propel.FeatureFlags.Dashboard.Api.Domain;
 
 public record FeatureFlag(
 	FlagIdentifier Identifier,
-	Metadata Metadata,
-	EvalConfiguration EvalConfig);
+	FlagAdministration Administration,
+	FlagEvaluationOptions EvaluationOptions);
 
-public record EvalConfiguration(
-	EvaluationModes Modes,
+public record FlagEvaluationOptions(
+	ModeSet ModeSet,
 	UtcSchedule Schedule,
 	UtcTimeWindow OperationalWindow,
 	List<ITargetingRule> TargetingRules,
@@ -17,8 +17,8 @@ public record EvalConfiguration(
 	AccessControl TenantAccessControl,
 	Variations Variations)
 {
-	public static EvalConfiguration DefaultConfiguration => new(
-		Modes: EvaluationModes.FlagIsDisabled,
+	public static FlagEvaluationOptions DefaultOptions => new(
+		ModeSet: EvaluationMode.Off,
 		Schedule: UtcSchedule.Unscheduled,
 		OperationalWindow: UtcTimeWindow.AlwaysOpen,
 		TargetingRules: [],

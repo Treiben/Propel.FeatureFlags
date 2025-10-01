@@ -65,7 +65,7 @@ public sealed class UpdateScheduleHandler(
 
 			var scheduleInfo = isScheduleRemoval
 				? "removed schedule"
-				: $"enable at {updatedFlag.EvalConfig.Schedule.EnableOn:yyyy-MM-dd HH:mm} UTC, disable at {updatedFlag.EvalConfig.Schedule.DisableOn:yyyy-MM-dd HH:mm} UTC";
+				: $"enable at {updatedFlag.EvaluationOptions.Schedule.EnableOn:yyyy-MM-dd HH:mm} UTC, disable at {updatedFlag.EvaluationOptions.Schedule.DisableOn:yyyy-MM-dd HH:mm} UTC";
 			logger.LogInformation("Feature flag {Key} schedule updated by {User}: {ScheduleInfo}",
 				key, currentUserService.UserName, JsonSerializer.Serialize(scheduleInfo));
 
@@ -83,33 +83,33 @@ public sealed class UpdateScheduleHandler(
 
 	private FeatureFlag CreateFlagWithUpdatedSchedule(UpdateScheduleRequest request, FeatureFlag flag, string username)
 	{
-		var oldconfig = flag!.EvalConfig;
+		var oldconfig = flag!.EvaluationOptions;
 		bool removeSchedule = request.EnableOn == null && request.DisableOn == null;
 
 		// Remove enabled/disabled modes as we're configuring specific scheduling
-		var modes = new EvaluationModes([.. oldconfig.Modes.Modes]);
-		modes.RemoveMode(EvaluationMode.On);
-		modes.RemoveMode(EvaluationMode.Off);
+		HashSet<EvaluationMode> modes = [.. oldconfig.ModeSet.Modes];
+		modes.Remove(EvaluationMode.On);
+		modes.Remove(EvaluationMode.Off);
 
-		EvalConfiguration configuration;
-		Metadata metadata;
+		FlagEvaluationOptions configuration;
+		FlagAdministration metadata;
 
 		if (removeSchedule)
 		{
 			// Remove scheduled mode as we're removing scheduling
-			modes.RemoveMode(EvaluationMode.Scheduled);
+			modes.Remove(EvaluationMode.Scheduled);
 			// Reset schedule to unscheduled
 			configuration = oldconfig with
 			{
-				Modes = modes,
+				ModeSet = modes.Count == 0 ? EvaluationMode.Off : new ModeSet(modes),
 				Schedule = UtcSchedule.Unscheduled
 			};
 			// Add to change history
-			metadata = flag.Metadata with
+			metadata = flag.Administration with
 			{
 				ChangeHistory =
 				[
-					.. flag.Metadata.ChangeHistory,
+					.. flag.Administration.ChangeHistory,
 					AuditTrail.FlagModified(username: username, notes: request.Notes ?? "Removed flag schedule"),
 				]
 			};
@@ -117,27 +117,27 @@ public sealed class UpdateScheduleHandler(
 		else
 		{
 			// Ensure the Scheduled mode is included
-			modes.AddMode(EvaluationMode.Scheduled);
+			modes.Add(EvaluationMode.Scheduled);
 			// Update the schedule
 			configuration = oldconfig with
 			{
-				Modes = modes,
+				ModeSet = new ModeSet(modes),
 				Schedule = UtcSchedule.CreateSchedule(
 					request.EnableOn ?? UtcDateTime.MinValue,
 					request.DisableOn ?? UtcDateTime.MaxValue)
 			};
 			// Add to change history
-			metadata = flag.Metadata with
+			metadata = flag.Administration with
 			{
 				ChangeHistory =
 				[
-					.. flag.Metadata.ChangeHistory,
+					.. flag.Administration.ChangeHistory,
 					AuditTrail.FlagModified(username: username, notes: request.Notes ?? "Updated flag schedule"),
 				]
 			};
 		}
 
-		return flag with { EvalConfig = configuration, Metadata = metadata };
+		return flag with { EvaluationOptions = configuration, Administration = metadata };
 	}
 }
 

@@ -1,4 +1,6 @@
-﻿using Propel.FeatureFlags.Domain;
+﻿using Microsoft.EntityFrameworkCore;
+using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Helpers;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure;
@@ -15,7 +17,8 @@ public class FeatureFlagFilter
 
 public static class Filtering
 {
-	public static IQueryable<Entities.FeatureFlag> ApplyFilters(IQueryable<Entities.FeatureFlag> query, FeatureFlagFilter filter)
+	public static IQueryable<Entities.FeatureFlag> ApplyFilters(IQueryable<Entities.FeatureFlag> query, FeatureFlagFilter filter,
+		string provider = "")
 	{
 		// Filter by application scope
 		if (!string.IsNullOrEmpty(filter.ApplicationName))
@@ -33,13 +36,23 @@ public static class Filtering
 			query = query.Where(f => f.Scope == (int)filter.Scope.Value);
 		}
 
-		// Filter by evaluation modes
-		if (filter.EvaluationModes?.Length > 0)
+		if (filter.EvaluationModes != null && filter.EvaluationModes.Length > 0)
 		{
-			foreach (var mode in filter.EvaluationModes)
+			if (provider != null && provider.Contains("SqlServer"))
 			{
-				int modeValue = (int)mode;
-				query = query.Where(f => f.EvaluationModes.Contains(modeValue.ToString()));
+				// SQL Server specific JSON filtering
+				var modes = string.Join(",", filter.EvaluationModes.Select(m => (int)m));
+				foreach (var mode in filter.EvaluationModes)
+				{
+					var modeValue = ((int)mode).ToString();
+					query = query.Where(p => p.EvaluationModes.Contains(modeValue));
+				}
+			}
+			else
+			{
+				// Default JSON filtering for other providers (e.g., SQLite, PostgreSQL)
+				var modes = JsonSerializer.Serialize(filter.EvaluationModes.Select(m => (int)m), JsonDefaults.JsonOptions) ?? "[]";
+				query = query.Where(p => EF.Functions.JsonContains(p.EvaluationModes, modes));
 			}
 		}
 

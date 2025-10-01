@@ -43,7 +43,7 @@ public sealed class DeleteFlagHandler(
 			var (isValid, result, flag) = await flagResolver.ValidateAndResolveFlagAsync(key, headers, cancellationToken);
 			if (!isValid) return result;
 
-			if (flag!.Metadata.RetentionPolicy.IsPermanent)
+			if (flag!.Administration.RetentionPolicy.IsPermanent)
 			{
 				return HttpProblemFactory.BadRequest(
 					"Cannot Delete Permanent Flag",

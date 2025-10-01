@@ -57,8 +57,8 @@ public record FeatureFlagResponse
 	public FeatureFlagResponse(FeatureFlag flag)
 	{
 		var identifier = flag.Identifier ?? throw new ArgumentNullException(nameof(flag.Identifier));
-		var metadata = flag.Metadata ?? throw new ArgumentNullException(nameof(flag.Metadata));
-		var configuration = flag.EvalConfig ?? throw new ArgumentNullException(nameof(flag.EvalConfig));
+		var metadata = flag.Administration ?? throw new ArgumentNullException(nameof(flag.Administration));
+		var configuration = flag.EvaluationOptions ?? throw new ArgumentNullException(nameof(flag.EvaluationOptions));
 		var retention = metadata.RetentionPolicy ?? throw new ArgumentNullException(nameof(metadata.RetentionPolicy));
 
 		Key = identifier.Key;
@@ -71,7 +71,7 @@ public record FeatureFlagResponse
 
 		(Created, Updated) = MapChangeHistory(metadata.ChangeHistory);
 
-		Modes = [.. configuration.Modes.Modes];
+		Modes = configuration.ModeSet;
 
 		Schedule = MapSchedule(configuration.Schedule);
 

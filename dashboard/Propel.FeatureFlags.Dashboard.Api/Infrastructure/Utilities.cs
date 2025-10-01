@@ -26,7 +26,7 @@ public static class Mapper
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
 
-	public static Metadata MapMetadataToDomain(Entities.FeatureFlag entity) => new(
+	public static FlagAdministration MapMetadataToDomain(Entities.FeatureFlag entity) => new(
 			Name: entity.Name,
 			Description: entity.Description ?? string.Empty,
 			RetentionPolicy: new RetentionPolicy(entity.Metadata.ExpirationDate),
@@ -42,10 +42,10 @@ public static class Mapper
 				Notes: entity.Notes
 			);
 
-	public static EvalConfiguration MapConfigurationToDomain(Entities.FeatureFlag entity)
+	public static FlagEvaluationOptions MapConfigurationToDomain(Entities.FeatureFlag entity)
 	{
 		// Parse evaluation modes
-		var evaluationModes = Parser.ParseEvaluationModes(entity.EvaluationModes);
+		ModeSet evaluationModes = Parser.ParseEvaluationModes(entity.EvaluationModes);
 
 		// Parse schedule
 		var schedule =new  UtcSchedule(entity.ScheduledEnableDate ?? UtcDateTime.MinValue,
@@ -77,7 +77,7 @@ public static class Mapper
 		// Parse variations
 		var variations = Parser.ParseVariations(entity.Variations, entity.DefaultVariation);
 
-		return new EvalConfiguration(
+		return new FlagEvaluationOptions(
 			evaluationModes,
 			schedule,
 			operationalWindow,
@@ -90,17 +90,17 @@ public static class Mapper
 
 public static class Parser
 {
-	public static EvaluationModes ParseEvaluationModes(string json)
+	public static ModeSet ParseEvaluationModes(string json)
 	{
 		try
 		{
 			var modes = JsonSerializer.Deserialize<int[]>(json, JsonDefaults.JsonOptions) ?? [];
 			var enumModes = modes.Select(m => (EvaluationMode)m).ToHashSet();
-			return new EvaluationModes(enumModes);
+			return new ModeSet(enumModes);
 		}
 		catch
 		{
-			return EvaluationModes.FlagIsDisabled;
+			return EvaluationMode.Off;
 		}
 	}
 

@@ -71,20 +71,20 @@ public sealed class UpdateFlagHandler(
 
 	public static FeatureFlag CreateFlagWithUpdatedMetadata(UpdateFlagRequest request, FeatureFlag flag, string username)
 	{
-		var metadata = flag.Metadata with
+		var metadata = flag.Administration with
 		{
-			Name = string.IsNullOrWhiteSpace(request.Name) ? flag.Metadata.Name : request.Name!.Trim(),
-			Description = string.IsNullOrWhiteSpace(request.Description) ? flag.Metadata.Description : request.Description!.Trim(),
-			Tags = request.Tags ?? flag.Metadata.Tags,
-			RetentionPolicy = request.ExpirationDate.HasValue ? new RetentionPolicy(request.ExpirationDate.Value) : flag.Metadata.RetentionPolicy,
+			Name = string.IsNullOrWhiteSpace(request.Name) ? flag.Administration.Name : request.Name!.Trim(),
+			Description = string.IsNullOrWhiteSpace(request.Description) ? flag.Administration.Description : request.Description!.Trim(),
+			Tags = request.Tags ?? flag.Administration.Tags,
+			RetentionPolicy = request.ExpirationDate.HasValue ? new RetentionPolicy(request.ExpirationDate.Value) : flag.Administration.RetentionPolicy,
 			ChangeHistory =
 			[
-				.. flag.Metadata.ChangeHistory,
+				.. flag.Administration.ChangeHistory,
 				AuditTrail.FlagModified(username: username, notes: request.Notes ?? "Flag metadata updated"),
 			]
 		};
 
-		return flag with { Metadata = metadata };
+		return flag with { Administration = metadata };
 	}
 }
 

@@ -78,15 +78,15 @@ public sealed class FlagEvaluationHandler(
 					attributes: attributeDict);
 
 			var evaluationResult = await evaluationManager.ProcessEvaluation(
-				new FlagEvaluationConfiguration(
-						identifier: flag!.Identifier,
-						activeEvaluationModes: flag.EvalConfig.Modes,
-						schedule: flag.EvalConfig.Schedule,
-						operationalWindow: flag.EvalConfig.OperationalWindow,
-						targetingRules: flag.EvalConfig.TargetingRules,
-						userAccessControl: flag.EvalConfig.UserAccessControl,
-						tenantAccessControl: flag.EvalConfig.TenantAccessControl,
-						variations: flag.EvalConfig.Variations), 
+				new EvaluationOptions(
+						key: flag!.Identifier.Key,
+						modeSet: flag.EvaluationOptions.ModeSet,
+						schedule: flag.EvaluationOptions.Schedule,
+						operationalWindow: flag.EvaluationOptions.OperationalWindow,
+						targetingRules: flag.EvaluationOptions.TargetingRules,
+						userAccessControl: flag.EvaluationOptions.UserAccessControl,
+						tenantAccessControl: flag.EvaluationOptions.TenantAccessControl,
+						variations: flag.EvaluationOptions.Variations), 
 				context);
 
 			return Results.Ok(evaluationResult);

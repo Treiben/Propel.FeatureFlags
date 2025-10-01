@@ -2,14 +2,14 @@
 
 namespace Propel.FeatureFlags.Dashboard.Api.Domain;
 
-public record Metadata(
+public record FlagAdministration(
 	string Name,
 	string Description,
 	RetentionPolicy RetentionPolicy,
 	Dictionary<string, string> Tags,
 	List<AuditTrail> ChangeHistory)
 {
-	public static Metadata Create(Scope scope, string name, string description, AuditTrail initial)
+	public static FlagAdministration Create(Scope scope, string name, string description, AuditTrail initial)
 	{
 		ArgumentNullException.ThrowIfNull(name);
 		ArgumentNullException.ThrowIfNull(initial);
@@ -19,7 +19,7 @@ public record Metadata(
 		var tags = new Dictionary<string, string>();
 		var changeHistory = new List<AuditTrail> { initial };
 
-		return new Metadata(
+		return new FlagAdministration(
 			Name: name.Trim(),
 			Description: description.Trim(),
 			RetentionPolicy: retentionPolicy,

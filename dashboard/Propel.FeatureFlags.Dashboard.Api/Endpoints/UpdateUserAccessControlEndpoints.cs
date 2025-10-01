@@ -71,30 +71,30 @@ public sealed class ManageUserAccessHandler(
 
 	private FeatureFlag CreateFlagWithUpdatedUsersAccess(ManageUserAccessRequest request, FeatureFlag flag)
 	{
-		var oldconfig = flag.EvalConfig;
+		var oldconfig = flag.EvaluationOptions;
 
 		// Remove enabled/disabled modes as we're configuring specific access control
-		var modes = new EvaluationModes([.. oldconfig.Modes.Modes]);
-		modes.RemoveMode(EvaluationMode.On);
-		modes.RemoveMode(EvaluationMode.Off);
+		HashSet<EvaluationMode> modes = [.. oldconfig.ModeSet.Modes];
+		modes.Remove(EvaluationMode.On);
+		modes.Remove(EvaluationMode.Off);
 
 		// Ensure correct evaluation modes are set based on the request
 		if (request.RolloutPercentage == 0) // Special case: 0% effectively disables the flag
 		{
-			modes.RemoveMode(EvaluationMode.UserRolloutPercentage);
+			modes.Remove(EvaluationMode.UserRolloutPercentage);
 		}
 		else // Standard percentage rollout
 		{
-			modes.AddMode(EvaluationMode.UserRolloutPercentage);
+			modes.Add(EvaluationMode.UserRolloutPercentage);
 		}
 
 		if (request.Allowed?.Length > 0 || request.Blocked?.Length > 0)
 		{
-			modes.AddMode(EvaluationMode.UserTargeted);
+			modes.Add(EvaluationMode.UserTargeted);
 		}
 		else // If no users are specified, remove the UserTargeted mode
 		{
-			modes.RemoveMode(EvaluationMode.UserTargeted);
+			modes.Remove(EvaluationMode.UserTargeted);
 		}
 
 		var accessControl = new AccessControl(
@@ -102,17 +102,20 @@ public sealed class ManageUserAccessHandler(
 						blocked: [.. request.Blocked ?? []],
 						rolloutPercentage: request.RolloutPercentage ?? oldconfig.UserAccessControl.RolloutPercentage);
 
-		var configuration = oldconfig with { Modes = modes, UserAccessControl = accessControl };
-		var metadata = flag.Metadata with
+		var configuration = oldconfig with {
+			ModeSet = modes.Count == 0 ? EvaluationMode.Off : new ModeSet(modes),
+			UserAccessControl = accessControl 
+		};
+		var metadata = flag.Administration with
 		{
-			ChangeHistory = [.. flag.Metadata.ChangeHistory,
+			ChangeHistory = [.. flag.Administration.ChangeHistory,
 				AuditTrail.FlagModified(currentUserService.UserName!, notes: request.Notes ??  $"Updated user access control: " +
 					$"AllowedUsers=[{string.Join(", ", accessControl.Allowed)}], " +
 					$"BlockedUsers=[{string.Join(", ", accessControl.Blocked)}], " +
 					$"RolloutPercentage={accessControl.RolloutPercentage}%")]
 		};
 
-		return flag with { EvalConfig = configuration, Metadata = metadata };
+		return flag with { EvaluationOptions = configuration, Administration = metadata };
 	}
 }
 

@@ -82,25 +82,28 @@ public sealed class UpdateTimeWindowHandler(
 
 	private FeatureFlag CreateFlagWithUpdatedTimeWindow(UpdateTimeWindowRequest request, FeatureFlag flag)
 	{
-		var oldconfig = flag.EvalConfig;
+		var oldconfig = flag.EvaluationOptions;
 
 		// Remove enabled/disabled modes as we're configuring specific time window
-		var modes = new EvaluationModes([.. oldconfig.Modes.Modes]);
-		modes.RemoveMode(EvaluationMode.On);
-		modes.RemoveMode(EvaluationMode.Off);
+		HashSet<EvaluationMode> modes = [.. oldconfig.ModeSet.Modes];
+		modes.Remove(EvaluationMode.On);
+		modes.Remove(EvaluationMode.Off);
 
 
-		EvalConfiguration configuration;
-		Metadata metadata;
+		FlagEvaluationOptions configuration;
+		FlagAdministration metadata;
 		if (request.RemoveTimeWindow)
 		{
 			// If removing the time window, just remove the mode and clear the window
-			modes.RemoveMode(EvaluationMode.TimeWindow);
-			configuration = oldconfig with { Modes = modes, OperationalWindow = UtcTimeWindow.AlwaysOpen };
+			modes.Remove(EvaluationMode.TimeWindow);
+			configuration = oldconfig with {
+				ModeSet = modes.Count == 0 ? EvaluationMode.Off : new ModeSet(modes),
+				OperationalWindow = UtcTimeWindow.AlwaysOpen 
+			};
 			// Add to change history
-			metadata = flag.Metadata with
+			metadata = flag.Administration with
 			{
-				ChangeHistory = [.. flag.Metadata.ChangeHistory,
+				ChangeHistory = [.. flag.Administration.ChangeHistory,
 					AuditTrail.FlagModified(currentUserService.UserName!, 
 									request.Notes ?? (request.DaysActive.Count > 0 ? "Time window removed, days active updated" : "Time window removed"))]
 			};
@@ -108,24 +111,27 @@ public sealed class UpdateTimeWindowHandler(
 		else
 		{
 			// Ensure TimeWindow mode is active
-			modes.AddMode(EvaluationMode.TimeWindow);
+			modes.Add(EvaluationMode.TimeWindow);
 			var window = new UtcTimeWindow(
 					request.StartOn.ToTimeSpan(),
 					request.EndOn.ToTimeSpan(),
 					request.TimeZone,
 					[.. request.DaysActive]);
-			configuration = oldconfig with { Modes = modes, OperationalWindow = window };
+			configuration = oldconfig with {
+				ModeSet = modes.Count == 0 ? EvaluationMode.Off : new ModeSet(modes),
+				OperationalWindow = window 
+			};
 			// Add to change history
-			metadata = flag.Metadata with
+			metadata = flag.Administration with
 			{
-				ChangeHistory = [.. flag.Metadata.ChangeHistory,
+				ChangeHistory = [.. flag.Administration.ChangeHistory,
 					AuditTrail.FlagModified(currentUserService.UserName!, 
 									notes: request.Notes ??  $"Time window updated: StartOn={request.StartOn:HH:mm}, EndOn={request.EndOn:HH:mm}, TimeZone={request.TimeZone}, DaysActive=[{string.Join(", ", request.DaysActive)}]" +
 																(request.DaysActive.Count == 0 ? " (no days active - flag will never be active)" : ""))]
 			};
 		}
 
-		return flag with { EvalConfig = configuration, Metadata = metadata };
+		return flag with { EvaluationOptions = configuration, Administration = metadata };
 	}
 }
 

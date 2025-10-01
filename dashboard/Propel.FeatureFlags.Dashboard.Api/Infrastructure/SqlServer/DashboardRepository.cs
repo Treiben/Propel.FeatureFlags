@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Helpers;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure.SqlServer;
@@ -20,8 +21,8 @@ public class DashboardRepository(SqlServerDbContext context) : BaseRepository(co
 	public async Task<FeatureFlag> CreateAsync(FeatureFlag flag, CancellationToken cancellationToken = default)
     {
         var identifier = flag.Identifier;
-        var metadata = flag.Metadata;
-        var config = flag.EvalConfig;
+        var metadata = flag.Administration;
+        var config = flag.EvaluationOptions;
 		var lastModified = metadata.ChangeHistory[^1];
 
 		await context.Database.ExecuteSqlRawAsync(@"
@@ -52,14 +53,14 @@ public class DashboardRepository(SqlServerDbContext context) : BaseRepository(co
         (int)identifier.Scope,
         metadata.Name,
         metadata.Description,
-        JsonSerializer.Serialize(config.Modes.Modes.Select(m => (int)m).ToArray()),
+        JsonSerializer.Serialize(config.ModeSet.Modes.Select(m => (int)m).ToArray()),
         config.Schedule.HasSchedule() ? (DateTimeOffset)config.Schedule.EnableOn : null!,
         config.Schedule.HasSchedule() ? (DateTimeOffset)config.Schedule.DisableOn : null!,
         config.OperationalWindow.HasWindow() ? config.OperationalWindow.StartOn : null!,
         config.OperationalWindow.HasWindow() ? config.OperationalWindow.StopOn : null!,
         config.OperationalWindow.HasWindow() ? config.OperationalWindow.TimeZone : null!,
         JsonSerializer.Serialize(config.OperationalWindow.DaysActive.Select(d => (int)d).ToArray()),
-        JsonSerializer.Serialize(config.TargetingRules),
+        JsonSerializer.Serialize(config.TargetingRules, JsonDefaults.JsonOptions),
         JsonSerializer.Serialize(config.UserAccessControl.Allowed),
         JsonSerializer.Serialize(config.UserAccessControl.Blocked),
         config.UserAccessControl.RolloutPercentage,
@@ -82,8 +83,8 @@ public class DashboardRepository(SqlServerDbContext context) : BaseRepository(co
     public async Task<FeatureFlag> UpdateAsync(FeatureFlag flag, CancellationToken cancellationToken = default)
     {
         var identifier = flag.Identifier;
-        var metadata = flag.Metadata;
-        var config = flag.EvalConfig;
+        var metadata = flag.Administration;
+        var config = flag.EvaluationOptions;
 		var lastModified = metadata.ChangeHistory[^1];
 
 		var updatedRows = await context.Database.ExecuteSqlRawAsync(@"
@@ -107,14 +108,14 @@ public class DashboardRepository(SqlServerDbContext context) : BaseRepository(co
         (int)identifier.Scope,
         metadata.Name,
         metadata.Description,
-        JsonSerializer.Serialize(config.Modes.Modes.Select(m => (int)m).ToArray()),
+        JsonSerializer.Serialize(config.ModeSet.Modes.Select(m => (int)m).ToArray()),
         config.Schedule.HasSchedule() ? (DateTimeOffset)config.Schedule.EnableOn : null!,
         config.Schedule.HasSchedule() ? (DateTimeOffset)config.Schedule.DisableOn : null!,
         config.OperationalWindow.HasWindow() ? config.OperationalWindow.StartOn : null!,
         config.OperationalWindow.HasWindow() ? config.OperationalWindow.StopOn : null!,
         config.OperationalWindow.HasWindow() ? config.OperationalWindow.TimeZone : null!,
         JsonSerializer.Serialize(config.OperationalWindow.DaysActive.Select(d => (int)d).ToArray()),
-        JsonSerializer.Serialize(config.TargetingRules),
+        JsonSerializer.Serialize(config.TargetingRules, JsonDefaults.JsonOptions),
         JsonSerializer.Serialize(config.UserAccessControl.Allowed),
         JsonSerializer.Serialize(config.UserAccessControl.Blocked),
         config.UserAccessControl.RolloutPercentage,
@@ -139,37 +140,36 @@ public class DashboardRepository(SqlServerDbContext context) : BaseRepository(co
     public async Task<FeatureFlag> UpdateMetadataAsync(FeatureFlag flag, CancellationToken cancellationToken = default)
     {
         var identifier = flag.Identifier;
-        var metadata = flag.Metadata;
+        var metadata = flag.Administration;
 		var lastModified = metadata.ChangeHistory[^1];
 
 		await context.Database.ExecuteSqlRawAsync(@"
-        MERGE FeatureFlagsMetadata AS target
-        USING (SELECT {0} AS FlagKey, {1} AS ApplicationName, {2} AS ApplicationVersion) AS source
-        ON target.FlagKey = source.FlagKey 
-           AND target.ApplicationName = source.ApplicationName 
-           AND target.ApplicationVersion = source.ApplicationVersion
-        WHEN MATCHED THEN
-            UPDATE SET 
-                IsPermanent = {3},
-                ExpirationDate = {4},
-                Tags = {5}
-        WHEN NOT MATCHED THEN
-            INSERT (FlagKey, ApplicationName, ApplicationVersion, IsPermanent, ExpirationDate, Tags)
-            VALUES ({0}, {1}, {2}, {3}, {4}, {5});
+		UPDATE FeatureFlags
+		SET Name = {4}, Description = {5}
+		WHERE [Key] = {0} AND ApplicationName = {1} AND ApplicationVersion = {2} AND Scope = {3};
+
+        UPDATE FeatureFlagsMetadata 
+        SET IsPermanent = {6}, 
+			ExpirationDate = {7}, 
+			Tags = {8}
+		 WHERE FlagKey = {0} AND ApplicationName = {1} AND ApplicationVersion = {2};
 
         INSERT INTO FeatureFlagsAudit (
             FlagKey, ApplicationName, ApplicationVersion,
-            [Action], Actor, Notes, [Timestamp]
-        ) VALUES ({0}, {1}, {2}, {6}, {7}, {8}, {9});",
-            identifier.Key,
-            identifier.ApplicationName ?? "global",
-            identifier.ApplicationVersion ?? "0.0.0.0",
-            metadata.RetentionPolicy.IsPermanent,
+            Action, Actor, Notes, Timestamp
+        ) VALUES ({0}, {1}, {2}, {9}, {10}, {11}, {12});",
+			identifier.Key,
+			identifier.ApplicationName ?? "global",
+			identifier.ApplicationVersion ?? "0.0.0.0",
+			identifier.Scope,
+			metadata.Name,
+			metadata.Description,
+			metadata.RetentionPolicy.IsPermanent,
 			(DateTimeOffset)metadata.RetentionPolicy.ExpirationDate,
-            JsonSerializer.Serialize(metadata.Tags),
-		    lastModified.Action,
-		    lastModified.Actor,
-		    lastModified.Notes,
+			JsonSerializer.Serialize(metadata.Tags),
+			lastModified.Action,
+			lastModified.Actor,
+			lastModified.Notes,
 			(DateTimeOffset)lastModified.Timestamp);
 
         return flag;
