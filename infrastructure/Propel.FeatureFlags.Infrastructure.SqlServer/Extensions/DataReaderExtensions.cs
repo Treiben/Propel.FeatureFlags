@@ -27,11 +27,11 @@ public static class SqlDataReaderExtensions
 			: await reader.GetFieldValueAsync<T>(ordinal);
 	}
 
-	public static async Task<FlagEvaluationConfiguration> LoadAsync(this SqlDataReader reader, FlagIdentifier identifier)
+	public static async Task<EvaluationOptions> LoadOptionsAsync(this SqlDataReader reader, FlagIdentifier identifier)
 	{
 		// Load evaluation modes
 		var evaluationModes = await reader.DeserializeAsync<int[]>("EvaluationModes");
-		var evaluationModeSet = new EvaluationModes([.. evaluationModes.Select(m => (EvaluationMode)m)]);
+		var evaluationModeSet = new ModeSet([.. evaluationModes.Select(m => (EvaluationMode)m)]);
 
 		// Load schedule - handle DB nulls properly
 		var enableOn = await reader.GetFieldValueOrDefaultAsync<DateTimeOffset?>("ScheduledEnableDate");
@@ -76,9 +76,9 @@ public static class SqlDataReaderExtensions
 		// Load targeting rules
 		var targetingRules = await reader.DeserializeAsync<List<ITargetingRule>>("TargetingRules") ?? [];
 
-		return new FlagEvaluationConfiguration(
-			identifier: identifier,
-			activeEvaluationModes: evaluationModeSet,
+		return new EvaluationOptions(
+			key: identifier.Key,
+			modeSet: evaluationModeSet,
 			schedule: schedule,
 			operationalWindow: operationalWindow,
 			userAccessControl: userAccess,

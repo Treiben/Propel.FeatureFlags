@@ -20,7 +20,7 @@ public class SqlFeatureFlagRepository : IFeatureFlagRepository
 		_logger.LogDebug("SQL Server Feature Flag Repository initialized with connection pooling");
 	}
 
-	public async Task<FlagEvaluationConfiguration?> GetAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default)
+	public async Task<EvaluationOptions?> GetEvaluationOptionsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default)
 	{
 		_logger.LogDebug("Getting feature flag with key: {Key}, Scope: {Scope}, Application: {Application}",
 			identifier.Key, identifier.Scope, identifier.ApplicationName);
@@ -60,9 +60,9 @@ public class SqlFeatureFlagRepository : IFeatureFlagRepository
 				return null;
 			}
 
-			var flag = await reader.LoadAsync(identifier);
+			var flag = await reader.LoadOptionsAsync(identifier);
 			_logger.LogDebug("Retrieved feature flag: {Key} with evaluation modes {Modes}",
-				flag.Identifier.Key, string.Join(",", flag.ActiveEvaluationModes.Modes));
+				flag.Key, string.Join(",", flag.ModeSet.Modes));
 			return flag;
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
@@ -72,7 +72,7 @@ public class SqlFeatureFlagRepository : IFeatureFlagRepository
 		}
 	}
 
-	public async Task CreateAsync(FlagIdentifier identifier, EvaluationMode mode, string name, string description, CancellationToken cancellationToken = default)
+	public async Task CreateApplicationFlagAsync(FlagIdentifier identifier, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default)
 	{
 		if (identifier.Scope == Scope.Global)
 		{
@@ -119,7 +119,7 @@ public class SqlFeatureFlagRepository : IFeatureFlagRepository
 			command.Parameters.AddWithValue("@scope", (int)Scope.Application);
 			command.Parameters.AddWithValue("@name", name);
 			command.Parameters.AddWithValue("@description", description);
-			command.Parameters.AddWithValue("@evaluationModes", JsonSerializer.Serialize(new List<int> { (int)mode }, JsonDefaults.JsonOptions));
+			command.Parameters.AddWithValue("@evaluationModes", JsonSerializer.Serialize(new List<int> { (int)activeMode }, JsonDefaults.JsonOptions));
 
 			var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
 			if (rowsAffected == 0)
@@ -134,12 +134,12 @@ public class SqlFeatureFlagRepository : IFeatureFlagRepository
 
 			_logger.LogDebug("Successfully created feature flag: {Key}", identifier.Key);
 		}
-		catch (Exception ex) when (ex is not OperationCanceledException && ex is not InsertFlagException)
+		catch (Exception ex) when (ex is not OperationCanceledException && ex is not ApplicationFlagException)
 		{
 			_logger.LogError(ex, "Error creating feature flag with key {Key} {Scope} {Application} {Version}",
 				identifier.Key, identifier.Scope, identifier.ApplicationName, identifier.ApplicationVersion);
 
-			throw new InsertFlagException("Error creating feature flag", ex,
+			throw new ApplicationFlagException("Error creating feature flag", ex,
 				identifier.Key, identifier.Scope, identifier.ApplicationName, identifier.ApplicationVersion);
 		}
 	}

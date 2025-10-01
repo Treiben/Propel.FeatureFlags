@@ -17,7 +17,7 @@ public class RedisFeatureFlagCache(
 	private readonly CacheOptions _cacheConfiguration = options.Cache ?? throw new ArgumentNullException(nameof(CacheOptions));
 
 
-	public async Task<FlagEvaluationConfiguration?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
+	public async Task<EvaluationOptions?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
 		logger.LogDebug("Getting feature flag {Key} from cache", cacheKey.Key);
@@ -35,7 +35,7 @@ public class RedisFeatureFlagCache(
 				return null;
 			}
 
-			var flag = JsonSerializer.Deserialize<FlagEvaluationConfiguration>(value!, JsonDefaults.JsonOptions);
+			var flag = JsonSerializer.Deserialize<EvaluationOptions>(value!, JsonDefaults.JsonOptions);
 			logger.LogDebug("Cache key {Key} retrieved from cache", key);
 			return flag;
 		}
@@ -46,7 +46,7 @@ public class RedisFeatureFlagCache(
 		}
 	}
 
-	public async Task SetAsync(CacheKey cacheKey, FlagEvaluationConfiguration flag, CancellationToken cancellationToken = default)
+	public async Task SetAsync(CacheKey cacheKey, EvaluationOptions flag, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
 		logger.LogDebug("Setting feature flag {Key} in cache with expiration {Expiration}", cacheKey.Key, _cacheConfiguration.CacheDurationInMinutes);
