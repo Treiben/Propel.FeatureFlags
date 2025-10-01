@@ -29,12 +29,12 @@ public class GlobalFlagEvaluator(
 		return await _evaluationManager.ProcessEvaluation(flagConfig, context);
 	}
 
-	private async Task<FlagEvaluationConfiguration?> GetFlagConfiguration(string flagKey, CancellationToken cancellationToken)
+	private async Task<EvaluationOptions?> GetFlagConfiguration(string flagKey, CancellationToken cancellationToken)
 	{
 		// Create composite key for uniqueness per application
 		var cacheKey = new GlobalCacheKey(flagKey);
 		// Try cache first
-		FlagEvaluationConfiguration? flagConfig = null;
+		EvaluationOptions? flagConfig = null;
 		if (cache != null)
 		{
 			flagConfig = await cache.GetAsync(cacheKey, cancellationToken);
@@ -43,7 +43,7 @@ public class GlobalFlagEvaluator(
 		// If not in cache, get from repository
 		if (flagConfig == null)
 		{
-			flagConfig = await _repository.GetAsync(new FlagIdentifier(
+			flagConfig = await _repository.GetEvaluationOptionsAsync(new FlagIdentifier(
 					key: flagKey,
 					scope: Scope.Global
 				), cancellationToken);

@@ -6,22 +6,22 @@ public sealed class UserRolloutEvaluator: OrderedEvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.UserRollout;
 
-	public override bool CanProcess(FlagEvaluationConfiguration flag, EvaluationContext context)
+	public override bool CanProcess(EvaluationOptions options, EvaluationContext context)
 	{
-		return flag.ActiveEvaluationModes.ContainsModes([EvaluationMode.UserRolloutPercentage, EvaluationMode.UserTargeted]) 
-			|| flag.UserAccessControl.HasAccessRestrictions();
+		return options.ModeSet.Contains([EvaluationMode.UserRolloutPercentage, EvaluationMode.UserTargeted]) 
+			|| options.UserAccessControl.HasAccessRestrictions();
 	}
 
-	public override async Task<EvaluationResult?> ProcessEvaluation(FlagEvaluationConfiguration flag, EvaluationContext context)
+	public override async Task<EvaluationResult?> ProcessEvaluation(EvaluationOptions options, EvaluationContext context)
 	{
 		if (string.IsNullOrWhiteSpace(context.UserId))
 		{
 			throw new InvalidOperationException("User ID is required for percentage rollout evaluation.");
 		}
 
-		var (result, because) = flag.UserAccessControl.EvaluateAccess(context.UserId!, flag.Identifier.Key);
+		var (result, because) = options.UserAccessControl.EvaluateAccess(context.UserId!, options.Key);
 		var isEnabled = result == AccessResult.Allowed;
 
-		return CreateEvaluationResult(flag, context, isEnabled, because);
+		return CreateEvaluationResult(options, context, isEnabled, because);
 	}
 }

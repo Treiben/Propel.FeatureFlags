@@ -7,17 +7,17 @@ public sealed class OperationalWindowEvaluator : OrderedEvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.OperationalWindow;
 
-	public override bool CanProcess(FlagEvaluationConfiguration flag, EvaluationContext context)
+	public override bool CanProcess(EvaluationOptions options, EvaluationContext context)
 	{
-		return flag.ActiveEvaluationModes.ContainsModes([EvaluationMode.TimeWindow]);
+		return options.ModeSet.Contains([EvaluationMode.TimeWindow]);
 	}
 
-	public override async Task<EvaluationResult?> ProcessEvaluation(FlagEvaluationConfiguration flag, EvaluationContext context)
+	public override async Task<EvaluationResult?> ProcessEvaluation(EvaluationOptions options, EvaluationContext context)
 	{
-		if (flag.OperationalWindow == UtcTimeWindow.AlwaysOpen)
+		if (options.OperationalWindow == UtcTimeWindow.AlwaysOpen)
 		{
 			// Always open window means the flag is always active
-			return CreateEvaluationResult(flag, 
+			return CreateEvaluationResult(options, 
 				context,
 				isActive: true, 
 				because: "Flag operational window is always open.");
@@ -26,8 +26,8 @@ public sealed class OperationalWindowEvaluator : OrderedEvaluatorBase
 		// Convert to specified timezone
 		var evaluationTime = context.EvaluationTime ?? UtcDateTime.UtcNow;
 
-		var (isActive, because) = flag.OperationalWindow.IsActiveAt(evaluationTime);
+		var (isActive, because) = options.OperationalWindow.IsActiveAt(evaluationTime);
 
-		return CreateEvaluationResult(flag, context, isActive, because);
+		return CreateEvaluationResult(options, context, isActive, because);
 	}
 }

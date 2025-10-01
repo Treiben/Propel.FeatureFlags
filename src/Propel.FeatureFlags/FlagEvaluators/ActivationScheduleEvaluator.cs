@@ -6,24 +6,24 @@ public sealed class ActivationScheduleEvaluator: OrderedEvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.ActivationSchedule;
 
-	public override bool CanProcess(FlagEvaluationConfiguration flag, EvaluationContext context)
+	public override bool CanProcess(EvaluationOptions flag, EvaluationContext context)
 	{
-		return flag.ActiveEvaluationModes.ContainsModes([EvaluationMode.Scheduled]);
+		return flag.ModeSet.Contains([EvaluationMode.Scheduled]);
 	}
 
-	public override async Task<EvaluationResult?> ProcessEvaluation(FlagEvaluationConfiguration flag, EvaluationContext context)
+	public override async Task<EvaluationResult?> ProcessEvaluation(EvaluationOptions options, EvaluationContext context)
 	{
-		if (flag.Schedule.HasSchedule() == false)
+		if (options.Schedule.HasSchedule() == false)
 		{
-			return CreateEvaluationResult(flag, 
+			return CreateEvaluationResult(options, 
 				context,
 				isActive: true,
 				because: "Flag has no activation schedule and can be available immediately.");
 		}
 
 		var evaluationTime = context.EvaluationTime ?? Knara.UtcStrict.UtcDateTime.UtcNow;
-		var (isActive, because) = flag.Schedule.IsActiveAt(evaluationTime);
+		var (isActive, because) = options.Schedule.IsActiveAt(evaluationTime);
 
-		return CreateEvaluationResult(flag, context, isActive, because);
+		return CreateEvaluationResult(options, context, isActive, because);
 	}
 }

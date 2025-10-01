@@ -6,22 +6,22 @@ public sealed class TenantRolloutEvaluator : OrderedEvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.TenantRollout;
 
-	public override bool CanProcess(FlagEvaluationConfiguration flag, EvaluationContext context)
+	public override bool CanProcess(EvaluationOptions options, EvaluationContext context)
 	{
-		return flag.ActiveEvaluationModes.ContainsModes([EvaluationMode.TenantRolloutPercentage, EvaluationMode.TenantTargeted]) 
-			|| flag.TenantAccessControl.HasAccessRestrictions();
+		return options.ModeSet.Contains([EvaluationMode.TenantRolloutPercentage, EvaluationMode.TenantTargeted]) 
+			|| options.TenantAccessControl.HasAccessRestrictions();
 	}
 
-	public override async Task<EvaluationResult?> ProcessEvaluation(FlagEvaluationConfiguration flag, EvaluationContext context)
+	public override async Task<EvaluationResult?> ProcessEvaluation(EvaluationOptions options, EvaluationContext context)
 	{
 		if (string.IsNullOrWhiteSpace(context.TenantId))
 		{
 			throw new InvalidOperationException("Tenant ID is required for percentage rollout evaluation.");
 		}
 
-		var (result, because) = flag.TenantAccessControl.EvaluateAccess(context.TenantId!, flag.Identifier.Key);
+		var (result, because) = options.TenantAccessControl.EvaluateAccess(context.TenantId!, options.Key);
 		var isEnabled = result == AccessResult.Allowed;
 
-		return CreateEvaluationResult(flag, context, isEnabled, because);
+		return CreateEvaluationResult(options, context, isEnabled, because);
 	}
 }

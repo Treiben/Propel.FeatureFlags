@@ -16,7 +16,7 @@ public static class FlagDeploymentExtensions
 		try
 		{
 			// Save to repository (if flag already exists, this will do nothing)
-			await repository.CreateAsync(flagIdentifier, flag.OnOffMode, name, description, cancellationToken);
+			await repository.CreateApplicationFlagAsync(flagIdentifier, flag.OnOffMode, name, description, cancellationToken);
 		}
 		catch (Exception ex)
 		{

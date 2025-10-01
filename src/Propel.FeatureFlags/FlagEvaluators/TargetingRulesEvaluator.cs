@@ -6,32 +6,32 @@ public sealed class TargetingRulesEvaluator : OrderedEvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.CustomTargeting;
 
-	public override bool CanProcess(FlagEvaluationConfiguration flag, EvaluationContext context)
+	public override bool CanProcess(EvaluationOptions options, EvaluationContext context)
 	{
-		return flag.TargetingRules != null && flag.TargetingRules.Count > 0;
+		return options.TargetingRules != null && options.TargetingRules.Count > 0;
 	}
 
-	public override async Task<EvaluationResult?> ProcessEvaluation(FlagEvaluationConfiguration flag, EvaluationContext context)
+	public override async Task<EvaluationResult?> ProcessEvaluation(EvaluationOptions options, EvaluationContext context)
 	{
 		var id = context.TenantId ?? context.UserId;
 		if (string.IsNullOrWhiteSpace(id))
 		{
 			return new EvaluationResult(isEnabled: false,
-				variation: flag.Variations.DefaultVariation,
+				variation: options.Variations.DefaultVariation,
 				reason: "Targeting rule matched but no tenant or user ID provided for variation selection");
 		}
 
 		// Evaluate targeting rules
-		foreach (var rule in flag.TargetingRules)
+		foreach (var rule in options.TargetingRules)
 		{
 			if (EvaluateTargetingRule(rule, context.Attributes))
 			{
-				return CreateEvaluationResult(flag, context, isActive: true, rule.Variation,
+				return CreateEvaluationResult(options, context, isActive: true, rule.Variation,
 					because: $"Targeting rule matched: {rule}");
 			}
 		}
 
-		return CreateEvaluationResult(flag, context, isActive: false,
+		return CreateEvaluationResult(options, context, isActive: false,
 			because: "No targeting rules matched");
 	}
 

@@ -25,6 +25,11 @@ public class FlagIdentifier
 		ApplicationName = string.IsNullOrWhiteSpace(applicationName) ? null : applicationName!.Trim();
 		ApplicationVersion = string.IsNullOrWhiteSpace(applicationVersion) ? null : applicationVersion!.Trim();
 	}
+
+	public static FlagIdentifier CreateGlobal(string key)
+	{
+		return new FlagIdentifier(key, Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+	}
 }
 
 public enum Scope

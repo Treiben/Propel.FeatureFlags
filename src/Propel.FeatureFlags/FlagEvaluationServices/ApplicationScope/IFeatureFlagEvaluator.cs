@@ -97,9 +97,9 @@ public sealed class FeatureFlagEvaluator(
 		}
 	}
 
-	private async Task<FlagEvaluationConfiguration?> GetFlagConfiguration(string flagKey, CancellationToken cancellationToken)
+	private async Task<EvaluationOptions?> GetFlagConfiguration(string flagKey, CancellationToken cancellationToken)
 	{
-		FlagEvaluationConfiguration? flagData = null;
+		EvaluationOptions? flagData = null;
 
 		// Try cache first
 		var cacheKey = new ApplicationCacheKey(flagKey, ApplicationName, ApplicationVersion);
@@ -111,7 +111,7 @@ public sealed class FeatureFlagEvaluator(
 		// If not in cache, get from repository
 		if (flagData == null)
 		{
-			flagData = await _repository.GetAsync(new FlagIdentifier(
+			flagData = await _repository.GetEvaluationOptionsAsync(new FlagIdentifier(
 				key: flagKey,
 				scope: Scope.Application,
 				applicationName: ApplicationName,
@@ -137,14 +137,14 @@ public sealed class FeatureFlagEvaluator(
 		try
 		{
 			// Save to repository and return the created flag (repository may set additional properties)
-			await _repository.CreateAsync(identifier, activationMode, name, description, cancellationToken);
+			await _repository.CreateApplicationFlagAsync(identifier, activationMode, name, description, cancellationToken);
 			// Cache for future requests
 			if (cache != null)
 			{
 				// Create composite key for uniqueness per application
 				var cacheKey = new ApplicationCacheKey(applicationFlag.Key, ApplicationName, ApplicationVersion);
 				await cache.SetAsync(cacheKey,
-					new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: new EvaluationModes([activationMode])),
+					new EvaluationOptions(key: identifier.Key, modeSet: new ModeSet([activationMode])),
 					cancellationToken);
 			}
 		}

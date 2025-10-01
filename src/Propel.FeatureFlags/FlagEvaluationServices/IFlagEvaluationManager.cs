@@ -5,7 +5,7 @@ namespace Propel.FeatureFlags.FlagEvaluationServices;
 
 public interface IFlagEvaluationManager
 {
-	Task<EvaluationResult?> ProcessEvaluation(FlagEvaluationConfiguration flag, EvaluationContext context);
+	Task<EvaluationResult?> ProcessEvaluation(EvaluationOptions flag, EvaluationContext context);
 }
 
 public sealed class FlagEvaluationManager : IFlagEvaluationManager
@@ -21,7 +21,7 @@ public sealed class FlagEvaluationManager : IFlagEvaluationManager
 		_handlers = [.. handlers.OrderBy(h => h.EvaluationOrder)];
 	}
 
-	public async Task<EvaluationResult?> ProcessEvaluation(FlagEvaluationConfiguration flag, EvaluationContext context)
+	public async Task<EvaluationResult?> ProcessEvaluation(EvaluationOptions flag, EvaluationContext context)
 	{
 		var processingHandlers = _handlers.Where(h => h.CanProcess(flag, context)).ToList();
 		EvaluationResult? result = default;
@@ -40,7 +40,7 @@ public sealed class FlagEvaluationManager : IFlagEvaluationManager
 				return result;
 
 			// If multiple handlers processed, and final result is enabled, provide a combined reason
-			var reason = $"All [{flag.ActiveEvaluationModes}] conditions met for feature flag activation";
+			var reason = $"All [{flag.ModeSet}] conditions met for feature flag activation";
 			return new EvaluationResult(isEnabled: true, variation: result.Variation, reason: reason);
 		}
 

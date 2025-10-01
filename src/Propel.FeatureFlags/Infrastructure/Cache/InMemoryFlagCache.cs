@@ -8,14 +8,14 @@ public sealed class InMemoryFlagCache(IMemoryCache cache, PropelOptions options)
 	private readonly IMemoryCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
 	private readonly CacheOptions _cacheConfiguration = options.Cache ?? throw new ArgumentNullException(nameof(CacheOptions));
 
-	public Task<FlagEvaluationConfiguration?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
+	public Task<EvaluationOptions?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
 		var flagKey = cacheKey.ComposeKey();
-		_cache.TryGetValue(flagKey, out FlagEvaluationConfiguration? flag);
+		_cache.TryGetValue(flagKey, out EvaluationOptions? flag);
 		return Task.FromResult(flag);
 	}
 
-	public Task SetAsync(CacheKey cacheKey, FlagEvaluationConfiguration flag, CancellationToken cancellationToken = default)
+	public Task SetAsync(CacheKey cacheKey, EvaluationOptions flag, CancellationToken cancellationToken = default)
 	{
 		var flagKey = cacheKey.ComposeKey();
 		var memOptions = new MemoryCacheEntryOptions

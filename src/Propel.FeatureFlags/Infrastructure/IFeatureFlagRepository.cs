@@ -4,12 +4,12 @@ namespace Propel.FeatureFlags.Infrastructure;
 
 public interface IFeatureFlagRepository
 {
-	Task<FlagEvaluationConfiguration?> GetAsync(FlagIdentifier flagKey, CancellationToken cancellationToken = default);
+	Task<EvaluationOptions?> GetEvaluationOptionsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default);
 
-	Task CreateAsync(FlagIdentifier flagKey, EvaluationMode activationMode, string name, string description, CancellationToken cancellationToken = default);
+	Task CreateApplicationFlagAsync(FlagIdentifier identifier, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default);
 }
 
-public class InsertFlagException : Exception
+public class ApplicationFlagException : Exception
 {
 	public string Key { get; }
 
@@ -19,7 +19,7 @@ public class InsertFlagException : Exception
 
 	public string? ApplicationVersion { get; }
 
-	public InsertFlagException(string message, Exception? innerException,
+	public ApplicationFlagException(string message, Exception? innerException,
 		string key, Scope scope, string? applicationName = null, string? applicationVersion = null)
 		: base(message, innerException)
 	{
@@ -29,7 +29,7 @@ public class InsertFlagException : Exception
 		ApplicationVersion = applicationVersion;
 	}
 
-	public InsertFlagException(
+	public ApplicationFlagException(
 		string message,
 		string key,
 		Scope scope,
