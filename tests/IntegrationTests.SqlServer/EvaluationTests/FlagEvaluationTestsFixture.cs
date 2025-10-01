@@ -17,7 +17,7 @@ namespace FeatureFlags.IntegrationTests.SqlServer.EvaluationTests;
 
 public class FlagEvaluationTestsFixture : IAsyncLifetime
 {
-	private readonly MsSqlContainer _container;
+	private readonly MsSqlContainer _sqlContainer;
 	private readonly RedisContainer _redisContainer;
 
 	public IServiceProvider Services { get; private set; } = null!;
@@ -28,7 +28,7 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 
 	public FlagEvaluationTestsFixture()
 	{
-		_container = new MsSqlBuilder()
+		_sqlContainer = new MsSqlBuilder()
 			.WithImage("mcr.microsoft.com/mssql/server:2022-latest")
 			.WithPassword("StrongP@ssw0rd!")
 			.WithEnvironment("ACCEPT_EULA", "Y")
@@ -44,7 +44,7 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 
 	public async Task InitializeAsync()
 	{
-		var sqlConnectionString = await StartPostgresContainer();
+		var sqlConnectionString = await StartSqlContainer();
 		var redisConnectionString = await StartRedisContainer();
 
 		var services = new ServiceCollection();
@@ -73,13 +73,13 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 
 	public async Task DisposeAsync()
 	{
-		await _container.DisposeAsync();
+		await _sqlContainer.DisposeAsync();
 		await _redisContainer.DisposeAsync();
 	}
 
 	public async Task ClearAllData()
 	{
-		var connectionString = _container.GetConnectionString();
+		var connectionString = _sqlContainer.GetConnectionString();
 		using var connection = new SqlConnection(connectionString);
 		await connection.OpenAsync();
 		using var command = new SqlCommand("DELETE FROM FeatureFlags", connection);
@@ -88,17 +88,11 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 		await Cache.ClearAsync();
 	}
 
-	public async Task SaveAsync(FlagEvaluationConfiguration flag,
-		string name, string description)
+	private async Task<string> StartSqlContainer()
 	{
-		await SqlServerDbHelpers.CreateFlagAsync(_container, flag, name, description);
-	}
+		await _sqlContainer.StartAsync();
 
-	private async Task<string> StartPostgresContainer()
-	{
-		await _container.StartAsync();
-
-		var connectionString = _container.GetConnectionString();
+		var connectionString = _sqlContainer.GetConnectionString();
 		return connectionString;
 	}
 

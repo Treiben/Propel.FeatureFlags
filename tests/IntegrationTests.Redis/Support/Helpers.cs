@@ -19,7 +19,7 @@ public class FlagConfigurationBuilder
 	private FlagIdentifier _flagIdentifier;
 
 	private List<ITargetingRule> _targetingRules = [];
-	private EvaluationModes _evaluationModes = EvaluationModes.FlagIsDisabled;
+	private ModeSet _evaluationModes = EvaluationMode.Off;
 	private Variations _variations = Variations.OnOff;
 	private UtcSchedule _schedule = UtcSchedule.Unscheduled;
 	private UtcTimeWindow _window = UtcTimeWindow.AlwaysOpen;
@@ -42,7 +42,7 @@ public class FlagConfigurationBuilder
 
 	public FlagConfigurationBuilder WithEvaluationModes(params EvaluationMode[] modes)
 	{
-		_evaluationModes = new EvaluationModes([.. modes]);
+		_evaluationModes = new ModeSet([.. modes]);
 		return this;
 	}
 
@@ -92,11 +92,11 @@ public class FlagConfigurationBuilder
 		return this;
 	}
 
-	public (FlagEvaluationConfiguration, IFeatureFlag?) Build()
+	public (EvaluationOptions, IFeatureFlag?) Build()
 	{
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: _flagIdentifier,
-			activeEvaluationModes: _evaluationModes,
+		var flagConfig = new EvaluationOptions(
+			key: _flagIdentifier.Key,
+			modeSet: _evaluationModes,
 			schedule: _schedule,
 			operationalWindow: _window,
 			targetingRules: _targetingRules,

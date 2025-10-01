@@ -82,7 +82,7 @@ public class TargetingRulesEvaluatorTests
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		List<ITargetingRule> targetingRules = hasRules ? [CreateStringRule("userId", TargetingOperator.Equals, ["user123"], "on")] : [];
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, targetingRules: targetingRules);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, targetingRules: targetingRules);
 
 		var context = new EvaluationContext();
 
@@ -93,19 +93,19 @@ public class TargetingRulesEvaluatorTests
 		Assert.Equal(expected, result);
 	}
 
-	private static FlagEvaluationConfiguration CreateCriteriaWithStringRule(string attribute, TargetingOperator op, List<string> values, string variation)
+	private static EvaluationOptions CreateCriteriaWithStringRule(string attribute, TargetingOperator op, List<string> values, string variation)
 	{
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		return new FlagEvaluationConfiguration(identifier: identifier,
+		return new EvaluationOptions(key: identifier.Key,
 			targetingRules: [CreateStringRule(attribute, op, values, variation)],
 			variations: new Variations { DefaultVariation = "off" }
 		);
 	}
 
-	private static FlagEvaluationConfiguration CreateCriteriaWithNumericRule(string attribute, TargetingOperator op, List<double> values, string variation)
+	private static EvaluationOptions CreateCriteriaWithNumericRule(string attribute, TargetingOperator op, List<double> values, string variation)
 	{
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		return new FlagEvaluationConfiguration(identifier: identifier,
+		return new EvaluationOptions(key: identifier.Key,
 		targetingRules: [CreateNumericRule(attribute, op, values, variation)],
 		variations: new Variations { 
 				Values = new Dictionary<string, object> { { "adult", true }, { "junior", false } },

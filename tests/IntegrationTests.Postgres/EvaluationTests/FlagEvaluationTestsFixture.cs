@@ -89,12 +89,6 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 		await Cache.ClearAsync();
 	}
 
-	public async Task SaveAsync(FlagEvaluationConfiguration flag,
-		string name, string description)
-	{
-		await PostgresDbHelpers.CreateFlagAsync(_postgresContainer, flag, name, description);
-	}
-
 	private async Task<string> StartPostgresContainer()
 	{
 		await _postgresContainer.StartAsync();

@@ -13,7 +13,7 @@ public class UserRolloutEvaluatorTests
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var userAccessControl = new AccessControl(allowed: ["user123"]);
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, userAccessControl: userAccessControl);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, userAccessControl: userAccessControl);
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act & Assert
@@ -25,11 +25,11 @@ public class UserRolloutEvaluatorTests
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var activeEvaluationModes = new EvaluationModes([EvaluationMode.UserRolloutPercentage]);
+		var activeEvaluationModes = new ModeSet([EvaluationMode.UserRolloutPercentage]);
 		var userAccessControl = new AccessControl(rolloutPercentage: 50);
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
-			activeEvaluationModes: activeEvaluationModes,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
+			modeSet: activeEvaluationModes,
 			userAccessControl: userAccessControl);
 		var context = new EvaluationContext(userId: "user123");
 
@@ -42,7 +42,7 @@ public class UserRolloutEvaluatorTests
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var criteria = new FlagEvaluationConfiguration(identifier);
+		var criteria = new EvaluationOptions(identifier.Key);
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act & Assert
@@ -56,8 +56,8 @@ public class UserRolloutEvaluatorTests
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var UserAccessControl = new AccessControl(rolloutPercentage: 50);
 		var Variations = new Variations { DefaultVariation = "off" };
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			userAccessControl: UserAccessControl,
 			variations: Variations);
 		var context = new EvaluationContext();
@@ -73,8 +73,8 @@ public class UserRolloutEvaluatorTests
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var UserAccessControl = new AccessControl(allowed: ["user123"]);
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			userAccessControl: UserAccessControl);
 
 		var context = new EvaluationContext(userId: "user123");
@@ -97,8 +97,8 @@ public class UserRolloutEvaluatorTests
 				blocked: ["user123"],
 				rolloutPercentage: 100); // Blocked overrides rollout
 		var Variations = new Variations { DefaultVariation = "blocked" };
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			userAccessControl: UserAccessControl,
 			variations: Variations);
 		var context = new EvaluationContext(userId: "user123");
@@ -119,8 +119,8 @@ public class UserRolloutEvaluatorTests
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var UserAccessControl = new AccessControl(rolloutPercentage: 0);
 		var Variations = new Variations { DefaultVariation = "restricted" };
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			userAccessControl: UserAccessControl,
 			variations: Variations);
 		var context = new EvaluationContext(userId: "any-user");
@@ -149,8 +149,8 @@ public class UserRolloutEvaluatorTests
 			},
 			DefaultVariation = "restricted"
 		};
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			userAccessControl: UserAccessControl,
 			variations: Variations);
 		flagConfig.Variations.DefaultVariation = "restricted";
@@ -172,8 +172,8 @@ public class UserRolloutEvaluatorTests
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var UserAccessControl = new AccessControl(rolloutPercentage: 50);
 		var Variations = new Variations { DefaultVariation = "not-in-rollout" };
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			userAccessControl: UserAccessControl,
 			variations: Variations);
 		var context = new EvaluationContext(userId: "consistent-user");
@@ -216,8 +216,8 @@ public class UserRolloutEvaluatorTests
 				},
 			DefaultVariation = "old-version"
 		};
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			userAccessControl: UserAccessControl,
 			variations: Variations);
 
@@ -253,8 +253,8 @@ public class UserRolloutEvaluatorTests
 			Values = new Dictionary<string, object> { { "on", true }, { "off", false } },
 			DefaultVariation = "off"
 		};
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			userAccessControl: UserAccessControl,
 			variations: Variations);
 		var context = new EvaluationContext(userId: "user123");
@@ -284,8 +284,8 @@ public class UserRolloutEvaluatorTests
 				},
 			DefaultVariation = "v1"
 		};
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			userAccessControl: UserAccessControl,
 			variations: Variations);
 		var context = new EvaluationContext(userId: "user123");

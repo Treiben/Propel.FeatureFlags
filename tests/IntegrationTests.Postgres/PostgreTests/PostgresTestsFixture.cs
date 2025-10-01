@@ -64,12 +64,6 @@ public class PostgresTestsFixture : IAsyncLifetime
 		await command.ExecuteNonQueryAsync();
 	}
 
-	public async Task SaveFlagAsync(FlagEvaluationConfiguration flag,
-		string name, string description)
-	{
-		await PostgresDbHelpers.CreateFlagAsync(_container, flag, name, description);
-	}
-
 	private async Task<string> StartContainer()
 	{
 		await _container.StartAsync();

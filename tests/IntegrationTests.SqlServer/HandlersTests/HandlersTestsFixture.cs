@@ -1,5 +1,4 @@
-﻿using FeatureFlags.IntegrationTests.Postgres.Support;
-
+﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
@@ -15,15 +14,14 @@ using Propel.FeatureFlags.Infrastructure.Extensions;
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-
-using Testcontainers.PostgreSql;
+using Testcontainers.MsSql;
 using Testcontainers.Redis;
 
-namespace IntegrationTests.Postgres.HandlersTests;
+namespace IntegrationTests.SqlServer.HandlersTests;
 
 public class HandlersTestsFixture : IAsyncLifetime
 {
-	private readonly PostgreSqlContainer _postgresContainer;
+	private readonly MsSqlContainer _sqlContainer;
 	private readonly RedisContainer _redisContainer;
 
 	public IServiceProvider Services {get; private set; } = null!;
@@ -33,12 +31,12 @@ public class HandlersTestsFixture : IAsyncLifetime
 
 	public HandlersTestsFixture()
 	{
-		_postgresContainer = new PostgreSqlBuilder()
-			.WithImage("postgres:15-alpine")
-			.WithDatabase("featureflags_client")
-			.WithUsername("test_user")
-			.WithPassword("test_password")
-			.WithPortBinding(5432, true)
+		_sqlContainer = new MsSqlBuilder()
+			.WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+			.WithPassword("StrongP@ssw0rd!")
+			.WithEnvironment("ACCEPT_EULA", "Y")
+			.WithEnvironment("SA_PASSWORD", "StrongP@ssw0rd!")
+			.WithPortBinding(1433, true)
 			.Build();
 
 		_redisContainer = new RedisBuilder()
@@ -49,7 +47,7 @@ public class HandlersTestsFixture : IAsyncLifetime
 
 	public async Task InitializeAsync()
 	{
-		var sqlConnectionString = await StartPostgresContainer();
+		var sqlConnectionString = await StartSqlContainer();
 		var redisConnectionString = await StartRedisContainer();
 
 		var services = new ServiceCollection();
@@ -82,7 +80,7 @@ public class HandlersTestsFixture : IAsyncLifetime
 			},
 			Database = new DatabaseOptions
 			{
-				Provider = DatabaseProvider.PostgreSQL,
+				Provider = DatabaseProvider.SqlServer,
 				ConnectionString = sqlConnectionString
 			}
 		};
@@ -101,26 +99,26 @@ public class HandlersTestsFixture : IAsyncLifetime
 	}
 	public async Task DisposeAsync()
 	{
-		await _postgresContainer.DisposeAsync();
+		await _sqlContainer.DisposeAsync();
 		await _redisContainer.DisposeAsync();
 	}
 
 	public async Task ClearAllData()
 	{
-		var connectionString = _postgresContainer.GetConnectionString();
-		using var connection = new NpgsqlConnection(connectionString);
+		var connectionString = _sqlContainer.GetConnectionString();
+		using var connection = new SqlConnection(connectionString);
 		await connection.OpenAsync();
-		using var command = new NpgsqlCommand("DELETE FROM feature_flags", connection);
+		using var command = new SqlCommand("DELETE FROM FeatureFlags", connection);
 		await command.ExecuteNonQueryAsync();
 
 		await Cache.ClearAsync();
 	}
 
-	private async Task<string> StartPostgresContainer()
+	private async Task<string> StartSqlContainer()
 	{
-		await _postgresContainer.StartAsync();
+		await _sqlContainer.StartAsync();
 
-		var connectionString = _postgresContainer.GetConnectionString();
+		var connectionString = _sqlContainer.GetConnectionString();
 		return connectionString;
 	}
 

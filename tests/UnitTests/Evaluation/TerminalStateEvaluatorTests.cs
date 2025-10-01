@@ -12,7 +12,7 @@ public class TerminalStateEvaluator_CanProcess
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(identifier);
+		var flagConfig = new EvaluationOptions(identifier.Key);
 
 		// Act & Assert
 		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeTrue();
@@ -23,8 +23,8 @@ public class TerminalStateEvaluator_CanProcess
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(identifier);
-		flagConfig.ActiveEvaluationModes.AddMode(EvaluationMode.On);
+		var flagConfig = new EvaluationOptions(identifier.Key,
+			modeSet: EvaluationMode.On);
 
 		// Act & Assert
 		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeTrue();
@@ -35,8 +35,8 @@ public class TerminalStateEvaluator_CanProcess
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var modes = new EvaluationModes([EvaluationMode.On, EvaluationMode.Off]);
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: modes);
+		var modes = new ModeSet([EvaluationMode.On, EvaluationMode.Off]);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, modeSet: modes);
 
 		// Act & Assert
 		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeTrue();
@@ -51,8 +51,8 @@ public class TerminalStateEvaluator_CanProcess
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var modes = new EvaluationModes([mode]);
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: modes);
+		var modes = new ModeSet([mode]);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, modeSet: modes);
 
 		// Act & Assert
 		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeFalse();
@@ -63,7 +63,7 @@ public class TerminalStateEvaluator_CanProcess
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(identifier); // Default constructor creates Disabled mode
+		var flagConfig = new EvaluationOptions(identifier.Key); // Default constructor creates Disabled mode
 
 		// Act & Assert
 		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeTrue();
@@ -80,7 +80,7 @@ public class TerminalStateEvaluator_ProcessEvaluation
 		// Arrange
 		var identifier = new FlagIdentifier("test-disabled-flag", Scope.Global);
 		var variations = new Variations { DefaultVariation = "disabled-variation" };
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, variations: variations);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, variations: variations);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
@@ -96,9 +96,9 @@ public class TerminalStateEvaluator_ProcessEvaluation
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-enabled-flag", Scope.Global);
-		var activeEvaluationModes = new EvaluationModes([EvaluationMode.On]);
+		var activeEvaluationModes = new ModeSet([EvaluationMode.On]);
 		var variations = new Variations { DefaultVariation = "should-not-be-used" };
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: activeEvaluationModes, variations: variations);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, modeSet: activeEvaluationModes, variations: variations);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
@@ -114,9 +114,9 @@ public class TerminalStateEvaluator_ProcessEvaluation
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("priority-test-flag", Scope.Global);
-		var activeEvaluationModes = new EvaluationModes([EvaluationMode.Off, EvaluationMode.On]);
+		var activeEvaluationModes = new ModeSet([EvaluationMode.Off, EvaluationMode.On]);
 		var variations = new Variations { DefaultVariation = "disabled-wins" };
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: activeEvaluationModes, variations: variations);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, modeSet: activeEvaluationModes, variations: variations);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
@@ -138,7 +138,7 @@ public class TerminalStateEvaluator_ProcessEvaluation
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var variations = new Variations { DefaultVariation = defaultVariation };
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, variations: variations);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, variations: variations);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
@@ -153,9 +153,9 @@ public class TerminalStateEvaluator_ProcessEvaluation
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var activeEvaluationModes = new EvaluationModes([EvaluationMode.On]);
+		var activeEvaluationModes = new ModeSet([EvaluationMode.On]);
 		var variations = new Variations { DefaultVariation = "should-be-ignored" };
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: activeEvaluationModes, variations: variations);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, modeSet: activeEvaluationModes, variations: variations);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());

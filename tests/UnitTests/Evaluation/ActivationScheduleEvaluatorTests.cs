@@ -13,7 +13,7 @@ public class ActivationScheduleEvaluator_CanProcess
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: new EvaluationModes([EvaluationMode.Scheduled]));
+		var flagConfig = new EvaluationOptions(key: identifier.Key, modeSet: new ModeSet([EvaluationMode.Scheduled]));
 
 		// Act & Assert
 		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeTrue();
@@ -24,8 +24,8 @@ public class ActivationScheduleEvaluator_CanProcess
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var modes = new EvaluationModes([EvaluationMode.Scheduled, EvaluationMode.TimeWindow]);
-		var flag = new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: modes);
+		var modes = new ModeSet([EvaluationMode.Scheduled, EvaluationMode.TimeWindow]);
+		var flag = new EvaluationOptions(key: identifier.Key, modeSet: modes);
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeTrue();
 	}
@@ -39,10 +39,8 @@ public class ActivationScheduleEvaluator_CanProcess
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var modes = new EvaluationModes([]);
-		var flag = new FlagEvaluationConfiguration(identifier: identifier, activeEvaluationModes: modes);
-
-		flag.ActiveEvaluationModes.AddMode(mode);
+		var modes = new ModeSet([mode]);
+		var flag = new EvaluationOptions(key: identifier.Key, modeSet: modes);
 
 		// Act & Assert
 		_evaluator.CanProcess(flag, new EvaluationContext()).ShouldBeFalse();
@@ -58,7 +56,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier);
+		var flagConfig = new EvaluationOptions(key: identifier.Key);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
@@ -76,8 +74,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var enableDate = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(
-				identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+				key: identifier.Key,
 				schedule: new UtcSchedule(new UtcDateTime(enableDate), UtcDateTime.MaxValue),
 				variations: new Variations { DefaultVariation = "scheduled-off" }
 			);
@@ -102,7 +100,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var schedule = new UtcSchedule(new UtcDateTime(enableDate), UtcDateTime.MaxValue);
 		var variations = new Variations { DefaultVariation = "scheduled-off" };
-		var flag = new FlagEvaluationConfiguration(identifier: identifier, schedule: schedule, variations: variations);
+		var flag = new EvaluationOptions(key: identifier.Key, schedule: schedule, variations: variations);
 
 		var context = new EvaluationContext(evaluationTime: enableDate);
 
@@ -122,8 +120,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var enableDate = new UtcDateTime(new DateTime(2024, 1, 15, 10, 0, 0));
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(
-				identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+				key: identifier.Key,
 				schedule: new UtcSchedule(enableDate, UtcDateTime.MaxValue),
 				variations: new Variations { DefaultVariation = "scheduled-off" }
 			);
@@ -147,8 +145,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var disableDate = new UtcDateTime(new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc));
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(
-				identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+				key: identifier.Key,
 				schedule: new UtcSchedule(enableDate, disableDate),
 				variations: new Variations { DefaultVariation = "scheduled-off" }
 			);
@@ -171,8 +169,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var disableDate = new UtcDateTime(new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc));
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(
-				identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+				key: identifier.Key,
 				schedule: new UtcSchedule(enableDate, disableDate),
 				variations: new Variations { DefaultVariation = "scheduled-off" }
 			);
@@ -197,8 +195,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var disableDate = new UtcDateTime(new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc));
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(
-				identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+				key: identifier.Key,
 				schedule: new UtcSchedule(enableDate, disableDate),
 				variations: new Variations { DefaultVariation = "scheduled-off" }
 			);
@@ -221,8 +219,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var enableDate = DateTime.UtcNow.AddHours(-1); // 1 hour ago
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(
-				identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+				key: identifier.Key,
 				schedule: new UtcSchedule(new UtcDateTime(enableDate), UtcDateTime.MaxValue),
 				variations: new Variations { DefaultVariation = "off" }
 			);
@@ -244,8 +242,8 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var endDate = new DateTime(2024, 1, 22, 9, 0, 0, DateTimeKind.Unspecified);
 
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(
-				identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+				key: identifier.Key,
 				schedule: new UtcSchedule(new UtcDateTime(launchDate), new UtcDateTime(endDate)),
 				variations: new Variations { DefaultVariation = "feature-disabled" }
 			);

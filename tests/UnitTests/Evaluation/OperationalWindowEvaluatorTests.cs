@@ -13,9 +13,9 @@ public class OperationalWindowEvaluator_CanProcess
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var modes = new EvaluationModes([EvaluationMode.TimeWindow]);
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier, activeEvaluationModes: modes);
+		var modes = new ModeSet([EvaluationMode.TimeWindow]);
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key, modeSet: modes);
 
 		// Act & Assert
 		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeTrue();
@@ -26,9 +26,9 @@ public class OperationalWindowEvaluator_CanProcess
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var modes = new EvaluationModes([EvaluationMode.TimeWindow, EvaluationMode.Scheduled]);
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier, activeEvaluationModes: modes);
+		var modes = new ModeSet([EvaluationMode.TimeWindow, EvaluationMode.Scheduled]);
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key, modeSet: modes);
 
 		// Act & Assert
 		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeTrue();
@@ -43,9 +43,9 @@ public class OperationalWindowEvaluator_CanProcess
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var modes = new EvaluationModes([mode]);
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier, activeEvaluationModes: modes);
+		var modes = new ModeSet([mode]);
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key, modeSet: modes);
 
 		// Act & Assert
 		_evaluator.CanProcess(flagConfig, new EvaluationContext()).ShouldBeFalse();
@@ -61,7 +61,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(identifier);
+		var flagConfig = new EvaluationOptions(identifier.Key);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
@@ -81,7 +81,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var window = new UtcTimeWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17)); // 9 AM to 5 PM
 		var variations = new Variations { DefaultVariation = "window-open" };
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, operationalWindow: window, variations: variations);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flagConfig,
@@ -103,7 +103,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var window = new UtcTimeWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17)); // 9 AM to 5 PM
 		var variations = new Variations { DefaultVariation = "window-closed" };
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, operationalWindow: window, variations: variations);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flagConfig,
@@ -126,7 +126,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var window = new UtcTimeWindow(
 				TimeSpan.FromHours(22), TimeSpan.FromHours(10)); // 10 PM to 10 AM
 		var variations = new Variations { DefaultVariation = "maintenance-off" };
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, operationalWindow: window, variations: variations);
 
 
 		// Act
@@ -158,7 +158,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 				daysActive: weekdaysOnly);
 		var variations = new Variations { DefaultVariation = "weekend-off" };
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, operationalWindow: window, variations: variations);
 
 		// Act
 		var resultMonday = await _evaluator.ProcessEvaluation(flagConfig,
@@ -186,7 +186,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 				"Pacific Standard Time"); // Window is in PST
 		var variations = new Variations { DefaultVariation = "off" };
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, operationalWindow: window, variations: variations);
 
 		// Act - Use Eastern time context (5 PM UTC = 12 PM EST, within window)
 		var result = await _evaluator.ProcessEvaluation(flagConfig,
@@ -202,7 +202,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var flagConfig = new FlagEvaluationConfiguration(identifier);
+		var flagConfig = new EvaluationOptions(identifier.Key);
 
 		// Act
 		var result = await _evaluator.ProcessEvaluation(flagConfig,
@@ -225,7 +225,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 				daysActive: businessDays); 
 		var variations = new Variations { DefaultVariation = "after-hours" };
-		var flagConfig = new FlagEvaluationConfiguration(identifier: identifier, operationalWindow: window, variations: variations);
+		var flagConfig = new EvaluationOptions(key: identifier.Key, operationalWindow: window, variations: variations);
 
 		// Act & Assert - During business hours (Wednesday 2 PM)
 		var businessResult = await _evaluator.ProcessEvaluation(flagConfig,

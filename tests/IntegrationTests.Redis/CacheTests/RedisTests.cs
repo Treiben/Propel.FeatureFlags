@@ -23,19 +23,19 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		// Arrange
 		await fixture.ClearAllFlags();
 
-		var (flag, _) = new FlagConfigurationBuilder("cache-test")
+		var (options, _) = new FlagConfigurationBuilder("cache-test")
 							.WithEvaluationModes(EvaluationMode.On)
 							.Build();
-		var cacheKey = CacheKeyFactory.CreateCacheKey(flag.Identifier.Key);
+		var cacheKey = CacheKeyFactory.CreateCacheKey(options.Key);
 
 		// Act
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, options);
 
 		// Assert
 		var retrieved = await fixture.Cache.GetAsync(cacheKey);
 		retrieved.ShouldNotBeNull();
-		retrieved.Identifier.Key.ShouldBe("cache-test");
-		retrieved.ActiveEvaluationModes.ContainsModes([EvaluationMode.On]).ShouldBeTrue();
+		retrieved.Key.ShouldBe("cache-test");
+		retrieved.ModeSet.Contains([EvaluationMode.On]).ShouldBeTrue();
 	}
 
 	[Fact]
@@ -44,7 +44,7 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		// Arrange
 		await fixture.ClearAllFlags();
 
-		var (flag, _) = new FlagConfigurationBuilder("complex-flag")
+		var (options, _) = new FlagConfigurationBuilder("complex-flag")
 			.WithEvaluationModes(EvaluationMode.UserTargeted)
 			.WithTargetingRules([
 					TargetingRuleFactory.CreateTargetingRule(
@@ -71,7 +71,7 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		var cacheKey = CacheKeyFactory.CreateCacheKey("complex-flag");
 
 		// Act
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, options);
 
 		// Assert
 		var retrieved = await fixture.Cache.GetAsync(cacheKey);
@@ -96,14 +96,14 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		// Arrange
 		await fixture.ClearAllFlags();
 
-		var (flag, _) = new FlagConfigurationBuilder("expiring-flag")
+		var (options, _) = new FlagConfigurationBuilder("expiring-flag")
 			.WithEvaluationModes(EvaluationMode.On)
 			.Build();
 
-		var cacheKey = CacheKeyFactory.CreateCacheKey(flag.Identifier.Key);
+		var cacheKey = CacheKeyFactory.CreateCacheKey(options.Key);
 
 		// Act
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, options);
 		var retrieved = await fixture.Cache.GetAsync(cacheKey);
 		retrieved.ShouldNotBeNull();
 	}
@@ -114,14 +114,14 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		// Arrange
 		await fixture.ClearAllFlags();
 
-		var (originalFlag, _) = new FlagConfigurationBuilder("original-flag")
+		var (oldOptions, _) = new FlagConfigurationBuilder("original-flag")
 			.WithEvaluationModes(EvaluationMode.Off)
 			.Build();
 		var currentApplicationName = ApplicationInfo.Name;
 		var currentApplicationVersion = ApplicationInfo.Version;
 
 		var cacheKey = new CacheKey("original-flag", [currentApplicationName, currentApplicationVersion]);
-		await fixture.Cache.SetAsync(cacheKey, originalFlag);
+		await fixture.Cache.SetAsync(cacheKey, oldOptions);
 
 		var (updatedFlag, _) = new FlagConfigurationBuilder("original-flag")
 			.WithEvaluationModes(EvaluationMode.On)
@@ -133,7 +133,7 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		// Assert
 		var retrieved = await fixture.Cache.GetAsync(cacheKey);
 		retrieved.ShouldNotBeNull();
-		retrieved.ActiveEvaluationModes.ContainsModes([EvaluationMode.On]).ShouldBeTrue();
+		retrieved.ModeSet.Contains([EvaluationMode.On]).ShouldBeTrue();
 	}
 }
 
@@ -144,7 +144,7 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var (flag, _) = new FlagConfigurationBuilder("time-flag")
+		var (options, _) = new FlagConfigurationBuilder("time-flag")
 			.WithEvaluationModes(EvaluationMode.Scheduled,EvaluationMode.TimeWindow)
 			.WithSchedule(UtcSchedule.CreateSchedule(DateTimeOffset.UtcNow.AddHours(1), DateTimeOffset.UtcNow.AddDays(7)))
 			.WithOperationalWindow(new UtcTimeWindow(
@@ -154,17 +154,17 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 					[DayOfWeek.Monday, DayOfWeek.Friday]))
 			.Build();
 
-		var cacheKey = CacheKeyFactory.CreateGlobalCacheKey(flag.Identifier.Key);
+		var cacheKey = CacheKeyFactory.CreateGlobalCacheKey(options.Key);
 
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, options);
 
 		// Act
 		var result = await fixture.Cache.GetAsync(cacheKey);
 
 		// Assert
 		result.ShouldNotBeNull();
-		result.Schedule.ShouldBeEquivalentTo(flag.Schedule);
-		result.OperationalWindow.ShouldBeEquivalentTo(flag.OperationalWindow);
+		result.Schedule.ShouldBeEquivalentTo(options.Schedule);
+		result.OperationalWindow.ShouldBeEquivalentTo(options.OperationalWindow);
 	}
 
 	[Fact]
@@ -172,14 +172,14 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 	{
 		// Arrange
 		await fixture.ClearAllFlags();
-		var (flag, _) = new FlagConfigurationBuilder("percentage-flag")
+		var (options, _) = new FlagConfigurationBuilder("percentage-flag")
 							.WithEvaluationModes(EvaluationMode.UserRolloutPercentage)
 							.WithUserAccessControl(new AccessControl(rolloutPercentage: 75))
 							.Build();
 
-		var cacheKey = CacheKeyFactory.CreateCacheKey(flag.Identifier.Key);
+		var cacheKey = CacheKeyFactory.CreateCacheKey(options.Key);
 
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, options);
 
 		// Act
 		var result = await fixture.Cache.GetAsync(cacheKey);
@@ -215,10 +215,10 @@ public class RemoveAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixtu
 		// Arrange
 		await fixture.ClearAllFlags();
 
-		var (flag, _) = new FlagConfigurationBuilder("remove-test").WithEvaluationModes(EvaluationMode.On).Build();
-		var cacheKey = CacheKeyFactory.CreateCacheKey(flag.Identifier.Key);
+		var (options, _) = new FlagConfigurationBuilder("remove-test").WithEvaluationModes(EvaluationMode.On).Build();
+		var cacheKey = CacheKeyFactory.CreateCacheKey(options.Key);
 
-		await fixture.Cache.SetAsync(cacheKey, flag);
+		await fixture.Cache.SetAsync(cacheKey, options);
 
 		// Verify it exists first
 		var beforeRemove = await fixture.Cache.GetAsync(cacheKey);
@@ -241,18 +241,18 @@ public class ClearAsync_WithMultipleFlags(RedisTestsFixture fixture) : IClassFix
 		// Arrange
 		await fixture.ClearAllFlags();
 
-		var (flag1, _) = new FlagConfigurationBuilder("flag-1").WithEvaluationModes(EvaluationMode.On).Build();
-		var (flag2, _) = new FlagConfigurationBuilder("flag-2").WithEvaluationModes(EvaluationMode.On).Build();
-		var (flag3, _) = new FlagConfigurationBuilder("flag-3").WithEvaluationModes(EvaluationMode.On).Build();
+		var (options1, _) = new FlagConfigurationBuilder("flag-1").WithEvaluationModes(EvaluationMode.On).Build();
+		var (options2, _) = new FlagConfigurationBuilder("flag-2").WithEvaluationModes(EvaluationMode.On).Build();
+		var (options3, _) = new FlagConfigurationBuilder("flag-3").WithEvaluationModes(EvaluationMode.On).Build();
 
 
-		var cacheKey1 = CacheKeyFactory.CreateCacheKey(flag1.Identifier.Key);
-		var cacheKey2 = CacheKeyFactory.CreateCacheKey(flag2.Identifier.Key);
-		var cacheKey3 = CacheKeyFactory.CreateCacheKey(flag3.Identifier.Key);
+		var cacheKey1 = CacheKeyFactory.CreateCacheKey(options1.Key);
+		var cacheKey2 = CacheKeyFactory.CreateCacheKey(options2.Key);
+		var cacheKey3 = CacheKeyFactory.CreateCacheKey(	options3.Key);
 
-		await fixture.Cache.SetAsync(cacheKey1, flag1);
-		await fixture.Cache.SetAsync(cacheKey2, flag2);
-		await fixture.Cache.SetAsync(cacheKey3, flag3);
+		await fixture.Cache.SetAsync(cacheKey1, options1);
+		await fixture.Cache.SetAsync(cacheKey2, options2);
+		await fixture.Cache.SetAsync(cacheKey3, options3);
 
 		// Verify they exist
 		(await fixture.Cache.GetAsync(cacheKey1)).ShouldNotBeNull();

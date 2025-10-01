@@ -1,6 +1,8 @@
 ﻿using FeatureFlags.IntegrationTests.SqlServer.Support;
 using Knara.UtcStrict;
+using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Domain;
+using Propel.FeatureFlags.Infrastructure;
 
 namespace FeatureFlags.IntegrationTests.SqlServer.SqlServerTests;
 
@@ -11,7 +13,7 @@ public class GetAsync_WithColumnMapping(SqlServerTestsFixture fixture) : IClassF
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, _) = new FlagConfigurationBuilder("complex-eval-flag")
+		var options = new FlagOptionsBuilder()
 				.WithEvaluationModes(EvaluationMode.UserTargeted)
 				.WithSchedule(UtcSchedule.CreateSchedule(DateTimeOffset.UtcNow.AddDays(1), DateTimeOffset.UtcNow.AddDays(7)))
 				.WithOperationalWindow(new UtcTimeWindow(
@@ -36,24 +38,33 @@ public class GetAsync_WithColumnMapping(SqlServerTestsFixture fixture) : IClassF
 				])
 				.Build();
 
+		var identifier = new FlagIdentifier("complex-eval-flag", Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
+		var administration = new FlagAdministration(
+			Name: "Complex Flag",
+			Description: "Contains every evaluation option",
+			RetentionPolicy: RetentionPolicy.OneMonthRetentionPolicy,
+			Tags: new Dictionary<string, string> { { "eval-groups", "marketing" } },
+			ChangeHistory: [AuditTrail.FlagCreated("test-user")]);
 
-		await fixture.SaveFlagAsync(flag, "complex-eval-flag", "created by integration tests");
+		var featureFlag = new FeatureFlag(identifier, administration, options);
+		await fixture.DashboardRepository.CreateAsync(featureFlag);
 
 		// Act
-		var result = await fixture.FeatureFlagRepository.GetAsync(flag.Identifier);
+		var result = await fixture.FeatureFlagRepository.GetEvaluationOptionsAsync(identifier);
 
 		// Assert - Verify all evaluation columns are correctly mapped
 		result.ShouldNotBeNull();
-		result.Identifier.ShouldBe(flag.Identifier);
-		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.UserTargeted]).ShouldBeTrue();
+		result.ModeSet.Contains([EvaluationMode.UserTargeted]).ShouldBeTrue();
 
 		// Schedule mapping
-		result.Schedule.EnableOn.ShouldBe(flag.Schedule.EnableOn);
-			result.Schedule.DisableOn.ShouldBe(flag.Schedule.DisableOn);
+		result.Schedule.EnableOn.DateTime.ShouldBeInRange(
+			options.Schedule.EnableOn.DateTime.AddSeconds(-1), options.Schedule.EnableOn.DateTime.AddSeconds(1));
+		result.Schedule.DisableOn.DateTime.ShouldBeInRange(
+			options.Schedule.DisableOn.DateTime.AddSeconds(-1), options.Schedule.DisableOn.DateTime.AddSeconds(1));
 
 		// Operational window mapping
-		result.OperationalWindow.StartOn.ShouldBe(flag.OperationalWindow.StartOn);
-		result.OperationalWindow.StopOn.ShouldBe(flag.OperationalWindow.StopOn);
+		result.OperationalWindow.StartOn.ShouldBe(options.OperationalWindow.StartOn);
+		result.OperationalWindow.StopOn.ShouldBe(options.OperationalWindow.StopOn);
 		result.OperationalWindow.TimeZone.ShouldBe("America/New_York");
 		result.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Monday);
 		result.OperationalWindow.DaysActive.ShouldContain(DayOfWeek.Friday);
@@ -80,16 +91,25 @@ public class GetAsync_WithColumnMapping(SqlServerTestsFixture fixture) : IClassF
 	[Fact]
 	public async Task If_FlagWithNullableColumns_ThenHandlesDefaultValues()
 	{
-		// Arrange
 		await fixture.ClearAllData();
-		var (flag, _) = new FlagConfigurationBuilder("minimal-flag")
+
+		// Arrange
+		var options = new FlagOptionsBuilder()
 							.WithEvaluationModes(EvaluationMode.On)
 							.Build();
+		var identifier = new FlagIdentifier("minimal-flag", Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
+		var administration = new FlagAdministration(
+			Name: "Minimal Flag",
+			Description: "Contains only On mode",
+			RetentionPolicy: RetentionPolicy.OneMonthRetentionPolicy,
+			Tags: [],
+			ChangeHistory: [AuditTrail.FlagCreated("test-user")]);
 
-		await fixture.SaveFlagAsync(flag, "minimal-flag", "created by integration tests");
+		var featureFlag = new FeatureFlag(identifier, administration, options);
+		await fixture.DashboardRepository.CreateAsync(featureFlag);
 
 		// Act
-		var result = await fixture.FeatureFlagRepository.GetAsync(flag.Identifier);
+		var result = await fixture.FeatureFlagRepository.GetEvaluationOptionsAsync(identifier);
 
 		// Assert - Verify nullable columns are handled with defaults
 		result.ShouldNotBeNull();
@@ -108,7 +128,8 @@ public class GetAsync_WithColumnMapping(SqlServerTestsFixture fixture) : IClassF
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, _) = new FlagConfigurationBuilder("json-test-flag")
+
+		var options = new FlagOptionsBuilder()
 			.WithEvaluationModes(EvaluationMode.UserTargeted)
 			.WithTargetingRules([
 				TargetingRuleFactory.CreateTargetingRule("environment", TargetingOperator.Equals, ["production"], "prod-variation"),
@@ -125,11 +146,19 @@ public class GetAsync_WithColumnMapping(SqlServerTestsFixture fixture) : IClassF
 				}
 			})
 			.Build();
+		var identifier = new FlagIdentifier("json-test-flag", Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
+		var administration = new FlagAdministration(
+			Name: "Jsonn Flag",
+			Description: "Test deserialization",
+			RetentionPolicy: RetentionPolicy.OneMonthRetentionPolicy,
+			Tags: [],
+			ChangeHistory: [AuditTrail.FlagCreated("test-user")]);
 
-		await fixture.SaveFlagAsync(flag, "json-test-flag", "created by integration tests");
+		var featureFlag = new FeatureFlag(identifier, administration, options);
+		await fixture.DashboardRepository.CreateAsync(featureFlag);
 
 		// Act
-		var result = await fixture.FeatureFlagRepository.GetAsync(flag.Identifier);
+		var result = await fixture.FeatureFlagRepository.GetEvaluationOptionsAsync(identifier);
 
 		// Assert - Verify JSON deserialization
 		result.ShouldNotBeNull();
@@ -155,7 +184,7 @@ public class GetAsync_WithNonExistentFlag(SqlServerTestsFixture fixture) : IClas
 		var flagKey = new FlagIdentifier("non-existent-flag", Scope.Application, "test-app", "1.0");
 
 		// Act
-		var result = await fixture.FeatureFlagRepository.GetAsync(flagKey);
+		var result = await fixture.FeatureFlagRepository.GetEvaluationOptionsAsync(flagKey);
 
 		// Assert
 		result.ShouldBeNull();
@@ -166,16 +195,38 @@ public class GetAsync_WithNonExistentFlag(SqlServerTestsFixture fixture) : IClas
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, _) = new FlagConfigurationBuilder("scoped-flag")
-								.WithEvaluationModes(EvaluationMode.On)
-								.Build();
 
-		await fixture.SaveFlagAsync(flag, "scoped-flag", "created by integration tests");
+		var options = new FlagOptionsBuilder()
+							.WithEvaluationModes(EvaluationMode.UserTargeted)
+							.WithTargetingRules([
+								TargetingRuleFactory.CreateTargetingRule("environment", TargetingOperator.Equals, ["production"], "prod-variation"),
+										TargetingRuleFactory.CreateTargetingRule("version", TargetingOperator.GreaterThan, ["2.0"], "new-feature")
+							])
+							.WithVariations(new Variations
+							{
+								Values = new Dictionary<string, object>
+								{
+											{ "off", false },
+											{ "on", true },
+											{ "percentage", 0.75 },
+											{ "config", new { timeout = 5000, retries = 3 } }
+								}
+							})
+							.Build();
+		var identifier = FlagIdentifier.CreateGlobal("json-test-flag");
+		var administration = new FlagAdministration(
+			Name: "Jsonn Flag",
+			Description: "Test deserialization",
+			RetentionPolicy: RetentionPolicy.OneMonthRetentionPolicy,
+			Tags: [],
+			ChangeHistory: [AuditTrail.FlagCreated("test-user")]);
 
-		var differentScopeKey = new FlagIdentifier(flag.Identifier.Key, Scope.Global);
+		var featureFlag = new FeatureFlag(identifier, administration, options);
+		await fixture.DashboardRepository.CreateAsync(featureFlag);
 
 		// Act
-		var result = await fixture.FeatureFlagRepository.GetAsync(differentScopeKey);
+		var identifier1 = new FlagIdentifier("json-test-flag", Scope.Application, "test", "12.0.0.0");
+		var result = await fixture.FeatureFlagRepository.GetEvaluationOptionsAsync(identifier1);
 
 		// Assert
 		result.ShouldBeNull();
@@ -185,20 +236,27 @@ public class GetAsync_WithNonExistentFlag(SqlServerTestsFixture fixture) : IClas
 	public async Task If_FlagExistsButDifferentApplication_ThenReturnsNull()
 	{
 		// Arrange
-		await fixture.ClearAllData();
-		var (flag, _) = new FlagConfigurationBuilder("app-flag")
-								.WithEvaluationModes(EvaluationMode.On)
-								.Build();
+		var options = new FlagOptionsBuilder()
+							.WithEvaluationModes(EvaluationMode.On)
+							.Build();
+		var identifier = new FlagIdentifier("a-flag", Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
+		var administration = new FlagAdministration(
+			Name: "A Flag",
+			Description: "Contains only On mode",
+			RetentionPolicy: RetentionPolicy.OneMonthRetentionPolicy,
+			Tags: [],
+			ChangeHistory: [AuditTrail.FlagCreated("test-user")]);
 
-		await fixture.SaveFlagAsync(flag, "app-flag", "created by integration tests");
+		var featureFlag = new FeatureFlag(identifier, administration, options);
+		await fixture.DashboardRepository.CreateAsync(featureFlag);
 
-		var differentAppKey = new FlagIdentifier(flag.Identifier.Key,
-			flag.Identifier.Scope,
+		var differentAppKey = new FlagIdentifier("app-flag",
+			Scope.Application,
 			"different-app",
-			flag.Identifier.ApplicationVersion);
+			"1.0.0.0");
 
 		// Act
-		var result = await fixture.FeatureFlagRepository.GetAsync(differentAppKey);
+		var result = await fixture.FeatureFlagRepository.GetEvaluationOptionsAsync(differentAppKey);
 
 		// Assert
 		result.ShouldBeNull();
@@ -212,19 +270,16 @@ public class CreateAsync_WithAuditTrail(SqlServerTestsFixture fixture) : IClassF
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, _) = new FlagConfigurationBuilder("new-eval-flag")
-								.WithEvaluationModes(EvaluationMode.On)
-								.Build();
 
 		// Act
-		await fixture.FeatureFlagRepository.CreateAsync(flag.Identifier, EvaluationMode.On,
+		var identifier = new FlagIdentifier("new-eval-flag", Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
+		await fixture.FeatureFlagRepository.CreateApplicationFlagAsync(identifier, EvaluationMode.On,
 			"new-eval-flag", "created by tester");
 
 		// Assert - Verify flag was created by retrieving it
-		var result = await fixture.FeatureFlagRepository.GetAsync(flag.Identifier);
+		var result = await fixture.FeatureFlagRepository.GetEvaluationOptionsAsync(identifier);
 		result.ShouldNotBeNull();
-		result.Identifier.ShouldBe(flag.Identifier);
-		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.On]).ShouldBeTrue();
+		result.ModeSet.Contains([EvaluationMode.On]).ShouldBeTrue();
 	}
 
 	[Fact]
@@ -232,20 +287,19 @@ public class CreateAsync_WithAuditTrail(SqlServerTestsFixture fixture) : IClassF
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var (flag, _) = new FlagConfigurationBuilder("duplicate-eval-flag")
-							.WithEvaluationModes(EvaluationMode.On)
-							.Build();
 
-		await fixture.FeatureFlagRepository.CreateAsync(flag.Identifier, EvaluationMode.On, "new-eval-flag", "created by tester");
+		var identifier = new FlagIdentifier("duplicate-eval-flag", Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
+		await fixture.FeatureFlagRepository.CreateApplicationFlagAsync(identifier, EvaluationMode.On,
+			"duplicate-eval-flag", "created by tester");
 
-		// Act - Try to create the same flag again
-		await fixture.FeatureFlagRepository.CreateAsync(flag.Identifier, EvaluationMode.Off, "modified-eval-flag", "modified by tester");
+		await fixture.FeatureFlagRepository.CreateApplicationFlagAsync(identifier, EvaluationMode.Off,
+			"duplicate-eval-flag", "created by tester");
 
 		// Assert - Verify original flag data is preserved (not overwritten)
-		var result = await fixture.FeatureFlagRepository.GetAsync(flag.Identifier);
+		var result = await fixture.FeatureFlagRepository.GetEvaluationOptionsAsync(identifier);
 
 		result.ShouldNotBeNull();
-		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.On]).ShouldBeTrue();
-		result.ActiveEvaluationModes.ContainsModes([EvaluationMode.Off]).ShouldBeFalse();
+		result.ModeSet.Contains([EvaluationMode.On]).ShouldBeTrue();
+		result.ModeSet.Contains([EvaluationMode.Off]).ShouldBeFalse();
 	}
 }

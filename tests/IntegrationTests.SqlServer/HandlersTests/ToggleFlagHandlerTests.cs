@@ -8,7 +8,7 @@ using Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure.Cache;
 
-namespace IntegrationTests.Postgres.HandlersTests;
+namespace IntegrationTests.SqlServer.HandlersTests;
 
 public class ToggleFlagHandlerTests(HandlersTestsFixture fixture)
 	: IClassFixture<HandlersTestsFixture>, IAsyncLifetime

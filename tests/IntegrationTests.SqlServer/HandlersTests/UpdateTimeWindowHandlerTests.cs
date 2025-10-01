@@ -7,7 +7,7 @@ using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure.Cache;
 
-namespace IntegrationTests.Postgres.HandlersTests;
+namespace IntegrationTests.SqlServer.HandlersTests;
 
 public class UpdateTimeWindowHandlerTests(HandlersTestsFixture fixture)
 	: IClassFixture<HandlersTestsFixture>, IAsyncLifetime

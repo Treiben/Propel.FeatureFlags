@@ -1,9 +1,7 @@
-﻿using FeatureFlags.IntegrationTests.SqlServer.Support;
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 
 using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
-using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Extensions;
 using Testcontainers.MsSql;
@@ -63,12 +61,6 @@ public class SqlServerTestsFixture : IAsyncLifetime
 		await connection.OpenAsync();
 		using var command = new SqlCommand("DELETE FROM FeatureFlags", connection);
 		await command.ExecuteNonQueryAsync();
-	}
-
-	public async Task SaveFlagAsync(FlagEvaluationConfiguration flag,
-		string name, string description)
-	{
-		await SqlServerDbHelpers.CreateFlagAsync(_container, flag, name, description);
 	}
 
 	private async Task<string> StartContainer()

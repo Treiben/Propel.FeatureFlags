@@ -13,8 +13,8 @@ public class TenantRolloutEvaluator_CanProcess
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var tenantAccessControl = new AccessControl(allowed: ["tenant123"]);
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			tenantAccessControl: tenantAccessControl);
 
 		var context = new EvaluationContext(tenantId: "tenant123");
@@ -28,11 +28,11 @@ public class TenantRolloutEvaluator_CanProcess
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var activeEvaluationModes = new EvaluationModes([EvaluationMode.TenantRolloutPercentage]);
+		var activeEvaluationModes = new ModeSet([EvaluationMode.TenantRolloutPercentage]);
 		var tenantAccessControl = new AccessControl(rolloutPercentage: 95);
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
-			activeEvaluationModes: activeEvaluationModes,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
+			modeSet: activeEvaluationModes,
 			tenantAccessControl: tenantAccessControl);
 
 		var context = new EvaluationContext(tenantId: "tenant123");
@@ -46,11 +46,11 @@ public class TenantRolloutEvaluator_CanProcess
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
-		var activeEvaluationModes = new EvaluationModes([EvaluationMode.TenantRolloutPercentage]);
+		var activeEvaluationModes = new ModeSet([EvaluationMode.TenantRolloutPercentage]);
 		var tenantAccessControl = AccessControl.Unrestricted; // No restrictions
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
-			activeEvaluationModes: activeEvaluationModes,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
+			modeSet: activeEvaluationModes,
 			tenantAccessControl: tenantAccessControl);
 
 		var context = new EvaluationContext(tenantId: "tenant123");
@@ -65,8 +65,8 @@ public class TenantRolloutEvaluator_CanProcess
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var tenantAccessControl = new AccessControl(allowed: ["tenant123"]);
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			tenantAccessControl: tenantAccessControl);
 
 		var context = new EvaluationContext(userId: "user123"); // No tenant ID
@@ -90,8 +90,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var tenantAccessControl = new AccessControl(rolloutPercentage: 50);
 		var variations = new Variations { DefaultVariation = "off" };
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			tenantAccessControl: tenantAccessControl,
 			variations: variations);
 
@@ -118,8 +118,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 				},
 			DefaultVariation = "disabled"
 		};
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			tenantAccessControl: tenantAccessControl,
 			variations: variations);
 
@@ -141,8 +141,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 				blocked: ["tenant123"],
 				rolloutPercentage: 100); // Even with 100% rollout, blocked takes precedence
 		var variations = new Variations { DefaultVariation = "blocked" };
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			tenantAccessControl: tenantAccessControl,
 			variations: variations);
 
@@ -163,8 +163,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var tenantAccessControl = new AccessControl(rolloutPercentage: 0);
 		var variations = new Variations { DefaultVariation = "zero-rollout" };
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			tenantAccessControl: tenantAccessControl,
 			variations: variations);
 
@@ -184,8 +184,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
 		var tenantAccessControl = new AccessControl(rolloutPercentage: 50);
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			tenantAccessControl: tenantAccessControl);
 
 		flagConfig.Variations.DefaultVariation = "not-in-rollout";
@@ -217,15 +217,15 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		// Arrange
 		var identifier1 = new FlagIdentifier("test-flag-1", Scope.Global);
 		var tenantAccessControl50 = new AccessControl(rolloutPercentage: 50);
-		var flagConfig1	= new FlagEvaluationConfiguration(
-			identifier: identifier1,
+		var flagConfig1	= new EvaluationOptions(
+			key: identifier1.Key,
 			tenantAccessControl: tenantAccessControl50);
 
 		flagConfig1.Variations.DefaultVariation = "flag1-off";
 
 		var identifier2 = new FlagIdentifier("test-flag-2", Scope.Global);
-		var flagConfig2 = new FlagEvaluationConfiguration(
-			identifier: identifier2,
+		var flagConfig2 = new EvaluationOptions(
+			key: identifier2.Key,
 			tenantAccessControl: tenantAccessControl50);
 
 		flagConfig2.Variations.DefaultVariation = "flag2-off";
@@ -268,8 +268,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var tenantAccessControl = new AccessControl(
 				allowed: ["premium-corp"],
 				rolloutPercentage: 25);
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			tenantAccessControl: tenantAccessControl);
 		flagConfig.Variations.DefaultVariation = "standard-feature";
 
@@ -306,8 +306,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 			Values = new Dictionary<string, object> { { "on", true }, { "off", false } },
 			DefaultVariation = "off"
 		};
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			tenantAccessControl: tenantAccessControl,
 			variations: variations);
 
@@ -337,8 +337,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 				},
 				DefaultVariation = "mysql"
 			};
-		var flagConfig = new FlagEvaluationConfiguration(
-			identifier: identifier,
+		var flagConfig = new EvaluationOptions(
+			key: identifier.Key,
 			tenantAccessControl: tenantAccessControl,
 			variations: variations);
 		var context = new EvaluationContext(tenantId: "acme-corp");
