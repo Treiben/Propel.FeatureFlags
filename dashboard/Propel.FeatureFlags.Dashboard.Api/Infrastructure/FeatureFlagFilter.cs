@@ -21,23 +21,47 @@ public static class PostgresFiltering
 		var (whereClause, parameters) = BuildFilterConditions(filter);
 
 		var sql = $@"
-        SELECT ff.*,
-				ffm.""flag_key"" as ""flag_key"",
-				ffm.""is_permanent"", ffm.""expiration_date"", ffm.""tags"", 
-				ffa.""action"", ffa.""actor"", ffa.""timestamp"", ffa.""notes""
-        FROM ""feature_flags"" ff
-        LEFT JOIN ""feature_flags_metadata"" ffm ON ff.""key"" = ffm.""flag_key"" 
-				AND ff.""application_name"" = ffm.""application_name""
-				AND ff.""application_version"" = ffm.""application_version""
-        LEFT JOIN ""feature_flags_audit"" ffa ON ff.""key"" = ffa.""flag_key"" 
-            AND ff.""application_name"" = ffa.""application_name""
-			AND ff.""application_version"" = ffa.""application_version""
-        {whereClause}
-        ORDER BY ff.""name"", ff.""key""
-        OFFSET {(page - 1) * pageSize} ROWS 
-        FETCH NEXT {pageSize} ROWS ONLY";
+			WITH latest_audit AS ( 
+				SELECT DISTINCT ON (flag_key, application_name, application_version) 
+					a.flag_key, 
+					a.application_name, 
+					a.application_version, 
+					a.action, 
+					a.actor, 
+					a.timestamp, 
+					a.notes 
+				FROM 
+					feature_flags_audit a 
+				ORDER BY 
+					flag_key, application_name, application_version, timestamp DESC 
+			) 
+			SELECT 
+				ff.*, 
+				ffm.flag_key as flag_key, 
+				ffm.is_permanent as is_permanent, 
+				ffm.expiration_date as expiration_date, 
+				ffm.tags as tags, 
+				ffa.action as action, 
+				ffa.actor as actor, 
+				ffa.timestamp as timestamp, 
+				ffa.notes as notes 
+			FROM 
+				feature_flags ff 
+			LEFT JOIN 
+				feature_flags_metadata ffm ON ff.key = ffm.flag_key 
+					AND ff.application_name = ffm.application_name 
+					AND ff.application_version = ffm.application_version 
+			LEFT JOIN 
+				latest_audit ffa ON ff.key = ffa.flag_key 
+					AND ff.application_name = ffa.application_name 
+					AND ff.application_version = ffa.application_version 
+			{whereClause} 
+			ORDER BY ff.name, ff.key 
+			OFFSET {(page - 1) * pageSize} ROWS 
+			FETCH NEXT {pageSize} ROWS ONLY
+";
 
-		return sql;
+		 return sql;
 	}
 
 	public static string BuildCountQuery(FeatureFlagFilter filter)
@@ -45,10 +69,10 @@ public static class PostgresFiltering
 		var (whereClause, parameters) = BuildFilterConditions(filter);
 
 		var countSql = $@"SELECT COUNT(*) 
-		FROM ""feature_flags"" ff
-        LEFT JOIN ""feature_flags_metadata"" ffm ON ff.""key"" = ffm.""flag_key"" 
-				AND ff.""application_name"" = ffm.""application_name""
-				AND ff.""application_version"" = ffm.""application_version""
+		FROM feature_flags ff 
+			LEFT JOIN feature_flags_metadata ffm ON ff.key = ffm.flag_key 
+					AND ff.application_name = ffm.application_name 
+					AND ff.application_version = ffm.application_version
 		 {whereClause}";
 
 		return countSql;
@@ -67,7 +91,7 @@ public static class PostgresFiltering
 		{
 			var appNameParam = "appName";
 			parameters[appNameParam] = filter.ApplicationName;
-			conditions.Add($"ff.\"application_name\" = {{{appNameParam}}}");
+			conditions.Add($"ff.application_name = {{{appNameParam}}}");
 		}
 
 		// Flag scope filtering
@@ -75,7 +99,7 @@ public static class PostgresFiltering
 		{
 			var scopeParam = "scope";
 			parameters[scopeParam] = (int)filter.Scope.Value;
-			conditions.Add($"ff.\"scope\" = {{{scopeParam}}}");
+			conditions.Add($"ff.scope = {{{scopeParam}}}");
 		}
 
 		// Expiration date filtering - use ffm table (metadata specific)
@@ -84,7 +108,7 @@ public static class PostgresFiltering
 			var targetDate = DateTimeOffset.UtcNow.AddDays(filter.ExpiringInDays.Value).Date;
 			var expiringInDaysParam = "expiringInDays";
 			parameters[expiringInDaysParam] = targetDate;
-			conditions.Add($"DATE(ffm.\"expiration_date\") = {{{expiringInDaysParam}}}");
+			conditions.Add($"DATE(ffm.expiration_date) = {{{expiringInDaysParam}}}");
 		}
 
 		// Evaluation modes filtering - use ff table (main flag data)
@@ -96,7 +120,7 @@ public static class PostgresFiltering
 				var modeParam = $"mode{i}";
 				var modeJson = JsonSerializer.Serialize(new[] { (int)filter.EvaluationModes[i] }, JsonDefaults.JsonOptions);
 				parameters[modeParam] = modeJson;
-				modeConditions.Add($"ff.\"evaluation_modes\"::jsonb @> {{{modeParam}}}::jsonb");
+				modeConditions.Add($"ff.evaluation_modes::jsonb @> {{{modeParam}}}::jsonb");
 			}
 			conditions.Add($"({string.Join(" OR ", modeConditions)})");
 		}
@@ -114,7 +138,7 @@ public static class PostgresFiltering
 					// Search by tag key only
 					var keyParam = $"tagKey{tagIndex}";
 					parameters[keyParam] = tag.Key;
-					tagConditions.Add($"ffm.\"tags\"::jsonb ? {{{keyParam}}}");
+					tagConditions.Add($"ffm.tags::jsonb ? {{{keyParam}}}");
 				}
 				else
 				{
@@ -122,7 +146,7 @@ public static class PostgresFiltering
 					var tagParam = $"tag{tagIndex}";
 					var tagJson = JsonSerializer.Serialize(new Dictionary<string, string> { [tag.Key] = tag.Value }, JsonDefaults.JsonOptions);
 					parameters[tagParam] = tagJson;
-					tagConditions.Add($"ffm.\"tags\"::jsonb @> {{{tagParam}}}::jsonb");
+					tagConditions.Add($"ffm.tags::jsonb @> {{{tagParam}}}::jsonb");
 				}
 				tagIndex++;
 			}
