@@ -52,7 +52,7 @@ public class GetFilteredFlagsHandlerTests(HandlersTestsFixture fixture)
 	}
 
 	[Fact]
-	public async Task Should_filter_flags_by_evaluation_modes()
+	public async Task Should_filter_flags_by_evaluation_modes_that_not_found()
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("mode-filter-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
@@ -62,16 +62,112 @@ public class GetFilteredFlagsHandlerTests(HandlersTestsFixture fixture)
 						RetentionPolicy: RetentionPolicy.GlobalPolicy,
 						Tags: [],
 						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
-			FlagEvaluationOptions.DefaultOptions with { ModeSet = EvaluationMode.UserTargeted});
+			FlagEvaluationOptions.DefaultOptions with { ModeSet =
+					new ModeSet([ 
+							EvaluationMode.UserTargeted, 
+							EvaluationMode.TargetingRules, 
+							EvaluationMode.Scheduled,
+							EvaluationMode.TenantTargeted,
+							EvaluationMode.UserRolloutPercentage
+						]) });
 
 		var saved = await fixture.DashboardRepository.CreateAsync(flag, CancellationToken.None);
 
 		var handler = fixture.Services.GetRequiredService<GetFilteredFlagsHandler>();
+		//---------------------------------------
 		var request = new GetFeatureFlagRequest
 		{
 			Page = 1,
 			PageSize = 10,
-			Modes = [EvaluationMode.UserTargeted]
+			Modes = [EvaluationMode.TenantRolloutPercentage]
+		};
+
+		// Act
+		var result = await handler.HandleAsync(request, CancellationToken.None);
+
+		// Assert
+		result.ShouldBeOfType<Ok<PagedFeatureFlagsResponse>>();
+		var response = ((Ok<PagedFeatureFlagsResponse>)result).Value;
+		response.ShouldNotBeNull();
+		response.Items.Count.ShouldBeGreaterThanOrEqualTo(0);
+	}
+
+	[Fact]
+	public async Task Should_filter_flags_by_one_evaluation_mode()
+	{
+		// Arrange
+		var identifier = new FlagIdentifier("mode-filter-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		var flag = new FeatureFlag(identifier,
+			new FlagAdministration(Name: "Mode Name",
+						Description: "With specific mode",
+						RetentionPolicy: RetentionPolicy.GlobalPolicy,
+						Tags: [],
+						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
+			FlagEvaluationOptions.DefaultOptions with
+			{
+				ModeSet =
+					new ModeSet([
+							EvaluationMode.UserTargeted,
+							EvaluationMode.TargetingRules,
+							EvaluationMode.Scheduled,
+							EvaluationMode.TenantTargeted,
+							EvaluationMode.UserRolloutPercentage
+						])
+			});
+
+		var saved = await fixture.DashboardRepository.CreateAsync(flag, CancellationToken.None);
+
+		var handler = fixture.Services.GetRequiredService<GetFilteredFlagsHandler>();
+		//---------------------------------------
+		var request = new GetFeatureFlagRequest
+		{
+			Page = 1,
+			PageSize = 10,
+			Modes = [EvaluationMode.Scheduled]
+		};
+
+		// Act
+		var result = await handler.HandleAsync(request, CancellationToken.None);
+
+		// Assert
+		result.ShouldBeOfType<Ok<PagedFeatureFlagsResponse>>();
+		var response = ((Ok<PagedFeatureFlagsResponse>)result).Value;
+		response.ShouldNotBeNull();
+		response.Items.Count.ShouldBeGreaterThanOrEqualTo(1);
+	}
+
+	[Fact]
+	public async Task Should_filter_flags_by_many_evaluation_modes()
+	{
+		// Arrange
+		var identifier = new FlagIdentifier("mode-filter-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		var flag = new FeatureFlag(identifier,
+			new FlagAdministration(Name: "Mode Name",
+						Description: "With specific mode",
+						RetentionPolicy: RetentionPolicy.GlobalPolicy,
+						Tags: [],
+						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
+			FlagEvaluationOptions.DefaultOptions with
+			{
+				ModeSet =
+					new ModeSet([
+							EvaluationMode.UserTargeted,
+							EvaluationMode.TargetingRules,
+							EvaluationMode.Scheduled,
+							EvaluationMode.TenantTargeted,
+							EvaluationMode.UserRolloutPercentage
+						])
+			});
+
+		var saved = await fixture.DashboardRepository.CreateAsync(flag, CancellationToken.None);
+
+		var handler = fixture.Services.GetRequiredService<GetFilteredFlagsHandler>();
+		//---------------------------------------
+		var request = new GetFeatureFlagRequest
+		{
+			Page = 1,
+			PageSize = 10,
+			Modes = [EvaluationMode.TenantRolloutPercentage, EvaluationMode.Scheduled, EvaluationMode.UserRolloutPercentage]
 		};
 
 		// Act
@@ -112,6 +208,9 @@ public class GetFilteredFlagsHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<PagedFeatureFlagsResponse>>();
+		var response = ((Ok<PagedFeatureFlagsResponse>)result).Value;
+		response.ShouldNotBeNull();
+		response.Items.Count.ShouldBeGreaterThanOrEqualTo(1);
 	}
 
 	[Fact]
@@ -134,7 +233,7 @@ public class GetFilteredFlagsHandlerTests(HandlersTestsFixture fixture)
 		{
 			Page = 1,
 			PageSize = 10,
-			TagKeys = new[] { "env", "team" }
+			TagKeys = ["env", "team"]
 		};
 
 		// Act
@@ -142,6 +241,9 @@ public class GetFilteredFlagsHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<PagedFeatureFlagsResponse>>();
+		var response = ((Ok<PagedFeatureFlagsResponse>)result).Value;
+		response.ShouldNotBeNull();
+		response.Items.Count.ShouldBeGreaterThanOrEqualTo(1);
 	}
 
 	[Fact]
@@ -200,5 +302,6 @@ public class GetFilteredFlagsHandlerTests(HandlersTestsFixture fixture)
 	}
 
 	public Task InitializeAsync() => Task.CompletedTask;
+
 	public Task DisposeAsync() => fixture.ClearAllData();
 }

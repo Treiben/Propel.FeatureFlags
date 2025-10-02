@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Domain;
+using System.Runtime.CompilerServices;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 
@@ -62,28 +63,35 @@ public class BaseRepository(DashboardDbContext context) : IReadOnlyRepository
 		page = Math.Max(1, page);
 		pageSize = Math.Clamp(pageSize, 1, 100);
 
-		var query = context.FeatureFlags.AsQueryable();
+		var provider = context.Database.ProviderName ?? string.Empty;
 
-		// Apply filters
-		if (filter != null)
+		// Determine which filtering to use based on database provider
+		string sql;
+		string countSql;
+		Dictionary<string, object> parameters;
+
+		if (provider.Contains("Npgsql") || provider.Contains("PostgreSQL"))
 		{
-			var provider = context.Database.ProviderName;
-			query = Filtering.ApplyFilters(query, filter, provider);
+			// Use PostgreSQL filtering
+			sql = PostgresFiltering.BuildFilterQuery(page, pageSize, filter ?? new FeatureFlagFilter());
+			countSql = PostgresFiltering.BuildCountQuery(filter ?? new FeatureFlagFilter());
+			(_, parameters) = PostgresFiltering.BuildFilterConditions(filter);
+		}
+		else if (provider.Contains("SqlServer"))
+		{
+			// Use SQL Server filtering
+			sql = SqlServerFiltering.BuildFilterQuery(page, pageSize, filter ?? new FeatureFlagFilter());
+			countSql = SqlServerFiltering.BuildCountQuery(filter ?? new FeatureFlagFilter());
+			(_, parameters) = SqlServerFiltering.BuildFilterConditions(filter);
+		}
+		else
+		{
+			throw new NotSupportedException($"Database provider '{provider}' is not supported for filtering operations.");
 		}
 
-		// Get total count before pagination
-		var totalCount = await query.CountAsync(cancellationToken);
-
-		// Apply pagination and ordering
-		var entities = await query
-			.AsNoTracking()
-			.Include(f => f.Metadata)
-			.Include(f => f.AuditTrail)
-			.OrderBy(f => f.Name)
-			.ThenBy(f => f.Key)
-			.Skip((page - 1) * pageSize)
-			.Take(pageSize)
-			.ToListAsync(cancellationToken);
+		// Execute queries
+		var entities = await ExecutePagedQuery(sql, parameters, cancellationToken);
+		var totalCount = await ExecuteCountQuery(countSql, parameters, cancellationToken);
 
 		return new PagedResult<FeatureFlag>
 		{
@@ -104,6 +112,58 @@ public class BaseRepository(DashboardDbContext context) : IReadOnlyRepository
 				f.ApplicationVersion == (identifier.ApplicationVersion ?? "0.0.0.0") &&
 				f.Scope == (int)identifier.Scope, cancellationToken);
 		return entity != null;
+	}
+
+	private async Task<List<Entities.FeatureFlag>> ExecutePagedQuery(string sql, Dictionary<string, object> parameters, CancellationToken cancellationToken)
+	{
+		// Create FormattableString for FromSqlInterpolated
+		var formattableString = CreateFormattableString(sql, parameters);
+
+		return await context.FeatureFlags
+			.FromSqlInterpolated(formattableString)
+			.AsNoTracking()
+			.Include(f => f.Metadata)
+			.Include(f => f.AuditTrail)
+			.ToListAsync(cancellationToken);
+	}
+
+	private async Task<int> ExecuteCountQuery(string sql, Dictionary<string, object> parameters, CancellationToken cancellationToken)
+	{
+		var formattableString = CreateFormattableString(sql, parameters);
+
+		// For count queries, we need to execute and get the scalar result differently
+		var connection = context.Database.GetDbConnection();
+
+		await using var command = connection.CreateCommand();
+		command.CommandText = formattableString.Format;
+
+		// Add parameters properly
+		command.CommandText = string.Format(command.CommandText, 
+			formattableString.GetArguments().Select(i => $"'{i ?? DBNull.Value}'").ToArray());
+
+		if (connection.State != System.Data.ConnectionState.Open)
+			await connection.OpenAsync(cancellationToken);
+
+		var scalarResult = await command.ExecuteScalarAsync(cancellationToken);
+		return Convert.ToInt32(scalarResult ?? 0);
+	}
+
+	private FormattableString CreateFormattableString(string sql, Dictionary<string, object> parameters)
+	{
+		var args = parameters.Values.ToArray();
+		var parameterizedSql = sql;
+
+		// Replace parameter placeholders with {0}, {1}, etc.
+		int index = 0;
+		foreach (var key in parameters.Keys)
+		{
+			// Handle both @paramName (SQL Server) and {paramName} (PostgreSQL) formats
+			parameterizedSql = parameterizedSql.Replace($"@{key}", $"{{{index}}}");
+			parameterizedSql = parameterizedSql.Replace($"{{{key}}}", $"{{{index}}}");
+			index++;
+		}
+
+		return FormattableStringFactory.Create(parameterizedSql, args);
 	}
 }
 
