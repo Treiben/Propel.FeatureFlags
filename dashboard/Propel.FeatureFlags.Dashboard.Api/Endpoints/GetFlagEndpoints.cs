@@ -114,7 +114,7 @@ public sealed class GetFilteredFlagsHandler(IDashboardRepository repository, ILo
 		try
 		{
 			FeatureFlagFilter? filter = null;
-			if (request.Modes?.Length > 0 || request.Tags?.Length > 0 || request.TagKeys?.Length > 0)
+			if (request.Modes?.Length > 0 || request.Tags?.Length > 0 || request.TagKeys?.Length > 0 || request.ExpiringInDays != null)
 			{
 				filter = new FeatureFlagFilter
 				{

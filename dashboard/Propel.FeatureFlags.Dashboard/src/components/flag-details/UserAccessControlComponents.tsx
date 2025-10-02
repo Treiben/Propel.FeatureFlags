@@ -78,9 +78,9 @@ const InfoTooltip: React.FC<{ content: string; className?: string }> = ({ conten
 			</button>
 
 			{showTooltip && (
-				<div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-lg shadow-lg max-w-xs whitespace-normal">
+				<div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-sm leading-relaxed text-gray-800 bg-white border border-gray-300 rounded-lg shadow-lg w-64">
 					{content}
-					<div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+					<div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-white"></div>
 				</div>
 			)}
 		</div>
@@ -230,10 +230,14 @@ export const UserAccessSection: React.FC<UserAccessSectionProps> = ({
 		}
 	};
 
-	const hasUserAccessControl = components.hasUserTargeting ||
-		(flag.userAccess?.rolloutPercentage && flag.userAccess.rolloutPercentage > 0) ||
-		(flag.userAccess?.allowed && flag.userAccess.allowed.length > 0) ||
-		(flag.userAccess?.blocked && flag.userAccess.blocked.length > 0);
+	const rolloutPercentage = flag.userAccess?.rolloutPercentage || 0;
+	const allowedUsers = flag.userAccess?.allowed || [];
+	const blockedUsers = flag.userAccess?.blocked || [];
+
+	// Check if there's actual access control (percentage between 1-99 OR specific user targeting)
+	const hasPercentageRestriction = rolloutPercentage > 0 && rolloutPercentage < 100;
+	const hasUserTargeting = allowedUsers.length > 0 || blockedUsers.length > 0;
+	const hasUserAccessControl = hasPercentageRestriction || hasUserTargeting;
 
 	return (
 		<div className="space-y-4 mb-6">
@@ -358,17 +362,13 @@ export const UserAccessSection: React.FC<UserAccessSectionProps> = ({
 							return <div className="text-green-600 font-medium">Open access - available to all users</div>;
 						}
 
-						const rolloutPercentage = flag.userAccess?.rolloutPercentage || 0;
-						const allowedUsers = flag.userAccess?.allowed || [];
-						const blockedUsers = flag.userAccess?.blocked || [];
-
-						if (rolloutPercentage > 0 || components.hasUserTargeting) {
+						if (hasPercentageRestriction || hasUserTargeting) {
 							return (
 								<>
-									{rolloutPercentage > 0 && (
+									{hasPercentageRestriction && (
 										<div>Percentage Rollout: {rolloutPercentage}%</div>
 									)}
-									{components.hasUserTargeting && (
+									{hasUserTargeting && (
 										<>
 											{allowedUsers.length > 0 &&
 												renderAllowedUsers(
@@ -390,7 +390,7 @@ export const UserAccessSection: React.FC<UserAccessSectionProps> = ({
 							);
 						}
 
-						if ((!components.hasUserTargeting && rolloutPercentage <= 0) && components.baseStatus === 'Other') {
+						if (components.baseStatus === 'Other') {
 							return <div className="text-gray-500 italic">No user restrictions</div>;
 						} else if (components.baseStatus === 'Disabled') {
 							return <div className="text-orange-600 font-medium">Access denied to all users - flag is disabled</div>;

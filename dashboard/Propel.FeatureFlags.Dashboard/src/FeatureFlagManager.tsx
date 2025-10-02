@@ -258,14 +258,27 @@ const FeatureFlagManager = () => {
             params.expiringInDays = filters.expiringInDays;
         }
 
+        // FIX BUG #20: Separate tag keys from tag key:value pairs
+        const tagKeys: string[] = [];
         const tags: string[] = [];
+
         for (let i = 0; i < filters.tagKeys.length; i++) {
             const key = filters.tagKeys[i]?.trim();
             const value = filters.tagValues[i]?.trim();
 
             if (key) {
-                tags.push(value ? `${key}:${value}` : key);
+                if (value) {
+                    // If there's a value, add to tags array as key:value
+                    tags.push(`${key}:${value}`);
+                } else {
+                    // If no value, add to tagKeys array for key-only filtering
+                    tagKeys.push(key);
+                }
             }
+        }
+
+        if (tagKeys.length > 0) {
+            params.tagKeys = tagKeys;
         }
 
         if (tags.length > 0) {

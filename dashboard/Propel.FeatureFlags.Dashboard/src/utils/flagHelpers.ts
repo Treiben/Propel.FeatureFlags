@@ -274,9 +274,26 @@ export const getStatusColor = (flag: FeatureFlagDto): string => {
     return 'bg-gray-100 text-gray-800';
 };
 
+// BUG FIX #17: Fix date formatting to display correctly in local timezone
 export const formatDate = (dateString?: string): string => {
     if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleString();
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+
+        // Format in local timezone with proper formatting
+        return date.toLocaleString(undefined, {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return dateString;
+    }
 };
 
 export const formatTime = (timeString?: string): string => {

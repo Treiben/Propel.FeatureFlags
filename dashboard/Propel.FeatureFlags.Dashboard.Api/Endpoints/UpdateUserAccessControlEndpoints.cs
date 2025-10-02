@@ -79,7 +79,7 @@ public sealed class ManageUserAccessHandler(
 		modes.Remove(EvaluationMode.Off);
 
 		// Ensure correct evaluation modes are set based on the request
-		if (request.RolloutPercentage == 0) // Special case: 0% effectively disables the flag
+		if (request.RolloutPercentage == 100) // Special case: 100% does not require any evaluation
 		{
 			modes.Remove(EvaluationMode.UserRolloutPercentage);
 		}

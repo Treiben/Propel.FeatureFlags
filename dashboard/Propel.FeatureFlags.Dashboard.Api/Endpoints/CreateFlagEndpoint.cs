@@ -1,11 +1,9 @@
 ﻿using FluentValidation;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
 using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 using Propel.FeatureFlags.Domain;
-using System.Reflection.PortableExecutable;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 

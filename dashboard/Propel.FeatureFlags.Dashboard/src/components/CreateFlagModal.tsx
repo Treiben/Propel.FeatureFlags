@@ -19,6 +19,7 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
         description: '',
         tags: {},
     });
+    const [tagsInput, setTagsInput] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
     const handleSubmit = async () => {
@@ -35,12 +36,14 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
             await onSubmit(cleanedData);
             onClose();
 
+            // Reset form
             setFormData({
                 key: '',
                 name: '',
                 description: '',
                 tags: {},
             });
+            setTagsInput('');
         } catch (error) {
             console.error('Failed to create flag:', error);
         } finally {
@@ -48,15 +51,33 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
         }
     };
 
-    const handleTagsChange = (tagsString: string) => {
+    // BUG FIX #14: Allow colons, spaces, and commas in tag input
+    const handleTagsChange = (value: string) => {
+        setTagsInput(value);
+
         try {
             const tags: Record<string, string> = {};
-            if (tagsString.trim()) {
-                const tagPairs = tagsString.split(',').map(tag => tag.trim()).filter(tag => tag);
+            if (value.trim()) {
+                // Split by comma to get individual tag pairs
+                const tagPairs = value.split(',').map(tag => tag.trim()).filter(tag => tag);
+
                 tagPairs.forEach(tagPair => {
-                    const [key, value] = tagPair.split(':').map(part => part.trim());
-                    if (key) {
-                        tags[key] = value || '';
+                    // Split by colon to separate key and value
+                    const colonIndex = tagPair.indexOf(':');
+
+                    if (colonIndex > 0) {
+                        // Has a colon, split into key:value
+                        const key = tagPair.substring(0, colonIndex).trim();
+                        const tagValue = tagPair.substring(colonIndex + 1).trim();
+                        if (key) {
+                            tags[key] = tagValue || '';
+                        }
+                    } else {
+                        // No colon, treat entire string as key with empty value
+                        const key = tagPair.trim();
+                        if (key) {
+                            tags[key] = '';
+                        }
                     }
                 });
             }
@@ -64,13 +85,6 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
         } catch (error) {
             console.error('Error parsing tags:', error);
         }
-    };
-
-    const getTagsString = (): string => {
-        if (!formData.tags || Object.keys(formData.tags).length === 0) return '';
-        return Object.entries(formData.tags)
-            .map(([key, value]) => value ? `${key}:${value}` : key)
-            .join(', ');
     };
 
     if (!isOpen) return null;
@@ -133,18 +147,19 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
                         <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
                         <input
                             type="text"
-                            value={getTagsString()}
+                            value={tagsInput}
                             onChange={(e) => handleTagsChange(e.target.value)}
                             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="environment:prod, team:backend, priority:high"
                             disabled={submitting}
                         />
-                        <p className="text-xs text-gray-500 mt-1">Optional: Comma-separated key:value pairs or just keys</p>
+                        <p className="text-xs text-gray-500 mt-1">Comma-separated key:value pairs (e.g., env:prod, team:backend)</p>
                     </div>
 
+                    {/* BUG FIX #15: Updated note text */}
                     <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                         <p className="text-sm text-blue-800">
-                            <strong>Note:</strong> Flags are created in disabled state. Use the Update Flag form to set expiration dates or mark as permanent after creation.
+                            <strong>Note:</strong> Only global flags can be created from this dashboard. Application-specific flags must be created directly from your application code. New flags are created as disabled and permanent by default. You can modify these settings and add configurations after creation.
                         </p>
                     </div>
                 </div>

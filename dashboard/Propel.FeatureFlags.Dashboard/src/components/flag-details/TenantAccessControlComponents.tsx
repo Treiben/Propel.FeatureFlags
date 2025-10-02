@@ -78,9 +78,9 @@ const InfoTooltip: React.FC<{ content: string; className?: string }> = ({ conten
 			</button>
 
 			{showTooltip && (
-				<div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-lg shadow-lg max-w-xs whitespace-normal">
+				<div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-sm leading-relaxed text-gray-800 bg-white border border-gray-300 rounded-lg shadow-lg w-64">
 					{content}
-					<div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+					<div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-white"></div>
 				</div>
 			)}
 		</div>
@@ -230,10 +230,14 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 		}
 	};
 
-	const hasTenantAccessControl = components.hasTenantTargeting ||
-		(flag.tenantAccess?.rolloutPercentage && flag.tenantAccess.rolloutPercentage > 0) ||
-		(flag.tenantAccess?.allowed && flag.tenantAccess.allowed.length > 0) ||
-		(flag.tenantAccess?.blocked && flag.tenantAccess.blocked.length > 0);
+	const rolloutPercentage = flag.tenantAccess?.rolloutPercentage || 0;
+	const allowedTenants = flag.tenantAccess?.allowed || [];
+	const blockedTenants = flag.tenantAccess?.blocked || [];
+
+	// Check if there's actual access control (percentage between 1-99 OR specific tenant targeting)
+	const hasPercentageRestriction = rolloutPercentage > 0 && rolloutPercentage < 100;
+	const hasTenantTargeting = allowedTenants.length > 0 || blockedTenants.length > 0;
+	const hasTenantAccessControl = hasPercentageRestriction || hasTenantTargeting;
 
 	return (
 		<div className="space-y-4 mb-6">
@@ -358,17 +362,13 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 							return <div className="text-green-600 font-medium">Open access - available to all tenants</div>;
 						}
 
-						const rolloutPercentage = flag.tenantAccess?.rolloutPercentage || 0;
-						const allowedTenants = flag.tenantAccess?.allowed || [];
-						const blockedTenants = flag.tenantAccess?.blocked || [];
-
-						if (rolloutPercentage > 0 || components.hasTenantTargeting) {
+						if (hasPercentageRestriction || hasTenantTargeting) {
 							return (
 								<>
-									{rolloutPercentage > 0 && (
+									{hasPercentageRestriction && (
 										<div>Percentage Rollout: {rolloutPercentage}%</div>
 									)}
-									{components.hasTenantTargeting && (
+									{hasTenantTargeting && (
 										<>
 											{allowedTenants.length > 0 &&
 												renderAllowedTenants(
@@ -390,7 +390,7 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 							);
 						}
 
-						if ((!components.hasTenantTargeting && rolloutPercentage <= 0) && components.baseStatus === 'Other') {
+						if (components.baseStatus === 'Other') {
 							return <div className="text-gray-500 italic">No tenant restrictions configured</div>;
 						} else if (components.baseStatus === 'Disabled') {
 							return <div className="text-orange-600 font-medium">Access denied to all tenants - flag is disabled</div>;

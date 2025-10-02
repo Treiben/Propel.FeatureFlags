@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Trash2, Eye, EyeOff, Play, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import type { FeatureFlagDto, EvaluationResult, TargetingRule } from '../services/apiService';
-import { parseTargetingRules, EvaluationMode } from '../services/apiService';
+import { parseTargetingRules, EvaluationMode, Scope } from '../services/apiService';
 import { StatusBadge } from './StatusBadge';
 import { parseStatusComponents } from '../utils/flagHelpers';
 
@@ -82,12 +82,14 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     const [testUserId, setTestUserId] = useState('');
     const [testTenantId, setTestTenantId] = useState('');
     const [testAttributes, setTestAttributes] = useState('{}');
+    const [evaluationError, setEvaluationError] = useState<string | null>(null);
 
     useEffect(() => {
         setShowEvaluation(false);
         setTestUserId('');
         setTestTenantId('');
         setTestAttributes('{}');
+        setEvaluationError(null);
     }, [flag.key]);
 
     const handleToggle = async () => {
@@ -113,7 +115,8 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     const handleClearUserAccessWrapper = async () => {
         setOperationLoading(true);
         try {
-            await onUpdateUserAccess([], [], 0);
+            // BUG FIX #8: Clear should set to 100% (no restrictions)
+            await onUpdateUserAccess([], [], 100);
         } finally {
             setOperationLoading(false);
         }
@@ -131,7 +134,8 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     const handleClearTenantAccessWrapper = async () => {
         setOperationLoading(true);
         try {
-            await onUpdateTenantAccess([], [], 0);
+            // BUG FIX #9: Clear should set to 100% (no restrictions)
+            await onUpdateTenantAccess([], [], 100);
         } finally {
             setOperationLoading(false);
         }
@@ -210,9 +214,15 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
         if (!onEvaluateFlag) return;
 
         try {
+            setEvaluationError(null);
             let attributes: Record<string, any> | undefined;
             if (testAttributes.trim()) {
-                attributes = JSON.parse(testAttributes);
+                try {
+                    attributes = JSON.parse(testAttributes);
+                } catch (e) {
+                    setEvaluationError('Invalid JSON in attributes field');
+                    return;
+                }
             }
 
             await onEvaluateFlag(
@@ -221,8 +231,22 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 testTenantId || undefined,
                 attributes
             );
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to evaluate flag:', error);
+            // BUG FIX #19: Show user-friendly error message
+            let errorMessage = 'Failed to evaluate flag. Please try again.';
+
+            if (error.message) {
+                if (error.message.includes('userId') || error.message.includes('user id')) {
+                    errorMessage = 'User ID is required for this flag evaluation';
+                } else if (error.message.includes('tenantId') || error.message.includes('tenant id')) {
+                    errorMessage = 'Tenant ID is required for this flag evaluation';
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+
+            setEvaluationError(errorMessage);
         }
     };
 
@@ -235,6 +259,10 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     const shouldShowTenantAccessIndicator = flag.modes?.includes(EvaluationMode.TenantRolloutPercentage) || flag.modes?.includes(EvaluationMode.TenantTargeted);
     const shouldShowTargetingRulesIndicator = flag.modes?.includes(EvaluationMode.TargetingRules) || targetingRules.length > 0;
 
+    // BUG FIX #18: Check if variations are not the default on/off
+    const hasCustomVariations = flag.variations &&
+        (flag.variations.enabled !== 'on' || flag.variations.disabled !== 'off');
+
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex justify-between items-start mb-4">
@@ -246,8 +274,8 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                                 onClick={handleToggle}
                                 disabled={operationLoading}
                                 className={`p-2 rounded-md transition-colors font-medium shadow-sm ${isEnabled
-                                        ? 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-300'
-                                        : 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
+                                    ? 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-300'
+                                    : 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
                                     }`}
                                 title={isEnabled ? 'Disable Flag' : 'Enable Flag'}
                             >
@@ -282,6 +310,37 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                         </div>
                     </div>
                     <p className="text-sm text-gray-500 font-mono">{flag.key}</p>
+                    {/* BUG FIX #11 & #23: Show application info only for Application scope */}
+                    {flag.scope === Scope.Application && (flag.applicationName || flag.applicationVersion) && (
+                        <div className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+                            <span className="font-medium">Scope:</span>
+                            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200">
+                                Application
+                            </span>
+                            {flag.applicationName && (
+                                <>
+                                    <span className="text-gray-400">|</span>
+                                    <span className="font-medium">App:</span>
+                                    <span>{flag.applicationName}</span>
+                                </>
+                            )}
+                            {flag.applicationVersion && (
+                                <>
+                                    <span className="text-gray-400">|</span>
+                                    <span className="font-medium">Version:</span>
+                                    <span>{flag.applicationVersion}</span>
+                                </>
+                            )}
+                        </div>
+                    )}
+                    {flag.scope === Scope.Global && (
+                        <div className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+                            <span className="font-medium">Scope:</span>
+                            <span className="px-2 py-0.5 bg-green-50 text-green-700 rounded border border-green-200">
+                                Global
+                            </span>
+                        </div>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
                     <StatusBadge flag={flag} showDescription={true} />
@@ -360,6 +419,13 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                             </div>
                         )}
                     </div>
+
+                    {/* BUG FIX #19: Show error message below evaluate button */}
+                    {evaluationError && (
+                        <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                            {evaluationError}
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -412,6 +478,29 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 onClearTargetingRules={handleClearTargetingRulesWrapper}
                 operationLoading={operationLoading}
             />
+
+            {/* BUG FIX #18: Show variations at the end, only if they're custom (not default on/off) */}
+            {hasCustomVariations && (
+                <div className="space-y-4 mb-6">
+                    <h4 className="font-medium text-gray-900">Variations</h4>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span className="font-medium text-gray-700">Enabled Variation:</span>
+                                <div className="mt-1 px-3 py-2 bg-green-50 text-green-700 rounded font-mono text-xs border border-green-200">
+                                    {flag.variations.enabled}
+                                </div>
+                            </div>
+                            <div>
+                                <span className="font-medium text-gray-700">Disabled Variation:</span>
+                                <div className="mt-1 px-3 py-2 bg-red-50 text-red-700 rounded font-mono text-xs border border-red-200">
+                                    {flag.variations.disabled}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <FlagMetadata flag={flag} />
         </div>

@@ -74,6 +74,7 @@ interface SchedulingSectionProps {
 	operationLoading: boolean;
 }
 
+// BUG FIX #10: Make tooltip wider and more readable
 const InfoTooltip: React.FC<{ content: string; className?: string }> = ({ content, className = "" }) => {
 	const [showTooltip, setShowTooltip] = useState(false);
 
@@ -93,9 +94,9 @@ const InfoTooltip: React.FC<{ content: string; className?: string }> = ({ conten
 			</button>
 
 			{showTooltip && (
-				<div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-lg shadow-lg max-w-xs whitespace-normal">
+				<div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-sm leading-relaxed text-gray-800 bg-white border border-gray-300 rounded-lg shadow-lg min-w-[280px] max-w-[320px]">
 					{content}
-					<div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+					<div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-white"></div>
 				</div>
 			)}
 		</div>
