@@ -36,6 +36,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Infrastructure.SqlServer", "infrastructure\Propel.FeatureFlags.Infrastructure.SqlServer\Propel.FeatureFlags.Infrastructure.SqlServer.csproj", "{CC43FA0D-174D-049D-6F91-E33C74F921E2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dashboard", "dashboard", "{016F2DB1-DF80-40A2-9649-0FD0AE255814}"
+	ProjectSection(SolutionItems) = preProject
+		todo.md = todo.md
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Dashboard.Api", "dashboard\Propel.FeatureFlags.Dashboard.Api\Propel.FeatureFlags.Dashboard.Api.csproj", "{AE04054B-58BF-8B16-25F8-FF8A4DB671E1}"
 EndProject

@@ -54,3 +54,21 @@ public enum EvaluationOrder
 	CustomTargeting = 5,
 	Terminal = 99
 }
+
+public class EvaluationArgumentException : ArgumentException
+{
+	public string ParamName { get; }
+
+	public EvaluationArgumentException(): base()
+	{
+		ParamName = "Evaluation argument error";
+	}
+	public EvaluationArgumentException(string paramName, string message = "") : base(message)
+	{
+		ParamName = paramName;
+	}
+	public EvaluationArgumentException(string paramName, string? message, Exception? innerException) : base(message, innerException)
+	{
+		ParamName = paramName;
+	}
+}

@@ -16,7 +16,7 @@ public sealed class TenantRolloutEvaluator : OrderedEvaluatorBase
 	{
 		if (string.IsNullOrWhiteSpace(context.TenantId))
 		{
-			throw new InvalidOperationException("Tenant ID is required for percentage rollout evaluation.");
+			throw new EvaluationArgumentException(nameof(context.TenantId), "Tenant ID is required for percentage rollout evaluation.");
 		}
 
 		var (result, because) = options.TenantAccessControl.EvaluateAccess(context.TenantId!, options.Key);

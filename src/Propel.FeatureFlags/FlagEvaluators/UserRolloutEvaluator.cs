@@ -16,7 +16,7 @@ public sealed class UserRolloutEvaluator: OrderedEvaluatorBase
 	{
 		if (string.IsNullOrWhiteSpace(context.UserId))
 		{
-			throw new InvalidOperationException("User ID is required for percentage rollout evaluation.");
+			throw new EvaluationArgumentException(nameof(context.UserId), "User ID is required for percentage rollout evaluation.");
 		}
 
 		var (result, because) = options.UserAccessControl.EvaluateAccess(context.UserId!, options.Key);

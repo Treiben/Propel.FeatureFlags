@@ -40,7 +40,7 @@ public sealed class FlagEvaluationManager : IFlagEvaluationManager
 				return result;
 
 			// If multiple handlers processed, and final result is enabled, provide a combined reason
-			var reason = $"All [{flag.ModeSet}] conditions met for feature flag activation";
+			var reason = $"All [{string.Join(", ", flag.ModeSet.Modes)}] conditions met for feature flag activation";
 			return new EvaluationResult(isEnabled: true, variation: result.Variation, reason: reason);
 		}
 

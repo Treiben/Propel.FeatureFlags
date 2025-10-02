@@ -4,6 +4,7 @@ using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.FlagEvaluationServices;
+using Propel.FeatureFlags.FlagEvaluators;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 
@@ -90,6 +91,10 @@ public sealed class FlagEvaluationHandler(
 				context);
 
 			return Results.Ok(evaluationResult);
+		}
+		catch (EvaluationArgumentException ex)
+		{
+			return HttpProblemFactory.BadRequest("Invalid evaluation argument", ex.Message, logger);
 		}
 		catch (ArgumentException ex)
 		{
