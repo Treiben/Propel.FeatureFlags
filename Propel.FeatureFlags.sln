@@ -37,7 +37,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Infrast
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dashboard", "dashboard", "{016F2DB1-DF80-40A2-9649-0FD0AE255814}"
 	ProjectSection(SolutionItems) = preProject
-		todo.md = todo.md
+		bugs_and_todo_list.md = bugs_and_todo_list.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Dashboard.Api", "dashboard\Propel.FeatureFlags.Dashboard.Api\Propel.FeatureFlags.Dashboard.Api.csproj", "{AE04054B-58BF-8B16-25F8-FF8A4DB671E1}"
