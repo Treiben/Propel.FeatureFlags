@@ -1,4 +1,4 @@
-﻿-- ====================================================================
+-- ====================================================================
 -- COMPREHENSIVE FEATURE FLAG EVALUATION MODE EXAMPLES
 -- ====================================================================
 -- These examples demonstrate all valid evaluation_modes combinations
@@ -27,6 +27,8 @@
 -- 2. featured-products-launch (user targeting (10 allowed users by user ids)
 -- 3. enhanced-catalog-ui (variations, user percentage rollout)
 
+SET search_path TO dashboard;
+
 SET my.global_scope = 0;
 SET my.global_name = 'global';
 SET my.global_version = '0.0.0.0';
@@ -40,8 +42,7 @@ SET my.flag_key = 'admin-panel-enabled';
 
 INSERT INTO feature_flags (
     key, application_name, application_version, scope,
-	name, description, evaluation_modes,
-    variations, default_variation, targeting_rules
+	name, description, evaluation_modes, default_variation, targeting_rules
 ) 
 VALUES (
     current_setting('my.flag_key'),
@@ -50,9 +51,8 @@ VALUES (
 	current_setting('my.app_scope')::INTEGER,
     'Admin Panel Access',
     'Controls access to administrative panel features including user management, system settings, and sensitive operations',
-    '[4]', -- UserTargeted
-    '{"on": true, "off": false}',
-    'off',
+    '[8]', -- TargetingRules
+	'off',
     '[
         {
             "attribute": "role",
@@ -146,8 +146,7 @@ SET my.flag_key = 'new-payment-processor';
 
 INSERT INTO feature_flags (
     key, application_name, application_version, scope,
-	name, description, evaluation_modes,
-    variations, default_variation
+	name, description, evaluation_modes
 ) VALUES (
     current_setting('my.flag_key'),
 	current_setting('my.app_name'),
@@ -155,9 +154,7 @@ INSERT INTO feature_flags (
 	current_setting('my.app_scope')::INTEGER,
     'New Payment Processor',
     'Controls whether to use the enhanced payment processing implementation with improved performance and features, or fall back to the legacy processor. Enables gradual rollout with automatic fallback for resilience and risk mitigation during payment processing.',
-    '[0]', -- Disabled
-    '{"on": true, "off": false}',
-    'off'
+    '[0]' -- Disabled
 ) 
 ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
@@ -190,8 +187,7 @@ SET my.flag_key = 'new-product-api';
 
 INSERT INTO feature_flags (
     key, application_name, application_version, scope,
-	name, description, evaluation_modes,
-    variations, default_variation
+	name, description, evaluation_modes
 ) VALUES (
     current_setting('my.flag_key'),
 	current_setting('my.app_name'),
@@ -199,9 +195,7 @@ INSERT INTO feature_flags (
 	current_setting('my.app_scope')::INTEGER,
     'New Product API',
     'Controls whether to use the new enhanced product API implementation with improved performance and additional product data, or fall back to the legacy API. Enables safe rollout of API improvements without affecting existing functionality.',
-    '[0]', -- Disabled
-    '{"on": true, "off": false}',
-    'off'
+    '[0]' -- Disabled
 )
 ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
@@ -235,7 +229,7 @@ SET my.flag_key = 'featured-products-launch';
 INSERT INTO feature_flags (
     key, application_name, application_version, scope,
 	name, description, evaluation_modes,
-    variations, default_variation, scheduled_enable_date, scheduled_disable_date
+    scheduled_enable_date, scheduled_disable_date
 ) VALUES (
     current_setting('my.flag_key'),
 	current_setting('my.app_name'),
@@ -244,8 +238,6 @@ INSERT INTO feature_flags (
     'Featured Products Launch',
     'Controls the scheduled launch of enhanced featured products display with new promotions and special pricing. Designed for coordinated marketing campaigns and product launches that require precise timing across all platform touchpoints.',
     '[2]', -- Scheduled
-    '{"on": true, "off": false}',
-    'off',
     NOW() + INTERVAL '1 hour', -- Enable in 1 hour
     NOW() + INTERVAL '30 days' -- Disable after 30 days
 ) 
@@ -340,7 +332,7 @@ INSERT INTO feature_flags (
 	current_setting('my.app_scope')::INTEGER,
     'Recommendation Algorithm',
     'Controls which recommendation algorithm implementation is used for generating user recommendations. Supports variations including machine-learning, content-based, and collaborative-filtering algorithms. Enables A/B testing of different technical approaches while maintaining consistent business functionality.',
-    '[4]', -- UserTargeted
+    '[4, 8]', -- UserTargeted, TargetingRules
     '{"collaborative-filtering": "collaborative-filtering", "content-based": "content-based", "machine-learning": "machine-learning"}',
     'collaborative-filtering',
     '[
@@ -393,7 +385,7 @@ SET my.flag_key = 'flash-sale-window';
 INSERT INTO feature_flags (
     key, application_name, application_version, scope,
 	name, description, evaluation_modes,
-    variations, default_variation, window_start_time, window_end_time, time_zone, window_days
+    window_start_time, window_end_time, time_zone, window_days
 ) VALUES (
     current_setting('my.flag_key'),
 	current_setting('my.app_name'),
@@ -402,8 +394,6 @@ INSERT INTO feature_flags (
     'Flash Sale Time Window',
     'Shows flash sale products only during business hours (9 AM - 6 PM EST, weekdays)',
     '[3]', -- TimeWindow
-    '{"on": true, "off": false}',
-    'off',
     '09:00:00', -- 9 AM
     '18:00:00', -- 6 PM
     'America/New_York', -- EST timezone
@@ -441,7 +431,7 @@ SET my.flag_key = 'tenant-percentage-rollout';
 INSERT INTO feature_flags (
     key, application_name, application_version, scope,
 	name, description, evaluation_modes,
-    variations, default_variation, tenant_percentage_enabled
+    tenant_percentage_enabled
 ) VALUES (
     current_setting('my.flag_key'),
 	current_setting('my.app_name'),
@@ -450,8 +440,6 @@ INSERT INTO feature_flags (
     'New Dashboard Tenant Rollout',
     'Progressive rollout of new dashboard to 60% of tenants for gradual deployment',
     '[6]', -- TenantRolloutPercentage
-    '{"on": true, "off": false}',
-    'off',
     60 -- 60% of tenants
 ) 
 ON CONFLICT (key, application_name, application_version)
@@ -548,7 +536,7 @@ INSERT INTO feature_flags (
 	current_setting('my.app_scope')::INTEGER,
     'Scheduled Beta Features Preview',
     'Beta features available to specific user groups during preview period',
-    '[2, 4]', -- Scheduled + UserTargeted
+    '[2, 4, 8]', -- Scheduled + UserTargeted + TargetingRules
     '{"beta": "beta-features", "standard": "regular-features"}',
     'standard',
     NOW() + INTERVAL '3 days',  -- Start beta preview in 3 days
@@ -661,7 +649,7 @@ INSERT INTO feature_flags (
 	current_setting('my.app_scope')::INTEGER,
     'VIP Event Access with Limited Hours',
     'VIP users get access to special events during scheduled period and specific hours',
-    '[2, 3, 4]', -- Scheduled + TimeWindow + UserTargeted
+    '[2, 3, 4, 8]', -- Scheduled + TimeWindow + UserTargeted + TargetingRules
     '{"vip": "vip-access", "standard": "regular-access"}',
     'standard',
     NOW() + INTERVAL '5 days',  -- Event starts in 5 days
@@ -731,7 +719,7 @@ INSERT INTO feature_flags (
 	current_setting('my.app_scope')::INTEGER,
     'Ultimate Premium Experience - Complete Feature Showcase',
     'The most sophisticated feature flag combining scheduling, time windows, user targeting, and percentage rollout',
-    '[2, 3, 4, 5]', -- Scheduled + TimeWindow + UserTargeted + UserRolloutPercentage
+    '[2, 3, 4, 5, 8]', -- Scheduled + TimeWindow + UserTargeted + UserRolloutPercentage + TargetingRules
     '{"ultimate": "premium-experience", "enhanced": "improved-features", "standard": "regular-features"}',
     'standard',
     NOW() + INTERVAL '7 days',   -- Start premium experience in a week
@@ -796,7 +784,7 @@ SET my.flag_key = 'tenant-premium-features';
 INSERT INTO feature_flags (
     key, application_name, application_version, scope,
 	name, description, evaluation_modes,
-    variations, default_variation, enabled_tenants
+    enabled_tenants
 ) VALUES (
     current_setting('my.flag_key'),
 	current_setting('my.app_name'),
@@ -805,8 +793,6 @@ INSERT INTO feature_flags (
     'Premium Features for Tenants',
     'Enable advanced features for premium and enterprise tenants only',
     '[1]', -- Enabled
-    '{"on": true, "off": false}',
-    'off',
     '["premium-corp", "enterprise-solutions", "vip-client-alpha", "mega-corp-beta"]'
 ) 
 ON CONFLICT (key, application_name, application_version)
@@ -841,7 +827,7 @@ SET my.flag_key = 'tenant-beta-program';
 INSERT INTO feature_flags (
     key, application_name, application_version, scope,
 	name, description, evaluation_modes,
-    variations, default_variation, enabled_tenants, disabled_tenants, tenant_percentage_enabled
+    enabled_tenants, disabled_tenants, tenant_percentage_enabled
 ) VALUES (
     current_setting('my.flag_key'),
 	current_setting('my.app_name'),
@@ -850,8 +836,6 @@ INSERT INTO feature_flags (
     'Multi-Tenant Beta Program',
     'Beta features with tenant percentage rollout plus explicit inclusions/exclusions',
     '[6]', -- TenantRolloutPercentage
-    '{"on": true, "off": false}',
-    'off',
     '["beta-tester-1", "beta-tester-2", "early-adopter-corp", "tech-forward-inc"]',
     '["conservative-corp", "legacy-systems-ltd", "security-first-org", "compliance-strict-co"]',
     40 -- 40% of remaining tenants (after explicit inclusions/exclusions)
@@ -887,8 +871,7 @@ SET my.flag_key = 'legacy-checkout-v1';
 
 INSERT INTO feature_flags (
     key, application_name, application_version, scope,
-	name, description, evaluation_modes,
-    variations, default_variation
+	name, description, evaluation_modes
 ) VALUES (
     current_setting('my.flag_key'),
 	current_setting('my.app_name'),
@@ -896,9 +879,7 @@ INSERT INTO feature_flags (
 	current_setting('my.app_scope')::INTEGER,
     'Legacy Checkout System V1',
     'Old checkout system that was deprecated and expired yesterday',
-    '[0]', -- Disabled
-    '{"on": true, "off": false}',
-    'off'
+    '[0]' -- Disabled
 ) 
 ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
@@ -977,7 +958,7 @@ SET my.flag_key = 'experimental-analytics';
 INSERT INTO feature_flags (
     key, application_name, application_version, scope,
 	name, description, evaluation_modes,
-    variations, default_variation, enabled_tenants
+    enabled_tenants
 ) VALUES (
     current_setting('my.flag_key'),
 	current_setting('my.app_name'),
@@ -986,8 +967,6 @@ INSERT INTO feature_flags (
     'Experimental Analytics Dashboard',
     'Experimental analytics feature that was being tested with select tenants - expired yesterday',
     '[1]', -- Enabled
-    '{"on": true, "off": false}',
-    'off',
     '["pilot-tenant-1", "beta-analytics-corp", "test-organization"]'
 ) 
 ON CONFLICT (key, application_name, application_version)
@@ -1031,7 +1010,7 @@ INSERT INTO feature_flags (
 	current_setting('my.app_scope')::INTEGER,
     'Mobile App Redesign Pilot Program',
     'Mobile redesign that was targeted to specific user groups - expired yesterday',
-    '[4]', -- UserTargeted
+    '[4, 8]', -- UserTargeted + TargetingRules
     '{"new": "redesigned-mobile", "old": "classic-mobile"}',
     'old',
     '[
@@ -1135,7 +1114,6 @@ SET my.flag_key = 'enterprise-analytics-suite';
 INSERT INTO feature_flags (
     key, application_name, application_version, scope,
 	name, description, evaluation_modes,
-    variations, default_variation, 
     enabled_tenants, disabled_tenants
 ) VALUES (
     current_setting('my.flag_key'),
@@ -1145,8 +1123,6 @@ INSERT INTO feature_flags (
     'Enterprise Analytics Suite',
     'Advanced analytics features targeted to specific enterprise tenants',
     '[7]', -- TenantTargeted
-    '{"on": true, "off": false}',
-    'off',
     '["acme-corp", "global-industries", "tech-giants-inc", "innovation-labs", "enterprise-solutions-ltd"]',
     '["startup-company", "small-business-co", "trial-tenant", "free-tier-org"]'
 ) 
@@ -1473,7 +1449,7 @@ INSERT INTO feature_flags (
 	current_setting('my.global_scope')::INTEGER,
     'Priority Support During Business Hours',
     'Enhanced support features for premium users during business hours',
-    '[3, 4]', -- TimeWindow + UserTargeted
+    '[3, 4]', -- TimeWindow + UserTargeted + TargetingRules
     '{"priority": "priority-support", "standard": "regular-support"}',
     'standard',
     '08:00:00', -- 8 AM
@@ -1580,8 +1556,7 @@ SET my.flag_key = 'api-maintenance';
 
 INSERT INTO feature_flags (
     key, application_name, application_version, scope,
-	name, description, evaluation_modes,
-    variations, default_variation
+	name, description, evaluation_modes
 ) VALUES (
     current_setting('my.flag_key'), 
 	current_setting('my.global_name'),
@@ -1589,9 +1564,7 @@ INSERT INTO feature_flags (
 	current_setting('my.global_scope')::INTEGER,
     'API Maintenance Mode',
     'When enabled, API endpoints return maintenance responses - disabled by default',
-    '[0]', -- Disabled
-    '{"on": true, "off": false}',
-    'off'
+    '[0]' -- Disabled
 ) 
 ON CONFLICT (key, application_name, application_version)
 DO UPDATE SET
