@@ -56,8 +56,8 @@ export interface AccessControl {
 }
 
 export interface Variations {
-	enabled: string;
-	disabled: string;
+	values: Record<string, any>;
+	defaultVariation: string;
 }
 
 export interface FeatureFlagDto {
@@ -98,6 +98,8 @@ export interface GetFlagsParams {
 	expiringInDays?: number;
 	tagKeys?: string[];
 	tags?: string[]; // Format: ["key:value", "key2:value2"]
+	applicationName?: string;
+	scope?: Scope;
 }
 
 export interface TargetingRule {
@@ -429,7 +431,20 @@ function buildQueryParams(params: GetFlagsParams): URLSearchParams {
 	if (params.tagKeys?.length) {
 		params.tagKeys.forEach(key => searchParams.append('tagKeys', key));
 	}
+	if (params.applicationName) {
+		searchParams.append('applicationName', params.applicationName);
+	}
+	if (params.scope !== undefined) {
+		searchParams.append('scope', params.scope.toString());
+	}
 	return searchParams;
+}
+
+// Add this interface near the other request interfaces
+export interface SearchFeatureFlagRequest {
+	key?: string;
+	name?: string;
+	description?: string;
 }
 
 // API Service
@@ -463,6 +478,17 @@ export const apiService = {
 
 		get: async (key: string, scopeHeaders: ScopeHeaders) => {
 			const flag = await apiRequest<FeatureFlagDto>(`/feature-flags/${key}`, {}, scopeHeaders);
+			return DateTimeConverter.convertFeatureFlagDtoToLocal(flag);
+		},
+
+		search: async (request: SearchFeatureFlagRequest) => {
+			const searchParams = new URLSearchParams();
+			if (request.key) searchParams.append('key', request.key);
+			if (request.name) searchParams.append('name', request.name);
+			if (request.description) searchParams.append('description', request.description);
+			
+			const query = searchParams.toString();
+			const flag = await apiRequest<FeatureFlagDto>(`/feature-flags/search${query ? `?${query}` : ''}`);
 			return DateTimeConverter.convertFeatureFlagDtoToLocal(flag);
 		},
 

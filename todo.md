@@ -8,7 +8,7 @@
 
 ~~3.  **MEDIUM, API:** evaluation message on success: (All [Propel.FeatureFlags.Domain.ModeSet] conditions met for feature flag activation) <- need to fix message~~
 
-4. **MAJOR, API**: Filtering Expires in Days not working - it's an API BUG
+~~4. **MAJOR, API**: Filtering Expires in Days not working - it's an API BUG~~
 
 ~~5. **MAJOR, API** filtering by tag not working~~
 
@@ -54,30 +54,40 @@
 
 ## BUG FIX VERIFICATION REPORT
 
-- BUG #8: DiD NOT FIX IT: CLICKING ON CLEAR BUTTON RESULTS IN FULLY BLOCKED USER ACCESS (0%). 0% IS A SETTING SHOULD BE DONE BY USER. IT IS NOT A DEFAULT BEHAVIOR. DEFAULT BEHAVIOR IS 100% ON CLICKING CLEAR BUTTON.
-- BUG #9: DID NOT FIX IT: SAME AS BUG 8
-- BUG 10: DID NOT FIX IT: INSTEAD OF LONG VERTICAL BLACK BOX IT NOW SHOWS THE SAME LONG VERTICAL WHITE BOX. IN SOME CASES THERE ARE NO MORE THAN 1 WORD PER HORIZONTAL LINE. IT'S UNREADABLE!
+- BUG #8: CLOSED
+- BUG #9: CLOSED
+- BUG 10: CLOSED
 - BUG 11: CLOSED BUT INTRODUCED BUG #23
-- BUG 12: UNABLE TO VERIFY AS THE PROVIDED INSTRUCTIONS ON FILE MODIFICATION INCREDIBLY POOR.
-- BUG 14: DID NOT FIX IT: I STILL ONLY ABLE TO ENTER TAG KEY BUT NOT ABLE TO ENTER TAG VALUE
+- BUG 12: NOT FIXED: FLAG CARD IS STILL WAY OFF TO EDGES WHEN THERE'S A LONG LIST OF EVALUATION MODES. FOR EXAMPLE, ULTIMATE-PREMIUM-EXPERIENCE FLAG THAT HAS SCHEDULING+TARGETINGRULES+PERCENTAGE+TIMEWINDOW LIST OF MODES THAT DON'T FIT TO THE SIZE OF CARD
+- BUG 14: CLOSED
 - BUG 15: CLOSED
 - BUG 16: CLOSED
 - BUG 17: CLOSED. 
 - BUG 18: DID NOT FIX IT. VARIATIONS MUST BE AT THE END OF THE PAGE, BELOW 'CUSTOM TARGETING RULES' AND SHOWN ONLY WHEN THEY ARE NOT ON/OFF. RIGHT NOW THEY ARE AT THE EXPIRATION WARNING SECTION WHICH DOES NOT MAKE ANY SENSE WHATSOEVER AND THEY DON'T SHOW ANY VALUES!
 - BUG 19: NOT FIXED: NOW BAD REQUEST SHOWS IN 2 PLACES AND STILL AS 400 INSTEAD OF FRIENDLY MESSAGE EXPLAINING WHAT'S MISSING
-- BUG 20: DID NOT FIXED IT. FILTERING by multiple tag keys, such as "team, system" DOES NOT PROVIDE ANY RESULTS
-- BUG 21: NOT FIXED. ROLLOUT 100% IS TREATED AS A USER SETTING INSTEAD OF AS 'NOT SET' DEFAULT
-- BUG 22: NOT FIXED. ON CLEAR, IT DEFAULTS TO 0% WHICH EFFECTIVELY BLOCKS ANY FLAG EVALUATION 
+- BUG 20: CLOSED
+- BUG 21: CLOSED
+- BUG 22: CLOSED
+- BUG 23: CLOSED
 
 ## NEW FEATURES
 
-1. UI: Propel icon and proper page title
+1. Propel icon and proper page title
+~~- Add propel icon and find a good page title to dashboard~~
 
-2. UI, API: Search by flag name or flag key
+2. Search by flag name or flag key
+~~- Add search box to search flags by flag name or flag key~~
+- Add api support for search by flag name or flag key
 
-3. UI, API Add filtering by application name
+3. Add filtering by application name and scope (global or application)
+~~- Add filtering by application name and scope (global or application) to UI~~
+~~- Add api support for filtering by application name and scope (global or application)~~
 
-4. UI, API: E2E test with Sql Server backend
+4. E2E test with Sql Server backend
+- Add e2e test with Sql Server backend to github actions
+- Add sql server test db to github actions
+
+
 
 # PROPEL MIGRATION CLI TO DO LIST
 

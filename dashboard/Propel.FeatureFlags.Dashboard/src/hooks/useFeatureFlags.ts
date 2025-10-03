@@ -14,6 +14,7 @@ import {
     type ManageTenantAccessRequest,
     type UpdateTargetingRulesRequest,
     type EvaluationResult,
+    type SearchFeatureFlagRequest,
     EvaluationMode,
     ApiError
 } from '../services/apiService';
@@ -33,6 +34,8 @@ export interface UseFeatureFlagsState {
     currentFilters: GetFlagsParams;
     evaluationResults: Record<string, EvaluationResult>;
     evaluationLoading: Record<string, boolean>;
+    searchResult: FeatureFlagDto | null;
+    searchLoading: boolean;
 }
 
 export interface UseFeatureFlagsActions {
@@ -51,6 +54,8 @@ export interface UseFeatureFlagsActions {
     updateTenantAccess: (key: string, request: ManageTenantAccessRequest, scopeHeaders: ScopeHeaders) => Promise<FeatureFlagDto>;
     updateTargetingRules: (key: string, request: UpdateTargetingRulesRequest, scopeHeaders: ScopeHeaders) => Promise<FeatureFlagDto>;
     filterFlags: (params: GetFlagsParams) => Promise<void>;
+    searchFlag: (request: SearchFeatureFlagRequest) => Promise<void>;
+    clearSearch: () => void;
     clearError: () => void;
     resetPagination: () => void;
     evaluateFlag: (key: string, scopeHeaders: ScopeHeaders, userId?: string, tenantId?: string, attributes?: Record<string, any>) => Promise<EvaluationResult>;
@@ -70,7 +75,9 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         hasPreviousPage: false,
         currentFilters: {},
         evaluationResults: {},
-        evaluationLoading: {}
+        evaluationLoading: {},
+        searchResult: null,
+        searchLoading: false
     });
 
     const updateState = (updates: Partial<UseFeatureFlagsState>) => {
@@ -82,7 +89,7 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         const message = error instanceof ApiError
             ? error.message
             : `Failed to ${operation}. Please try again.`;
-        updateState({ error: message, loading: false });
+        updateState({ error: message, loading: false, searchLoading: false });
     };
 
     const updateFlagInState = (updatedFlag: FeatureFlagDto) => {
@@ -93,7 +100,10 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
             ),
             selectedFlag: prev.selectedFlag?.key === updatedFlag.key
                 ? updatedFlag
-                : prev.selectedFlag
+                : prev.selectedFlag,
+            searchResult: prev.searchResult?.key === updatedFlag.key
+                ? updatedFlag
+                : prev.searchResult
         }));
     };
 
@@ -158,6 +168,20 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         }
     }, []);
 
+    const searchFlag = useCallback(async (request: SearchFeatureFlagRequest): Promise<void> => {
+        try {
+            updateState({ searchLoading: true, error: null, searchResult: null });
+            const flag = await apiService.flags.search(request);
+            updateState({ searchResult: flag, searchLoading: false });
+        } catch (error) {
+            handleError(error, 'search flag');
+        }
+    }, []);
+
+    const clearSearch = useCallback(() => {
+        updateState({ searchResult: null, searchLoading: false });
+    }, []);
+
     const refreshSelectedFlag = useCallback(async (scopeHeaders: ScopeHeaders): Promise<void> => {
         if (!state.selectedFlag?.key) return;
 
@@ -207,11 +231,15 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
             if (state.selectedFlag?.key === key) {
                 updateState({ selectedFlag: null });
             }
+
+            if (state.searchResult?.key === key) {
+                updateState({ searchResult: null });
+            }
         } catch (error) {
             handleError(error, 'delete flag');
             throw error;
         }
-    }, [loadFlagsPage, state.currentPage, state.selectedFlag]);
+    }, [loadFlagsPage, state.currentPage, state.selectedFlag, state.searchResult]);
 
     const toggleFlag = useCallback(async (key: string, mode: EvaluationMode, notes: string, scopeHeaders: ScopeHeaders): Promise<FeatureFlagDto> => {
         try {
@@ -377,6 +405,8 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         updateTenantAccess,
         updateTargetingRules,
         filterFlags,
+        searchFlag,
+        clearSearch,
         clearError,
         resetPagination,
         evaluateFlag

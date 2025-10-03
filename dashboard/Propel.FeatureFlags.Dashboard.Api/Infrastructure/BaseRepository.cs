@@ -10,6 +10,7 @@ public interface IReadOnlyRepository
 	Task<bool> FlagExistsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default);
 	Task<FeatureFlag?> GetByKeyAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default);
 	Task<List<FeatureFlag>> GetAllAsync(CancellationToken cancellationToken = default);
+	Task<FeatureFlag> FindAsync(FindFlagCriteria criteria, CancellationToken cancellationToken = default);
 	Task<PagedResult<FeatureFlag>> GetPagedAsync(int page, int pageSize, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default);
 }
 
@@ -57,7 +58,8 @@ public class BaseRepository(DashboardDbContext context) : IReadOnlyRepository
 		return [.. entities.Select(Mapper.MapToDomain)];
 	}
 
-	public async Task<PagedResult<FeatureFlag>> GetPagedAsync(int page, int pageSize, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default)
+	public async Task<PagedResult<FeatureFlag>> GetPagedAsync(int page, int pageSize, 
+						FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default)
 	{
 		// Normalize page parameters
 		page = Math.Max(1, page);
@@ -73,15 +75,15 @@ public class BaseRepository(DashboardDbContext context) : IReadOnlyRepository
 		if (provider.Contains("Npgsql") || provider.Contains("PostgreSQL"))
 		{
 			// Use PostgreSQL filtering
-			sql = PostgresFiltering.BuildFilterQuery(page, pageSize, filter ?? new FeatureFlagFilter());
-			countSql = PostgresFiltering.BuildCountQuery(filter ?? new FeatureFlagFilter());
-			(_, parameters) = PostgresFiltering.BuildFilterConditions(filter);
+			sql = PostgresFiltering.BuildFilterQuery(page, pageSize, filter!);
+			countSql = PostgresFiltering.BuildCountQuery(filter!);
+			(_, parameters) = PostgresFiltering.BuildFilterConditions(filter!);
 		}
 		else if (provider.Contains("SqlServer"))
 		{
 			// Use SQL Server filtering
-			sql = SqlServerFiltering.BuildFilterQuery(page, pageSize, filter ?? new FeatureFlagFilter());
-			countSql = SqlServerFiltering.BuildCountQuery(filter ?? new FeatureFlagFilter());
+			sql = SqlServerFiltering.BuildFilterQuery(page, pageSize, filter!);
+			countSql = SqlServerFiltering.BuildCountQuery(filter!);
 			(_, parameters) = SqlServerFiltering.BuildFilterConditions(filter);
 		}
 		else
@@ -138,8 +140,8 @@ public class BaseRepository(DashboardDbContext context) : IReadOnlyRepository
 		command.CommandText = formattableString.Format;
 
 		// Add parameters properly
-		command.CommandText = string.Format(command.CommandText, 
-			formattableString.GetArguments().Select(i => $"'{i ?? DBNull.Value}'").ToArray());
+		command.CommandText = string.Format(command.CommandText,
+			[.. formattableString.GetArguments().Select(i => $"'{i ?? DBNull.Value}'")]);
 
 		if (connection.State != System.Data.ConnectionState.Open)
 			await connection.OpenAsync(cancellationToken);
@@ -164,6 +166,11 @@ public class BaseRepository(DashboardDbContext context) : IReadOnlyRepository
 		}
 
 		return FormattableStringFactory.Create(parameterizedSql, args);
+	}
+
+	public Task<FeatureFlag> FindAsync(FindFlagCriteria criteria, CancellationToken cancellationToken = default)
+	{
+		throw new NotImplementedException();
 	}
 }
 

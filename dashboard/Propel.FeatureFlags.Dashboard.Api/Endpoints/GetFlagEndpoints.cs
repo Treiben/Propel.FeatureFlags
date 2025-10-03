@@ -34,6 +34,10 @@ public record GetFeatureFlagRequest
 
 	// Tag filtering by using tags in key:value format
 	public string[]? Tags { get; init; }
+
+	public Scope? Scope { get; init; }
+
+	public string? ApplicationName { get; init; }
 }
 
 public sealed class GetFlagEndpoints : IEndpoint
@@ -114,14 +118,13 @@ public sealed class GetFilteredFlagsHandler(IDashboardRepository repository, ILo
 		try
 		{
 			FeatureFlagFilter? filter = null;
-			if (request.Modes?.Length > 0 || request.Tags?.Length > 0 || request.TagKeys?.Length > 0 || request.ExpiringInDays != null)
+			if (request.FilteringRequested())
 			{
-				filter = new FeatureFlagFilter
-				{
-					EvaluationModes = request.Modes,
-					Tags = request.BuildTagDictionary(),
-					ExpiringInDays = request.ExpiringInDays
-				};
+				filter = new FeatureFlagFilter(
+					EvaluationModes: request.Modes,
+					Tags: request.BuildTagDictionary(),
+					Scope: request.Scope,
+					ApplicationName: request.ApplicationName);
 			}
 
 			var result = await repository.GetPagedAsync(
@@ -156,6 +159,15 @@ public sealed class GetFilteredFlagsHandler(IDashboardRepository repository, ILo
 
 public static class GetFlagsRequestExtensions
 {
+	public static bool FilteringRequested(this GetFeatureFlagRequest request)
+	{
+		return (request.Modes != null && request.Modes.Length > 0) ||
+			   (request.TagKeys != null && request.TagKeys.Length > 0) ||
+			   (request.Tags != null && request.Tags.Length > 0) ||
+			   (request.TagKeys != null && request.TagKeys.Length > 0) ||
+				request.Scope != null ||
+				!string.IsNullOrWhiteSpace(request.ApplicationName);
+	}
 	public static Dictionary<string, string>? BuildTagDictionary(this GetFeatureFlagRequest request)
 	{
 		var tags = new Dictionary<string, string>();

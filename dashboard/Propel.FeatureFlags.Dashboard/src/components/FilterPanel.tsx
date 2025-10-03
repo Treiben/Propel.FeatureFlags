@@ -1,11 +1,13 @@
 import { X } from 'lucide-react';
-import { getEvaluationModes } from '../services/apiService';
+import { getEvaluationModes, Scope } from '../services/apiService';
 
 interface FilterState {
     modes: number[];
     tagKeys: string[];
     tagValues: string[];
     expiringInDays?: number;
+    scope?: Scope;
+    applicationName?: string;
 }
 
 interface FilterPanelProps {
@@ -79,6 +81,44 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             </div>
 
             <div className="space-y-4">
+                {/* Scope Filter */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Scope</label>
+                    <select
+                        value={filters.scope !== undefined ? filters.scope.toString() : ''}
+                        onChange={(e) => onFiltersChange({ 
+                            ...filters, 
+                            scope: e.target.value ? parseInt(e.target.value) as Scope : undefined 
+                        })}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">All Scopes</option>
+                        <option value={Scope.Global}>Global</option>
+                        <option value={Scope.Application}>Application</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                        Filter by flag scope (Global or Application)
+                    </p>
+                </div>
+
+                {/* Application Name Filter */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Application Name</label>
+                    <input
+                        type="text"
+                        placeholder="Enter application name"
+                        value={filters.applicationName || ''}
+                        onChange={(e) => onFiltersChange({ 
+                            ...filters, 
+                            applicationName: e.target.value || undefined 
+                        })}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                        Filter flags by specific application name
+                    </p>
+                </div>
+
                 {/* Evaluation Modes Filter */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Evaluation Modes</label>
@@ -95,26 +135,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                             </label>
                         ))}
                     </div>
-                </div>
-
-                {/* Expiring In Days Filter */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Expiring In Days</label>
-                    <input
-                        type="number"
-                        min="1"
-                        max="365"
-                        placeholder="Days (1-365)"
-                        value={filters.expiringInDays || ''}
-                        onChange={(e) => onFiltersChange({ 
-                            ...filters, 
-                            expiringInDays: e.target.value ? parseInt(e.target.value) : undefined 
-                        })}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                        Filter flags expiring within specified days
-                    </p>
                 </div>
 
                 {/* Tag Filters */}

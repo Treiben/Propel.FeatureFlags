@@ -90,6 +90,7 @@ public static class ProgramExtensions
 		services.AddScoped<GetFilteredFlagsHandler>();
 		services.AddScoped<ManageTenantAccessHandler>();
 		services.AddScoped<ManageUserAccessHandler>();
+		services.AddScoped<SearchFeatureFlagsHandler>();
 		services.AddScoped<ToggleFlagHandler>();
 		services.AddScoped<UpdateFlagHandler>();
 		services.AddScoped<UpdateScheduleHandler>();

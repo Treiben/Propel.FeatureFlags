@@ -27,6 +27,11 @@ import {
     TargetingRulesSection
 } from './flag-details/TargetingRuleComponents';
 import {
+    VariationStatusIndicator,
+    VariationSection,
+    checkForCustomVariations
+} from './flag-details/VariationComponents';
+import {
     ExpirationWarning,
     PermanentFlagWarning,
     FlagMetadata,
@@ -259,9 +264,8 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     const shouldShowTenantAccessIndicator = flag.modes?.includes(EvaluationMode.TenantRolloutPercentage) || flag.modes?.includes(EvaluationMode.TenantTargeted);
     const shouldShowTargetingRulesIndicator = flag.modes?.includes(EvaluationMode.TargetingRules) || targetingRules.length > 0;
 
-    // BUG FIX #18: Check if variations are not the default on/off
-    const hasCustomVariations = flag.variations &&
-        (flag.variations.enabled !== 'on' || flag.variations.disabled !== 'off');
+    // BUG FIX #18: Properly check for custom variations using the correct structure
+    const shouldShowVariationIndicator = checkForCustomVariations(flag);
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -435,6 +439,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             {shouldShowUserAccessIndicator && <UserAccessControlStatusIndicator flag={flag} />}
             {shouldShowTenantAccessIndicator && <TenantAccessControlStatusIndicator flag={flag} />}
             {shouldShowTargetingRulesIndicator && <TargetingRulesStatusIndicator flag={flag} />}
+            {shouldShowVariationIndicator && <VariationStatusIndicator flag={flag} />}
 
             <PermanentFlagWarning flag={flag} />
 
@@ -479,28 +484,11 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 operationLoading={operationLoading}
             />
 
-            {/* BUG FIX #18: Show variations at the end, only if they're custom (not default on/off) */}
-            {hasCustomVariations && (
-                <div className="space-y-4 mb-6">
-                    <h4 className="font-medium text-gray-900">Variations</h4>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <span className="font-medium text-gray-700">Enabled Variation:</span>
-                                <div className="mt-1 px-3 py-2 bg-green-50 text-green-700 rounded font-mono text-xs border border-green-200">
-                                    {flag.variations.enabled}
-                                </div>
-                            </div>
-                            <div>
-                                <span className="font-medium text-gray-700">Disabled Variation:</span>
-                                <div className="mt-1 px-3 py-2 bg-red-50 text-red-700 rounded font-mono text-xs border border-red-200">
-                                    {flag.variations.disabled}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* BUG FIX #18: Show variations properly at the end */}
+            <VariationSection
+                flag={flag}
+                operationLoading={operationLoading}
+            />
 
             <FlagMetadata flag={flag} />
         </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, Filter, Plus, Settings, X } from 'lucide-react';
+import { AlertCircle, Filter, Plus, Settings, X, Search } from 'lucide-react';
 import { useFeatureFlags } from './hooks/useFeatureFlags';
 import type {
     CreateFeatureFlagRequest,
@@ -10,15 +10,18 @@ import type {
     UpdateTargetingRulesRequest,
     TargetingRule,
     ScopeHeaders,
-    FeatureFlagDto
+    FeatureFlagDto,
+    SearchFeatureFlagRequest
 } from './services/apiService';
 import { EvaluationMode, Scope } from './services/apiService';
 import { getDayOfWeekNumber } from './utils/flagHelpers';
 
 // Import components
+import { Header } from './components/Header';
 import { FlagCard } from './components/FlagCard';
 import { FlagDetails } from './components/FlagDetails';
 import { FilterPanel } from './components/FilterPanel';
+import { SearchPanel } from './components/SearchPanel';
 import { PaginationControls } from './components/PaginationControls';
 import { CreateFlagModal } from './components/CreateFlagModal';
 import { DeleteConfirmationModal } from './components/DeleteConfirmationModal';
@@ -37,6 +40,8 @@ const FeatureFlagManager = () => {
         hasPreviousPage,
         evaluationResults,
         evaluationLoading,
+        searchResult,
+        searchLoading,
         selectFlag,
         createFlag,
         updateFlag,
@@ -48,6 +53,8 @@ const FeatureFlagManager = () => {
         updateTargetingRules,
         loadFlagsPage,
         filterFlags,
+        searchFlag,
+        clearSearch,
         deleteFlag,
         clearError,
         evaluateFlag,
@@ -55,6 +62,7 @@ const FeatureFlagManager = () => {
 
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
+    const [showSearch, setShowSearch] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
     const [deletingFlag, setDeletingFlag] = useState(false);
     const [filters, setFilters] = useState<{
@@ -62,6 +70,8 @@ const FeatureFlagManager = () => {
         tagKeys: string[];
         tagValues: string[];
         expiringInDays?: number;
+        scope?: Scope;
+        applicationName?: string;
     }>({
         modes: [],
         tagKeys: [''],
@@ -214,7 +224,7 @@ const FeatureFlagManager = () => {
     const handleDeleteFlag = async (flagKey: string) => {
         try {
             setDeletingFlag(true);
-            const flag = flags.find(f => f.key === flagKey);
+            const flag = flags.find(f => f.key === flagKey) || searchResult;
             if (!flag) return;
 
             const scopeHeaders = getScopeHeaders(flag);
@@ -229,7 +239,7 @@ const FeatureFlagManager = () => {
 
     const handleEvaluateFlag = async (key: string, userId?: string, tenantId?: string, attributes?: Record<string, any>) => {
         try {
-            const flag = flags.find(f => f.key === key) || selectedFlag;
+            const flag = flags.find(f => f.key === key) || selectedFlag || searchResult;
             if (!flag) throw new Error('Flag not found');
 
             const scopeHeaders = getScopeHeaders(flag);
@@ -244,6 +254,16 @@ const FeatureFlagManager = () => {
         await createFlag(request);
     };
 
+    const handleSearch = async (request: SearchFeatureFlagRequest) => {
+        await searchFlag(request);
+        setShowSearch(false);
+    };
+
+    const handleClearSearch = () => {
+        clearSearch();
+        setShowSearch(false);
+    };
+
     const applyFilters = async () => {
         const params: GetFlagsParams = {
             page: 1,
@@ -256,6 +276,14 @@ const FeatureFlagManager = () => {
 
         if (filters.expiringInDays !== undefined && filters.expiringInDays > 0) {
             params.expiringInDays = filters.expiringInDays;
+        }
+
+        if (filters.scope !== undefined) {
+            params.scope = filters.scope;
+        }
+
+        if (filters.applicationName) {
+            params.applicationName = filters.applicationName;
         }
 
         // FIX BUG #20: Separate tag keys from tag key:value pairs
@@ -295,6 +323,8 @@ const FeatureFlagManager = () => {
             tagKeys: [''],
             tagValues: [''],
             expiringInDays: undefined,
+            scope: undefined,
+            applicationName: undefined,
         });
         await filterFlags({ page: 1, pageSize: pageSize });
         setShowFilters(false);
@@ -316,152 +346,195 @@ const FeatureFlagManager = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="min-h-screen bg-gray-50">
+                <Header />
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-[1600px] mx-auto p-8 bg-gray-50 min-h-screen">
-            {error && (
-                <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                    <div className="flex-1">
-                        <p className="text-red-800">{error}</p>
-                    </div>
-                    <button onClick={clearError} className="text-red-500 hover:text-red-700">
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
-            )}
-
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Feature Flags</h1>
-                    <p className="text-gray-600">Manage feature releases and rollouts</p>
-                </div>
-                <div className="flex gap-4">
-                    <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
-                    >
-                        <Filter className="w-4 h-4" />
-                        Filters
-                    </button>
-                    <button
-                        onClick={() => setShowCreateForm(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Create Flag
-                    </button>
-                </div>
-            </div>
-
-            {showFilters && (
-                <FilterPanel
-                    filters={filters}
-                    onFiltersChange={setFilters}
-                    onApplyFilters={applyFilters}
-                    onClearFilters={clearFilters}
-                    onClose={() => setShowFilters(false)}
-                />
-            )}
-
-            <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
-                <div className="xl:col-span-2 space-y-4">
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-lg font-semibold text-gray-900">
-                            Flags ({totalCount} total)
-                        </h2>
-                    </div>
-
-                    <div className="space-y-4">
-                        {flags.map((flag) => (
-                            <FlagCard
-                                key={flag.key}
-                                flag={flag}
-                                isSelected={selectedFlag?.key === flag.key}
-                                onClick={() => selectFlag(flag)}
-                                onDelete={(key) => setShowDeleteConfirm(key)}
-                            />
-                        ))}
-                    </div>
-
-                    <PaginationControls
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        pageSize={pageSize}
-                        totalCount={totalCount}
-                        hasNextPage={hasNextPage}
-                        hasPreviousPage={hasPreviousPage}
-                        loading={loading}
-                        onPageChange={goToPage}
-                        onPreviousPage={goToPreviousPage}
-                        onNextPage={goToNextPage}
-                    />
-                </div>
-
-                <div className="xl:col-span-3">
-                    {selectedFlag ? (
-                        <>
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4">Flag Details</h2>
-                            <FlagDetails
-                                flag={selectedFlag}
-                                onToggle={quickToggle}
-                                onUpdateUserAccess={(allowedUsers, blockedUsers, percentage) => {
-                                    const scopeHeaders = getScopeHeaders(selectedFlag);
-                                    const request: ManageUserAccessRequest = {};
-                                    if (allowedUsers !== undefined) request.allowed = allowedUsers;
-                                    if (blockedUsers !== undefined) request.blocked = blockedUsers;
-                                    if (percentage !== undefined) request.rolloutPercentage = percentage;
-                                    return updateUserAccess(selectedFlag.key, request, scopeHeaders);
-                                }}
-                                onUpdateTenantAccess={(allowedTenants, blockedTenants, percentage) => {
-                                    const scopeHeaders = getScopeHeaders(selectedFlag);
-                                    const request: ManageTenantAccessRequest = {};
-                                    if (allowedTenants !== undefined) request.allowed = allowedTenants;
-                                    if (blockedTenants !== undefined) request.blocked = blockedTenants;
-                                    if (percentage !== undefined) request.rolloutPercentage = percentage;
-                                    return updateTenantAccess(selectedFlag.key, request, scopeHeaders);
-                                }}
-                                onUpdateTargetingRules={handleUpdateTargetingRulesWrapper}
-                                onSchedule={handleScheduleFlag}
-                                onClearSchedule={handleClearSchedule}
-                                onUpdateTimeWindow={handleUpdateTimeWindow}
-                                onClearTimeWindow={handleClearTimeWindow}
-                                onUpdateFlag={handleUpdateFlag}
-                                onDelete={(key) => setShowDeleteConfirm(key)}
-                                onEvaluateFlag={handleEvaluateFlag}
-                                evaluationResult={selectedFlag ? evaluationResults[selectedFlag.key] : undefined}
-                                evaluationLoading={selectedFlag ? evaluationLoading[selectedFlag.key] || false : false}
-                            />
-                        </>
-                    ) : (
-                        <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-                            <Settings className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Feature Flag</h3>
-                            <p className="text-gray-600">Choose a flag from the list to view and manage its settings</p>
+        <div className="min-h-screen bg-gray-50">
+            <Header />
+            
+            <div className="max-w-[1600px] mx-auto p-8">
+                {error && (
+                    <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                        <div className="flex-1">
+                            <p className="text-red-800">{error}</p>
                         </div>
-                    )}
+                        <button onClick={clearError} className="text-red-500 hover:text-red-700">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
+
+                <div className="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">Feature Flags Management</h1>
+                        <p className="text-gray-600">Control feature releases, rollouts, and user targeting</p>
+                    </div>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => setShowSearch(!showSearch)}
+                            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                        >
+                            <Search className="w-4 h-4" />
+                            Search
+                        </button>
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                        >
+                            <Filter className="w-4 h-4" />
+                            Filters
+                        </button>
+                        <button
+                            onClick={() => setShowCreateForm(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Create Flag
+                        </button>
+                    </div>
                 </div>
+
+                {showSearch && (
+                    <SearchPanel
+                        onSearch={handleSearch}
+                        onClearSearch={handleClearSearch}
+                        loading={searchLoading}
+                        hasResult={!!searchResult}
+                    />
+                )}
+
+                {showFilters && (
+                    <FilterPanel
+                        filters={filters}
+                        onFiltersChange={setFilters}
+                        onApplyFilters={applyFilters}
+                        onClearFilters={clearFilters}
+                        onClose={() => setShowFilters(false)}
+                    />
+                )}
+
+                <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
+                    <div className="xl:col-span-2 space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-lg font-semibold text-gray-900">
+                                {searchResult ? 'Search Result' : `Flags (${totalCount} total)`}
+                            </h2>
+                            {searchResult && (
+                                <button
+                                    onClick={handleClearSearch}
+                                    className="text-sm text-blue-600 hover:text-blue-800"
+                                >
+                                    Back to all flags
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="space-y-4">
+                            {searchResult ? (
+                                <FlagCard
+                                    key={searchResult.key}
+                                    flag={searchResult}
+                                    isSelected={selectedFlag?.key === searchResult.key}
+                                    onClick={() => selectFlag(searchResult)}
+                                    onDelete={(key) => setShowDeleteConfirm(key)}
+                                />
+                            ) : (
+                                flags.map((flag) => (
+                                    <FlagCard
+                                        key={flag.key}
+                                        flag={flag}
+                                        isSelected={selectedFlag?.key === flag.key}
+                                        onClick={() => selectFlag(flag)}
+                                        onDelete={(key) => setShowDeleteConfirm(key)}
+                                    />
+                                ))
+                            )}
+                        </div>
+
+                        {!searchResult && (
+                            <PaginationControls
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                pageSize={pageSize}
+                                totalCount={totalCount}
+                                hasNextPage={hasNextPage}
+                                hasPreviousPage={hasPreviousPage}
+                                loading={loading}
+                                onPageChange={goToPage}
+                                onPreviousPage={goToPreviousPage}
+                                onNextPage={goToNextPage}
+                            />
+                        )}
+                    </div>
+
+                    <div className="xl:col-span-3">
+                        {selectedFlag ? (
+                            <>
+                                <h2 className="text-lg font-semibold text-gray-900 mb-4">Flag Details</h2>
+                                <FlagDetails
+                                    flag={selectedFlag}
+                                    onToggle={quickToggle}
+                                    onUpdateUserAccess={(allowedUsers, blockedUsers, percentage) => {
+                                        const scopeHeaders = getScopeHeaders(selectedFlag);
+                                        const request: ManageUserAccessRequest = {};
+                                        if (allowedUsers !== undefined) request.allowed = allowedUsers;
+                                        if (blockedUsers !== undefined) request.blocked = blockedUsers;
+                                        if (percentage !== undefined) request.rolloutPercentage = percentage;
+                                        return updateUserAccess(selectedFlag.key, request, scopeHeaders);
+                                    }}
+                                    onUpdateTenantAccess={(allowedTenants, blockedTenants, percentage) => {
+                                        const scopeHeaders = getScopeHeaders(selectedFlag);
+                                        const request: ManageTenantAccessRequest = {};
+                                        if (allowedTenants !== undefined) request.allowed = allowedTenants;
+                                        if (blockedTenants !== undefined) request.blocked = blockedTenants;
+                                        if (percentage !== undefined) request.rolloutPercentage = percentage;
+                                        return updateTenantAccess(selectedFlag.key, request, scopeHeaders);
+                                    }}
+                                    onUpdateTargetingRules={handleUpdateTargetingRulesWrapper}
+                                    onSchedule={handleScheduleFlag}
+                                    onClearSchedule={handleClearSchedule}
+                                    onUpdateTimeWindow={handleUpdateTimeWindow}
+                                    onClearTimeWindow={handleClearTimeWindow}
+                                    onUpdateFlag={handleUpdateFlag}
+                                    onDelete={(key) => setShowDeleteConfirm(key)}
+                                    onEvaluateFlag={handleEvaluateFlag}
+                                    evaluationResult={selectedFlag ? evaluationResults[selectedFlag.key] : undefined}
+                                    evaluationLoading={selectedFlag ? evaluationLoading[selectedFlag.key] || false : false}
+                                />
+                            </>
+                        ) : (
+                            <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+                                <Settings className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Feature Flag</h3>
+                                <p className="text-gray-600">Choose a flag from the list to view and manage its settings</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <CreateFlagModal
+                    isOpen={showCreateForm}
+                    onClose={() => setShowCreateForm(false)}
+                    onSubmit={handleCreateFlag}
+                />
+
+                <DeleteConfirmationModal
+                    isOpen={!!showDeleteConfirm}
+                    flagKey={showDeleteConfirm || ''}
+                    flagName={flags.find(f => f.key === showDeleteConfirm)?.name || searchResult?.name || ''}
+                    isDeleting={deletingFlag}
+                    onConfirm={() => showDeleteConfirm && handleDeleteFlag(showDeleteConfirm)}
+                    onCancel={() => setShowDeleteConfirm(null)}
+                />
             </div>
-
-            <CreateFlagModal
-                isOpen={showCreateForm}
-                onClose={() => setShowCreateForm(false)}
-                onSubmit={handleCreateFlag}
-            />
-
-            <DeleteConfirmationModal
-                isOpen={!!showDeleteConfirm}
-                flagKey={showDeleteConfirm || ''}
-                flagName={flags.find(f => f.key === showDeleteConfirm)?.name || ''}
-                isDeleting={deletingFlag}
-                onConfirm={() => showDeleteConfirm && handleDeleteFlag(showDeleteConfirm)}
-                onCancel={() => setShowDeleteConfirm(null)}
-            />
         </div>
     );
 };

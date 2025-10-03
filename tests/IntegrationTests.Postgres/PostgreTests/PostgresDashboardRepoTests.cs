@@ -250,7 +250,7 @@ public class GetPagedAsync_WithDashboardRepository(PostgresTestsFixture fixture)
 		await fixture.DashboardRepository.CreateAsync(appFlag);
 		await fixture.DashboardRepository.CreateAsync(globalFlag);
 
-		var filter = new FeatureFlagFilter { Scope = Scope.Application };
+		var filter = new FeatureFlagFilter(Scope: Scope.Application);
 
 		// Act
 		var result = await fixture.DashboardRepository.GetPagedAsync(1, 10, filter);

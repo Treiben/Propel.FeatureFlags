@@ -1,25 +1,19 @@
-﻿using Propel.FeatureFlags.Domain;
+﻿using Knara.UtcStrict;
+using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Helpers;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 
-public class FeatureFlagFilter
-{
-	public Dictionary<string, string>? Tags { get; set; }
-	public EvaluationMode[]? EvaluationModes { get; set; }
-	public int? ExpiringInDays { get; set; }
-	public string ApplicationName { get; set; } = string.Empty;
-	public string? ApplicationVersion { get; set; }
-	public Scope? Scope { get; set; }
-}
+public record FeatureFlagFilter(Dictionary<string, string>? Tags = null,
+	EvaluationMode[]? EvaluationModes = null,
+	string? ApplicationName = null,
+	Scope? Scope = null);
 
 public static class PostgresFiltering
 {
 	public static string BuildFilterQuery(int page, int pageSize, FeatureFlagFilter filter)
 	{
-		var (whereClause, parameters) = BuildFilterConditions(filter);
-
 		var sql = $@"
 			WITH latest_audit AS ( 
 				SELECT DISTINCT ON (flag_key, application_name, application_version) 
@@ -54,31 +48,38 @@ public static class PostgresFiltering
 			LEFT JOIN 
 				latest_audit ffa ON ff.key = ffa.flag_key 
 					AND ff.application_name = ffa.application_name 
-					AND ff.application_version = ffa.application_version 
-			{whereClause} 
+					AND ff.application_version = ffa.application_version";
+
+		if (filter != null)
+		{
+			var (whereClause, parameters) = BuildFilterConditions(filter);
+			sql += $" {whereClause} ";
+		}
+
+		return sql += $@"
 			ORDER BY ff.name, ff.key 
 			OFFSET {(page - 1) * pageSize} ROWS 
-			FETCH NEXT {pageSize} ROWS ONLY
-";
-
-		 return sql;
+			FETCH NEXT {pageSize} ROWS ONLY";
 	}
 
 	public static string BuildCountQuery(FeatureFlagFilter filter)
 	{
-		var (whereClause, parameters) = BuildFilterConditions(filter);
-
-		var countSql = $@"SELECT COUNT(*) 
+		var sql = $@"SELECT COUNT(*) 
 		FROM feature_flags ff 
 			LEFT JOIN feature_flags_metadata ffm ON ff.key = ffm.flag_key 
 					AND ff.application_name = ffm.application_name 
-					AND ff.application_version = ffm.application_version
-		 {whereClause}";
+					AND ff.application_version = ffm.application_version";
 
-		return countSql;
+		if (filter != null)
+		{
+			var (whereClause, parameters) = BuildFilterConditions(filter);
+			return sql += $@"{whereClause}";
+		}
+
+		return sql;
 	}
 
-	public static (string whereClause, Dictionary<string, object> parameters) BuildFilterConditions(FeatureFlagFilter? filter)
+	public static (string whereClause, Dictionary<string, object> parameters) BuildFilterConditions(FeatureFlagFilter filter)
 	{
 		var conditions = new List<string>();
 		var parameters = new Dictionary<string, object>();
@@ -100,15 +101,6 @@ public static class PostgresFiltering
 			var scopeParam = "scope";
 			parameters[scopeParam] = (int)filter.Scope.Value;
 			conditions.Add($"ff.scope = {{{scopeParam}}}");
-		}
-
-		// Expiration date filtering - use ffm table (metadata specific)
-		if (filter.ExpiringInDays.HasValue && filter.ExpiringInDays.Value > 0)
-		{
-			var targetDate = DateTimeOffset.UtcNow.AddDays(filter.ExpiringInDays.Value).Date;
-			var expiringInDaysParam = "expiringInDays";
-			parameters[expiringInDaysParam] = targetDate;
-			conditions.Add($"DATE(ffm.expiration_date) = {{{expiringInDaysParam}}}");
 		}
 
 		// Evaluation modes filtering - use ff table (main flag data)
@@ -216,15 +208,6 @@ public static class SqlServerFiltering
 			var scopeParam = "scope";
 			parameters[scopeParam] = (int)filter.Scope.Value;
 			conditions.Add($"ff.[Scope] = @{scopeParam}");
-		}
-
-		// Expiration date filtering
-		if (filter.ExpiringInDays.HasValue && filter.ExpiringInDays.Value > 0)
-		{
-			var targetDate = DateTimeOffset.UtcNow.AddDays(filter.ExpiringInDays.Value).Date;
-			var expiringInDaysParam = "expiringInDays";
-			parameters[expiringInDaysParam] = targetDate;
-			conditions.Add($"CAST(ffm.[ExpirationDate] AS DATE) = @{expiringInDaysParam}");
 		}
 
 		// Evaluation modes filtering - SQL Server JSON functions
