@@ -242,17 +242,15 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             );
         } catch (error: any) {
             console.error('Failed to evaluate flag:', error);
-            // BUG FIX #19: Show user-friendly error message
+            
+            // Extract the detailed error message from ApiError
             let errorMessage = 'Failed to evaluate flag. Please try again.';
-
-            if (error.message) {
-                if (error.message.includes('userId') || error.message.includes('user id')) {
-                    errorMessage = 'User ID is required for this flag evaluation';
-                } else if (error.message.includes('tenantId') || error.message.includes('tenant id')) {
-                    errorMessage = 'Tenant ID is required for this flag evaluation';
-                } else {
-                    errorMessage = error.message;
-                }
+            
+            if (error.detail) {
+                // Use the detail from ProblemDetails
+                errorMessage = error.detail;
+            } else if (error.message) {
+                errorMessage = error.message;
             }
 
             setEvaluationError(errorMessage);

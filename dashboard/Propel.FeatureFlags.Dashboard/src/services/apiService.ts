@@ -362,6 +362,8 @@ export class ApiError extends Error {
 	constructor(
 		message: string,
 		public status: number,
+		public title?: string,
+		public detail?: string,
 		public response?: any
 	) {
 		super(message);
@@ -399,15 +401,47 @@ async function apiRequest<T>(
 
 		if (!response.ok) {
 			let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+			let errorTitle: string | undefined;
+			let errorDetail: string | undefined;
+			let errorData: any;
+
 			try {
-				const errorData = await response.json();
-				if (errorData.message) {
-					errorMessage = errorData.message;
-				} else if (errorData.errors) {
-					errorMessage = Object.values(errorData.errors).flat().join(', ');
+				errorData = await response.json();
+				
+				// RFC 7807 ProblemDetails format (what HttpProblemFactory returns)
+				if (errorData.detail) {
+					errorDetail = errorData.detail;
+					errorMessage = errorData.detail;
 				}
-				throw new ApiError(errorMessage, response.status, errorData);
+				
+				if (errorData.title) {
+					errorTitle = errorData.title;
+				}
+				
+				// Fallback to other formats
+				if (!errorDetail && errorData.message) {
+					errorMessage = errorData.message;
+					errorDetail = errorData.message;
+				}
+				
+				// Validation errors format
+				if (errorData.errors && typeof errorData.errors === 'object') {
+					const validationMessages = Object.entries(errorData.errors)
+						.map(([field, messages]) => {
+							const messageArray = Array.isArray(messages) ? messages : [messages];
+							return `${field}: ${messageArray.join(', ')}`;
+						})
+						.join('; ');
+					errorMessage = validationMessages;
+					errorDetail = validationMessages;
+				}
+				
+				throw new ApiError(errorMessage, response.status, errorTitle, errorDetail, errorData);
 			} catch (jsonError) {
+				// If JSON parsing fails or ApiError was thrown, re-throw or create new ApiError
+				if (jsonError instanceof ApiError) {
+					throw jsonError;
+				}
 				throw new ApiError(errorMessage, response.status);
 			}
 		}

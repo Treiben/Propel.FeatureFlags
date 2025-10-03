@@ -94,11 +94,11 @@ public sealed class FlagEvaluationHandler(
 		}
 		catch (EvaluationArgumentException ex)
 		{
-			return HttpProblemFactory.BadRequest("Invalid evaluation argument", ex.Message, logger);
+			return HttpProblemFactory.BadRequest("Evaluation Argument Required", ex.Message, logger);
 		}
 		catch (ArgumentException ex)
 		{
-			return HttpProblemFactory.BadRequest("Invalid argument", ex.Message, logger);
+			return HttpProblemFactory.BadRequest("Invalid Argument", ex.Message, logger);
 		}
 		catch (Exception ex)
 		{
