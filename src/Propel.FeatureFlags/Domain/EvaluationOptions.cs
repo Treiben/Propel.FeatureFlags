@@ -30,6 +30,6 @@ public class EvaluationOptions
 		TargetingRules = targetingRules ?? [];
 		UserAccessControl = userAccessControl ?? AccessControl.Unrestricted;
 		TenantAccessControl = tenantAccessControl ?? AccessControl.Unrestricted;
-		Variations = variations ?? Variations.OnOff;
+		Variations = variations ?? new Variations();
 	}
 }

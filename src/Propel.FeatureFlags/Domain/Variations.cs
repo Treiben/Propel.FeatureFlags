@@ -5,17 +5,7 @@ namespace Propel.FeatureFlags.Domain;
 public class Variations
 {
 	public Dictionary<string, object> Values { get; set; } = [];
-	public string DefaultVariation { get; set; } = "off";
-
-	public static Variations OnOff => new()
-	{
-		Values = new Dictionary<string, object>
-		{
-			{ "on", true },
-			{ "off", false },
-		},
-		DefaultVariation = "off"
-	};
+	public string DefaultVariation { get; set; } = "";
 
 	public string SelectVariationFor(string key, string id)
 	{
@@ -43,5 +33,10 @@ public class Variations
 			&& Values.Count == (obj as Variations)?.Values.Count
 			&& Values.All(kv => (obj as Variations)?.Values.ContainsKey(kv.Key) == true
 				&& (obj as Variations)?.Values[kv.Key]?.ToString() == kv.Value?.ToString());
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Values, DefaultVariation);
 	}
 }
