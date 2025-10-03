@@ -35,7 +35,7 @@ export interface UseFeatureFlagsState {
     currentFilters: GetFlagsParams;
     evaluationResults: Record<string, EvaluationResult>;
     evaluationLoading: Record<string, boolean>;
-    searchResult: FeatureFlagDto | null;
+    searchResults: FeatureFlagDto[];  // Changed from searchResult: FeatureFlagDto | null
     searchLoading: boolean;
 }
 
@@ -78,7 +78,7 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         currentFilters: {},
         evaluationResults: {},
         evaluationLoading: {},
-        searchResult: null,
+        searchResults: [],  // Changed from searchResult: null
         searchLoading: false
     });
 
@@ -103,9 +103,9 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
             selectedFlag: prev.selectedFlag?.key === updatedFlag.key
                 ? updatedFlag
                 : prev.selectedFlag,
-            searchResult: prev.searchResult?.key === updatedFlag.key
-                ? updatedFlag
-                : prev.searchResult
+            searchResults: prev.searchResults.map(flag =>  // Changed from searchResult
+                flag.key === updatedFlag.key ? updatedFlag : flag
+            )
         }));
     };
 
@@ -172,16 +172,16 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
 
     const searchFlag = useCallback(async (request: SearchFeatureFlagRequest): Promise<void> => {
         try {
-            updateState({ searchLoading: true, error: null, searchResult: null });
-            const flag = await apiService.flags.search(request);
-            updateState({ searchResult: flag, searchLoading: false });
+            updateState({ searchLoading: true, error: null, searchResults: [] });  // Changed from searchResult: null
+            const flags = await apiService.flags.search(request);
+            updateState({ searchResults: flags, searchLoading: false });  // Changed from searchResult
         } catch (error) {
             handleError(error, 'search flag');
         }
     }, []);
 
     const clearSearch = useCallback(() => {
-        updateState({ searchResult: null, searchLoading: false });
+        updateState({ searchResults: [], searchLoading: false });  // Changed from searchResult: null
     }, []);
 
     const refreshSelectedFlag = useCallback(async (scopeHeaders: ScopeHeaders): Promise<void> => {
@@ -234,14 +234,16 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
                 updateState({ selectedFlag: null });
             }
 
-            if (state.searchResult?.key === key) {
-                updateState({ searchResult: null });
-            }
+            // Remove from search results if present
+            setState(prev => ({
+                ...prev,
+                searchResults: prev.searchResults.filter(flag => flag.key !== key)  // Changed from searchResult
+            }));
         } catch (error) {
             handleError(error, 'delete flag');
             throw error;
         }
-    }, [loadFlagsPage, state.currentPage, state.selectedFlag, state.searchResult]);
+    }, [loadFlagsPage, state.currentPage, state.selectedFlag]);
 
     const toggleFlag = useCallback(async (key: string, mode: EvaluationMode, notes: string, scopeHeaders: ScopeHeaders): Promise<FeatureFlagDto> => {
         try {

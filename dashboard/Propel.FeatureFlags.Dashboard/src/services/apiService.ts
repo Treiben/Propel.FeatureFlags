@@ -493,10 +493,10 @@ export const apiService = {
 			if (request.key) searchParams.append('key', request.key);
 			if (request.name) searchParams.append('name', request.name);
 			if (request.description) searchParams.append('description', request.description);
-			
+
 			const query = searchParams.toString();
-			const flag = await apiRequest<FeatureFlagDto>(`/feature-flags/search${query ? `?${query}` : ''}`);
-			return DateTimeConverter.convertFeatureFlagDtoToLocal(flag);
+			const flags = await apiRequest<FeatureFlagDto[]>(`/feature-flags/search${query ? `?${query}` : ''}`);
+			return flags.map(flag => DateTimeConverter.convertFeatureFlagDtoToLocal(flag));
 		},
 
 		create: async (request: CreateFeatureFlagRequest) => {

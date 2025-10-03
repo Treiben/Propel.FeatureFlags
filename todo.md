@@ -55,6 +55,10 @@
 24. **MEDIUM, UI:** Duplicated page header with page title.
 
 25. **MINOR, UI:** Close search panel (add x button)
+	
+26. **MEDIUM, UI:** Both tenant and user access control slider shows 50% instead of 100%. Is it because of the changes in style?
+
+27. **MINOR, UI:** Tenant rules: adding rules after first syncronizes some fields and makes it impossible to enter unique values. There's a workaround: add one target rule, save, then add another one.
 
 ## BUG FIX VERIFICATION REPORT
 
@@ -82,11 +86,11 @@
 
 - ~~Add propel icon and find a good page title to dashboard~~
 
-2. Search by flag name or flag key
+2. ~~Search by flag name or flag key~~
 
 - ~~Add search box to search flags by flag name or flag key~~
 
-- Add api support for search by flag name or flag key
+- ~~Add api support for search by flag name or flag key~~
 
 3. ~~Add filtering by application name and scope (global or application)~~
 - ~~Add filtering by application name and scope (global or application) to UI~~

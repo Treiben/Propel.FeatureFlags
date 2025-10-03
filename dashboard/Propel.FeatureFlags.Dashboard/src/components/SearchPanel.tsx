@@ -23,7 +23,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Check if at least one field is filled
         const hasSearchCriteria = searchParams.key || searchParams.name || searchParams.description;
         if (!hasSearchCriteria) return;

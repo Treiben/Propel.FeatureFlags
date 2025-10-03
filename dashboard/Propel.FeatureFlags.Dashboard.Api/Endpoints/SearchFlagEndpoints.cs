@@ -60,7 +60,8 @@ public sealed class SearchFeatureFlagsHandler(IDashboardRepository repository, I
 			}
 
 			var flags = await repository.FindAsync(criteria, cancellationToken);
-			return Results.Ok(flags.Select(f => new FeatureFlagResponse(f)));
+			var responses = flags.Select(f => new FeatureFlagResponse(f)).ToList();
+			return Results.Ok(responses);
 		}
 		catch (ArgumentException ex)
 		{

@@ -41,7 +41,7 @@ const FeatureFlagManager = () => {
         hasPreviousPage,
         evaluationResults,
         evaluationLoading,
-        searchResult,
+        searchResults,
         searchLoading,
         selectFlag,
         createFlag,
@@ -52,7 +52,7 @@ const FeatureFlagManager = () => {
         updateUserAccess,
         updateTenantAccess,
         updateTargetingRules,
-        updateVariations,        // ADD THIS LINE - FIX for line 227
+        updateVariations,
         loadFlagsPage,
         filterFlags,
         searchFlag,
@@ -67,6 +67,7 @@ const FeatureFlagManager = () => {
     const [showSearch, setShowSearch] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
     const [deletingFlag, setDeletingFlag] = useState(false);
+    const [hasSearched, setHasSearched] = useState(false);  // ADD THIS
     const [filters, setFilters] = useState<{
         modes: number[];
         tagKeys: string[];
@@ -269,7 +270,7 @@ const FeatureFlagManager = () => {
     const handleDeleteFlag = async (flagKey: string) => {
         try {
             setDeletingFlag(true);
-            const flag = flags.find(f => f.key === flagKey) || searchResult;
+            const flag = flags.find(f => f.key === flagKey) || searchResults.find(f => f.key === flagKey);  // Changed from searchResult
             if (!flag) return;
 
             const scopeHeaders = getScopeHeaders(flag);
@@ -284,7 +285,7 @@ const FeatureFlagManager = () => {
 
     const handleEvaluateFlag = async (key: string, userId?: string, tenantId?: string, attributes?: Record<string, any>) => {
         try {
-            const flag = flags.find(f => f.key === key) || selectedFlag || searchResult;
+            const flag = flags.find(f => f.key === key) || selectedFlag || searchResults.find(f => f.key === key);  // Changed from searchResult
             if (!flag) throw new Error('Flag not found');
 
             const scopeHeaders = getScopeHeaders(flag);
@@ -301,11 +302,13 @@ const FeatureFlagManager = () => {
 
     const handleSearch = async (request: SearchFeatureFlagRequest) => {
         await searchFlag(request);
+        setHasSearched(true);  // ADD THIS
         setShowSearch(false);
     };
 
     const handleClearSearch = () => {
         clearSearch();
+        setHasSearched(false);  // ADD THIS
         setShowSearch(false);
     };
 
@@ -452,7 +455,7 @@ const FeatureFlagManager = () => {
                         onSearch={handleSearch}
                         onClearSearch={handleClearSearch}
                         loading={searchLoading}
-                        hasResult={!!searchResult}
+                        hasResult={searchResults.length > 0}
                     />
                 )}
 
@@ -470,9 +473,11 @@ const FeatureFlagManager = () => {
                     <div className="xl:col-span-2 space-y-4">
                         <div className="flex justify-between items-center">
                             <h2 className="text-lg font-semibold text-gray-900">
-                                {searchResult ? 'Search Result' : `Flags (${totalCount} total)`}
+                                {hasSearched 
+                                    ? `Search Results (${searchResults.length})` 
+                                    : `Flags (${totalCount} total)`}
                             </h2>
-                            {searchResult && (
+                            {hasSearched && (
                                 <button
                                     onClick={handleClearSearch}
                                     className="text-sm text-blue-600 hover:text-blue-800"
@@ -483,14 +488,32 @@ const FeatureFlagManager = () => {
                         </div>
 
                         <div className="space-y-4">
-                            {searchResult ? (
-                                <FlagCard
-                                    key={searchResult.key}
-                                    flag={searchResult}
-                                    isSelected={selectedFlag?.key === searchResult.key}
-                                    onClick={() => selectFlag(searchResult)}
-                                    onDelete={(key) => setShowDeleteConfirm(key)}
-                                />
+                            {hasSearched ? (
+                                searchResults.length > 0 ? (
+                                    searchResults.map((flag) => (
+                                        <FlagCard
+                                            key={flag.key}
+                                            flag={flag}
+                                            isSelected={selectedFlag?.key === flag.key}
+                                            onClick={() => selectFlag(flag)}
+                                            onDelete={(key) => setShowDeleteConfirm(key)}
+                                        />
+                                    ))
+                                ) : (
+                                    <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+                                        <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Results Found</h3>
+                                        <p className="text-gray-600 mb-4">
+                                            No feature flags match your search criteria.
+                                        </p>
+                                        <button
+                                            onClick={handleClearSearch}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                        >
+                                            Clear Search
+                                        </button>
+                                    </div>
+                                )
                             ) : (
                                 flags.map((flag) => (
                                     <FlagCard
@@ -504,7 +527,7 @@ const FeatureFlagManager = () => {
                             }
                         </div>
 
-                        {!searchResult && (
+                        {!hasSearched && (
                             <PaginationControls
                                 currentPage={currentPage}
                                 totalPages={totalPages}
@@ -576,7 +599,7 @@ const FeatureFlagManager = () => {
                 <DeleteConfirmationModal
                     isOpen={!!showDeleteConfirm}
                     flagKey={showDeleteConfirm || ''}
-                    flagName={flags.find(f => f.key === showDeleteConfirm)?.name || searchResult?.name || ''}
+                    flagName={flags.find(f => f.key === showDeleteConfirm)?.name || searchResults.find(f => f.key === showDeleteConfirm)?.name || ''}
                     isDeleting={deletingFlag}
                     onConfirm={() => showDeleteConfirm && handleDeleteFlag(showDeleteConfirm)}
                     onCancel={() => setShowDeleteConfirm(null)}
