@@ -39,7 +39,7 @@ public record FeatureFlagResponse
 	public AccessControl? TenantAccess { get; set; }
 
 	public string? TargetingRules { get; set; } 
-	public Variations Variations { get; set; }
+	public Variations? Variations { get; set; }
 
 	public Dictionary<string, string>? Tags { get; set; } = [];
 	public DateTime? ExpirationDate { get; set; }
@@ -81,7 +81,7 @@ public record FeatureFlagResponse
 		TenantAccess = configuration.TenantAccessControl;
 		
 		TargetingRules = JsonSerializer.Serialize(configuration.TargetingRules, JsonDefaults.JsonOptions);
-		Variations = configuration.Variations;
+		Variations = Variations.OnOff.Equals(configuration.Variations) ? null : configuration.Variations;
 
 		Tags = metadata.Tags;
 		IsPermanent = retention.IsPermanent;

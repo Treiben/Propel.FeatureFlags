@@ -27,7 +27,6 @@ import {
     TargetingRulesSection
 } from './flag-details/TargetingRuleComponents';
 import {
-    VariationStatusIndicator,
     VariationSection,
     checkForCustomVariations
 } from './flag-details/VariationComponents';
@@ -44,6 +43,8 @@ interface FlagDetailsProps {
     onUpdateUserAccess: (allowedUsers?: string[], blockedUsers?: string[], percentage?: number) => Promise<void>;
     onUpdateTenantAccess: (allowedTenants?: string[], blockedTenants?: string[], percentage?: number) => Promise<void>;
     onUpdateTargetingRules: (targetingRules?: TargetingRule[], removeTargetingRules?: boolean) => Promise<void>;
+    onUpdateVariations?: (variations: Record<string, any>, defaultVariation: string) => Promise<void>;  // ADD THIS LINE
+    onClearVariations?: () => Promise<void>;  // ADD THIS LINE
     onSchedule: (flag: FeatureFlagDto, enableOn: string, disableOn?: string) => Promise<void>;
     onClearSchedule: (flag: FeatureFlagDto) => Promise<void>;
     onUpdateTimeWindow: (flag: FeatureFlagDto, timeWindowData: {
@@ -72,6 +73,8 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     onUpdateUserAccess,
     onUpdateTenantAccess,
     onUpdateTargetingRules,
+    onUpdateVariations,      // ADD THIS LINE
+    onClearVariations,        // ADD THIS LINE
     onSchedule,
     onClearSchedule,
     onUpdateTimeWindow,
@@ -439,7 +442,6 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             {shouldShowUserAccessIndicator && <UserAccessControlStatusIndicator flag={flag} />}
             {shouldShowTenantAccessIndicator && <TenantAccessControlStatusIndicator flag={flag} />}
             {shouldShowTargetingRulesIndicator && <TargetingRulesStatusIndicator flag={flag} />}
-            {shouldShowVariationIndicator && <VariationStatusIndicator flag={flag} />}
 
             <PermanentFlagWarning flag={flag} />
 
@@ -487,6 +489,8 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             {/* BUG FIX #18: Show variations properly at the end */}
             <VariationSection
                 flag={flag}
+                onUpdateVariations={onUpdateVariations}    // ADD THIS LINE
+                onClearVariations={onClearVariations}      // ADD THIS LINE
                 operationLoading={operationLoading}
             />
 

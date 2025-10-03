@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { AlertCircle, Filter, Plus, Settings, X, Search } from 'lucide-react';
 import { useFeatureFlags } from './hooks/useFeatureFlags';
 import type {
@@ -8,6 +8,7 @@ import type {
     ManageUserAccessRequest,
     ManageTenantAccessRequest,
     UpdateTargetingRulesRequest,
+    UpdateVariationsRequest,
     TargetingRule,
     ScopeHeaders,
     FeatureFlagDto,
@@ -51,6 +52,7 @@ const FeatureFlagManager = () => {
         updateUserAccess,
         updateTenantAccess,
         updateTargetingRules,
+        updateVariations,        // ADD THIS LINE - FIX for line 227
         loadFlagsPage,
         filterFlags,
         searchFlag,
@@ -202,6 +204,49 @@ const FeatureFlagManager = () => {
             await updateTargetingRules(selectedFlag.key, request, scopeHeaders);
         } catch (error) {
             console.error('Failed to update targeting rules:', error);
+        }
+    };
+
+    const handleUpdateVariations = async (variations: Record<string, any>, defaultVariation: string) => {
+        if (!selectedFlag) return;
+
+        try {
+            const scopeHeaders = getScopeHeaders(selectedFlag);
+            
+            // Convert variations object to array format expected by API
+            const variationsArray = Object.entries(variations).map(([key, value]) => ({
+                key,
+                value: typeof value === 'string' ? value : JSON.stringify(value)
+            }));
+
+            const request: UpdateVariationsRequest = {
+                variations: variationsArray.length > 0 ? variationsArray : undefined,
+                defaultVariation,
+                removeVariations: variationsArray.length === 0
+            };
+
+            await updateVariations(selectedFlag.key, request, scopeHeaders);
+        } catch (error) {
+            console.error('Failed to update variations:', error);
+            throw error;
+        }
+    };
+
+    const handleClearVariations = async () => {
+        if (!selectedFlag) return;
+
+        try {
+            const scopeHeaders = getScopeHeaders(selectedFlag);
+            const request: UpdateVariationsRequest = {
+                variations: undefined,
+                defaultVariation: 'off',
+                removeVariations: true
+            };
+
+            await updateVariations(selectedFlag.key, request, scopeHeaders);
+        } catch (error) {
+            console.error('Failed to clear variations:', error);
+            throw error;
         }
     };
 
@@ -455,8 +500,8 @@ const FeatureFlagManager = () => {
                                         onClick={() => selectFlag(flag)}
                                         onDelete={(key) => setShowDeleteConfirm(key)}
                                     />
-                                ))
-                            )}
+                                )) )
+                            }
                         </div>
 
                         {!searchResult && (
@@ -499,6 +544,8 @@ const FeatureFlagManager = () => {
                                         return updateTenantAccess(selectedFlag.key, request, scopeHeaders);
                                     }}
                                     onUpdateTargetingRules={handleUpdateTargetingRulesWrapper}
+                                    onUpdateVariations={handleUpdateVariations}
+                                    onClearVariations={handleClearVariations}
                                     onSchedule={handleScheduleFlag}
                                     onClearSchedule={handleClearSchedule}
                                     onUpdateTimeWindow={handleUpdateTimeWindow}

@@ -1,66 +1,17 @@
 ﻿import { useState, useEffect } from 'react';
-import { Palette, Info, Eye, Settings } from 'lucide-react';
+import { Palette, Info, Plus, Trash2, X } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
-import { parseStatusComponents } from '../../utils/flagHelpers';
-
-interface VariationStatusIndicatorProps {
-	flag: FeatureFlagDto;
-}
-
-export const VariationStatusIndicator: React.FC<VariationStatusIndicatorProps> = ({ flag }) => {
-	const components = parseStatusComponents(flag);
-	const hasCustomVariations = checkForCustomVariations(flag);
-
-	if (!hasCustomVariations) return null;
-
-	const variationCount = flag.variations?.values ? Object.keys(flag.variations.values).length : 0;
-	const defaultVar = flag.variations?.defaultVariation || 'off';
-
-	return (
-		<div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-			<div className="flex items-center gap-2 mb-3">
-				<Palette className="w-4 h-4 text-purple-600" />
-				<h4 className="font-medium text-purple-900">Custom Variations</h4>
-			</div>
-
-			<div className="space-y-2">
-				<div className="flex items-center gap-2 text-sm">
-					<span className="font-medium">Available Variations:</span>
-					<span className="text-purple-700 font-semibold">{variationCount} variation{variationCount !== 1 ? 's' : ''}</span>
-				</div>
-
-				<div className="flex items-center gap-2 text-sm">
-					<span className="font-medium">Default:</span>
-					<span className="text-xs text-purple-700 bg-purple-100 rounded px-2 py-1 font-mono">
-						{defaultVar}
-					</span>
-				</div>
-
-				{flag.variations?.values && (
-					<div className="flex items-center gap-2 text-sm">
-						<span className="font-medium">Values:</span>
-						<div className="flex flex-wrap gap-1">
-							{Object.keys(flag.variations.values).slice(0, 3).map((key, index) => (
-								<span key={index} className="text-xs text-purple-700 bg-purple-100 rounded px-2 py-1 font-mono">
-									{key}
-								</span>
-							))}
-							{Object.keys(flag.variations.values).length > 3 && (
-								<span className="text-xs text-purple-600 italic">
-									+{Object.keys(flag.variations.values).length - 3} more
-								</span>
-							)}
-						</div>
-					</div>
-				)}
-			</div>
-		</div>
-	);
-};
 
 interface VariationSectionProps {
 	flag: FeatureFlagDto;
+	onUpdateVariations?: (variations: Record<string, any>, defaultVariation: string) => Promise<void>;
+	onClearVariations?: () => Promise<void>;
 	operationLoading: boolean;
+}
+
+interface VariationForm {
+	key: string;
+	value: string;
 }
 
 // BUG FIX #10: Make tooltip wider and more readable
@@ -118,17 +69,127 @@ const formatVariationValue = (value: any): string => {
 	return String(value);
 };
 
+// Helper function to parse variation value from string input
+const parseVariationValue = (value: string): any => {
+	if (value === 'true') return true;
+	if (value === 'false') return false;
+	if (value === 'null') return null;
+	if (!isNaN(Number(value)) && value.trim() !== '') return Number(value);
+	
+	// Try to parse as JSON for objects/arrays
+	try {
+		return JSON.parse(value);
+	} catch {
+		// Return as string if not valid JSON
+		return value;
+	}
+};
+
 export const VariationSection: React.FC<VariationSectionProps> = ({
 	flag,
+	onUpdateVariations,
+	onClearVariations,
 	operationLoading
 }) => {
-	const [showDetails, setShowDetails] = useState(false);
+	const [editingVariations, setEditingVariations] = useState(false);
+	const [variationsForm, setVariationsForm] = useState<VariationForm[]>([]);
+	const [defaultVariation, setDefaultVariation] = useState('');
+	
 	const hasCustomVariations = checkForCustomVariations(flag);
+	
+	// Check if variations exist and are not just the default on/off
+	const hasVariations = flag.variations?.values && Object.keys(flag.variations.values).length > 0;
 
-	if (!hasCustomVariations) return null;
+	useEffect(() => {
+		try {
+			const variations = flag.variations?.values || {};
+			const variationEntries = Object.entries(variations);
+
+			if (variationEntries.length > 0) {
+				const formData = variationEntries.map(([key, value]) => ({
+					key,
+					value: formatVariationValue(value)
+				}));
+				setVariationsForm(formData);
+			} else {
+				setVariationsForm([]);
+			}
+
+			setDefaultVariation(flag.variations?.defaultVariation || 'off');
+		} catch (error) {
+			console.error('Error processing variations:', error);
+			setVariationsForm([]);
+			setDefaultVariation('off');
+		}
+	}, [flag.key, flag.variations]);
+
+	const handleVariationsSubmit = async () => {
+		if (!onUpdateVariations) return;
+
+		try {
+			const variations: Record<string, any> = {};
+			
+			variationsForm
+				.filter(variation => variation.key?.trim() && variation.value?.trim())
+				.forEach(variation => {
+					variations[variation.key.trim()] = parseVariationValue(variation.value.trim());
+				});
+
+			await onUpdateVariations(variations, defaultVariation);
+			setEditingVariations(false);
+		} catch (error) {
+			console.error('Failed to update variations:', error);
+		}
+	};
+
+	const handleClearVariations = async () => {
+		if (!onClearVariations) return;
+
+		try {
+			await onClearVariations();
+		} catch (error) {
+			console.error('Failed to clear variations:', error);
+		}
+	};
+
+	const addVariation = () => {
+		setVariationsForm([...variationsForm, { key: '', value: '' }]);
+	};
+
+	const removeVariation = (index: number) => {
+		setVariationsForm(variationsForm.filter((_, i) => i !== index));
+	};
+
+	const updateVariation = (index: number, field: 'key' | 'value', value: string) => {
+		setVariationsForm(variationsForm.map((variation, i) =>
+			i === index ? { ...variation, [field]: value } : variation
+		));
+	};
+
+	const resetForm = () => {
+		try {
+			const variations = flag.variations?.values || {};
+			const variationEntries = Object.entries(variations);
+
+			if (variationEntries.length > 0) {
+				const formData = variationEntries.map(([key, value]) => ({
+					key,
+					value: formatVariationValue(value)
+				}));
+				setVariationsForm(formData);
+			} else {
+				setVariationsForm([]);
+			}
+
+			setDefaultVariation(flag.variations?.defaultVariation || 'off');
+		} catch (error) {
+			console.error('Error resetting form:', error);
+			setVariationsForm([]);
+			setDefaultVariation('off');
+		}
+	};
 
 	const variations = flag.variations?.values || {};
-	const defaultVariation = flag.variations?.defaultVariation || 'off';
 	const variationEntries = Object.entries(variations);
 
 	return (
@@ -140,68 +201,120 @@ export const VariationSection: React.FC<VariationSectionProps> = ({
 				</div>
 				<div className="flex gap-2">
 					<button
-						onClick={() => setShowDetails(!showDetails)}
+						onClick={() => setEditingVariations(true)}
 						disabled={operationLoading}
-						className="text-purple-600 hover:text-purple-800 text-sm flex items-center gap-1 disabled:opacity-50"
-						data-testid="toggle-variation-details-button"
+						className="text-teal-600 hover:text-teal-800 text-sm flex items-center gap-1 disabled:opacity-50"
+						data-testid="edit-variations-button"
 					>
-						<Eye className="w-4 h-4" />
-						{showDetails ? 'Hide Details' : 'Show Details'}
+						<Palette className="w-4 h-4" />
+						Configure Variations
 					</button>
+					{hasVariations && (
+						<button
+							onClick={handleClearVariations}
+							disabled={operationLoading}
+							className="text-red-600 hover:text-red-800 text-sm flex items-center gap-1 disabled:opacity-50"
+							title="Clear All Variations"
+							data-testid="clear-variations-button"
+						>
+							<X className="w-4 h-4" />
+							Clear
+						</button>
+					)}
 				</div>
 			</div>
 
-			{showDetails ? (
-				<div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+			{editingVariations ? (
+				<div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
 					<div className="space-y-4">
-						<div className="flex items-center gap-2 mb-3">
-							<Settings className="w-4 h-4 text-purple-600" />
-							<h5 className="font-medium text-purple-800">Variation Configuration</h5>
+						<div className="flex justify-between items-center">
+							<h5 className="font-medium text-teal-800">Variation Configuration</h5>
+							<button
+								onClick={addVariation}
+								disabled={operationLoading}
+								className="text-teal-600 hover:text-teal-800 text-sm flex items-center gap-1 disabled:opacity-50"
+							>
+								<Plus className="w-4 h-4" />
+								Add Variation
+							</button>
 						</div>
 
 						<div className="space-y-3">
 							<div>
-								<label className="block text-sm font-medium text-purple-800 mb-2">
+								<label className="block text-sm font-medium text-teal-800 mb-2">
 									Default Variation
 								</label>
-								<div className="px-3 py-2 bg-purple-100 text-purple-900 rounded font-mono text-sm border border-purple-300">
-									{defaultVariation}
-								</div>
-								<p className="text-xs text-purple-600 mt-1">
+								<input
+									type="text"
+									value={defaultVariation}
+									onChange={(e) => setDefaultVariation(e.target.value)}
+									placeholder="off"
+									className="w-full border border-teal-300 rounded px-3 py-2 text-sm"
+									disabled={operationLoading}
+								/>
+								<p className="text-xs text-teal-600 mt-1">
 									This variation is used when no other conditions are met
 								</p>
 							</div>
 
 							<div>
-								<label className="block text-sm font-medium text-purple-800 mb-2">
-									Available Variations ({variationEntries.length})
+								<label className="block text-sm font-medium text-teal-800 mb-2">
+									Variations ({variationsForm.length})
 								</label>
-								<div className="space-y-2">
-									{variationEntries.map(([key, value], index) => (
-										<div 
-											key={index} 
-											className={`flex items-center justify-between p-3 rounded border ${
-												key === defaultVariation 
-													? 'bg-purple-100 border-purple-300' 
-													: 'bg-white border-purple-200'
-											}`}
-										>
-											<div className="flex items-center gap-2">
-												<span className="font-mono text-sm font-medium text-purple-900">
-													{key}
-												</span>
-												{key === defaultVariation && (
-													<span className="text-xs px-2 py-0.5 bg-purple-600 text-white rounded">
-														default
-													</span>
-												)}
+								
+								{variationsForm.length === 0 ? (
+									<div className="text-center py-8 text-teal-600">
+										<Palette className="w-8 h-8 mx-auto mb-2 opacity-50" />
+										<p className="text-sm">No variations configured</p>
+										<p className="text-xs mt-1">Click "Add Variation" to create your first variation</p>
+									</div>
+								) : (
+									<div className="space-y-2">
+										{variationsForm.map((variation, index) => (
+											<div key={index} className="border border-teal-300 rounded-lg p-3 bg-white">
+												<div className="flex justify-between items-start mb-3">
+													<span className="text-sm font-medium text-teal-700">Variation #{index + 1}</span>
+													{variationsForm.length > 1 && (
+														<button
+															onClick={() => removeVariation(index)}
+															disabled={operationLoading}
+															className="text-red-500 hover:text-red-700 p-1"
+															title="Remove Variation"
+														>
+															<Trash2 className="w-4 h-4" />
+														</button>
+													)}
+												</div>
+
+												<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+													<div>
+														<label className="block text-xs font-medium text-teal-700 mb-1">Key</label>
+														<input
+															type="text"
+															value={variation.key}
+															onChange={(e) => updateVariation(index, 'key', e.target.value)}
+															placeholder="on, off, v1, v2..."
+															className="w-full border border-teal-300 rounded px-2 py-1 text-xs"
+															disabled={operationLoading}
+														/>
+													</div>
+
+													<div>
+														<label className="block text-xs font-medium text-teal-700 mb-1">Value</label>
+														<input
+															type="text"
+															value={variation.value}
+															onChange={(e) => updateVariation(index, 'value', e.target.value)}
+															placeholder='true, false, "text", 123, {"key":"value"}'
+															className="w-full border border-teal-300 rounded px-2 py-1 text-xs"
+															disabled={operationLoading}
+														/>
+													</div>
+												</div>
 											</div>
-											<div className="font-mono text-sm text-gray-700 bg-gray-100 px-2 py-1 rounded">
-												{formatVariationValue(value)}
-											</div>
-										</div>
-									))}
-								</div>
+										))}
+									</div>
+								)}
 							</div>
 
 							<div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
@@ -210,44 +323,70 @@ export const VariationSection: React.FC<VariationSectionProps> = ({
 									<li>• Targeting rules can specify which variation to return</li>
 									<li>• For percentage rollouts, variations are assigned via consistent hashing</li>
 									<li>• If no conditions match, the default variation is returned</li>
-									<li>• Variations allow A/B testing and gradual feature rollouts</li>
+									<li>• Values can be strings, booleans, numbers, or JSON objects</li>
 								</ul>
 							</div>
 						</div>
 					</div>
+
+					<div className="flex gap-2 mt-4">
+						<button
+							onClick={handleVariationsSubmit}
+							disabled={operationLoading}
+							className="px-3 py-1 bg-teal-600 text-white rounded text-sm hover:bg-teal-700 disabled:opacity-50"
+							data-testid="save-variations-button"
+						>
+							{operationLoading ? 'Saving...' : 'Save Variations'}
+						</button>
+						<button
+							onClick={() => {
+								setEditingVariations(false);
+								resetForm();
+							}}
+							disabled={operationLoading}
+							className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400 disabled:opacity-50"
+							data-testid="cancel-variations-button"
+						>
+							Cancel
+						</button>
+					</div>
 				</div>
 			) : (
 				<div className="text-sm text-gray-600 space-y-1">
-					<div className="space-y-2">
-						<div className="flex items-center gap-2">
-							<span className="font-medium">Available Variations:</span>
-							<span className="text-purple-700">{variationEntries.length} configured</span>
-						</div>
-						<div className="flex items-center gap-2">
-							<span className="font-medium">Default:</span>
-							<span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-mono">
-								{defaultVariation}
-							</span>
-							<span className="text-purple-600">
-								→ {formatVariationValue(variations[defaultVariation])}
-							</span>
-						</div>
-						<div className="flex items-start gap-2">
-							<span className="font-medium">Keys:</span>
-							<div className="flex flex-wrap gap-1">
-								{variationEntries.slice(0, 4).map(([key], index) => (
-									<span key={index} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded font-mono">
-										{key}
-									</span>
-								))}
-								{variationEntries.length > 4 && (
-									<span className="text-xs text-gray-500 italic">
-										+{variationEntries.length - 4} more
-									</span>
-								)}
+					{hasVariations ? (
+						<div className="space-y-2">
+							<div className="flex items-center gap-2">
+								<span className="font-medium">Available Variations:</span>
+								<span className="text-teal-700">{variationEntries.length} configured</span>
+							</div>
+							<div className="flex items-center gap-2">
+								<span className="font-medium">Default:</span>
+								<span className="text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded font-mono">
+									{defaultVariation}
+								</span>
+								<span className="text-teal-600">
+									→ {formatVariationValue(variations[defaultVariation])}
+								</span>
+							</div>
+							<div className="flex items-start gap-2">
+								<span className="font-medium">Keys:</span>
+								<div className="flex flex-wrap gap-1">
+									{variationEntries.slice(0, 4).map(([key], index) => (
+										<span key={index} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded font-mono">
+											{key}
+										</span>
+									))}
+									{variationEntries.length > 4 && (
+										<span className="text-xs text-gray-500 italic">
+											+{variationEntries.length - 4} more
+										</span>
+									)}
+								</div>
 							</div>
 						</div>
-					</div>
+					) : (
+						<div className="text-gray-500 italic">No variations configured</div>
+					)}
 				</div>
 			)}
 		</div>

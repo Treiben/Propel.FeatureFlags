@@ -36,4 +36,12 @@ public class Variations
 
 		return eligibleVariations[variationIndex];
 	}
+
+	public override bool Equals(object obj)
+	{
+		return DefaultVariation == (obj as Variations)?.DefaultVariation
+			&& Values.Count == (obj as Variations)?.Values.Count
+			&& Values.All(kv => (obj as Variations)?.Values.ContainsKey(kv.Key) == true
+				&& (obj as Variations)?.Values[kv.Key]?.ToString() == kv.Value?.ToString());
+	}
 }

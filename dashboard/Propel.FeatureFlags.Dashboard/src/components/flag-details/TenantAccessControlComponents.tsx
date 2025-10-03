@@ -391,7 +391,7 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 						}
 
 						if (components.baseStatus === 'Other') {
-							return <div className="text-gray-500 italic">No tenant restrictions configured</div>;
+							return <div className="text-gray-500 italic">No tenant restrictions</div>;
 						} else if (components.baseStatus === 'Disabled') {
 							return <div className="text-orange-600 font-medium">Access denied to all tenants - flag is disabled</div>;
 						}

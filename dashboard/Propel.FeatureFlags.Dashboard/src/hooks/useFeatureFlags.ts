@@ -13,6 +13,7 @@ import {
     type ManageUserAccessRequest,
     type ManageTenantAccessRequest,
     type UpdateTargetingRulesRequest,
+    type UpdateVariationsRequest,
     type EvaluationResult,
     type SearchFeatureFlagRequest,
     EvaluationMode,
@@ -53,6 +54,7 @@ export interface UseFeatureFlagsActions {
     updateUserAccess: (key: string, request: ManageUserAccessRequest, scopeHeaders: ScopeHeaders) => Promise<FeatureFlagDto>;
     updateTenantAccess: (key: string, request: ManageTenantAccessRequest, scopeHeaders: ScopeHeaders) => Promise<FeatureFlagDto>;
     updateTargetingRules: (key: string, request: UpdateTargetingRulesRequest, scopeHeaders: ScopeHeaders) => Promise<FeatureFlagDto>;
+    updateVariations: (key: string, request: UpdateVariationsRequest, scopeHeaders: ScopeHeaders) => Promise<FeatureFlagDto>;
     filterFlags: (params: GetFlagsParams) => Promise<void>;
     searchFlag: (request: SearchFeatureFlagRequest) => Promise<void>;
     clearSearch: () => void;
@@ -314,6 +316,18 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         }
     }, []);
 
+    const updateVariations = useCallback(async (key: string, request: UpdateVariationsRequest, scopeHeaders: ScopeHeaders): Promise<FeatureFlagDto> => {
+        try {
+            updateState({ error: null });
+            const updatedFlag = await apiService.operations.updateVariations(key, request, scopeHeaders);
+            updateFlagInState(updatedFlag);
+            return updatedFlag;
+        } catch (error) {
+            handleError(error, 'update variations');
+            throw error;
+        }
+    }, []);
+
     const filterFlags = useCallback(async (params: GetFlagsParams): Promise<void> => {
         try {
             updateState({ loading: true, error: null });
@@ -404,6 +418,7 @@ export function useFeatureFlags(): UseFeatureFlagsState & UseFeatureFlagsActions
         updateUserAccess,
         updateTenantAccess,
         updateTargetingRules,
+        updateVariations,
         filterFlags,
         searchFlag,
         clearSearch,

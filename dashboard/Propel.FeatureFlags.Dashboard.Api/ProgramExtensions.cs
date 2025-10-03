@@ -96,6 +96,7 @@ public static class ProgramExtensions
 		services.AddScoped<UpdateScheduleHandler>();
 		services.AddScoped<UpdateTargetingRulesHandler>();
 		services.AddScoped<UpdateTimeWindowHandler>();
+		services.AddScoped<UpdateVariationsHandler>();
 
 		return services;
 	}

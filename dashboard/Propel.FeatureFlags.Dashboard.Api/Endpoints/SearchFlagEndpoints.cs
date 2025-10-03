@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
 using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
-using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Dashboard.Api.Endpoints;
 
@@ -27,7 +26,6 @@ public sealed class SearchFlagEndpoints : IEndpoint
 			{
 				return await handler.HandleAsync(request, cancellationToken);
 			})
-		.AddEndpointFilter<ValidationFilter<GetFeatureFlagRequest>>()
 		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
 		.WithName("SearchFeatureFlags")
 		.WithTags("Feature Flags", "CRUD Operations", "Read", "Dashboard Api", "Search")

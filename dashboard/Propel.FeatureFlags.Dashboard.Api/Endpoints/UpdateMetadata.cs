@@ -69,7 +69,7 @@ public sealed class UpdateFlagHandler(
 		}
 	}
 
-	public static FeatureFlag CreateFlagWithUpdatedMetadata(UpdateFlagRequest request, FeatureFlag flag, string username)
+	private static FeatureFlag CreateFlagWithUpdatedMetadata(UpdateFlagRequest request, FeatureFlag flag, string username)
 	{
 		var metadata = flag.Administration with
 		{

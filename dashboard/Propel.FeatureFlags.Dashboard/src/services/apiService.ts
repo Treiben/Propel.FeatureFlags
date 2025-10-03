@@ -165,6 +165,13 @@ export interface UpdateTargetingRulesRequest {
 	notes?: string;
 }
 
+export interface UpdateVariationsRequest {
+	variations?: Array<{ key: string; value: string }> | undefined;
+	defaultVariation: string;
+	removeVariations: boolean;
+	notes?: string;
+}
+
 export interface EvaluationResult {
 	isEnabled: boolean;
 	variation: string;
@@ -557,6 +564,14 @@ export const apiService = {
 
 		updateTargetingRules: async (key: string, request: UpdateTargetingRulesRequest, scopeHeaders: ScopeHeaders) => {
 			const flag = await apiRequest<FeatureFlagDto>(`/feature-flags/${key}/targeting-rules`, {
+				method: 'POST',
+				body: JSON.stringify(request)
+			}, scopeHeaders);
+			return DateTimeConverter.convertFeatureFlagDtoToLocal(flag);
+		},
+
+		updateVariations: async (key: string, request: UpdateVariationsRequest, scopeHeaders: ScopeHeaders) => {
+			const flag = await apiRequest<FeatureFlagDto>(`/feature-flags/${key}/variations`, {
 				method: 'POST',
 				body: JSON.stringify(request)
 			}, scopeHeaders);

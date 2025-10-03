@@ -75,7 +75,7 @@ public sealed class UpdateTargetingRulesHandler(
 		}
 	}
 
-	public FeatureFlag CreateFlagWithUpdatedRules(UpdateTargetingRulesRequest request, FeatureFlag flag)
+	private FeatureFlag CreateFlagWithUpdatedRules(UpdateTargetingRulesRequest request, FeatureFlag flag)
 	{
 		var oldconfig = flag.EvaluationOptions;
 
