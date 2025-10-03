@@ -29,7 +29,7 @@ public sealed class SearchFlagEndpoints : IEndpoint
 		.RequireAuthorization(AuthorizationPolicies.HasReadActionPolicy)
 		.WithName("SearchFeatureFlags")
 		.WithTags("Feature Flags", "CRUD Operations", "Read", "Dashboard Api", "Search")
-		.Produces<PagedFeatureFlagsResponse>();
+		.Produces<List<FeatureFlagResponse>>();
 	}
 }
 
@@ -59,8 +59,8 @@ public sealed class SearchFeatureFlagsHandler(IDashboardRepository repository, I
 				});
 			}
 
-			var flag = await repository.FindAsync(criteria, cancellationToken);
-			return Results.Ok(new FeatureFlagResponse(flag!));
+			var flags = await repository.FindAsync(criteria, cancellationToken);
+			return Results.Ok(flags.Select(f => new FeatureFlagResponse(f)));
 		}
 		catch (ArgumentException ex)
 		{

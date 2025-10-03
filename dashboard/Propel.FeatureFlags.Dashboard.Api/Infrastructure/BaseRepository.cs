@@ -10,7 +10,7 @@ public interface IReadOnlyRepository
 	Task<bool> FlagExistsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default);
 	Task<FeatureFlag?> GetByKeyAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default);
 	Task<List<FeatureFlag>> GetAllAsync(CancellationToken cancellationToken = default);
-	Task<FeatureFlag> FindAsync(FindFlagCriteria criteria, CancellationToken cancellationToken = default);
+	Task<List<FeatureFlag>> FindAsync(FindFlagCriteria criteria, CancellationToken cancellationToken = default);
 	Task<PagedResult<FeatureFlag>> GetPagedAsync(int page, int pageSize, FeatureFlagFilter? filter = null, CancellationToken cancellationToken = default);
 }
 
@@ -104,6 +104,24 @@ public class BaseRepository(DashboardDbContext context) : IReadOnlyRepository
 		};
 	}
 
+	public async Task<List<FeatureFlag>> FindAsync(FindFlagCriteria criteria, CancellationToken cancellationToken = default)
+	{
+		var entities = await context.FeatureFlags
+			.AsNoTracking()
+			.Include(f => f.Metadata)
+			.Include(f => f.AuditTrail)
+			.Where(f =>
+				(!string.IsNullOrWhiteSpace(criteria.Key) && f.Key.ToLower().Equals(criteria.Key.ToLower())) ||
+				(!string.IsNullOrWhiteSpace(criteria.Name) && f.Name.ToLower().Contains(criteria.Name.ToLower())) ||
+				(!string.IsNullOrWhiteSpace(criteria.Description) && f.Description.ToLower().Contains(criteria.Description.ToLower())))
+			.ToListAsync(cancellationToken);
+
+		if (entities == null)
+			return [];
+
+		return [.. entities.Select(Mapper.MapToDomain)];
+	}
+
 	public async Task<bool> FlagExistsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default)
 	{
 		var entity = await context.FeatureFlags
@@ -166,11 +184,6 @@ public class BaseRepository(DashboardDbContext context) : IReadOnlyRepository
 		}
 
 		return FormattableStringFactory.Create(parameterizedSql, args);
-	}
-
-	public Task<FeatureFlag> FindAsync(FindFlagCriteria criteria, CancellationToken cancellationToken = default)
-	{
-		throw new NotImplementedException();
 	}
 }
 

@@ -4,7 +4,7 @@ using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
 
-namespace FeatureFlags.IntegrationTests.Postgres.PostgreTests;
+namespace FeatureFlags.IntegrationTests.Postgres.PostgreTests.CoreRepository;
 
 public class GetAsync_WithColumnMapping(PostgresTestsFixture fixture) : IClassFixture<PostgresTestsFixture>
 {

@@ -50,7 +50,7 @@ public class UserRolloutEvaluatorTests
 	}
 
 	[Fact]
-	public async Task ProcessEvaluation_WhenNoUserId_ThrowsInvalidOperationException()
+	public async Task ProcessEvaluation_WhenNoUserId_ThrowsEvalationArgumentException()
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
@@ -63,7 +63,7 @@ public class UserRolloutEvaluatorTests
 		var context = new EvaluationContext();
 
 		// Act & Assert
-		var exception = await Should.ThrowAsync<InvalidOperationException>(
+		var exception = await Should.ThrowAsync<EvaluationArgumentException>(
 			() => _evaluator.ProcessEvaluation(flagConfig, context));
 	}
 

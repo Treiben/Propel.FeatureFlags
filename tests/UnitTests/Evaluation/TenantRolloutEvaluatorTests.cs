@@ -84,7 +84,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 	[InlineData(null)]
 	[InlineData("")]
 	[InlineData("   ")]
-	public async Task ProcessEvaluation_InvalidTenantId_ThrowsInvalidOperationException(string? tenantId)
+	public async Task ProcessEvaluation_InvalidTenantId_ThrowsEvaluationArgumentException(string? tenantId)
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("test-flag", Scope.Global);
@@ -98,7 +98,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(tenantId: tenantId);
 
 		// Act & Assert
-		var exception = await Should.ThrowAsync<InvalidOperationException>(
+		var exception = await Should.ThrowAsync<EvaluationArgumentException>(
 			() => _evaluator.ProcessEvaluation(flagConfig, context));
 		exception.Message.ShouldBe("Tenant ID is required for percentage rollout evaluation.");
 	}

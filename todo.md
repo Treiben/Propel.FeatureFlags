@@ -108,9 +108,14 @@
 
 
 
-# PROPEL MIGRATION CLI TO DO LIST
+# PROPEL CLI
 
+## NEW FEATURES
 1. Add CLI commands (maybe)
+
+2. Improve CLI migration: 
+	- embed up/down scripts per db provider
+	- add indexes
 
 2. Add CLI documentation
 

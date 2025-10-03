@@ -187,7 +187,7 @@ public class FlagEvaluationManager_ProcessEvaluation_MultipleHandlers
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeTrue();
 		result.Variation.ShouldBe("user-ok");
-		result.Reason.ShouldBe($"All [{flagConfig.ModeSet}] conditions met for feature flag activation");
+		result.Reason.ShouldBe($"All configured conditions met for feature flag activation");
 
 		// Verify both handlers were called
 		firstEvaluator.Verify(x => x.ProcessEvaluation(It.IsAny<EvaluationOptions>(), It.IsAny<EvaluationContext>()), Times.Once);

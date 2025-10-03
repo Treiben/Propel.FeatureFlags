@@ -116,13 +116,13 @@ public class ManageTenantAccessHandlerTests(HandlersTestsFixture fixture)
 	}
 
 	[Fact]
-	public async Task Should_remove_rollout_mode_when_percentage_is_zero()
+	public async Task Should_remove_rollout_mode_when_percentage_is_one_hundred()
 	{
 		// Arrange
-		var identifier = new FlagIdentifier("zero-percentage-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		var identifier = new FlagIdentifier("hundred-percentage-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
 		var flag = new FeatureFlag(identifier,
-			new FlagAdministration(Name: "Zero Percentage",
-						Description: "Test zero percentage",
+			new FlagAdministration(Name: "Hundred Percentage",
+						Description: "Test unrestricted rollout",
 						RetentionPolicy: RetentionPolicy.GlobalPolicy,
 						Tags: [],
 						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
@@ -132,17 +132,17 @@ public class ManageTenantAccessHandlerTests(HandlersTestsFixture fixture)
 
 		var handler = fixture.Services.GetRequiredService<ManageTenantAccessHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
-		var request = new ManageTenantAccessRequest(null, null, 0, "Set to zero");
+		var request = new ManageTenantAccessRequest(null, null, 100, "Set to 100%");
 
 		// Act
-		var result = await handler.HandleAsync("zero-percentage-flag", headers, request, CancellationToken.None);
+		var result = await handler.HandleAsync("hundred-percentage-flag", headers, request, CancellationToken.None);
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
 		
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
-			new FlagIdentifier("zero-percentage-flag", Scope.Global), CancellationToken.None);
-		updated!.EvaluationOptions.TenantAccessControl.RolloutPercentage.ShouldBe(0);
+			new FlagIdentifier("hundred-percentage-flag", Scope.Global), CancellationToken.None);
+		updated!.EvaluationOptions.TenantAccessControl.RolloutPercentage.ShouldBe(100);
 		updated.EvaluationOptions.ModeSet.Contains([EvaluationMode.TenantRolloutPercentage]).ShouldBeFalse();
 	}
 

@@ -1,8 +1,6 @@
-﻿using FeatureFlags.IntegrationTests.Postgres.Support;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
-using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Extensions;
 using Testcontainers.PostgreSql;
@@ -60,7 +58,11 @@ public class PostgresTestsFixture : IAsyncLifetime
 		var connectionString = _container.GetConnectionString();
 		using var connection = new NpgsqlConnection(connectionString);
 		await connection.OpenAsync();
-		using var command = new NpgsqlCommand("DELETE FROM feature_flags", connection);
+		using var command = new NpgsqlCommand(@"
+			DELETE FROM feature_flags_audit;
+			DELETE FROM feature_flags_metadata;
+			DELETE FROM feature_flags;
+		", connection);
 		await command.ExecuteNonQueryAsync();
 	}
 
