@@ -157,7 +157,7 @@ public static class Parser
 		}
 		catch
 		{
-			return Variations.OnOff;
+			return new Variations();
 		}
 	}
 }

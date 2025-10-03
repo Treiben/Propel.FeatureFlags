@@ -24,5 +24,5 @@ public record FlagEvaluationOptions(
 		TargetingRules: [],
 		UserAccessControl: AccessControl.Unrestricted,
 		TenantAccessControl: AccessControl.Unrestricted,
-		Variations: Variations.OnOff);
+		Variations: new Variations());
 }

@@ -85,7 +85,7 @@ public sealed class UpdateVariationsHandler(
 		{
 			// Clear existing variations
 			configuration = oldconfig with {
-				Variations = Variations.OnOff };
+				Variations = new Variations() };
 			// add to change history
 			metadata = flag.Administration with
 			{

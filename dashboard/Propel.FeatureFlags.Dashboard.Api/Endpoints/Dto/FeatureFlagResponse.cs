@@ -81,7 +81,7 @@ public record FeatureFlagResponse
 		TenantAccess = configuration.TenantAccessControl;
 		
 		TargetingRules = JsonSerializer.Serialize(configuration.TargetingRules, JsonDefaults.JsonOptions);
-		Variations = Variations.OnOff.Equals(configuration.Variations) ? null : configuration.Variations;
+		Variations = configuration.Variations ?? new Variations();
 
 		Tags = metadata.Tags;
 		IsPermanent = retention.IsPermanent;
