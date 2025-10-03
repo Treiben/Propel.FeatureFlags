@@ -23,7 +23,7 @@ const getStatusIcons = (flag: FeatureFlagDto): JSX.Element[] => {
         && !components.hasPercentage
         && !components.hasUserTargeting
         && !components.hasTenantTargeting
-        && !components.hasTargetingRules) { // Add hasTargetingRules check
+        && !components.hasTargetingRules) {
         icons.push(<EyeOff key="disabled" className="w-3 h-3" />);
     }
 
@@ -43,7 +43,7 @@ const getStatusIcons = (flag: FeatureFlagDto): JSX.Element[] => {
     if (components.hasTenantTargeting) {
         icons.push(<Building key="tenants" className="w-3 h-3" />);
     }
-    if (components.hasTargetingRules) { // Add targeting rules icon
+    if (components.hasTargetingRules) {
         icons.push(<Target key="targeting-rules" className="w-3 h-3" />);
     }
 

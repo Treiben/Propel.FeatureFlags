@@ -3,6 +3,7 @@ import type { FeatureFlagDto } from '../services/apiService';
 import { parseTargetingRules, Scope } from '../services/apiService';
 import { StatusBadge } from './StatusBadge';
 import { getScheduleStatus, getTimeWindowStatus, formatRelativeTime, hasValidTags, getTagEntries, parseStatusComponents } from '../utils/flagHelpers';
+import { theme } from '../styles/theme';
 
 interface FlagCardProps {
     flag: FeatureFlagDto;
@@ -31,8 +32,8 @@ export const FlagCard: React.FC<FlagCardProps> = ({
         <div
             onClick={onClick}
             className={`bg-white border rounded-lg p-4 cursor-pointer transition-all ${isSelected
-                ? 'border-blue-500 ring-2 ring-blue-200'
-                : 'border-gray-200 hover:border-gray-300'
+                ? `border-blue-500 ring-2 ring-blue-200`
+                : `${theme.neutral.border[200]} hover:border-gray-300`
                 }`}
         >
             {/* BUG FIX #12: Better layout for long content */}
@@ -41,27 +42,27 @@ export const FlagCard: React.FC<FlagCardProps> = ({
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h3 className="font-medium text-gray-900 break-words">{flag.name}</h3>
+                            <h3 className={`font-medium ${theme.neutral.text[900]} break-words`}>{flag.name}</h3>
                             {flag.isPermanent && (
-                                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-xs flex-shrink-0">
+                                <div className={`flex items-center gap-1 px-1.5 py-0.5 ${theme.warning[100]} ${theme.warning.text[700]} rounded text-xs flex-shrink-0`}>
                                     <Lock className="w-3 h-3" />
                                     <span className="font-medium">PERM</span>
                                 </div>
                             )}
                             {scheduleStatus.isActive && (
-                                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs flex-shrink-0">
+                                <div className={`flex items-center gap-1 px-1.5 py-0.5 ${theme.success[100]} ${theme.success.text[700]} rounded text-xs flex-shrink-0`}>
                                     <PlayCircle className="w-3 h-3" />
                                     <span className="font-medium">LIVE</span>
                                 </div>
                             )}
                             {timeWindowStatus.isActive && (
-                                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs flex-shrink-0">
+                                <div className={`flex items-center gap-1 px-1.5 py-0.5 ${theme.success[100]} ${theme.success.text[700]} rounded text-xs flex-shrink-0`}>
                                     <Timer className="w-3 h-3" />
                                     <span className="font-medium">ACTIVE</span>
                                 </div>
                             )}
                         </div>
-                        <p className="text-sm text-gray-500 font-mono break-all">{flag.key}</p>
+                        <p className={`text-sm ${theme.neutral.text[500]} font-mono break-all`}>{flag.key}</p>
                     </div>
 
                     {/* Status badge and delete button */}
@@ -73,7 +74,7 @@ export const FlagCard: React.FC<FlagCardProps> = ({
                                     e.stopPropagation();
                                     onDelete(flag.key);
                                 }}
-                                className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                className={`p-1 ${theme.danger.text[600]} hover:bg-red-50 rounded transition-colors`}
                                 title="Delete Flag"
                             >
                                 <Trash2 className="w-3 h-3" />
@@ -85,28 +86,28 @@ export const FlagCard: React.FC<FlagCardProps> = ({
                 {/* BUG FIX #11 & #23: Show application info only for Application scope */}
                 {flag.scope === Scope.Application && flag.applicationName && (
                     <div className="flex items-center gap-1.5 text-xs">
-                        <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-200 font-medium truncate max-w-[200px]" title={flag.applicationName}>
+                        <span className={`px-1.5 py-0.5 ${theme.primary[50]} ${theme.primary.text[600]} rounded ${theme.primary.border[200]} border font-medium truncate max-w-[200px]`} title={flag.applicationName}>
                             {flag.applicationName}
                         </span>
                         {flag.applicationVersion && (
-                            <span className="text-gray-500">v{flag.applicationVersion}</span>
+                            <span className={theme.neutral.text[500]}>v{flag.applicationVersion}</span>
                         )}
                     </div>
                 )}
 
                 {/* Description */}
-                <p className="text-sm text-gray-600 line-clamp-2">{flag.description || 'No description'}</p>
+                <p className={`text-sm ${theme.neutral.text[600]} line-clamp-2`}>{flag.description || 'No description'}</p>
 
                 {/* Tags */}
                 {hasValidTags(flag.tags) && (
                     <div className="flex flex-wrap gap-1">
                         {getTagEntries(flag.tags).slice(0, 3).map(([key, value]) => (
-                            <span key={key} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs truncate max-w-[150px]" title={`${key}: ${value}`}>
+                            <span key={key} className={`${theme.neutral[100]} ${theme.neutral.text[600]} px-2 py-1 rounded text-xs truncate max-w-[150px]`} title={`${key}: ${value}`}>
                                 {key}: {value}
                             </span>
                         ))}
                         {getTagEntries(flag.tags).length > 3 && (
-                            <span className="text-xs text-gray-500 italic px-2 py-1">
+                            <span className={`text-xs ${theme.neutral.text[500]} italic px-2 py-1`}>
                                 +{getTagEntries(flag.tags).length - 3} more
                             </span>
                         )}

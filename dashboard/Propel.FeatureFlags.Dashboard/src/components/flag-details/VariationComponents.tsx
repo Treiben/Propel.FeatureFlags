@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import { Palette, Info, Plus, Trash2, X } from 'lucide-react';
 import type { FeatureFlagDto } from '../../services/apiService';
+import { getSectionClasses, theme } from '../../styles/theme';
 
 interface VariationSectionProps {
 	flag: FeatureFlagDto;
@@ -96,6 +97,7 @@ export const VariationSection: React.FC<VariationSectionProps> = ({
 	const [defaultVariation, setDefaultVariation] = useState('');
 	
 	const hasCustomVariations = checkForCustomVariations(flag);
+	const schedulingStyles = getSectionClasses('scheduling');
 	
 	// Check if variations exist and are not just the default on/off
 	const hasVariations = flag.variations?.values && Object.keys(flag.variations.values).length > 0;
@@ -192,6 +194,8 @@ export const VariationSection: React.FC<VariationSectionProps> = ({
 	const variations = flag.variations?.values || {};
 	const variationEntries = Object.entries(variations);
 
+	const variationStyles = getSectionClasses('variations');
+
 	return (
 		<div className="space-y-4 mb-6">
 			<div className="flex justify-between items-center">
@@ -201,9 +205,10 @@ export const VariationSection: React.FC<VariationSectionProps> = ({
 				</div>
 				<div className="flex gap-2">
 					<button
-						onClick={() => setEditingVariations(true)}
+						onClick={() => setEditingVariations(true)
+						}
 						disabled={operationLoading}
-						className="text-teal-600 hover:text-teal-800 text-sm flex items-center gap-1 disabled:opacity-50"
+						className={`text-sm flex items-center gap-1 disabled:opacity-50 ${variationStyles.buttonText} ${variationStyles.buttonHover}`}
 						data-testid="edit-variations-button"
 					>
 						<Palette className="w-4 h-4" />
@@ -225,14 +230,14 @@ export const VariationSection: React.FC<VariationSectionProps> = ({
 			</div>
 
 			{editingVariations ? (
-				<div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+				<div className={`${variationStyles.bg} ${variationStyles.border} border rounded-lg p-4`}>
 					<div className="space-y-4">
 						<div className="flex justify-between items-center">
-							<h5 className="font-medium text-teal-800">Variation Configuration</h5>
+							<h5 className={`font-medium ${schedulingStyles.text}`}>Variation Configuration</h5>
 							<button
 								onClick={addVariation}
 								disabled={operationLoading}
-								className="text-teal-600 hover:text-teal-800 text-sm flex items-center gap-1 disabled:opacity-50"
+								className={`${schedulingStyles.buttonText} hover:${schedulingStyles.text} text-sm flex items-center gap-1 disabled:opacity-50`}
 							>
 								<Plus className="w-4 h-4" />
 								Add Variation
@@ -241,7 +246,7 @@ export const VariationSection: React.FC<VariationSectionProps> = ({
 
 						<div className="space-y-3">
 							<div>
-								<label className="block text-sm font-medium text-teal-800 mb-2">
+								<label className={`block text-sm font-medium ${schedulingStyles.text} mb-2`}>
 									Default Variation
 								</label>
 								<input
@@ -249,21 +254,21 @@ export const VariationSection: React.FC<VariationSectionProps> = ({
 									value={defaultVariation}
 									onChange={(e) => setDefaultVariation(e.target.value)}
 									placeholder="off"
-									className="w-full border border-teal-300 rounded px-3 py-2 text-sm"
+									className={`w-full border ${schedulingStyles.border} rounded px-3 py-2 text-sm`}
 									disabled={operationLoading}
 								/>
-								<p className="text-xs text-teal-600 mt-1">
+								<p className={`text-xs ${schedulingStyles.text} mt-1`}>
 									This variation is used when no other conditions are met
 								</p>
 							</div>
 
 							<div>
-								<label className="block text-sm font-medium text-teal-800 mb-2">
+								<label className={`block text-sm font-medium ${schedulingStyles.text} mb-2`}>
 									Variations ({variationsForm.length})
 								</label>
 								
 								{variationsForm.length === 0 ? (
-									<div className="text-center py-8 text-teal-600">
+									<div className={`text-center py-8 ${schedulingStyles.text}`}>
 										<Palette className="w-8 h-8 mx-auto mb-2 opacity-50" />
 										<p className="text-sm">No variations configured</p>
 										<p className="text-xs mt-1">Click "Add Variation" to create your first variation</p>
@@ -271,9 +276,9 @@ export const VariationSection: React.FC<VariationSectionProps> = ({
 								) : (
 									<div className="space-y-2">
 										{variationsForm.map((variation, index) => (
-											<div key={index} className="border border-teal-300 rounded-lg p-3 bg-white">
+											<div key={index} className={`border ${schedulingStyles.border} rounded-lg p-3 bg-white`}>
 												<div className="flex justify-between items-start mb-3">
-													<span className="text-sm font-medium text-teal-700">Variation #{index + 1}</span>
+													<span className={`text-sm font-medium ${schedulingStyles.text}`}>Variation #{index + 1}</span>
 													{variationsForm.length > 1 && (
 														<button
 															onClick={() => removeVariation(index)}
@@ -288,25 +293,25 @@ export const VariationSection: React.FC<VariationSectionProps> = ({
 
 												<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 													<div>
-														<label className="block text-xs font-medium text-teal-700 mb-1">Key</label>
+														<label className={`block text-xs font-medium ${schedulingStyles.text} mb-1`}>Key</label>
 														<input
 															type="text"
 															value={variation.key}
 															onChange={(e) => updateVariation(index, 'key', e.target.value)}
 															placeholder="on, off, v1, v2..."
-															className="w-full border border-teal-300 rounded px-2 py-1 text-xs"
+															className={`w-full border ${schedulingStyles.border} rounded px-2 py-1 text-xs`}
 															disabled={operationLoading}
 														/>
 													</div>
 
 													<div>
-														<label className="block text-xs font-medium text-teal-700 mb-1">Value</label>
+														<label className={`block text-xs font-medium ${schedulingStyles.text} mb-1`}>Value</label>
 														<input
 															type="text"
 															value={variation.value}
 															onChange={(e) => updateVariation(index, 'value', e.target.value)}
 															placeholder='true, false, "text", 123, {"key":"value"}'
-															className="w-full border border-teal-300 rounded px-2 py-1 text-xs"
+															className={`w-full border ${schedulingStyles.border} rounded px-2 py-1 text-xs`}
 															disabled={operationLoading}
 														/>
 													</div>
@@ -333,7 +338,7 @@ export const VariationSection: React.FC<VariationSectionProps> = ({
 						<button
 							onClick={handleVariationsSubmit}
 							disabled={operationLoading}
-							className="px-3 py-1 bg-teal-600 text-white rounded text-sm hover:bg-teal-700 disabled:opacity-50"
+							className={`px-3 py-1 ${theme.warning[600]} text-white rounded text-sm hover:bg-sky-700 disabled:opacity-50`}
 							data-testid="save-variations-button"
 						>
 							{operationLoading ? 'Saving...' : 'Save Variations'}
@@ -357,14 +362,14 @@ export const VariationSection: React.FC<VariationSectionProps> = ({
 						<div className="space-y-2">
 							<div className="flex items-center gap-2">
 								<span className="font-medium">Available Variations:</span>
-								<span className="text-teal-700">{variationEntries.length} configured</span>
+								<span className={variationStyles.text}>{variationEntries.length} configured</span>
 							</div>
 							<div className="flex items-center gap-2">
 								<span className="font-medium">Default:</span>
-								<span className="text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded font-mono">
+									<span className={`text-xs ${schedulingStyles.bg} ${schedulingStyles.text} px-2 py-1 rounded font-mono`}>
 									{defaultVariation}
 								</span>
-								<span className="text-teal-600">
+									<span className={`${schedulingStyles.textPrimary}`}>
 									→ {formatVariationValue(variations[defaultVariation])}
 								</span>
 							</div>

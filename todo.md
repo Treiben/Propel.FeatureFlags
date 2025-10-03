@@ -30,7 +30,7 @@
 
 12.  **MEDIUM, UI:** Flag card is way off to edges when there's a long list of evaluation modes. For example, ultimate-premium-experience flag that has Scheduling+TargetingRules+Percentage+TimeWindow list of modes that don't fit to the size of card
 
-14. **MEDUM, UI**: unable to add a tag in CREATE FLAG dialog. Column ':' or space ' ' or comma ',' are not allowed by UI.
+14. **MEDUM, UI:** unable to add a tag in CREATE FLAG dialog. Column ':' or space ' ' or comma ',' are not allowed by UI.
 
 ~~15. **MINOR, UI:** change text in create flag dialog to something like this: 'Note: You only can create global flags from this site. All application flags must be created from the application invoking them, directly from the code base.~~
 
@@ -38,19 +38,23 @@
 
 ~~16. **MAJOR, UI:** expiration date filter does not work or not implemented in React~~
 
-~~17. **MAJOR, UI:**: expiration date is shown incorrectly: API returns 10/12/2025 00:00:00 but UI shows 10/11/1025 7:00:00 am~~
+~~17. **MAJOR, UI:** expiration date is shown incorrectly: API returns 10/12/2025 00:00:00 but UI shows 10/11/1025 7:00:00 am~~
 
 18. **MEDIUM, UI:**: variations and default variations are not shown for flags
 
-19. **MEDIUM, UI:**: bad request message on evaluation when field is required (tenantid, userid) instead on showing error message
+19. **MEDIUM, UI:** bad request message on evaluation when field is required (tenantid, userid) instead on showing error message
 	
 20. **MEDIUM, UI:** when filter by tag key applied, the UI sets Tags field of api request instead of TagKeys field
 
-21. **MEDIUM, UI:**: when user (tenant) percentage rollout is set to 100%, the UI should show percentage as "No user restrictions" ("No tenant restrictions") (because 100% means no restriction, everyone is allowed)
+21. **MEDIUM, UI:** when user (tenant) percentage rollout is set to 100%, the UI should show percentage as "No user restrictions" ("No tenant restrictions") (because 100% means no restriction, everyone is allowed)
 
-22.**MEDIUM, UI:**: when Clear user (tenant) access control, the rollout must be set to 100% and shown as "No user restrictions"
+22.**MEDIUM, UI:** when Clear user (tenant) access control, the rollout must be set to 100% and shown as "No user restrictions"
 
-23. **NEW BUG, MEDIUM, UI:**: when scope is Global, no application name or version must be shown because it's pointless.
+23. **NEW BUG, MEDIUM, UI:** when scope is Global, no application name or version must be shown because it's pointless.
+
+24. **MEDIUM, UI:** Duplicated page header with page title.
+
+25. **MINOR, UI:** Close search panel (add x button)
 
 ## BUG FIX VERIFICATION REPORT
 
@@ -69,6 +73,8 @@
 - BUG 21: CLOSED
 - BUG 22: CLOSED
 - BUG 23: CLOSED
+- BUG 24: NOT FIXED
+- BUG 25: NOT FIXED
 
 ## NEW FEATURES
 
@@ -95,6 +101,10 @@
 - ~~Add variations and default variation to flag card in UI~~
 
 - ~~Add api support for variations and default variation~~
+
+6. Bring back IsPermanent flag
+- Add api support
+- Add UI support
 
 
 

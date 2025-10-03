@@ -1,5 +1,6 @@
 import type { FeatureFlagDto } from '../services/apiService';
 import { hasValidTargetingRulesJson, EvaluationMode } from '../services/apiService';
+import { getStatusColor as getThemeStatusColor } from '../styles/theme';
 
 export interface ScheduleStatus {
     isActive: boolean;
@@ -255,23 +256,24 @@ export const getScheduleStatus = (flag: FeatureFlagDto): ScheduleStatus => {
 export const getStatusColor = (flag: FeatureFlagDto): string => {
     const components = parseStatusComponents(flag);
 
+    // Determine status type
     if (components.baseStatus === 'Enabled') {
-        return 'bg-green-100 text-green-800';
+        return getThemeStatusColor('enabled');
     }
     if (components.baseStatus === 'Disabled' && !components.isScheduled && !components.hasTimeWindow
         && !components.hasPercentage && !components.hasUserTargeting && !components.hasTenantTargeting
         && !components.hasTargetingRules) {
-        return 'bg-red-100 text-red-800';
+        return getThemeStatusColor('disabled');
     }
 
-    if (components.isScheduled) return 'bg-blue-100 text-blue-800';
-    if (components.hasTimeWindow) return 'bg-indigo-100 text-indigo-800';
-    if (components.hasPercentage) return 'bg-yellow-100 text-yellow-800';
-    if (components.hasUserTargeting) return 'bg-purple-100 text-purple-800';
-    if (components.hasTenantTargeting) return 'bg-teal-100 text-teal-800';
-    if (components.hasTargetingRules) return 'bg-orange-100 text-orange-800';
+    // Complex status - has scheduling or targeting
+    if (components.isScheduled || components.hasTimeWindow || components.hasPercentage 
+        || components.hasUserTargeting || components.hasTenantTargeting || components.hasTargetingRules) {
+        return getThemeStatusColor('scheduled');
+    }
 
-    return 'bg-gray-100 text-gray-800';
+    // Default to partial/other
+    return getThemeStatusColor('partial');
 };
 
 // BUG FIX #17: Fix date formatting to display correctly in local timezone

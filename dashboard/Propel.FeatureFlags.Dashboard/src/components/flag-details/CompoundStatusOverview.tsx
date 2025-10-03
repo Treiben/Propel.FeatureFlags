@@ -11,6 +11,7 @@ import {
     formatRelativeTime,
     getDayName
 } from '../../utils/flagHelpers';
+import { theme } from '../../styles/theme';
 
 interface CompoundStatusOverviewProps {
     flag: FeatureFlagDto;
@@ -58,16 +59,16 @@ export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({
     const blockedUsersCount = flag.userAccess?.blocked?.length || 0;
 
     return (
-        <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+        <div className={`mb-4 p-4 ${theme.neutral[50]} ${theme.neutral.border[200]} border rounded-lg`}>
             <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
-                    <Info className="w-4 h-4 text-gray-600" />
-                    <h4 className="font-medium text-gray-900">Status Overview</h4>
-                    <span className="text-sm text-gray-600">({getStatusDescription(flag)})</span>
+                    <Info className={`w-4 h-4 ${theme.neutral.text[600]}`} />
+                    <h4 className={`font-medium ${theme.neutral.text[900]}`}>Status Overview</h4>
+                    <span className={`text-sm ${theme.neutral.text[600]}`}>({getStatusDescription(flag)})</span>
                 </div>
                 <button
                     onClick={() => setShowEvaluation(!showEvaluation)}
-                    className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                    className={`flex items-center gap-1 px-2 py-1 text-xs ${theme.primary[100]} ${theme.primary.text[700]} rounded hover:bg-blue-200 transition-colors`}
                 >
                     <Play className="w-3 h-3" />
                     Test Evaluation
@@ -77,18 +78,18 @@ export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 {components.isScheduled && (
                     <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-blue-600" />
+                        <Calendar className={`w-4 h-4 ${theme.warning.text[600]}`} />
                         <span className="font-medium">Scheduling:</span>
                         <span className={
-                            scheduleStatus.isActive ? 'text-green-700' :
-                                scheduleStatus.phase === 'upcoming' ? 'text-blue-700' : 'text-gray-700'
+                            scheduleStatus.isActive ? theme.success.text[700] :
+                                scheduleStatus.phase === 'upcoming' ? theme.warning.text[700] : theme.neutral.text[700]
                         }>
                             {scheduleStatus.isActive ? 'Active' :
                                 scheduleStatus.phase === 'upcoming' ? 'Upcoming' :
                                     scheduleStatus.phase === 'expired' ? 'Expired' : 'Configured'}
                         </span>
                         {scheduleStatus.nextActionTime && (
-                            <span className="text-gray-600">
+                            <span className={theme.neutral.text[600]}>
                                 ({formatRelativeTime(scheduleStatus.nextActionTime)})
                             </span>
                         )}
@@ -97,12 +98,12 @@ export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({
 
                 {components.hasTimeWindow && (
                     <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-indigo-600" />
+                        <Clock className={`w-4 h-4 ${theme.warning.text[600]}`} />
                         <span className="font-medium">Time Window:</span>
-                        <span className={timeWindowStatus.isActive ? 'text-green-700' : 'text-gray-700'}>
+                        <span className={timeWindowStatus.isActive ? theme.success.text[700] : theme.neutral.text[700]}>
                             {timeWindowStatus.isActive ? 'Active' : 'Inactive'}
                         </span>
-                        <span className="text-gray-600">
+                        <span className={theme.neutral.text[600]}>
                             ({formatTime(flag.timeWindow?.startOn)} - {formatTime(flag.timeWindow?.stopOn)})
                         </span>
                     </div>
@@ -110,17 +111,17 @@ export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({
 
                 {components.hasPercentage && (
                     <div className="flex items-center gap-2">
-                        <Percent className="w-4 h-4 text-yellow-600" />
+                        <Percent className={`w-4 h-4 ${theme.warning.text[600]}`} />
                         <span className="font-medium">Percentage:</span>
-                        <span className="text-yellow-700">{userPercentage}% of users</span>
+                        <span className={theme.warning.text[700]}>{userPercentage}% of users</span>
                     </div>
                 )}
 
                 {components.hasUserTargeting && (
                     <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-purple-600" />
+                        <Users className={`w-4 h-4 ${theme.success.text[600]}`} />
                         <span className="font-medium">User Targeting:</span>
-                        <span className="text-purple-700">
+                        <span className={theme.success.text[700]}>
                             {allowedUsersCount} enabled, {blockedUsersCount} disabled
                         </span>
                     </div>
@@ -128,36 +129,36 @@ export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({
             </div>
 
             {showEvaluation && onEvaluateFlag && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className={`mt-4 pt-4 ${theme.neutral.border[200]} border-t`}>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">User ID (optional)</label>
+                            <label className={`block text-xs font-medium ${theme.neutral.text[700]} mb-1`}>User ID (optional)</label>
                             <input
                                 type="text"
                                 value={testUserId}
                                 onChange={(e) => setTestUserId(e.target.value)}
                                 placeholder="user123"
-                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                className={`w-full px-2 py-1 text-xs ${theme.neutral.border[300]} border rounded focus:outline-none focus:ring-1 focus:ring-blue-500`}
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Tenant ID (optional)</label>
+                            <label className={`block text-xs font-medium ${theme.neutral.text[700]} mb-1`}>Tenant ID (optional)</label>
                             <input
                                 type="text"
                                 value={testTenantId}
                                 onChange={(e) => setTestTenantId(e.target.value)}
                                 placeholder="tenant456"
-                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                className={`w-full px-2 py-1 text-xs ${theme.neutral.border[300]} border rounded focus:outline-none focus:ring-1 focus:ring-blue-500`}
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Attributes (JSON)</label>
+                            <label className={`block text-xs font-medium ${theme.neutral.text[700]} mb-1`}>Attributes (JSON)</label>
                             <input
                                 type="text"
                                 value={testAttributes}
                                 onChange={(e) => setTestAttributes(e.target.value)}
                                 placeholder='{"country": "US"}'
-                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                className={`w-full px-2 py-1 text-xs ${theme.neutral.border[300]} border rounded focus:outline-none focus:ring-1 focus:ring-blue-500`}
                             />
                         </div>
                     </div>
@@ -166,7 +167,7 @@ export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({
                         <button
                             onClick={handleEvaluate}
                             disabled={evaluationLoading}
-                            className="flex items-center gap-1 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className={`flex items-center gap-1 px-3 py-1 text-xs ${theme.primary[600]} text-white rounded ${theme.primary.hover.bg700} disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             {evaluationLoading ? (
                                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -179,18 +180,18 @@ export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({
                         {evaluationResult && (
                             <div className="flex items-center gap-1 text-xs">
                                 {evaluationResult.isEnabled ? (
-                                    <CheckCircle className="w-3 h-3 text-green-600" />
+                                    <CheckCircle className={`w-3 h-3 ${theme.success.text[600]}`} />
                                 ) : (
-                                    <XCircle className="w-3 h-3 text-red-600" />
+                                    <XCircle className={`w-3 h-3 ${theme.danger.text[600]}`} />
                                 )}
-                                <span className={evaluationResult.isEnabled ? 'text-green-700' : 'text-red-700'}>
+                                <span className={evaluationResult.isEnabled ? theme.success.text[700] : theme.danger.text[700]}>
                                     {evaluationResult.isEnabled ? 'Enabled' : 'Disabled'}
                                 </span>
                                 {evaluationResult.reason && (
-                                    <span className="text-gray-600">({evaluationResult.reason})</span>
+                                    <span className={theme.neutral.text[600]}>({evaluationResult.reason})</span>
                                 )}
                                 {evaluationResult.variation && evaluationResult.variation !== 'default' && (
-                                    <span className="text-gray-600">- Variation: {evaluationResult.variation}</span>
+                                    <span className={theme.neutral.text[600]}>- Variation: {evaluationResult.variation}</span>
                                 )}
                             </div>
                         )}
@@ -199,7 +200,7 @@ export const CompoundStatusOverview: React.FC<CompoundStatusOverviewProps> = ({
             )}
 
             {(components.isScheduled || components.hasTimeWindow) && (
-                <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-600">
+                <div className={`mt-3 pt-3 ${theme.neutral.border[200]} border-t text-xs ${theme.neutral.text[600]}`}>
                     {components.isScheduled && (
                         <div>Schedule: {formatDate(flag.schedule?.enableOnUtc)} - {formatDate(flag.schedule?.disableOnUtc)}</div>
                     )}
