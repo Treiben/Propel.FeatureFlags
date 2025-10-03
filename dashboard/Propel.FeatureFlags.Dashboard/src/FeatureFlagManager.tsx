@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { AlertCircle, Filter, Plus, Settings, X, Search } from 'lucide-react';
+import { useState } from 'react';
+import { Filter, Plus, Settings, Search } from 'lucide-react';
 import { useFeatureFlags } from './hooks/useFeatureFlags';
 import type {
     CreateFeatureFlagRequest,
@@ -31,7 +31,6 @@ const FeatureFlagManager = () => {
     const {
         flags,
         loading,
-        error,
         selectedFlag,
         totalCount,
         currentPage,
@@ -58,7 +57,6 @@ const FeatureFlagManager = () => {
         searchFlag,
         clearSearch,
         deleteFlag,
-        clearError,
         evaluateFlag,
     } = useFeatureFlags();
 
@@ -67,7 +65,7 @@ const FeatureFlagManager = () => {
     const [showSearch, setShowSearch] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
     const [deletingFlag, setDeletingFlag] = useState(false);
-    const [hasSearched, setHasSearched] = useState(false);  // ADD THIS
+    const [hasSearched, setHasSearched] = useState(false);
     const [filters, setFilters] = useState<{
         modes: number[];
         tagKeys: string[];
@@ -91,66 +89,23 @@ const FeatureFlagManager = () => {
 
     // Handler functions
     const quickToggle = async (flag: FeatureFlagDto) => {
-        try {
-            const scopeHeaders = getScopeHeaders(flag);
-            const isCurrentlyEnabled = flag.modes?.includes(EvaluationMode.On);
-            const mode = isCurrentlyEnabled ? EvaluationMode.Off : EvaluationMode.On;
-            await toggleFlag(flag.key, mode, 'Quick toggle via UI', scopeHeaders);
-        } catch (error) {
-            console.error('Failed to toggle flag:', error);
-        }
-    };
-
-    const handleSetPercentage = async (flag: FeatureFlagDto, percentage: number) => {
-        try {
-            const scopeHeaders = getScopeHeaders(flag);
-            await updateUserAccess(flag.key, { rolloutPercentage: percentage }, scopeHeaders);
-        } catch (error) {
-            console.error('Failed to set percentage:', error);
-        }
-    };
-
-    const handleEnableUsers = async (flag: FeatureFlagDto, userIds: string[]) => {
-        try {
-            const scopeHeaders = getScopeHeaders(flag);
-            const currentAllowedUsers = flag.userAccess?.allowed || [];
-            const updatedAllowedUsers = [...new Set([...currentAllowedUsers, ...userIds])];
-            await updateUserAccess(flag.key, { allowed: updatedAllowedUsers }, scopeHeaders);
-        } catch (error) {
-            console.error('Failed to enable users:', error);
-        }
-    };
-
-    const handleDisableUsers = async (flag: FeatureFlagDto, userIds: string[]) => {
-        try {
-            const scopeHeaders = getScopeHeaders(flag);
-            const currentBlockedUsers = flag.userAccess?.blocked || [];
-            const updatedBlockedUsers = [...new Set([...currentBlockedUsers, ...userIds])];
-            await updateUserAccess(flag.key, { blocked: updatedBlockedUsers }, scopeHeaders);
-        } catch (error) {
-            console.error('Failed to disable users:', error);
-        }
+        const scopeHeaders = getScopeHeaders(flag);
+        const isCurrentlyEnabled = flag.modes?.includes(EvaluationMode.On);
+        const mode = isCurrentlyEnabled ? EvaluationMode.Off : EvaluationMode.On;
+        await toggleFlag(flag.key, mode, 'Quick toggle via UI', scopeHeaders);
     };
 
     const handleScheduleFlag = async (flag: FeatureFlagDto, enableOn: string, disableOn?: string) => {
-        try {
-            const scopeHeaders = getScopeHeaders(flag);
-            await scheduleFlag(flag.key, { enableOn, disableOn }, scopeHeaders);
-        } catch (error) {
-            console.error('Failed to schedule flag:', error);
-        }
+        const scopeHeaders = getScopeHeaders(flag);
+        await scheduleFlag(flag.key, { enableOn, disableOn }, scopeHeaders);
     };
 
     const handleClearSchedule = async (flag: FeatureFlagDto) => {
-        try {
-            const scopeHeaders = getScopeHeaders(flag);
-            await scheduleFlag(flag.key, {
-                enableOn: undefined,
-                disableOn: undefined
-            }, scopeHeaders);
-        } catch (error) {
-            console.error('Failed to clear schedule:', error);
-        }
+        const scopeHeaders = getScopeHeaders(flag);
+        await scheduleFlag(flag.key, {
+            enableOn: undefined,
+            disableOn: undefined
+        }, scopeHeaders);
     };
 
     const handleUpdateTimeWindow = async (flag: FeatureFlagDto, timeWindowData: {
@@ -159,96 +114,74 @@ const FeatureFlagManager = () => {
         timeZone: string;
         daysActive: string[];
     }) => {
-        try {
-            const scopeHeaders = getScopeHeaders(flag);
-            const daysActiveNumbers = timeWindowData.daysActive
-                .map(day => getDayOfWeekNumber(day))
-                .filter(day => day !== -1);
+        const scopeHeaders = getScopeHeaders(flag);
+        const daysActiveNumbers = timeWindowData.daysActive
+            .map(day => getDayOfWeekNumber(day))
+            .filter(day => day !== -1);
 
-            await setTimeWindow(flag.key, {
-                startOn: timeWindowData.startOn,
-                endOn: timeWindowData.endOn,
-                timeZone: timeWindowData.timeZone,
-                daysActive: daysActiveNumbers,
-                removeTimeWindow: false
-            }, scopeHeaders);
-        } catch (error) {
-            console.error('Failed to update time window:', error);
-        }
+        await setTimeWindow(flag.key, {
+            startOn: timeWindowData.startOn,
+            endOn: timeWindowData.endOn,
+            timeZone: timeWindowData.timeZone,
+            daysActive: daysActiveNumbers,
+            removeTimeWindow: false
+        }, scopeHeaders);
     };
 
     const handleClearTimeWindow = async (flag: FeatureFlagDto) => {
-        try {
-            const scopeHeaders = getScopeHeaders(flag);
-            await setTimeWindow(flag.key, {
-                startOn: '00:00:00',
-                endOn: '23:59:59',
-                timeZone: 'UTC',
-                daysActive: [],
-                removeTimeWindow: true
-            }, scopeHeaders);
-        } catch (error) {
-            console.error('Failed to clear time window:', error);
-        }
+        const scopeHeaders = getScopeHeaders(flag);
+        await setTimeWindow(flag.key, {
+            startOn: '00:00:00',
+            endOn: '23:59:59',
+            timeZone: 'UTC',
+            daysActive: [],
+            removeTimeWindow: true
+        }, scopeHeaders);
     };
 
     const handleUpdateTargetingRulesWrapper = async (targetingRules?: TargetingRule[], removeTargetingRules?: boolean) => {
         if (!selectedFlag) return;
 
-        try {
-            const scopeHeaders = getScopeHeaders(selectedFlag);
-            const request: UpdateTargetingRulesRequest = {
-                targetingRules: targetingRules && targetingRules.length > 0 ? targetingRules : undefined,
-                removeTargetingRules: removeTargetingRules || (!targetingRules || targetingRules.length === 0)
-            };
+        const scopeHeaders = getScopeHeaders(selectedFlag);
+        const request: UpdateTargetingRulesRequest = {
+            targetingRules: targetingRules && targetingRules.length > 0 ? targetingRules : undefined,
+            removeTargetingRules: removeTargetingRules || (!targetingRules || targetingRules.length === 0)
+        };
 
-            await updateTargetingRules(selectedFlag.key, request, scopeHeaders);
-        } catch (error) {
-            console.error('Failed to update targeting rules:', error);
-        }
+        await updateTargetingRules(selectedFlag.key, request, scopeHeaders);
     };
 
     const handleUpdateVariations = async (variations: Record<string, any>, defaultVariation: string) => {
         if (!selectedFlag) return;
 
-        try {
-            const scopeHeaders = getScopeHeaders(selectedFlag);
-            
-            // Convert variations object to array format expected by API
-            const variationsArray = Object.entries(variations).map(([key, value]) => ({
-                key,
-                value: typeof value === 'string' ? value : JSON.stringify(value)
-            }));
+        const scopeHeaders = getScopeHeaders(selectedFlag);
+        
+        // Convert variations object to array format expected by API
+        const variationsArray = Object.entries(variations).map(([key, value]) => ({
+            key,
+            value: typeof value === 'string' ? value : JSON.stringify(value)
+        }));
 
-            const request: UpdateVariationsRequest = {
-                variations: variationsArray.length > 0 ? variationsArray : undefined,
-                defaultVariation,
-                removeVariations: variationsArray.length === 0
-            };
+        const request: UpdateVariationsRequest = {
+            variations: variationsArray.length > 0 ? variationsArray : undefined,
+            defaultVariation,
+            removeVariations: variationsArray.length === 0
+        };
 
-            await updateVariations(selectedFlag.key, request, scopeHeaders);
-        } catch (error) {
-            console.error('Failed to update variations:', error);
-            throw error;
-        }
+        await updateVariations(selectedFlag.key, request, scopeHeaders);
     };
 
     const handleClearVariations = async () => {
         if (!selectedFlag) return;
 
-        try {
-            const scopeHeaders = getScopeHeaders(selectedFlag);
-            const request: UpdateVariationsRequest = {
-                variations: undefined,
-                defaultVariation: 'off',
-                removeVariations: true
-            };
+        const scopeHeaders = getScopeHeaders(selectedFlag);
+        const request: UpdateVariationsRequest = {
+            variations: undefined,
+            defaultVariation: 'off',
+            removeVariations: true
+        };
 
-            await updateVariations(selectedFlag.key, request, scopeHeaders);
-        } catch (error) {
-            console.error('Failed to clear variations:', error);
-            throw error;
-        }
+        await updateVariations(selectedFlag.key, request, scopeHeaders);
     };
 
     const handleUpdateFlag = async (flag: FeatureFlagDto, updates: {
@@ -258,57 +191,47 @@ const FeatureFlagManager = () => {
         tags?: Record<string, string>;
         notes?: string;
     }) => {
-        try {
-            const scopeHeaders = getScopeHeaders(flag);
-            const updateRequest: UpdateFlagRequest = { ...updates };
-            await updateFlag(flag.key, updateRequest, scopeHeaders);
-        } catch (error) {
-            console.error('Failed to update flag:', error);
-        }
+        const scopeHeaders = getScopeHeaders(flag);
+        const updateRequest: UpdateFlagRequest = { ...updates };
+        await updateFlag(flag.key, updateRequest, scopeHeaders);
     };
 
     const handleDeleteFlag = async (flagKey: string) => {
         try {
             setDeletingFlag(true);
-            const flag = flags.find(f => f.key === flagKey) || searchResults.find(f => f.key === flagKey);  // Changed from searchResult
+            const flag = flags.find(f => f.key === flagKey) || searchResults.find(f => f.key === flagKey);
             if (!flag) return;
 
             const scopeHeaders = getScopeHeaders(flag);
             await deleteFlag(flagKey, scopeHeaders);
             setShowDeleteConfirm(null);
-        } catch (error) {
-            console.error('Failed to delete flag:', error);
         } finally {
             setDeletingFlag(false);
         }
     };
 
     const handleEvaluateFlag = async (key: string, userId?: string, tenantId?: string, attributes?: Record<string, any>) => {
-        try {
-            const flag = flags.find(f => f.key === key) || selectedFlag || searchResults.find(f => f.key === key);  // Changed from searchResult
-            if (!flag) throw new Error('Flag not found');
+        const flag = flags.find(f => f.key === key) || selectedFlag || searchResults.find(f => f.key === key);
+        if (!flag) throw new Error('Flag not found');
 
-            const scopeHeaders = getScopeHeaders(flag);
-            return await evaluateFlag(key, scopeHeaders, userId, tenantId, attributes);
-        } catch (error) {
-            console.error('Failed to evaluate flag:', error);
-            throw error;
-        }
+        const scopeHeaders = getScopeHeaders(flag);
+        return await evaluateFlag(key, scopeHeaders, userId, tenantId, attributes);
     };
 
     const handleCreateFlag = async (request: CreateFeatureFlagRequest): Promise<void> => {
         await createFlag(request);
+        setShowCreateForm(false);
     };
 
     const handleSearch = async (request: SearchFeatureFlagRequest) => {
         await searchFlag(request);
-        setHasSearched(true);  // ADD THIS
+        setHasSearched(true);
         setShowSearch(false);
     };
 
     const handleClearSearch = () => {
         clearSearch();
-        setHasSearched(false);  // ADD THIS
+        setHasSearched(false);
         setShowSearch(false);
     };
 
@@ -334,7 +257,6 @@ const FeatureFlagManager = () => {
             params.applicationName = filters.applicationName;
         }
 
-        // FIX BUG #20: Separate tag keys from tag key:value pairs
         const tagKeys: string[] = [];
         const tags: string[] = [];
 
@@ -344,10 +266,8 @@ const FeatureFlagManager = () => {
 
             if (key) {
                 if (value) {
-                    // If there's a value, add to tags array as key:value
                     tags.push(`${key}:${value}`);
                 } else {
-                    // If no value, add to tagKeys array for key-only filtering
                     tagKeys.push(key);
                 }
             }
@@ -408,18 +328,6 @@ const FeatureFlagManager = () => {
             <Header />
             
             <div className="max-w-[1600px] mx-auto p-8">
-                {error && (
-                    <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                        <div className="flex-1">
-                            <p className="text-red-800">{error}</p>
-                        </div>
-                        <button onClick={clearError} className="text-red-500 hover:text-red-700">
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-                )}
-
                 <div className="flex justify-between items-center mb-8">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">Feature Flags Management</h1>
@@ -523,8 +431,8 @@ const FeatureFlagManager = () => {
                                         onClick={() => selectFlag(flag)}
                                         onDelete={(key) => setShowDeleteConfirm(key)}
                                     />
-                                )) )
-                            }
+                                ))
+                            )}
                         </div>
 
                         {!hasSearched && (

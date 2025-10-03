@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import type { CreateFeatureFlagRequest } from '../services/apiService';
+import { ApiError } from '../services/apiService';
 
 interface CreateFlagModalProps {
     isOpen: boolean;
@@ -21,10 +22,12 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
     });
     const [tagsInput, setTagsInput] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async () => {
         try {
             setSubmitting(true);
+            setError(null);
 
             const cleanedData: CreateFeatureFlagRequest = {
                 key: formData.key,
@@ -34,9 +37,8 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
             };
 
             await onSubmit(cleanedData);
-            onClose();
-
-            // Reset form
+            
+            // Reset form on success
             setFormData({
                 key: '',
                 name: '',
@@ -44,36 +46,57 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
                 tags: {},
             });
             setTagsInput('');
-        } catch (error) {
-            console.error('Failed to create flag:', error);
+            onClose();
+        } catch (err: any) {
+            console.error('Failed to create flag:', err);
+            
+            // Extract detailed error message
+            let errorMessage = 'Failed to create flag. Please try again.';
+            
+            if (err instanceof ApiError) {
+                errorMessage = err.detail || err.message;
+            } else if (err?.message) {
+                errorMessage = err.message;
+            }
+            
+            setError(errorMessage);
         } finally {
             setSubmitting(false);
         }
     };
 
-    // BUG FIX #14: Allow colons, spaces, and commas in tag input
+    const handleClose = () => {
+        if (!submitting) {
+            setError(null);
+            setFormData({
+                key: '',
+                name: '',
+                description: '',
+                tags: {},
+            });
+            setTagsInput('');
+            onClose();
+        }
+    };
+
     const handleTagsChange = (value: string) => {
         setTagsInput(value);
 
         try {
             const tags: Record<string, string> = {};
             if (value.trim()) {
-                // Split by comma to get individual tag pairs
                 const tagPairs = value.split(',').map(tag => tag.trim()).filter(tag => tag);
 
                 tagPairs.forEach(tagPair => {
-                    // Split by colon to separate key and value
                     const colonIndex = tagPair.indexOf(':');
 
                     if (colonIndex > 0) {
-                        // Has a colon, split into key:value
                         const key = tagPair.substring(0, colonIndex).trim();
                         const tagValue = tagPair.substring(colonIndex + 1).trim();
                         if (key) {
                             tags[key] = tagValue || '';
                         }
                     } else {
-                        // No colon, treat entire string as key with empty value
                         const key = tagPair.trim();
                         if (key) {
                             tags[key] = '';
@@ -95,13 +118,28 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold">Create Feature Flag</h3>
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="text-gray-400 hover:text-gray-600"
                         disabled={submitting}
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
+
+                {error && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <p className="text-sm text-red-800">{error}</p>
+                        </div>
+                        <button
+                            onClick={() => setError(null)}
+                            className="text-red-400 hover:text-red-600"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
 
                 <div className="space-y-4">
                     <div>
@@ -156,7 +194,6 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
                         <p className="text-xs text-gray-500 mt-1">Comma-separated key:value pairs (e.g., env:prod, team:backend)</p>
                     </div>
 
-                    {/* BUG FIX #15: Updated note text */}
                     <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                         <p className="text-sm text-blue-800">
                             <strong>Note:</strong> Only global flags can be created from this dashboard. Application-specific flags must be created directly from your application code. New flags are created as disabled and permanent by default. You can modify these settings and add configurations after creation.
@@ -166,7 +203,7 @@ export const CreateFlagModal: React.FC<CreateFlagModalProps> = ({
 
                 <div className="flex gap-3 mt-6">
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
                         disabled={submitting}
                     >

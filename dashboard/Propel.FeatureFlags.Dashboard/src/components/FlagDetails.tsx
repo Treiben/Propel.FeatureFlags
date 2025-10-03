@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trash2, Eye, EyeOff, Play, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Trash2, Eye, EyeOff, Play, Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import type { FeatureFlagDto, EvaluationResult, TargetingRule } from '../services/apiService';
 import { parseTargetingRules, EvaluationMode, Scope } from '../services/apiService';
 import { StatusBadge } from './StatusBadge';
@@ -37,6 +37,7 @@ import {
     FlagMetadata,
     FlagEditSection
 } from './flag-details/UtilityComponents';
+import { ApiError } from '../services/apiService';
 
 interface FlagDetailsProps {
     flag: FeatureFlagDto;
@@ -68,6 +69,22 @@ interface FlagDetailsProps {
     evaluationLoading?: boolean;
 }
 
+// Error display component
+const ErrorAlert: React.FC<{ message: string; onDismiss: () => void }> = ({ message, onDismiss }) => (
+    <div className={`mb-4 p-3 ${theme.danger[50]} ${theme.danger.border[200]} border rounded-lg flex items-start gap-2`}>
+        <AlertCircle className={`w-5 h-5 ${theme.danger.text[600]} flex-shrink-0 mt-0.5`} />
+        <div className="flex-1">
+            <p className={`text-sm ${theme.danger.text[800]}`}>{message}</p>
+        </div>
+        <button
+            onClick={onDismiss}
+            className={`${theme.danger.text[400]} hover:${theme.danger.text[600]} transition-colors`}
+        >
+            <XCircle className="w-4 h-4" />
+        </button>
+    </div>
+);
+
 export const FlagDetails: React.FC<FlagDetailsProps> = ({
     flag,
     onToggle,
@@ -92,6 +109,15 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     const [testTenantId, setTestTenantId] = useState('');
     const [testAttributes, setTestAttributes] = useState('{}');
     const [evaluationError, setEvaluationError] = useState<string | null>(null);
+    
+    // Component-specific error states
+    const [userAccessError, setUserAccessError] = useState<string | null>(null);
+    const [tenantAccessError, setTenantAccessError] = useState<string | null>(null);
+    const [targetingRulesError, setTargetingRulesError] = useState<string | null>(null);
+    const [variationError, setVariationError] = useState<string | null>(null);
+    const [scheduleError, setScheduleError] = useState<string | null>(null);
+    const [timeWindowError, setTimeWindowError] = useState<string | null>(null);
+    const [flagEditError, setFlagEditError] = useState<string | null>(null);
 
     useEffect(() => {
         setShowEvaluation(false);
@@ -99,7 +125,22 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
         setTestTenantId('');
         setTestAttributes('{}');
         setEvaluationError(null);
+        // Clear all component errors when flag changes
+        setUserAccessError(null);
+        setTenantAccessError(null);
+        setTargetingRulesError(null);
+        setVariationError(null);
+        setScheduleError(null);
+        setTimeWindowError(null);
+        setFlagEditError(null);
     }, [flag.key]);
+
+    const extractErrorMessage = (error: any): string => {
+        if (error instanceof ApiError) {
+            return error.detail || error.message;
+        }
+        return error?.message || 'An unexpected error occurred';
+    };
 
     const handleToggle = async () => {
         try {
@@ -114,8 +155,12 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     const handleUpdateUserAccessWrapper = async (allowedUsers?: string[], blockedUsers?: string[], percentage?: number) => {
         setOperationLoading(true);
+        setUserAccessError(null);
         try {
             await onUpdateUserAccess(allowedUsers, blockedUsers, percentage);
+        } catch (error: any) {
+            setUserAccessError(extractErrorMessage(error));
+            throw error;
         } finally {
             setOperationLoading(false);
         }
@@ -123,9 +168,12 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     const handleClearUserAccessWrapper = async () => {
         setOperationLoading(true);
+        setUserAccessError(null);
         try {
-            // BUG FIX #8: Clear should set to 100% (no restrictions)
             await onUpdateUserAccess([], [], 100);
+        } catch (error: any) {
+            setUserAccessError(extractErrorMessage(error));
+            throw error;
         } finally {
             setOperationLoading(false);
         }
@@ -133,8 +181,12 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     const handleUpdateTenantAccessWrapper = async (allowedTenants?: string[], blockedTenants?: string[], percentage?: number) => {
         setOperationLoading(true);
+        setTenantAccessError(null);
         try {
             await onUpdateTenantAccess(allowedTenants, blockedTenants, percentage);
+        } catch (error: any) {
+            setTenantAccessError(extractErrorMessage(error));
+            throw error;
         } finally {
             setOperationLoading(false);
         }
@@ -142,9 +194,12 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     const handleClearTenantAccessWrapper = async () => {
         setOperationLoading(true);
+        setTenantAccessError(null);
         try {
-            // BUG FIX #9: Clear should set to 100% (no restrictions)
             await onUpdateTenantAccess([], [], 100);
+        } catch (error: any) {
+            setTenantAccessError(extractErrorMessage(error));
+            throw error;
         } finally {
             setOperationLoading(false);
         }
@@ -152,8 +207,12 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     const handleUpdateTargetingRulesWrapper = async (targetingRules?: TargetingRule[], removeTargetingRules?: boolean) => {
         setOperationLoading(true);
+        setTargetingRulesError(null);
         try {
             await onUpdateTargetingRules(targetingRules, removeTargetingRules);
+        } catch (error: any) {
+            setTargetingRulesError(extractErrorMessage(error));
+            throw error;
         } finally {
             setOperationLoading(false);
         }
@@ -161,8 +220,12 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     const handleClearTargetingRulesWrapper = async () => {
         setOperationLoading(true);
+        setTargetingRulesError(null);
         try {
             await onUpdateTargetingRules(undefined, true);
+        } catch (error: any) {
+            setTargetingRulesError(extractErrorMessage(error));
+            throw error;
         } finally {
             setOperationLoading(false);
         }
@@ -170,8 +233,12 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     const handleScheduleWrapper = async (flag: FeatureFlagDto, enableOn: string, disableOn?: string) => {
         setOperationLoading(true);
+        setScheduleError(null);
         try {
             await onSchedule(flag, enableOn, disableOn);
+        } catch (error: any) {
+            setScheduleError(extractErrorMessage(error));
+            throw error;
         } finally {
             setOperationLoading(false);
         }
@@ -179,8 +246,12 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     const handleClearScheduleWrapper = async () => {
         setOperationLoading(true);
+        setScheduleError(null);
         try {
             await onClearSchedule(flag);
+        } catch (error: any) {
+            setScheduleError(extractErrorMessage(error));
+            throw error;
         } finally {
             setOperationLoading(false);
         }
@@ -188,8 +259,12 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     const handleUpdateTimeWindowWrapper = async (flag: FeatureFlagDto, timeWindowData: any) => {
         setOperationLoading(true);
+        setTimeWindowError(null);
         try {
             await onUpdateTimeWindow(flag, timeWindowData);
+        } catch (error: any) {
+            setTimeWindowError(extractErrorMessage(error));
+            throw error;
         } finally {
             setOperationLoading(false);
         }
@@ -197,8 +272,12 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
     const handleClearTimeWindowWrapper = async () => {
         setOperationLoading(true);
+        setTimeWindowError(null);
         try {
             await onClearTimeWindow(flag);
+        } catch (error: any) {
+            setTimeWindowError(extractErrorMessage(error));
+            throw error;
         } finally {
             setOperationLoading(false);
         }
@@ -212,10 +291,34 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
         notes?: string;
     }) => {
         setOperationLoading(true);
+        setFlagEditError(null);
         try {
             await onUpdateFlag(flag, updates);
+        } catch (error: any) {
+            setFlagEditError(extractErrorMessage(error));
+            throw error;
         } finally {
             setOperationLoading(false);
+        }
+    };
+
+    const handleUpdateVariationsWrapper = async (variations: Record<string, any>, defaultVariation: string) => {
+        setVariationError(null);
+        try {
+            await onUpdateVariations?.(variations, defaultVariation);
+        } catch (error: any) {
+            setVariationError(extractErrorMessage(error));
+            throw error;
+        }
+    };
+
+    const handleClearVariationsWrapper = async () => {
+        setVariationError(null);
+        try {
+            await onClearVariations?.();
+        } catch (error: any) {
+            setVariationError(extractErrorMessage(error));
+            throw error;
         }
     };
 
@@ -242,18 +345,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
             );
         } catch (error: any) {
             console.error('Failed to evaluate flag:', error);
-            
-            // Extract the detailed error message from ApiError
-            let errorMessage = 'Failed to evaluate flag. Please try again.';
-            
-            if (error.detail) {
-                // Use the detail from ProblemDetails
-                errorMessage = error.detail;
-            } else if (error.message) {
-                errorMessage = error.message;
-            }
-
-            setEvaluationError(errorMessage);
+            setEvaluationError(extractErrorMessage(error));
         }
     };
 
@@ -265,8 +357,6 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
     const shouldShowUserAccessIndicator = flag.modes?.includes(EvaluationMode.UserRolloutPercentage) || flag.modes?.includes(EvaluationMode.UserTargeted);
     const shouldShowTenantAccessIndicator = flag.modes?.includes(EvaluationMode.TenantRolloutPercentage) || flag.modes?.includes(EvaluationMode.TenantTargeted);
     const shouldShowTargetingRulesIndicator = flag.modes?.includes(EvaluationMode.TargetingRules) || targetingRules.length > 0;
-
-    // BUG FIX #18: Properly check for custom variations using the correct structure
     const shouldShowVariationIndicator = checkForCustomVariations(flag);
 
     return (
@@ -316,7 +406,6 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                         </div>
                     </div>
                     <p className={`text-sm ${theme.neutral.text[500]} font-mono`}>{flag.key}</p>
-                    {/* BUG FIX #11 & #23: Show application info only for Application scope */}
                     {flag.scope === Scope.Application && (flag.applicationName || flag.applicationVersion) && (
                         <div className={`mt-1 flex items-center gap-2 text-xs ${theme.neutral.text[600]}`}>
                             <span className="font-medium">Scope:</span>
@@ -426,7 +515,6 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                         )}
                     </div>
 
-                    {/* BUG FIX #19: Show error message below evaluate button */}
                     {evaluationError && (
                         <div className={`mt-3 p-2 ${theme.danger[50]} ${theme.danger.border[200]} border rounded text-xs ${theme.danger.text[700]}`}>
                             {evaluationError}
@@ -444,12 +532,14 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
 
             <PermanentFlagWarning flag={flag} />
 
+            {flagEditError && <ErrorAlert message={flagEditError} onDismiss={() => setFlagEditError(null)} />}
             <FlagEditSection
                 flag={flag}
                 onUpdateFlag={handleUpdateFlagWrapper}
                 operationLoading={operationLoading}
             />
 
+            {scheduleError && <ErrorAlert message={scheduleError} onDismiss={() => setScheduleError(null)} />}
             <SchedulingSection
                 flag={flag}
                 onSchedule={handleScheduleWrapper}
@@ -457,6 +547,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 operationLoading={operationLoading}
             />
 
+            {timeWindowError && <ErrorAlert message={timeWindowError} onDismiss={() => setTimeWindowError(null)} />}
             <TimeWindowSection
                 flag={flag}
                 onUpdateTimeWindow={handleUpdateTimeWindowWrapper}
@@ -464,6 +555,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 operationLoading={operationLoading}
             />
 
+            {userAccessError && <ErrorAlert message={userAccessError} onDismiss={() => setUserAccessError(null)} />}
             <UserAccessSection
                 flag={flag}
                 onUpdateUserAccess={handleUpdateUserAccessWrapper}
@@ -471,6 +563,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 operationLoading={operationLoading}
             />
 
+            {tenantAccessError && <ErrorAlert message={tenantAccessError} onDismiss={() => setTenantAccessError(null)} />}
             <TenantAccessSection
                 flag={flag}
                 onUpdateTenantAccess={handleUpdateTenantAccessWrapper}
@@ -478,6 +571,7 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 operationLoading={operationLoading}
             />
 
+            {targetingRulesError && <ErrorAlert message={targetingRulesError} onDismiss={() => setTargetingRulesError(null)} />}
             <TargetingRulesSection
                 flag={flag}
                 onUpdateTargetingRules={handleUpdateTargetingRulesWrapper}
@@ -485,11 +579,11 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                 operationLoading={operationLoading}
             />
 
-            {/* BUG FIX #18: Show variations properly at the end */}
+            {variationError && <ErrorAlert message={variationError} onDismiss={() => setVariationError(null)} />}
             <VariationSection
                 flag={flag}
-                onUpdateVariations={onUpdateVariations}
-                onClearVariations={onClearVariations}
+                onUpdateVariations={handleUpdateVariationsWrapper}
+                onClearVariations={handleClearVariationsWrapper}
                 operationLoading={operationLoading}
             />
 

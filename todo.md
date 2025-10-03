@@ -60,6 +60,8 @@
 
 27. **MINOR, UI:** Tenant rules: adding rules after first syncronizes some fields and makes it impossible to enter unique values. There's a workaround: add one target rule, save, then add another one.
 
+28 **MEDIUM, UI:** No error message on create flag 409 error
+
 ## BUG FIX VERIFICATION REPORT
 
 - BUG #8: CLOSED
@@ -72,13 +74,16 @@
 - BUG 16: CLOSED
 - BUG 17: CLOSED. 
 - BUG 18: CLOSED
-- BUG 19: NOT FIXED: NOW BAD REQUEST SHOWS IN 2 PLACES AND STILL AS 400 INSTEAD OF FRIENDLY MESSAGE EXPLAINING WHAT'S MISSING
+- BUG 19: CLOSED
 - BUG 20: CLOSED
 - BUG 21: CLOSED
 - BUG 22: CLOSED
 - BUG 23: CLOSED
 - BUG 24: NOT FIXED
 - BUG 25: NOT FIXED
+- BUG 26: NOT FIXED
+- BUG 27: NOT FIXED
+- BUG 28: CLOSED
 
 ## NEW FEATURES
 

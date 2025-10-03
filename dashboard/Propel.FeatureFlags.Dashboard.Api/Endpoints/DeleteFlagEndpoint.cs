@@ -25,7 +25,8 @@ public sealed class DeleteFlagEndpoint : IEndpoint
 		.WithTags("Feature Flags", "CRUD Operations", "Delete", "Dashboard Api")
 		.Produces(StatusCodes.Status204NoContent)
 		.Produces(StatusCodes.Status400BadRequest)
-		.Produces(StatusCodes.Status404NotFound);
+		.Produces(StatusCodes.Status404NotFound)
+		.Produces(StatusCodes.Status500InternalServerError);
 	}
 }
 
@@ -47,18 +48,25 @@ public sealed class DeleteFlagHandler(
 			{
 				return HttpProblemFactory.BadRequest(
 					"Cannot Delete Permanent Flag",
-					$"The feature flag '{key}' is marked as permanent and cannot be deleted. Remove the permanent flag first if deletion is required.",
+					$"The feature flag '{key}' is marked as permanent and cannot be deleted. To delete this flag, you must first remove the permanent retention policy through the flag's settings.",
 					logger);
 			}
 
 			var deleteResult = await repository.DeleteAsync(flag.Identifier,
 				currentUserService.UserName, "Flag deleted from dashboard", cancellationToken);
 
+			if (!deleteResult)
+			{
+				return HttpProblemFactory.InternalServerError(
+					null,
+					logger,
+					$"Failed to delete feature flag '{key}'. The flag exists but could not be removed from the database. Please try again or contact support.");
+			}
+
 			await cacheInvalidationService.InvalidateFlagAsync(flag.Identifier, cancellationToken);
 
-
-			logger.LogInformation("Feature flag {Key} deleted successfully by {User} for key {Key}",
-				key, currentUserService.UserName, flag.Identifier);
+			logger.LogInformation("Feature flag {Key} deleted successfully by {User}",
+				key, currentUserService.UserName);
 
 			return Results.NoContent();
 		}
@@ -66,9 +74,20 @@ public sealed class DeleteFlagHandler(
 		{
 			return HttpProblemFactory.ClientClosedRequest(logger);
 		}
+		catch (InvalidOperationException ex)
+		{
+			// Handle state-related errors
+			return HttpProblemFactory.UnprocessableEntity(
+				$"Cannot delete feature flag '{key}': {ex.Message}",
+				logger);
+		}
 		catch (Exception ex)
 		{
-			return HttpProblemFactory.InternalServerError(ex, logger);
+			logger.LogError(ex, "Unexpected error while deleting feature flag {Key}", key);
+			return HttpProblemFactory.InternalServerError(
+				ex,
+				logger,
+				$"An unexpected error occurred while deleting the feature flag '{key}'. Please try again or contact support if the problem persists.");
 		}
 	}
 }

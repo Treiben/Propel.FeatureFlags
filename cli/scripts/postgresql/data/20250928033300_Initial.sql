@@ -966,7 +966,7 @@ INSERT INTO feature_flags (
 	current_setting('my.app_scope')::INTEGER,
     'Experimental Analytics Dashboard',
     'Experimental analytics feature that was being tested with select tenants - expired yesterday',
-    '[1]', -- Enabled
+    '[7]', -- TenantTargeted
     '["pilot-tenant-1", "beta-analytics-corp", "test-organization"]'
 ) 
 ON CONFLICT (key, application_name, application_version)
