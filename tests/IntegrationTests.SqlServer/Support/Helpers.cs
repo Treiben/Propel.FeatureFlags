@@ -17,7 +17,7 @@ public class FlagOptionsBuilder
 {
 	private List<ITargetingRule> _targetingRules = [];
 	private ModeSet _evaluationModes = EvaluationMode.Off;
-	private Variations _variations = Variations.OnOff;
+	private Variations _variations = new Variations();
 	private UtcSchedule _schedule = UtcSchedule.Unscheduled;
 	private UtcTimeWindow _window = UtcTimeWindow.AlwaysOpen;
 	private AccessControl _userAccessControl = AccessControl.Unrestricted;

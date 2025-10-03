@@ -209,7 +209,7 @@ public class GetAllAsync_WithDashboardRepository(SqlServerTestsFixture fixture) 
 			TargetingRules: [],
 			UserAccessControl: AccessControl.Unrestricted,
 			TenantAccessControl: AccessControl.Unrestricted,
-			Variations: Variations.OnOff);
+			Variations: new Variations());
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
 }
@@ -277,7 +277,7 @@ public class GetPagedAsync_WithDashboardRepository(SqlServerTestsFixture fixture
 			TargetingRules: [],
 			UserAccessControl: AccessControl.Unrestricted,
 			TenantAccessControl: AccessControl.Unrestricted,
-			Variations: Variations.OnOff);
+			Variations: new Variations());
 
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
@@ -305,7 +305,7 @@ public class CreateAsync_WithDashboardRepository(SqlServerTestsFixture fixture) 
 			TargetingRules: [],
 			UserAccessControl: AccessControl.Unrestricted,
 			TenantAccessControl: AccessControl.Unrestricted,
-			Variations: Variations.OnOff);
+			Variations: new Variations());
 		var flag = new FeatureFlag(identifier, metadata, configuration);
 
 		// Act
@@ -483,7 +483,7 @@ public class UpdateAsync_WithDashboardRepository(SqlServerTestsFixture fixture) 
 				TargetingRules: [],
 				UserAccessControl: AccessControl.Unrestricted,
 				TenantAccessControl: AccessControl.Unrestricted,
-				Variations: Variations.OnOff);
+				Variations: new Variations());
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
 }
@@ -524,7 +524,7 @@ public class DeleteAsync_WithDashboardRepository(SqlServerTestsFixture fixture) 
 				TargetingRules: [],
 				UserAccessControl: AccessControl.Unrestricted,
 				TenantAccessControl: AccessControl.Unrestricted,
-				Variations: Variations.OnOff);
+				Variations: new Variations());
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
 }
@@ -552,7 +552,7 @@ public class FeatureFlagRepositoryComprehensiveTests(SqlServerTestsFixture fixtu
 				TargetingRules: [],
 				UserAccessControl: AccessControl.Unrestricted,
 				TenantAccessControl: AccessControl.Unrestricted,
-				Variations: Variations.OnOff);
+				Variations: new Variations());
 
 		var flag = new FeatureFlag(flagIdentifier, metadata, configuration);
 
@@ -591,7 +591,7 @@ public class FeatureFlagRepositoryComprehensiveTests(SqlServerTestsFixture fixtu
 				TargetingRules: [],
 				UserAccessControl: AccessControl.Unrestricted,
 				TenantAccessControl: AccessControl.Unrestricted,
-				Variations: Variations.OnOff);
+				Variations: new Variations());
 
 		var flag = new FeatureFlag(flagIdentifier, metadata, configuration);
 

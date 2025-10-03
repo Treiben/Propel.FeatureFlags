@@ -209,7 +209,7 @@ public class GetAllAsync_WithDashboardRepository(PostgresTestsFixture fixture) :
 			TargetingRules: [],
 			UserAccessControl: AccessControl.Unrestricted,
 			TenantAccessControl: AccessControl.Unrestricted,
-			Variations: Variations.OnOff);
+			Variations: new Variations());
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
 }
@@ -277,7 +277,7 @@ public class GetPagedAsync_WithDashboardRepository(PostgresTestsFixture fixture)
 			TargetingRules: [],
 			UserAccessControl: AccessControl.Unrestricted,
 			TenantAccessControl: AccessControl.Unrestricted,
-			Variations: Variations.OnOff);
+			Variations: new Variations());
 
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
@@ -305,7 +305,7 @@ public class CreateAsync_WithDashboardRepository(PostgresTestsFixture fixture) :
 			TargetingRules: [],
 			UserAccessControl: AccessControl.Unrestricted,
 			TenantAccessControl: AccessControl.Unrestricted,
-			Variations: Variations.OnOff);
+			Variations: new Variations());
 		var flag = new FeatureFlag(identifier, metadata, configuration);
 
 		// Act
@@ -480,7 +480,7 @@ public class UpdateAsync_WithDashboardRepository(PostgresTestsFixture fixture) :
 				TargetingRules: [],
 				UserAccessControl: AccessControl.Unrestricted,
 				TenantAccessControl: AccessControl.Unrestricted,
-				Variations: Variations.OnOff);
+				Variations: new Variations());
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
 }
@@ -521,7 +521,7 @@ public class DeleteAsync_WithDashboardRepository(PostgresTestsFixture fixture) :
 				TargetingRules: [],
 				UserAccessControl: AccessControl.Unrestricted,
 				TenantAccessControl: AccessControl.Unrestricted,
-				Variations: Variations.OnOff);
+				Variations: new Variations());
 		return new FeatureFlag(identifier, metadata, configuration);
 	}
 }
@@ -549,7 +549,7 @@ public class FeatureFlagRepositoryComprehensiveTests(PostgresTestsFixture fixtur
 				TargetingRules: [],
 				UserAccessControl: AccessControl.Unrestricted,
 				TenantAccessControl: AccessControl.Unrestricted,
-				Variations: Variations.OnOff);
+				Variations: new Variations());
 
 		var flag = new FeatureFlag(flagIdentifier, metadata, configuration);
 
@@ -588,7 +588,15 @@ public class FeatureFlagRepositoryComprehensiveTests(PostgresTestsFixture fixtur
 				TargetingRules: [],
 				UserAccessControl: AccessControl.Unrestricted,
 				TenantAccessControl: AccessControl.Unrestricted,
-				Variations: Variations.OnOff);
+				Variations: new Variations
+				{
+					Values = new Dictionary<string, object>()
+					{
+						{ "test-on", true },
+						{ "test-off", false },
+					},
+					DefaultVariation = "test-off"
+				});
 
 		var flag = new FeatureFlag(flagIdentifier, metadata, configuration);
 
@@ -622,9 +630,9 @@ public class FeatureFlagRepositoryComprehensiveTests(PostgresTestsFixture fixtur
 		result.EvaluationOptions.TenantAccessControl.Blocked.ShouldBeEmpty();
 		result.EvaluationOptions.TenantAccessControl.RolloutPercentage.ShouldBe(100);
 
-		result.EvaluationOptions.Variations.DefaultVariation.ShouldBe("off");
-		result.EvaluationOptions.Variations.Values.ShouldContainKey("on");
-		result.EvaluationOptions.Variations.Values.ShouldContainKey("off");
+		result.EvaluationOptions.Variations.DefaultVariation.ShouldBe("test-off");
+		result.EvaluationOptions.Variations.Values.Keys.ShouldContain("test-on");
+		result.EvaluationOptions.Variations.Values.Keys.ShouldContain("test-off");
 	}
 }
 
@@ -737,7 +745,7 @@ public class UpdateMetadataAsync_WithDashboardRepository(PostgresTestsFixture fi
 			TargetingRules: [],
 			UserAccessControl: AccessControl.Unrestricted,
 			TenantAccessControl: AccessControl.Unrestricted,
-			Variations: Variations.OnOff
+			Variations: new Variations()
 		);
 
 		return new FeatureFlag(identifier, metadata, configuration);
@@ -793,7 +801,7 @@ public class FlagExistsAsync_WithDashboardRepository(PostgresTestsFixture fixtur
 			TargetingRules: [],
 			UserAccessControl: AccessControl.Unrestricted,
 			TenantAccessControl: AccessControl.Unrestricted,
-			Variations: Variations.OnOff
+			Variations: new Variations()
 		);
 
 		return new FeatureFlag(identifier, metadata, configuration);
@@ -912,7 +920,7 @@ public class FindAsync_WithDashboardRepository(PostgresTestsFixture fixture) : I
 			TargetingRules: [],
 			UserAccessControl: AccessControl.Unrestricted,
 			TenantAccessControl: AccessControl.Unrestricted,
-			Variations: Variations.OnOff
+			Variations: new Variations()
 		);
 
 		return new FeatureFlag(identifier, metadata, configuration);

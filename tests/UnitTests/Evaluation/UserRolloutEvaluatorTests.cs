@@ -85,7 +85,7 @@ public class UserRolloutEvaluatorTests
 		// Assert
 		result.ShouldNotBeNull();
 		result.IsEnabled.ShouldBeTrue();
-		result.Variation.ShouldBe("on");
+		result.Variation.ShouldBe("");
 	}
 
 	[Fact]

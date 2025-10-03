@@ -217,6 +217,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		// Arrange
 		var identifier1 = new FlagIdentifier("test-flag-1", Scope.Global);
 		var tenantAccessControl50 = new AccessControl(rolloutPercentage: 50);
+
 		var flagConfig1	= new EvaluationOptions(
 			key: identifier1.Key,
 			tenantAccessControl: tenantAccessControl50);
@@ -226,9 +227,17 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var identifier2 = new FlagIdentifier("test-flag-2", Scope.Global);
 		var flagConfig2 = new EvaluationOptions(
 			key: identifier2.Key,
-			tenantAccessControl: tenantAccessControl50);
+			tenantAccessControl: tenantAccessControl50, 
+			variations: new Variations
+			{
+				Values = new Dictionary<string, object>
+				{
+					{ "on", true },
+					{ "flag2-off", false }
+				},
+				DefaultVariation = "flag2-off"
+			});
 
-		flagConfig2.Variations.DefaultVariation = "flag2-off";
 
 		var context = new EvaluationContext(tenantId: "consistent-tenant");
 

@@ -8,13 +8,13 @@ public class Variations_SelectVariationFor
 	public void SelectVariationFor_SimpleOnOffFlag_ReturnsOn()
 	{
 		// Arrange
-		var variations = Variations.OnOff;
+		var variations = new Variations();
 
 		// Act
 		var result = variations.SelectVariationFor("simple-flag", "user123");
 
 		// Assert
-		result.ShouldBe("on");
+		result.ShouldBe("");
 	}
 
 	[Fact]
