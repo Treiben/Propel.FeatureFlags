@@ -328,29 +328,26 @@ const FeatureFlagManager = () => {
             <Header />
             
             <div className="max-w-[1600px] mx-auto p-8">
-                <div className="flex justify-between items-center mb-8">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Feature Flags Management</h1>
-                        <p className="text-gray-600">Control feature releases, rollouts, and user targeting</p>
-                    </div>
-                    <div className="flex gap-4">
+                {/* Action Bar */}
+                <div className="flex justify-end items-center mb-6">
+                    <div className="flex gap-3">
                         <button
                             onClick={() => setShowSearch(!showSearch)}
-                            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
                         >
                             <Search className="w-4 h-4" />
                             Search
                         </button>
                         <button
                             onClick={() => setShowFilters(!showFilters)}
-                            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
                         >
                             <Filter className="w-4 h-4" />
                             Filters
                         </button>
                         <button
                             onClick={() => setShowCreateForm(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors shadow-sm"
                         >
                             <Plus className="w-4 h-4" />
                             Create Flag
@@ -362,6 +359,7 @@ const FeatureFlagManager = () => {
                     <SearchPanel
                         onSearch={handleSearch}
                         onClearSearch={handleClearSearch}
+                        onClose={() => setShowSearch(false)}
                         loading={searchLoading}
                         hasResult={searchResults.length > 0}
                     />

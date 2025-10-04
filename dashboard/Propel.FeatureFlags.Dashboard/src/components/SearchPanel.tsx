@@ -5,6 +5,7 @@ import type { SearchFeatureFlagRequest } from '../services/apiService';
 interface SearchPanelProps {
     onSearch: (request: SearchFeatureFlagRequest) => Promise<void>;
     onClearSearch: () => void;
+    onClose: () => void;
     loading: boolean;
     hasResult: boolean;
 }
@@ -12,6 +13,7 @@ interface SearchPanelProps {
 export const SearchPanel: React.FC<SearchPanelProps> = ({
     onSearch,
     onClearSearch,
+    onClose,
     loading,
     hasResult
 }) => {
@@ -55,15 +57,13 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
                     <Search className="w-5 h-5" />
                     Search Flags
                 </h3>
-                {hasResult && (
-                    <button
-                        onClick={handleClear}
-                        className="text-gray-400 hover:text-gray-600"
-                        title="Clear search"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                )}
+                <button
+                    onClick={onClose}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    title="Close search"
+                >
+                    <X className="w-5 h-5" />
+                </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -117,15 +117,15 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
                             <button
                                 type="button"
                                 onClick={handleClear}
-                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
                             >
-                                Clear
+                                Clear Results
                             </button>
                         )}
                         <button
                             type="submit"
                             disabled={!hasSearchCriteria || loading}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
                         >
                             {loading ? (
                                 <>

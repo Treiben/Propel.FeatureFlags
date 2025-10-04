@@ -52,9 +52,9 @@
 
 ~~23. **NEW BUG, MEDIUM, UI:** when scope is Global, no application name or version must be shown because it's pointless.~~
 
-24. **MEDIUM, UI:** Duplicated page header with page title.
+~~24. **MEDIUM, UI:** Duplicated page header with page title.~~
 
-25. **MINOR, UI:** Close search panel (add x button)
+~~25. **MINOR, UI:** Close search panel (add x button)~~
 	
 ~~26. **MEDIUM, UI:** Both tenant and user access control slider shows 50% instead of 100%. Is it because of the changes in style?~~
 
@@ -79,8 +79,8 @@
 - BUG 21: CLOSED
 - BUG 22: CLOSED
 - BUG 23: CLOSED
-- BUG 24: NOT FIXED
-- BUG 25: NOT FIXED
+- BUG 24: CLOSED
+- BUG 25: CLOSED
 - BUG 26: CLOSED
 - BUG 27: NOT FIXED
 - BUG 28: CLOSED

@@ -78,7 +78,7 @@ const ErrorAlert: React.FC<{ message: string; onDismiss: () => void }> = ({ mess
         </div>
         <button
             onClick={onDismiss}
-            className={`${theme.danger.text[400]} hover:${theme.danger.text[600]} transition-colors`}
+            className={`${theme.danger.text[500]} hover:${theme.danger.text[600]} transition-colors`}
         >
             <XCircle className="w-4 h-4" />
         </button>
@@ -493,6 +493,14 @@ export const FlagDetails: React.FC<FlagDetailsProps> = ({
                                 <Play className="w-3 h-3" />
                             )}
                             Evaluate
+                        </button>
+                        <button
+                            onClick={() => setShowEvaluation(false)}
+                            disabled={operationLoading}
+                            className={`px-3 py-1 ${theme.neutral[300]} ${theme.neutral.text[700]} rounded text-sm ${theme.neutral.hover.bg400} disabled:opacity-50`}
+                            data-testid="cancel-schedule-button"
+                        >
+                            Cancel
                         </button>
 
                         {evaluationResult && (

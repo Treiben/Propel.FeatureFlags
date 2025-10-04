@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Menu, X, Info, HelpCircle, ChevronDown } from 'lucide-react';
+ï»¿import { useState } from 'react';
+import { Menu, X, Info, HelpCircle } from 'lucide-react';
 import { PropelIcon } from './PropelIcon';
 
 interface HeaderProps {
@@ -19,13 +19,15 @@ export const Header: React.FC<HeaderProps> = ({
         <>
             <header className="bg-white border-b border-gray-200 shadow-sm">
                 <div className="max-w-[1600px] mx-auto px-8">
-                    <div className="flex items-center justify-between h-16">
+                    <div className="flex items-center justify-between h-20">
                         {/* Left: Logo and Title */}
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-3">
-                                <PropelIcon size={40} className="flex-shrink-0" />
+                        <div className="flex items-center gap-5">
+                            <div className="flex items-center gap-4">
                                 <div>
-                                    <h1 className="text-xl font-bold text-gray-900 leading-tight">{title}</h1>
+                                    <PropelIcon size={68} className="flex-shrink-0 text-white" />
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl font-bold text-gray-900 leading-tight">{title}</h1>
                                     <p className="text-sm text-gray-600 hidden md:block">{subtitle}</p>
                                 </div>
                             </div>
@@ -99,8 +101,10 @@ export const Header: React.FC<HeaderProps> = ({
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex justify-between items-start mb-4">
-                                <div className="flex items-center gap-3">
-                                    <PropelIcon size={48} />
+                                <div className="flex items-center gap-4">
+                                    <div>
+                                        <PropelIcon size={76} className="text-white" />
+                                    </div>
                                     <div>
                                         <h2 className="text-2xl font-bold text-gray-900">Propel Feature Flags</h2>
                                         <p className="text-gray-600">Dashboard v1.0.0</p>
@@ -127,12 +131,12 @@ export const Header: React.FC<HeaderProps> = ({
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-900 mb-2">Key Features</h3>
                                     <ul className="text-gray-700 space-y-1">
-                                        <li>• Type-safe feature flag definitions</li>
-                                        <li>• Multiple evaluation modes (toggle, scheduled, percentage rollouts)</li>
-                                        <li>• Advanced targeting rules and user/tenant management</li>
-                                        <li>• Time window controls for business hours operations</li>
-                                        <li>• Real-time flag evaluation and testing</li>
-                                        <li>• Comprehensive filtering and search capabilities</li>
+                                        <li>âœ“ Type-safe feature flag definitions</li>
+                                        <li>âœ“ Multiple evaluation modes (toggle, scheduled, percentage rollouts)</li>
+                                        <li>âœ“ Advanced targeting rules and user/tenant management</li>
+                                        <li>âœ“ Time window controls for business hours operations</li>
+                                        <li>âœ“ Real-time flag evaluation and testing</li>
+                                        <li>âœ“ Comprehensive filtering and search capabilities</li>
                                     </ul>
                                 </div>
 
@@ -198,19 +202,19 @@ export const Header: React.FC<HeaderProps> = ({
                                         <div className="space-y-3">
                                             <h4 className="font-medium text-gray-900">Release Management</h4>
                                             <ul className="text-sm text-gray-700 space-y-1">
-                                                <li>• Gradual feature rollouts</li>
-                                                <li>• Canary deployments</li>
-                                                <li>• Emergency kill switches</li>
-                                                <li>• Scheduled releases</li>
+                                                <li>âœ“ Gradual feature rollouts</li>
+                                                <li>âœ“ Canary deployments</li>
+                                                <li>âœ“ Emergency kill switches</li>
+                                                <li>âœ“ Scheduled releases</li>
                                             </ul>
                                         </div>
                                         <div className="space-y-3">
                                             <h4 className="font-medium text-gray-900">User Experience</h4>
                                             <ul className="text-sm text-gray-700 space-y-1">
-                                                <li>• A/B testing and experiments</li>
-                                                <li>• Personalized experiences</li>
-                                                <li>• Beta user programs</li>
-                                                <li>• Performance optimization</li>
+                                                <li>âœ“ A/B testing and experiments</li>
+                                                <li>âœ“ Personalized experiences</li>
+                                                <li>âœ“ Beta user programs</li>
+                                                <li>âœ“ Performance optimization</li>
                                             </ul>
                                         </div>
                                     </div>
@@ -273,12 +277,12 @@ export const Header: React.FC<HeaderProps> = ({
                                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Best Practices</h3>
                                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                         <ul className="text-sm text-gray-700 space-y-2">
-                                            <li>• <strong>Start simple:</strong> Begin with basic on/off flags before advanced targeting</li>
-                                            <li>• <strong>Clean up regularly:</strong> Remove obsolete flags to prevent technical debt</li>
-                                            <li>• <strong>Use descriptive names:</strong> Clear, consistent naming conventions</li>
-                                            <li>• <strong>Monitor performance:</strong> Track flag evaluation impact on application performance</li>
-                                            <li>• <strong>Plan rollback strategies:</strong> Always have a plan to disable features quickly</li>
-                                            <li>• <strong>Test thoroughly:</strong> Validate flag behavior in all states before deployment</li>
+                                            <li>âœ“ <strong>Start simple:</strong> Begin with basic on/off flags before advanced targeting</li>
+                                            <li>âœ“ <strong>Clean up regularly:</strong> Remove obsolete flags to prevent technical debt</li>
+                                            <li>âœ“ <strong>Use descriptive names:</strong> Clear, consistent naming conventions</li>
+                                            <li>âœ“ <strong>Monitor performance:</strong> Track flag evaluation impact on application performance</li>
+                                            <li>âœ“ <strong>Plan rollback strategies:</strong> Always have a plan to disable features quickly</li>
+                                            <li>âœ“ <strong>Test thoroughly:</strong> Validate flag behavior in all states before deployment</li>
                                         </ul>
                                     </div>
                                 </div>
