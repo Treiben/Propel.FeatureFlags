@@ -235,15 +235,18 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 		}
 	};
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const rolloutPercentage = flag.tenantAccess?.rolloutPercentage || 0;
 	const allowedTenants = flag.tenantAccess?.allowed || [];
 	const blockedTenants = flag.tenantAccess?.blocked || [];
 
-	// Check if there's actual access control (percentage between 1-99 OR specific tenant targeting)
 	const hasPercentageRestriction = rolloutPercentage > 0 && rolloutPercentage < 100;
 	const hasTenantTargeting = allowedTenants.length > 0 || blockedTenants.length > 0;
 	const hasTenantAccessControl = hasPercentageRestriction || hasTenantTargeting;
+
+	// Dynamic slider gradient style
+	const sliderStyle = {
+		background: `linear-gradient(to right, #f59e0b 0%, #f59e0b ${tenantAccessData.rolloutPercentage}%, #e5e7eb ${tenantAccessData.rolloutPercentage}%, #e5e7eb 100%)`
+	};
 
 	return (
 		<div className="space-y-4 mb-6">
@@ -292,6 +295,7 @@ export const TenantAccessSection: React.FC<TenantAccessSectionProps> = ({
 										...tenantAccessData,
 										rolloutPercentage: parseInt(e.target.value)
 									})}
+									style={sliderStyle}
 									className="flex-1 slider-amber"
 									disabled={operationLoading}
 									data-testid="percentage-slider"

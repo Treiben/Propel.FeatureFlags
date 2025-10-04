@@ -238,10 +238,14 @@ export const UserAccessSection: React.FC<UserAccessSectionProps> = ({
 	const allowedUsers = flag.userAccess?.allowed || [];
 	const blockedUsers = flag.userAccess?.blocked || [];
 
-	// Check if there's actual access control (percentage between 1-99 OR specific user targeting)
 	const hasPercentageRestriction = rolloutPercentage > 0 && rolloutPercentage < 100;
 	const hasUserTargeting = allowedUsers.length > 0 || blockedUsers.length > 0;
 	const hasUserAccessControl = hasPercentageRestriction || hasUserTargeting;
+
+	// Dynamic slider gradient style
+	const sliderStyle = {
+		background: `linear-gradient(to right, #f59e0b 0%, #f59e0b ${userAccessData.rolloutPercentage}%, #e5e7eb ${userAccessData.rolloutPercentage}%, #e5e7eb 100%)`
+	};
 
 	return (
 		<div className="space-y-4 mb-6">
@@ -290,6 +294,7 @@ export const UserAccessSection: React.FC<UserAccessSectionProps> = ({
 										...userAccessData,
 										rolloutPercentage: parseInt(e.target.value)
 									})}
+									style={sliderStyle}
 									className="flex-1 slider-amber"
 									disabled={operationLoading}
 									data-testid="percentage-slider"

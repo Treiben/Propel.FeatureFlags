@@ -56,7 +56,7 @@
 
 25. **MINOR, UI:** Close search panel (add x button)
 	
-26. **MEDIUM, UI:** Both tenant and user access control slider shows 50% instead of 100%. Is it because of the changes in style?
+~~26. **MEDIUM, UI:** Both tenant and user access control slider shows 50% instead of 100%. Is it because of the changes in style?~~
 
 27. **MINOR, UI:** Tenant rules: adding rules after first syncronizes some fields and makes it impossible to enter unique values. There's a workaround: add one target rule, save, then add another one.
 
@@ -81,7 +81,7 @@
 - BUG 23: CLOSED
 - BUG 24: NOT FIXED
 - BUG 25: NOT FIXED
-- BUG 26: NOT FIXED
+- BUG 26: CLOSED
 - BUG 27: NOT FIXED
 - BUG 28: CLOSED
 

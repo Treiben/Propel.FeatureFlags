@@ -149,7 +149,10 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 				const safeRules = targetingRules.map(rule => ({
 					attribute: rule?.attribute || '',
 					operator: safeConvertOperator(rule?.operator),
-					values: Array.isArray(rule?.values) ? [...rule.values] : [''],
+					// Convert all values to strings for display in input fields
+					values: Array.isArray(rule?.values) 
+						? rule.values.map(v => typeof v === 'number' ? v.toString() : (v || ''))
+						: [''],
 					variation: rule?.variation || 'on'
 				}));
 				setTargetingRulesForm(safeRules);
@@ -165,11 +168,31 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 	const handleTargetingRulesSubmit = async () => {
 		try {
 			const targetingRules: TargetingRule[] = targetingRulesForm
-				.filter(rule => rule?.attribute?.trim() && Array.isArray(rule?.values) && rule.values.some(v => v?.trim()))
+				.filter(rule => {
+					if (!rule?.attribute?.trim()) return false;
+					if (!Array.isArray(rule?.values)) return false;
+					// Check if at least one value exists (handle both strings and numbers)
+					return rule.values.some(v => {
+						if (typeof v === 'string') return v.trim();
+						if (typeof v === 'number') return true;
+						return false;
+					});
+				})
 				.map(rule => ({
 					attribute: rule.attribute.trim(),
 					operator: rule.operator,
-					values: rule.values.filter(v => v?.trim()).map(v => v.trim()),
+					// Convert all values to strings and trim string values
+					values: rule.values
+						.filter(v => {
+							if (typeof v === 'string') return v.trim();
+							if (typeof v === 'number') return true;
+							return false;
+						})
+						.map(v => {
+							if (typeof v === 'string') return v.trim();
+							if (typeof v === 'number') return v.toString();
+							return String(v);
+						}),
 					variation: rule.variation?.trim() || 'on'
 				}));
 
@@ -239,7 +262,10 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 				const safeRules = targetingRules.map(rule => ({
 					attribute: rule?.attribute || '',
 					operator: safeConvertOperator(rule?.operator),
-					values: Array.isArray(rule?.values) ? [...rule.values] : [''],
+					// Convert all values to strings for display in input fields
+					values: Array.isArray(rule?.values) 
+						? rule.values.map(v => typeof v === 'number' ? v.toString() : (v || ''))
+						: [''],
 					variation: rule?.variation || 'on'
 				}));
 				setTargetingRulesForm(safeRules);
@@ -441,11 +467,18 @@ export const TargetingRulesSection: React.FC<TargetingRulesSectionProps> = ({
 								<div className="space-y-2">
 									<div>Active Targeting Rules: {targetingRules.length}</div>
 									<div className="space-y-1">
-										{targetingRules.slice(0, 3).map((rule, index) => (
-											<div key={index} className={`text-xs ${theme.neutral[100]} rounded px-2 py-1 font-mono`}>
-												{rule?.attribute || 'Unknown'} {getTargetingOperatorLabel(rule?.operator).toLowerCase()} [{Array.isArray(rule?.values) ? rule.values.join(', ') : 'No values'}] → {rule?.variation || 'on'}
-											</div>
-										))}
+										{targetingRules.slice(0, 3).map((rule, index) => {
+											// Safely format values (handle both strings and numbers)
+											const formattedValues = Array.isArray(rule?.values) 
+												? rule.values.map(v => typeof v === 'number' ? v.toString() : (v || '')).join(', ')
+												: 'No values';
+					
+											return (
+												<div key={index} className={`text-xs ${theme.neutral[100]} rounded px-2 py-1 font-mono`}>
+													{rule?.attribute || 'Unknown'} {getTargetingOperatorLabel(rule?.operator).toLowerCase()} [{formattedValues}] → {rule?.variation || 'on'}
+												</div>
+											);
+										})}
 										{targetingRules.length > 3 && (
 											<div className={`text-xs ${theme.neutral.text[500]} italic`}>
 												...and {targetingRules.length - 3} more rule{targetingRules.length - 3 !== 1 ? 's' : ''}
