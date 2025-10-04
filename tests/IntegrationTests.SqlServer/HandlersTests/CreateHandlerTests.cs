@@ -111,12 +111,12 @@ public class DeleteFlagHandlerTests(HandlersTestsFixture fixture)
 	{
 		// Arrange
 		var identifier = new FlagIdentifier("permanent-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
-		var flag = new FeatureFlag(identifier, 
-			new FlagAdministration(Name: "Permanent Flag", 
+		var flag = new FeatureFlag(identifier,
+			new FlagAdministration(Name: "Permanent Flag",
 						Description: "Cannot be deleted",
 						RetentionPolicy: RetentionPolicy.GlobalPolicy,
 						Tags: [],
-						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]), 
+						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
 			FlagEvaluationOptions.DefaultOptions);
 
 		await fixture.DashboardRepository.CreateAsync(flag, CancellationToken.None);

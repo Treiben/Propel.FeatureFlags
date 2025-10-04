@@ -59,7 +59,10 @@ public class SqlServerTestsFixture : IAsyncLifetime
 		var connectionString = _container.GetConnectionString();
 		using var connection = new SqlConnection(connectionString);
 		await connection.OpenAsync();
-		using var command = new SqlCommand("DELETE FROM FeatureFlags", connection);
+		using var command = new SqlCommand(@"
+			DELETE FROM FeatureFlagsAudit;
+			DELETE FROM FeatureFlagsMetadata;
+			DELETE FROM FeatureFlags;", connection);
 		await command.ExecuteNonQueryAsync();
 	}
 

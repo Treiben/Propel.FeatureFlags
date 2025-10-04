@@ -189,7 +189,7 @@ CREATE TABLE feature_flags (
     
     -- Variations
     variations JSONB NOT NULL DEFAULT '{}',
-    default_variation VARCHAR(255) NOT NULL DEFAULT 'off',
+    default_variation VARCHAR(255) NOT NULL DEFAULT '',
 
 	PRIMARY KEY (key, application_name, application_version)
 );

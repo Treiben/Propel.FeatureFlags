@@ -102,7 +102,7 @@ public class UpdateFlagHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("update-tags-flag", Scope.Global), CancellationToken.None);
 		updated!.Administration.Tags["env"].ShouldBe("production");
@@ -134,7 +134,7 @@ public class UpdateFlagHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("update-expiration-flag", Scope.Global), CancellationToken.None);
 		updated!.Administration.RetentionPolicy.ShouldNotBeNull();
@@ -165,7 +165,7 @@ public class UpdateFlagHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("update-multiple-flag", Scope.Global), CancellationToken.None);
 		updated!.Administration.Name.ShouldBe("New Name");
@@ -244,7 +244,7 @@ public class UpdateFlagHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("preserve-flag", Scope.Global), CancellationToken.None);
 		updated!.Administration.Name.ShouldBe("Original Name");

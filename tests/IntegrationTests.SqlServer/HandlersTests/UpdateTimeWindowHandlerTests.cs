@@ -43,7 +43,7 @@ public class UpdateTimeWindowHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("time-window-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.ModeSet.Contains([EvaluationMode.TimeWindow]).ShouldBeTrue();
@@ -67,16 +67,16 @@ public class UpdateTimeWindowHandlerTests(HandlersTestsFixture fixture)
 
 		var handler = fixture.Services.GetRequiredService<UpdateTimeWindowHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
-		
+
 		// First set a window
 		await handler.HandleAsync("remove-window-flag", headers,
 			new UpdateTimeWindowRequest(
-				new TimeOnly(9, 0), 
-				new TimeOnly(17, 0), 
-				"UTC", 
-				new List<DayOfWeek> { DayOfWeek.Monday }, 
-				false, 
-				"Add window"), 
+				new TimeOnly(9, 0),
+				new TimeOnly(17, 0),
+				"UTC",
+				new List<DayOfWeek> { DayOfWeek.Monday },
+				false,
+				"Add window"),
 			CancellationToken.None);
 
 		// Act - Remove window
@@ -91,7 +91,7 @@ public class UpdateTimeWindowHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("remove-window-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.ModeSet.Contains([EvaluationMode.TimeWindow]).ShouldBeFalse();
@@ -127,7 +127,7 @@ public class UpdateTimeWindowHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("mode-window-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.ModeSet.Contains([EvaluationMode.TimeWindow]).ShouldBeTrue();
@@ -150,10 +150,10 @@ public class UpdateTimeWindowHandlerTests(HandlersTestsFixture fixture)
 
 		var handler = fixture.Services.GetRequiredService<UpdateTimeWindowHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
-		
+
 		// First toggle it on
 		var toggleHandler = fixture.Services.GetRequiredService<ToggleFlagHandler>();
-		await toggleHandler.HandleAsync("cleanup-window-flag", headers, 
+		await toggleHandler.HandleAsync("cleanup-window-flag", headers,
 			new ToggleFlagRequest(EvaluationMode.On, "Enable first"), CancellationToken.None);
 
 		// Act - Set time window
@@ -168,7 +168,7 @@ public class UpdateTimeWindowHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("cleanup-window-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.ModeSet.Contains([EvaluationMode.On]).ShouldBeFalse();
@@ -197,10 +197,10 @@ public class UpdateTimeWindowHandlerTests(HandlersTestsFixture fixture)
 			new TimeOnly(0, 0),
 			new TimeOnly(23, 59),
 			"UTC",
-			new List<DayOfWeek> 
-			{ 
-				DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, 
-				DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday 
+			new List<DayOfWeek>
+			{
+				DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
+				DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday
 			},
 			false,
 			"24/7 window");
@@ -210,7 +210,7 @@ public class UpdateTimeWindowHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("all-days-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.OperationalWindow.DaysActive.Count().ShouldBe(7);

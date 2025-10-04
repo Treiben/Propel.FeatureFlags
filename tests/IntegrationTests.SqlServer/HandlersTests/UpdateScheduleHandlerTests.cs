@@ -38,7 +38,7 @@ public class UpdateScheduleHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("update-schedule-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.ModeSet.Contains([EvaluationMode.Scheduled]).ShouldBeTrue();
@@ -63,11 +63,11 @@ public class UpdateScheduleHandlerTests(HandlersTestsFixture fixture)
 
 		var handler = fixture.Services.GetRequiredService<UpdateScheduleHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
-		
+
 		// First set a schedule
 		var enableOn = DateTimeOffset.UtcNow.AddDays(1);
 		var disableOn = DateTimeOffset.UtcNow.AddDays(7);
-		await handler.HandleAsync("remove-schedule-flag", headers, 
+		await handler.HandleAsync("remove-schedule-flag", headers,
 			new UpdateScheduleRequest(enableOn, disableOn, "Adding schedule"), CancellationToken.None);
 
 		// Act - Remove schedule
@@ -76,7 +76,7 @@ public class UpdateScheduleHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("remove-schedule-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.ModeSet.Contains([EvaluationMode.Scheduled]).ShouldBeFalse();
@@ -108,7 +108,7 @@ public class UpdateScheduleHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("mode-schedule-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.ModeSet.Contains([EvaluationMode.Scheduled]).ShouldBeTrue();
@@ -131,10 +131,10 @@ public class UpdateScheduleHandlerTests(HandlersTestsFixture fixture)
 
 		var handler = fixture.Services.GetRequiredService<UpdateScheduleHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
-		
+
 		// First toggle it on
 		var toggleHandler = fixture.Services.GetRequiredService<ToggleFlagHandler>();
-		await toggleHandler.HandleAsync("mode-cleanup-flag", headers, 
+		await toggleHandler.HandleAsync("mode-cleanup-flag", headers,
 			new ToggleFlagRequest(EvaluationMode.On, "Enable first"), CancellationToken.None);
 
 		// Act - Set schedule
@@ -145,7 +145,7 @@ public class UpdateScheduleHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("mode-cleanup-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.ModeSet.Contains([EvaluationMode.On]).ShouldBeFalse();

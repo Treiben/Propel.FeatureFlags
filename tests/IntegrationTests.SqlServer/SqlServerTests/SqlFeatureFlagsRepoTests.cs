@@ -115,7 +115,7 @@ public class GetAsync_WithColumnMapping(SqlServerTestsFixture fixture) : IClassF
 		result.ShouldNotBeNull();
 		result.OperationalWindow.TimeZone.ShouldBe("UTC");
 		result.OperationalWindow.StopOn.ShouldBe(new TimeSpan(23, 59, 59));
-		result.Variations.DefaultVariation.ShouldBe("off");
+		result.Variations.DefaultVariation.ShouldBe("");
 		result.UserAccessControl.RolloutPercentage.ShouldBe(100);
 		result.TenantAccessControl.RolloutPercentage.ShouldBe(100);
 		result.TargetingRules.ShouldBeEmpty();

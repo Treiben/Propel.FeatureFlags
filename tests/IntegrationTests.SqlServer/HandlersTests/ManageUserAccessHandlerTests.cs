@@ -37,7 +37,7 @@ public class ManageUserAccessHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("user-percentage-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.UserAccessControl.RolloutPercentage.ShouldBe(60);
@@ -62,9 +62,9 @@ public class ManageUserAccessHandlerTests(HandlersTestsFixture fixture)
 		var handler = fixture.Services.GetRequiredService<ManageUserAccessHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
 		var request = new ManageUserAccessRequest(
-			new[] { "user-1", "user-2", "user-3" }, 
-			null, 
-			null, 
+			new[] { "user-1", "user-2", "user-3" },
+			null,
+			null,
 			"Adding allowed users");
 
 		// Act
@@ -72,7 +72,7 @@ public class ManageUserAccessHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("allowed-users-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.UserAccessControl.Allowed.ShouldContain("user-1");
@@ -98,9 +98,9 @@ public class ManageUserAccessHandlerTests(HandlersTestsFixture fixture)
 		var handler = fixture.Services.GetRequiredService<ManageUserAccessHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
 		var request = new ManageUserAccessRequest(
-			null, 
-			new[] { "user-blocked-1", "user-blocked-2" }, 
-			null, 
+			null,
+			new[] { "user-blocked-1", "user-blocked-2" },
+			null,
 			"Blocking users");
 
 		// Act
@@ -108,7 +108,7 @@ public class ManageUserAccessHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("blocked-users-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.UserAccessControl.Blocked.ShouldContain("user-blocked-1");
@@ -117,13 +117,13 @@ public class ManageUserAccessHandlerTests(HandlersTestsFixture fixture)
 	}
 
 	[Fact]
-	public async Task Should_remove_rollout_mode_when_percentage_is_zero()
+	public async Task Should_remove_rollout_mode_when_percentage_is_one_hundred()
 	{
 		// Arrange
-		var identifier = new FlagIdentifier("zero-user-percentage-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		var identifier = new FlagIdentifier("hundred-user-percentage-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
 		var flag = new FeatureFlag(identifier,
-			new FlagAdministration(Name: "Zero User Percentage",
-						Description: "Test zero percentage",
+			new FlagAdministration(Name: "Hundred User Percentage",
+						Description: "Testing unrestricted user access",
 						RetentionPolicy: RetentionPolicy.GlobalPolicy,
 						Tags: [],
 						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
@@ -133,17 +133,17 @@ public class ManageUserAccessHandlerTests(HandlersTestsFixture fixture)
 
 		var handler = fixture.Services.GetRequiredService<ManageUserAccessHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
-		var request = new ManageUserAccessRequest(null, null, 0, "Set to zero");
+		var request = new ManageUserAccessRequest(null, null, 100, "Set to zero");
 
 		// Act
-		var result = await handler.HandleAsync("zero-user-percentage-flag", headers, request, CancellationToken.None);
+		var result = await handler.HandleAsync("hundred-user-percentage-flag", headers, request, CancellationToken.None);
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
-			new FlagIdentifier("zero-user-percentage-flag", Scope.Global), CancellationToken.None);
-		updated!.EvaluationOptions.UserAccessControl.RolloutPercentage.ShouldBe(0);
+			new FlagIdentifier("hundred-user-percentage-flag", Scope.Global), CancellationToken.None);
+		updated!.EvaluationOptions.UserAccessControl.RolloutPercentage.ShouldBe(100);
 		updated.EvaluationOptions.ModeSet.Contains([EvaluationMode.UserRolloutPercentage]).ShouldBeFalse();
 	}
 
@@ -164,10 +164,10 @@ public class ManageUserAccessHandlerTests(HandlersTestsFixture fixture)
 
 		var handler = fixture.Services.GetRequiredService<ManageUserAccessHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
-		
+
 		// First toggle it on
 		var toggleHandler = fixture.Services.GetRequiredService<ToggleFlagHandler>();
-		await toggleHandler.HandleAsync("user-mode-cleanup-flag", headers, 
+		await toggleHandler.HandleAsync("user-mode-cleanup-flag", headers,
 			new ToggleFlagRequest(EvaluationMode.On, "Enable first"), CancellationToken.None);
 
 		// Act - Set user access
@@ -176,7 +176,7 @@ public class ManageUserAccessHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("user-mode-cleanup-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.ModeSet.Contains([EvaluationMode.On]).ShouldBeFalse();
@@ -201,9 +201,9 @@ public class ManageUserAccessHandlerTests(HandlersTestsFixture fixture)
 		var handler = fixture.Services.GetRequiredService<ManageUserAccessHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
 		var request = new ManageUserAccessRequest(
-			new[] { "user-alpha", "user-beta" }, 
-			null, 
-			90, 
+			new[] { "user-alpha", "user-beta" },
+			null,
+			90,
 			"Combined settings");
 
 		// Act
@@ -211,7 +211,7 @@ public class ManageUserAccessHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("combined-user-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.UserAccessControl.Allowed.ShouldContain("user-alpha");

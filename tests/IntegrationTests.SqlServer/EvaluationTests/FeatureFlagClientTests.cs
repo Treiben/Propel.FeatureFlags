@@ -3,7 +3,7 @@ using FeatureFlags.IntegrationTests.SqlServer.Support;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
 
-namespace FeatureFlags.IntegrationTests.EvaluationTests.Client;
+namespace FeatureFlags.IntegrationTests.EvaluationTests.EvaluationTests;
 
 public class IsEnabledAsync_WithEnabledFlag(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {

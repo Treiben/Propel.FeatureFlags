@@ -3,7 +3,7 @@ using FeatureFlags.IntegrationTests.SqlServer.Support;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
 
-namespace FeatureFlags.IntegrationTests.EvaluationTests.Evaluator;
+namespace FeatureFlags.IntegrationTests.EvaluationTests.EvaluationTests;
 
 public class Evaluate(FlagEvaluationTestsFixture fixture) : IClassFixture<FlagEvaluationTestsFixture>
 {

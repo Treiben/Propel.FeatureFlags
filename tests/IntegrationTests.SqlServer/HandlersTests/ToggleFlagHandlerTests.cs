@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints;
 using Propel.FeatureFlags.Dashboard.Api.Endpoints.Dto;
-using Propel.FeatureFlags.Dashboard.Api.Endpoints.Shared;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure.Cache;
 
@@ -71,7 +70,7 @@ public class ToggleFlagHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("toggle-off-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.ModeSet.Contains([EvaluationMode.Off]).ShouldBeTrue();
@@ -98,7 +97,7 @@ public class ToggleFlagHandlerTests(HandlersTestsFixture fixture)
 
 		// Act - First toggle
 		await handler.HandleAsync("already-on-flag", headers, request, CancellationToken.None);
-		
+
 		// Act - Second toggle with same state
 		var result = await handler.HandleAsync("already-on-flag", headers, request, CancellationToken.None);
 
@@ -130,7 +129,7 @@ public class ToggleFlagHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("access-control-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.UserAccessControl.RolloutPercentage.ShouldBe(100);
@@ -161,7 +160,7 @@ public class ToggleFlagHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("access-off-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.UserAccessControl.RolloutPercentage.ShouldBe(0);

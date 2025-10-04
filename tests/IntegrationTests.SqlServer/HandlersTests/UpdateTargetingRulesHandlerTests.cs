@@ -41,7 +41,7 @@ public class UpdateTargetingRulesHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("targeting-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.TargetingRules.Count.ShouldBe(2);
@@ -65,13 +65,13 @@ public class UpdateTargetingRulesHandlerTests(HandlersTestsFixture fixture)
 
 		var handler = fixture.Services.GetRequiredService<UpdateTargetingRulesHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
-		
+
 		// First add rules
 		var rules = new List<TargetingRuleRequest>
 		{
 			new("region", TargetingOperator.Contains, new List<string> { "EU" }, "variation-a")
 		};
-		await handler.HandleAsync("remove-targeting-flag", headers, 
+		await handler.HandleAsync("remove-targeting-flag", headers,
 			new UpdateTargetingRulesRequest(rules, false, "Add first"), CancellationToken.None);
 
 		// Act - Remove all rules
@@ -80,7 +80,7 @@ public class UpdateTargetingRulesHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("remove-targeting-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.TargetingRules.ShouldBeEmpty();
@@ -115,7 +115,7 @@ public class UpdateTargetingRulesHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("mode-targeting-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.ModeSet.Contains([EvaluationMode.TargetingRules]).ShouldBeTrue();
@@ -138,10 +138,10 @@ public class UpdateTargetingRulesHandlerTests(HandlersTestsFixture fixture)
 
 		var handler = fixture.Services.GetRequiredService<UpdateTargetingRulesHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
-		
+
 		// First toggle it on
 		var toggleHandler = fixture.Services.GetRequiredService<ToggleFlagHandler>();
-		await toggleHandler.HandleAsync("cleanup-targeting-flag", headers, 
+		await toggleHandler.HandleAsync("cleanup-targeting-flag", headers,
 			new ToggleFlagRequest(EvaluationMode.On, "Enable first"), CancellationToken.None);
 
 		// Act - Add targeting rules
@@ -154,7 +154,7 @@ public class UpdateTargetingRulesHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("cleanup-targeting-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.ModeSet.Contains([EvaluationMode.On]).ShouldBeFalse();
@@ -179,13 +179,13 @@ public class UpdateTargetingRulesHandlerTests(HandlersTestsFixture fixture)
 
 		var handler = fixture.Services.GetRequiredService<UpdateTargetingRulesHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
-		
+
 		// Add initial rules
 		var initialRules = new List<TargetingRuleRequest>
 		{
 			new("old-attr", TargetingOperator.Contains, new List<string> { "old" }, "variation-old")
 		};
-		await handler.HandleAsync("replace-targeting-flag", headers, 
+		await handler.HandleAsync("replace-targeting-flag", headers,
 			new UpdateTargetingRulesRequest(initialRules, false, "Initial"), CancellationToken.None);
 
 		// Act - Replace with new rules
@@ -198,7 +198,7 @@ public class UpdateTargetingRulesHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("replace-targeting-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.TargetingRules.Count.ShouldBe(1);
@@ -263,3 +263,4 @@ public class UpdateTargetingRulesHandlerTests(HandlersTestsFixture fixture)
 	public Task InitializeAsync() => Task.CompletedTask;
 	public Task DisposeAsync() => fixture.ClearAllData();
 }
+

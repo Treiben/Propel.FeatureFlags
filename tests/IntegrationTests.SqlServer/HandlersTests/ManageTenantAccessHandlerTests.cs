@@ -36,7 +36,7 @@ public class ManageTenantAccessHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("tenant-percentage-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.TenantAccessControl.RolloutPercentage.ShouldBe(75);
@@ -61,9 +61,9 @@ public class ManageTenantAccessHandlerTests(HandlersTestsFixture fixture)
 		var handler = fixture.Services.GetRequiredService<ManageTenantAccessHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
 		var request = new ManageTenantAccessRequest(
-			new[] { "tenant-1", "tenant-2" }, 
-			null, 
-			null, 
+			new[] { "tenant-1", "tenant-2" },
+			null,
+			null,
 			"Adding allowed tenants");
 
 		// Act
@@ -71,7 +71,7 @@ public class ManageTenantAccessHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("allowed-tenants-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.TenantAccessControl.Allowed.ShouldContain("tenant-1");
@@ -97,9 +97,9 @@ public class ManageTenantAccessHandlerTests(HandlersTestsFixture fixture)
 		var handler = fixture.Services.GetRequiredService<ManageTenantAccessHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
 		var request = new ManageTenantAccessRequest(
-			null, 
-			new[] { "tenant-bad-1", "tenant-bad-2" }, 
-			null, 
+			null,
+			new[] { "tenant-bad-1", "tenant-bad-2" },
+			null,
 			"Blocking tenants");
 
 		// Act
@@ -107,7 +107,7 @@ public class ManageTenantAccessHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("blocked-tenants-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.TenantAccessControl.Blocked.ShouldContain("tenant-bad-1");
@@ -116,13 +116,13 @@ public class ManageTenantAccessHandlerTests(HandlersTestsFixture fixture)
 	}
 
 	[Fact]
-	public async Task Should_remove_rollout_mode_when_percentage_is_zero()
+	public async Task Should_remove_rollout_mode_when_percentage_is_one_hundred()
 	{
 		// Arrange
-		var identifier = new FlagIdentifier("zero-percentage-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
+		var identifier = new FlagIdentifier("hundred-percentage-flag", Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
 		var flag = new FeatureFlag(identifier,
-			new FlagAdministration(Name: "Zero Percentage",
-						Description: "Test zero percentage",
+			new FlagAdministration(Name: "Hundred Percentage",
+						Description: "Test unrestricted rollout",
 						RetentionPolicy: RetentionPolicy.GlobalPolicy,
 						Tags: [],
 						ChangeHistory: [AuditTrail.FlagCreated("test-user", null)]),
@@ -132,17 +132,17 @@ public class ManageTenantAccessHandlerTests(HandlersTestsFixture fixture)
 
 		var handler = fixture.Services.GetRequiredService<ManageTenantAccessHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
-		var request = new ManageTenantAccessRequest(null, null, 0, "Set to zero");
+		var request = new ManageTenantAccessRequest(null, null, 100, "Set to 100%");
 
 		// Act
-		var result = await handler.HandleAsync("zero-percentage-flag", headers, request, CancellationToken.None);
+		var result = await handler.HandleAsync("hundred-percentage-flag", headers, request, CancellationToken.None);
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
-			new FlagIdentifier("zero-percentage-flag", Scope.Global), CancellationToken.None);
-		updated!.EvaluationOptions.TenantAccessControl.RolloutPercentage.ShouldBe(0);
+			new FlagIdentifier("hundred-percentage-flag", Scope.Global), CancellationToken.None);
+		updated!.EvaluationOptions.TenantAccessControl.RolloutPercentage.ShouldBe(100);
 		updated.EvaluationOptions.ModeSet.Contains([EvaluationMode.TenantRolloutPercentage]).ShouldBeFalse();
 	}
 
@@ -163,10 +163,10 @@ public class ManageTenantAccessHandlerTests(HandlersTestsFixture fixture)
 
 		var handler = fixture.Services.GetRequiredService<ManageTenantAccessHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
-		
+
 		// First toggle it on
 		var toggleHandler = fixture.Services.GetRequiredService<ToggleFlagHandler>();
-		await toggleHandler.HandleAsync("tenant-mode-cleanup-flag", headers, 
+		await toggleHandler.HandleAsync("tenant-mode-cleanup-flag", headers,
 			new ToggleFlagRequest(EvaluationMode.On, "Enable first"), CancellationToken.None);
 
 		// Act - Set tenant access
@@ -175,7 +175,7 @@ public class ManageTenantAccessHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("tenant-mode-cleanup-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.ModeSet.Contains([EvaluationMode.On]).ShouldBeFalse();
@@ -200,9 +200,9 @@ public class ManageTenantAccessHandlerTests(HandlersTestsFixture fixture)
 		var handler = fixture.Services.GetRequiredService<ManageTenantAccessHandler>();
 		var headers = new FlagRequestHeaders("Global", null, null);
 		var request = new ManageTenantAccessRequest(
-			new[] { "tenant-a" }, 
-			null, 
-			80, 
+			new[] { "tenant-a" },
+			null,
+			80,
 			"Combined settings");
 
 		// Act
@@ -210,7 +210,7 @@ public class ManageTenantAccessHandlerTests(HandlersTestsFixture fixture)
 
 		// Assert
 		result.ShouldBeOfType<Ok<FeatureFlagResponse>>();
-		
+
 		var updated = await fixture.DashboardRepository.GetByKeyAsync(
 			new FlagIdentifier("combined-tenant-flag", Scope.Global), CancellationToken.None);
 		updated!.EvaluationOptions.TenantAccessControl.Allowed.ShouldContain("tenant-a");

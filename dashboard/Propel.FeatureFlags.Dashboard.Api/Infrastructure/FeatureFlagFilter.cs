@@ -1,5 +1,4 @@
-﻿using Knara.UtcStrict;
-using Propel.FeatureFlags.Domain;
+﻿using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Helpers;
 using System.Text.Json;
 
@@ -158,34 +157,64 @@ public static class SqlServerFiltering
 {
 	public static string BuildFilterQuery(int page, int pageSize, FeatureFlagFilter filter)
 	{
-		var (whereClause, parameters) = BuildFilterConditions(filter);
 		var sql = $@"
-		SELECT ff.*, 
-			ffm.""FlagKey"" as ""FlagKey"",
-			ffm.""IsPermanent"", ffm.""ExpirationDate"", ffm.""Tags"", 
-			ffa.""Action"", ffa.""Actor"", ffa.""Timestamp"", ffa.""Notes""
-		FROM ""FeatureFlags"" ff
-		LEFT JOIN ""FeatureFlagsMetadata"" ffm ON ff.""Key"" = ffm.""FlagKey"" 
-			AND ff.""ApplicationName"" = ffm.""ApplicationName""
-		LEFT JOIN ""FeatureFlagsAudit"" ffa ON ff.""Key"" = ffa.""FlagKey"" 
-			AND ff.""ApplicationName"" = ffa.""ApplicationName""
-		{whereClause}
-		ORDER BY ff.""Name"", ff.""Key""
-		OFFSET {(page - 1) * pageSize} ROWS 
-		FETCH NEXT {pageSize} ROWS ONLY";
-		return sql;
+			SELECT 
+				ff.*, 
+				ffm.FlagKey as FlagKey, 
+				ffm.IsPermanent as IsPermanent, 
+				ffm.ExpirationDate as ExpirationDate, 
+				ffm.Tags as Tags, 
+				ffa.[Action] as [Action], 
+				ffa.Actor as Actor, 
+				ffa.[Timestamp] as [Timestamp], 
+				ffa.Notes as Notes 
+			FROM 
+				FeatureFlags ff 
+			LEFT JOIN 
+				FeatureFlagsMetadata ffm ON ff.[Key] = ffm.FlagKey 
+					AND ff.ApplicationName = ffm.ApplicationName 
+					AND ff.ApplicationVersion = ffm.ApplicationVersion 
+			LEFT JOIN 
+				FeatureFlagsAudit ffa ON ff.[Key] = ffa.FlagKey 
+					AND ff.ApplicationName = ffa.ApplicationName 
+					AND ff.ApplicationVersion = ffa.ApplicationVersion 
+					AND ffa.[Timestamp] = (
+						SELECT MAX(ffa2.[Timestamp]) 
+						FROM FeatureFlagsAudit ffa2 
+						WHERE ffa2.FlagKey = ff.[Key] 
+							AND ffa2.ApplicationName = ff.ApplicationName 
+							AND ffa2.ApplicationVersion = ff.ApplicationVersion
+					)";
+
+		if (filter != null)
+		{
+			var (whereClause, parameters) = BuildFilterConditions(filter);
+			sql += $" {whereClause} ";
+		}
+
+		return sql += $@"
+			ORDER BY ff.[Name], ff.[Key] 
+			OFFSET {(page - 1) * pageSize} ROWS 
+			FETCH NEXT {pageSize} ROWS ONLY";
 	}
+
 	public static string BuildCountQuery(FeatureFlagFilter filter)
 	{
-		var (whereClause, parameters) = BuildFilterConditions(filter);
-		var sql = $@"
-		SELECT COUNT(*) 
-		FROM ""FeatureFlags"" ff
-		LEFT JOIN ""FeatureFlagsMetadata"" ffm ON ff.""Key"" = ffm.""FlagKey"" 
-			AND ff.""ApplicationName"" = ffm.""ApplicationName""
-		{whereClause}";
+		var sql = $@"SELECT COUNT(*) 
+		FROM FeatureFlags ff 
+			LEFT JOIN FeatureFlagsMetadata ffm ON ff.[Key] = ffm.FlagKey 
+					AND ff.ApplicationName = ffm.ApplicationName 
+					AND ff.ApplicationVersion = ffm.ApplicationVersion";
+
+		if (filter != null)
+		{
+			var (whereClause, parameters) = BuildFilterConditions(filter);
+			return sql += $@"{whereClause}";
+		}
+
 		return sql;
 	}
+
 	public static (string whereClause, Dictionary<string, object> parameters) BuildFilterConditions(FeatureFlagFilter? filter)
 	{
 		var conditions = new List<string>();
@@ -194,12 +223,12 @@ public static class SqlServerFiltering
 		if (filter == null)
 			return (string.Empty, parameters);
 
-		// Application name filtering
+		// Application name filtering - use ff table (primary identifier)
 		if (!string.IsNullOrEmpty(filter.ApplicationName))
 		{
 			var appNameParam = "appName";
 			parameters[appNameParam] = filter.ApplicationName;
-			conditions.Add($"ff.[ApplicationName] = @{appNameParam}");
+			conditions.Add($"ff.ApplicationName = @{appNameParam}");
 		}
 
 		// Flag scope filtering
@@ -207,32 +236,27 @@ public static class SqlServerFiltering
 		{
 			var scopeParam = "scope";
 			parameters[scopeParam] = (int)filter.Scope.Value;
-			conditions.Add($"ff.[Scope] = @{scopeParam}");
+			conditions.Add($"ff.Scope = @{scopeParam}");
 		}
 
-		// Evaluation modes filtering - SQL Server JSON functions
+		// Evaluation modes filtering - use ff table (main flag data)
 		if (filter.EvaluationModes != null && filter.EvaluationModes.Length > 0)
 		{
 			var modeConditions = new List<string>();
 			for (int i = 0; i < filter.EvaluationModes.Length; i++)
 			{
 				var modeParam = $"mode{i}";
-				var modeValue = (int)filter.EvaluationModes[i];
-				parameters[modeParam] = modeValue.ToString();
-
-				// Use SQL Server JSON_VALUE and STRING_SPLIT for array containment
-				modeConditions.Add($@"
-                EXISTS (
-                    SELECT 1 FROM STRING_SPLIT(
-                        REPLACE(REPLACE(ff.[EvaluationModes], '[', ''), ']', ''), ','
-                    ) 
-                    WHERE LTRIM(RTRIM(value)) = @{modeParam}
-                )");
+				var modeJson = JsonSerializer.Serialize(new[] { (int)filter.EvaluationModes[i] }, JsonDefaults.JsonOptions);
+				parameters[modeParam] = modeJson;
+				modeConditions.Add($@"EXISTS (
+					SELECT 1 FROM OPENJSON(ff.EvaluationModes) 
+					WHERE value IN (SELECT value FROM OPENJSON(@{modeParam}))
+				)");
 			}
 			conditions.Add($"({string.Join(" OR ", modeConditions)})");
 		}
 
-		// Tags filtering - SQL Server JSON functions
+		// Tags filtering - use ffm table (metadata specific)
 		if (filter.Tags != null && filter.Tags.Count > 0)
 		{
 			var tagConditions = new List<string>();
@@ -240,22 +264,29 @@ public static class SqlServerFiltering
 
 			foreach (var tag in filter.Tags)
 			{
+				var keyParam = $"tagKey{tagIndex}";
 				if (string.IsNullOrEmpty(tag.Value))
 				{
-					// Search by tag key only using JSON_QUERY
-					var keyParam = $"tagKey{tagIndex}";
+					// Search by tag key only
 					parameters[keyParam] = tag.Key;
-					tagConditions.Add($"JSON_VALUE(ffm.[Tags], '$.{tag.Key}') IS NOT NULL");
+					tagConditions.Add($@"EXISTS (
+						SELECT 1 FROM OPENJSON(ffm.Tags) 
+						WHERE [key] = @{keyParam}
+					)");
 				}
 				else
 				{
 					// Search by exact key-value match
-					var tagKeyParam = $"tagKey{tagIndex}";
-					var tagValueParam = $"tagValue{tagIndex}";
-					parameters[tagKeyParam] = tag.Key;
-					parameters[tagValueParam] = tag.Value;
-
-					tagConditions.Add($"JSON_VALUE(ffm.[Tags], '$.{tag.Key}') = @{tagValueParam}");
+					var tagParam = $"tag{tagIndex}";
+					var tagJson = JsonSerializer.Serialize(new Dictionary<string, string> { [tag.Key] = tag.Value }, JsonDefaults.JsonOptions);
+					parameters[tagParam] = tagJson;
+					tagConditions.Add($@"EXISTS (
+						SELECT 1 
+						FROM OPENJSON(ffm.Tags) 
+						WHERE [key] = @{keyParam} AND [value] = @{tagParam}
+					)");
+					parameters[keyParam] = tag.Key;
+					parameters[tagParam] = tag.Value;
 				}
 				tagIndex++;
 			}

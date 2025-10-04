@@ -250,7 +250,7 @@ public class GetPagedAsync_WithDashboardRepository(SqlServerTestsFixture fixture
 		await fixture.DashboardRepository.CreateAsync(appFlag);
 		await fixture.DashboardRepository.CreateAsync(globalFlag);
 
-		var filter = new FeatureFlagFilter { Scope = Scope.Application };
+		var filter = new FeatureFlagFilter(Scope: Scope.Application);
 
 		// Act
 		var result = await fixture.DashboardRepository.GetPagedAsync(1, 10, filter);
@@ -591,7 +591,15 @@ public class FeatureFlagRepositoryComprehensiveTests(SqlServerTestsFixture fixtu
 				TargetingRules: [],
 				UserAccessControl: AccessControl.Unrestricted,
 				TenantAccessControl: AccessControl.Unrestricted,
-				Variations: new Variations());
+				Variations: new Variations
+				{
+					Values = new Dictionary<string, object>()
+					{
+						{ "test-on", true },
+						{ "test-off", false },
+					},
+					DefaultVariation = "test-off"
+				});
 
 		var flag = new FeatureFlag(flagIdentifier, metadata, configuration);
 
@@ -625,8 +633,299 @@ public class FeatureFlagRepositoryComprehensiveTests(SqlServerTestsFixture fixtu
 		result.EvaluationOptions.TenantAccessControl.Blocked.ShouldBeEmpty();
 		result.EvaluationOptions.TenantAccessControl.RolloutPercentage.ShouldBe(100);
 
-		result.EvaluationOptions.Variations.DefaultVariation.ShouldBe("off");
-		result.EvaluationOptions.Variations.Values.ShouldContainKey("on");
-		result.EvaluationOptions.Variations.Values.ShouldContainKey("off");
+		result.EvaluationOptions.Variations.DefaultVariation.ShouldBe("test-off");
+		result.EvaluationOptions.Variations.Values.Keys.ShouldContain("test-on");
+		result.EvaluationOptions.Variations.Values.Keys.ShouldContain("test-off");
+	}
+}
+
+public class UpdateMetadataAsync_WithDashboardRepository(SqlServerTestsFixture fixture) : IClassFixture<SqlServerTestsFixture>
+{
+	[Fact]
+	public async Task If_FlagExists_ThenUpdatesMetadataSuccessfully()
+	{
+		// Arrange
+		await fixture.ClearAllData();
+		var flagIdentifier = new FlagIdentifier("metadata-update-flag", Scope.Global);
+		var originalFlag = CreateTestFlag(flagIdentifier, "Original Name");
+		await fixture.DashboardRepository.CreateAsync(originalFlag);
+
+		var updatedMetadata = new FlagAdministration(
+			Name: "Updated Metadata Name",
+			Description: "Updated metadata description",
+			RetentionPolicy: new RetentionPolicy(DateTimeOffset.UtcNow.AddDays(30)),
+			Tags: new Dictionary<string, string> { { "updated", "true" }, { "version", "2.0" } },
+			ChangeHistory: [.. originalFlag.Administration.ChangeHistory, AuditTrail.FlagModified("metadata-updater", "Metadata updated")]
+		);
+
+		var updatedFlag = originalFlag with { Administration = updatedMetadata };
+
+		// Act
+		var result = await fixture.DashboardRepository.UpdateMetadataAsync(updatedFlag);
+
+		// Assert
+		result.ShouldNotBeNull();
+		var retrieved = await fixture.DashboardRepository.GetByKeyAsync(flagIdentifier);
+		retrieved.ShouldNotBeNull();
+		retrieved.Administration.Name.ShouldBe("Updated Metadata Name");
+		retrieved.Administration.Description.ShouldBe("Updated metadata description");
+		retrieved.Administration.Tags.Count.ShouldBe(2);
+		retrieved.Administration.Tags["updated"].ShouldBe("true");
+		retrieved.Administration.Tags["version"].ShouldBe("2.0");
+		retrieved.Administration.RetentionPolicy.IsPermanent.ShouldBeFalse();
+		retrieved.Administration.ChangeHistory.Count.ShouldBe(2);
+		retrieved.Administration.ChangeHistory[0].Action.ShouldBe("flag-modified");
+		retrieved.Administration.ChangeHistory[0].Actor.ShouldBe("metadata-updater");
+	}
+
+	[Fact]
+	public async Task If_UpdateMetadata_ThenDoesNotAffectConfiguration()
+	{
+		// Arrange
+		await fixture.ClearAllData();
+		var flagIdentifier = new FlagIdentifier("config-preserve-flag", Scope.Application, "test-app");
+		var metadata = new FlagAdministration(
+			Name: "Config Preserve Flag",
+			Description: "Testing configuration preservation",
+			RetentionPolicy: RetentionPolicy.GlobalPolicy,
+			Tags: [],
+			ChangeHistory: [AuditTrail.FlagCreated("creator")]
+		);
+
+		var originalConfig = new FlagEvaluationOptions(
+			ModeSet: new ModeSet([EvaluationMode.UserTargeted, EvaluationMode.Scheduled]),
+			Schedule: UtcSchedule.CreateSchedule(DateTimeOffset.UtcNow.AddDays(1), DateTimeOffset.UtcNow.AddDays(5)),
+			OperationalWindow: UtcTimeWindow.AlwaysOpen,
+			TargetingRules: [TargetingRuleFactory.CreateTargetingRule("env", TargetingOperator.Equals, ["prod"], "prod-variant")],
+			UserAccessControl: new AccessControl(allowed: ["user1"], blocked: [], rolloutPercentage: 50),
+			TenantAccessControl: AccessControl.Unrestricted,
+			Variations: new Variations { Values = new Dictionary<string, object> { { "on", true }, { "off", false } }, DefaultVariation = "off" }
+		);
+
+		var originalFlag = new FeatureFlag(flagIdentifier, metadata, originalConfig);
+		await fixture.DashboardRepository.CreateAsync(originalFlag);
+
+		var updatedMetadata = metadata with
+		{
+			Name = "Updated Name Only",
+			Tags = new Dictionary<string, string> { { "changed", "yes" } },
+			ChangeHistory = [.. metadata.ChangeHistory, AuditTrail.FlagModified("updater", "Name changed")]
+		};
+
+		var updatedFlag = originalFlag with { Administration = updatedMetadata };
+
+		// Act
+		await fixture.DashboardRepository.UpdateMetadataAsync(updatedFlag);
+
+		// Assert
+		var retrieved = await fixture.DashboardRepository.GetByKeyAsync(flagIdentifier);
+		retrieved.ShouldNotBeNull();
+		retrieved.Administration.Name.ShouldBe("Updated Name Only");
+		retrieved.Administration.Tags["changed"].ShouldBe("yes");
+		// Verify configuration unchanged
+		retrieved.EvaluationOptions.ModeSet.Contains([EvaluationMode.UserTargeted]).ShouldBeTrue();
+		retrieved.EvaluationOptions.ModeSet.Contains([EvaluationMode.Scheduled]).ShouldBeTrue();
+		retrieved.EvaluationOptions.UserAccessControl.Allowed.ShouldContain("user1");
+		retrieved.EvaluationOptions.UserAccessControl.RolloutPercentage.ShouldBe(50);
+		retrieved.EvaluationOptions.TargetingRules.Count.ShouldBe(1);
+		retrieved.EvaluationOptions.TargetingRules[0].Attribute.ShouldBe("env");
+	}
+
+	private static FeatureFlag CreateTestFlag(FlagIdentifier identifier, string name)
+	{
+		var metadata = new FlagAdministration(
+			Name: name,
+			Description: "Test description",
+			RetentionPolicy: RetentionPolicy.GlobalPolicy,
+			Tags: [],
+			ChangeHistory: [AuditTrail.FlagCreated("test-creator")]
+		);
+
+		var configuration = new FlagEvaluationOptions(
+			ModeSet: new ModeSet([EvaluationMode.On]),
+			Schedule: UtcSchedule.Unscheduled,
+			OperationalWindow: UtcTimeWindow.AlwaysOpen,
+			TargetingRules: [],
+			UserAccessControl: AccessControl.Unrestricted,
+			TenantAccessControl: AccessControl.Unrestricted,
+			Variations: new Variations()
+		);
+
+		return new FeatureFlag(identifier, metadata, configuration);
+	}
+}
+
+public class FlagExistsAsync_WithDashboardRepository(SqlServerTestsFixture fixture) : IClassFixture<SqlServerTestsFixture>
+{
+	[Fact]
+	public async Task If_FlagExists_ThenReturnsTrue()
+	{
+		// Arrange
+		await fixture.ClearAllData();
+		var flagIdentifier = new FlagIdentifier("exists-test-flag", Scope.Global);
+		var flag = CreateTestFlag(flagIdentifier, "Exists Test Flag");
+		await fixture.DashboardRepository.CreateAsync(flag);
+
+		// Act
+		var result = await fixture.DashboardRepository.FlagExistsAsync(flagIdentifier);
+
+		// Assert
+		result.ShouldBeTrue();
+	}
+
+	[Fact]
+	public async Task If_FlagDoesNotExist_ThenReturnsFalse()
+	{
+		// Arrange
+		await fixture.ClearAllData();
+		var flagIdentifier = new FlagIdentifier("non-existent-flag", Scope.Application, "test-app");
+
+		// Act
+		var result = await fixture.DashboardRepository.FlagExistsAsync(flagIdentifier);
+
+		// Assert
+		result.ShouldBeFalse();
+	}
+
+	private static FeatureFlag CreateTestFlag(FlagIdentifier identifier, string name)
+	{
+		var metadata = new FlagAdministration(
+			Name: name,
+			Description: "Test description",
+			RetentionPolicy: RetentionPolicy.GlobalPolicy,
+			Tags: [],
+			ChangeHistory: [AuditTrail.FlagCreated("test-creator")]
+		);
+
+		var configuration = new FlagEvaluationOptions(
+			ModeSet: new ModeSet([EvaluationMode.On]),
+			Schedule: UtcSchedule.Unscheduled,
+			OperationalWindow: UtcTimeWindow.AlwaysOpen,
+			TargetingRules: [],
+			UserAccessControl: AccessControl.Unrestricted,
+			TenantAccessControl: AccessControl.Unrestricted,
+			Variations: new Variations()
+		);
+
+		return new FeatureFlag(identifier, metadata, configuration);
+	}
+}
+
+public class FindAsync_WithDashboardRepository(SqlServerTestsFixture fixture) : IClassFixture<SqlServerTestsFixture>
+{
+	[Fact]
+	public async Task If_FlagsNameContainsCriteriaName_ThenReturnsMatchingFlags()
+	{
+		// Arrange
+		await fixture.ClearAllData();
+
+		var flag1 = CreateTestFlag("search-flag-1", "Search Test Flag", "This is a searchable description");
+		var flag2 = CreateTestFlag("search-flag-2", "Another Flag", "Different content");
+		var flag3 = CreateTestFlag("different-key", "Search Test Flag", "Another description");
+
+		await fixture.DashboardRepository.CreateAsync(flag1);
+		await fixture.DashboardRepository.CreateAsync(flag2);
+		await fixture.DashboardRepository.CreateAsync(flag3);
+
+		var criteria = new FindFlagCriteria(Name: "sEaRcH TeSt");
+
+		// Act
+		var results = await fixture.DashboardRepository.FindAsync(criteria);
+
+		// Assert
+		results.ShouldNotBeEmpty();
+		results.Count.ShouldBe(2);
+		results.ShouldAllBe(f => f.Administration.Name.Contains("Search Test"));
+	}
+
+	[Fact]
+	public async Task If_FlagsKeyMatchesCriteriaKeyExactly_ThenReturnsMatchingFlags()
+	{
+		// Arrange
+		await fixture.ClearAllData();
+
+		var flag1 = CreateTestFlag("search-flag-1", "Search Test Flag", "This is a searchable description");
+		var flag2 = CreateTestFlag("search-flag-2", "Another Flag", "Different content");
+		var flag3 = CreateTestFlag("different-key", "Search Test Flag", "Another description");
+
+		await fixture.DashboardRepository.CreateAsync(flag1);
+		await fixture.DashboardRepository.CreateAsync(flag2);
+		await fixture.DashboardRepository.CreateAsync(flag3);
+
+		var criteria = new FindFlagCriteria(Key: "sEaRcH-FlAg-2");
+
+		// Act
+		var results = await fixture.DashboardRepository.FindAsync(criteria);
+
+		// Assert
+		results.ShouldNotBeEmpty();
+		results.Count.ShouldBe(1);
+		results.ShouldAllBe(f => f.Administration.Name.Contains("Another Flag"));
+		results.ShouldAllBe(f => f.Administration.Description.Contains("Different content"));
+	}
+
+	[Fact]
+	public async Task If_FlagsDescriptionContainsCriteriaDescription_ThenReturnsMatchingFlags()
+	{
+		// Arrange
+		await fixture.ClearAllData();
+
+		var flag1 = CreateTestFlag("search-flag-1", "Search Test Flag", "This is a searchable description");
+		var flag2 = CreateTestFlag("search-flag-2", "Another Flag", "Different content");
+		var flag3 = CreateTestFlag("different-key", "Search Test Flag", "Another description");
+
+		await fixture.DashboardRepository.CreateAsync(flag1);
+		await fixture.DashboardRepository.CreateAsync(flag2);
+		await fixture.DashboardRepository.CreateAsync(flag3);
+
+		var criteria = new FindFlagCriteria(Description: "DeScRiPtIoN");
+
+		// Act
+		var results = await fixture.DashboardRepository.FindAsync(criteria);
+
+		// Assert
+		results.ShouldNotBeEmpty();
+		results.Count.ShouldBe(2);
+	}
+
+	[Fact]
+	public async Task If_NoFlagsMatchCriteria_ThenReturnsEmptyList()
+	{
+		// Arrange
+		await fixture.ClearAllData();
+		var flag = CreateTestFlag("test-flag", "Test Flag", "Test description");
+		await fixture.DashboardRepository.CreateAsync(flag);
+
+		var criteria = new FindFlagCriteria { Name = "NonExistentName" };
+
+		// Act
+		var results = await fixture.DashboardRepository.FindAsync(criteria);
+
+		// Assert
+		results.ShouldBeEmpty();
+	}
+
+	private static FeatureFlag CreateTestFlag(string key, string name, string description)
+	{
+		var identifier = new FlagIdentifier(key, Scope.Global);
+		var metadata = new FlagAdministration(
+			Name: name,
+			Description: description,
+			RetentionPolicy: RetentionPolicy.GlobalPolicy,
+			Tags: [],
+			ChangeHistory: [AuditTrail.FlagCreated("test-creator")]
+		);
+
+		var configuration = new FlagEvaluationOptions(
+			ModeSet: new ModeSet([EvaluationMode.On]),
+			Schedule: UtcSchedule.Unscheduled,
+			OperationalWindow: UtcTimeWindow.AlwaysOpen,
+			TargetingRules: [],
+			UserAccessControl: AccessControl.Unrestricted,
+			TenantAccessControl: AccessControl.Unrestricted,
+			Variations: new Variations()
+		);
+
+		return new FeatureFlag(identifier, metadata, configuration);
 	}
 }

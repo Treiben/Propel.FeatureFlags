@@ -198,7 +198,7 @@ CREATE TABLE FeatureFlags (
     -- Variations
     Variations NVARCHAR(MAX) NOT NULL DEFAULT '{}'
         CONSTRAINT CK_Variations_json CHECK (ISJSON(variations) = 1),
-    DefaultVariation NVARCHAR(255) NOT NULL DEFAULT 'off',
+    DefaultVariation NVARCHAR(255) NOT NULL DEFAULT '',
 
 	CONSTRAINT PK_feature_flags PRIMARY KEY ([key], ApplicationName, ApplicationVersion)
 );
