@@ -1,6 +1,6 @@
 ﻿using Propel.FeatureFlags.Domain;
 
-namespace ApiFlagUsageDemo.FeatureFlags;
+namespace DemoWebApi.FeatureFlags;
 
 public class RecommendationAlgorithmFeatureFlag : FeatureFlagBase
 {

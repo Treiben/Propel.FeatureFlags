@@ -1,6 +1,6 @@
 ﻿using Propel.FeatureFlags.Domain;
 
-namespace ApiFlagUsageDemo.FeatureFlags;
+namespace DemoWebApi.FeatureFlags;
 
 // Type-safe feature flag definition for admin panel functionality.
 // When this flag doesn't exist in the database, it will be automatically created

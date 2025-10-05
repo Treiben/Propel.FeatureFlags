@@ -1,6 +1,6 @@
 using Propel.FeatureFlags.Domain;
 
-namespace ApiFlagUsageDemo.FeatureFlags;
+namespace DemoWebApi.FeatureFlags;
 
 // Type-safe feature flag for controlling the new product API implementation.
 // Enables A/B testing between legacy and enhanced product API endpoints

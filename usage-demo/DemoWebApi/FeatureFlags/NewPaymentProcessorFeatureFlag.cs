@@ -1,6 +1,6 @@
 ﻿using Propel.FeatureFlags.Domain;
 
-namespace ApiFlagUsageDemo.FeatureFlags;
+namespace DemoWebApi.FeatureFlags;
 
 // The flag created with default settings if it does not already exist in the database
 // in disabled state (Recommended).

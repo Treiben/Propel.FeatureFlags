@@ -1,8 +1,8 @@
-﻿using ApiFlagUsageDemo.FeatureFlags;
+﻿using DemoWebApi.FeatureFlags;
 using Propel.FeatureFlags.AspNetCore.Extensions;
 using Propel.FeatureFlags.Clients;
 
-namespace ApiFlagUsageDemo.MinimalApiEndpoints;
+namespace DemoWebApi.MinimalApiEndpoints;
 
 public static class ProductEndpoints
 {

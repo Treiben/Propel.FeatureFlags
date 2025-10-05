@@ -1,6 +1,6 @@
 ﻿using Propel.FeatureFlags.Domain;
 
-namespace ApiFlagUsageDemo.FeatureFlags;
+namespace DemoWebApi.FeatureFlags;
 
 
 // Type-safe feature flag for controlling checkout processing variations.

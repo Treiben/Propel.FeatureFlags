@@ -1,9 +1,9 @@
-using ApiFlagUsageDemo.MinimalApiEndpoints;
-using ApiFlagUsageDemo.Services;
+using DemoWebApi;
+using DemoWebApi.MinimalApiEndpoints;
+using DemoWebApi.Services;
 using Propel.FeatureFlags.Attributes.Extensions;
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.PostgreSql;
-using WebClientDemo;
 
 var builder = WebApplication.CreateBuilder(args);
 

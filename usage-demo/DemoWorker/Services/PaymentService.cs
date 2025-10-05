@@ -1,7 +1,8 @@
-﻿using ApiFlagUsageDemo.FeatureFlags;
+﻿using Microsoft.Extensions.Logging;
 using Propel.FeatureFlags.Clients;
+using Propel.FeatureFlags.Domain;
 
-namespace ApiFlagUsageDemo.Services;
+namespace ConsoleApplicationDemo.FeatureFlags;
 
 /// <summary>
 ///=== SERVICE LAYER FEATURE FLAG INTEGRATION DEMO ===
@@ -35,6 +36,17 @@ namespace ApiFlagUsageDemo.Services;
 /// </summary>
 
 // ===== 1. SERVICE LAYER INTEGRATION =====
+
+public class NewPaymentProcessorFeatureFlag : FeatureFlagBase
+{
+	public NewPaymentProcessorFeatureFlag()
+		: base(key: "new-payment-processor",
+			name: "New Payment Processor",
+			description: "Controls whether to use the enhanced payment processing implementation with improved performance and features, or fall back to the legacy processor. Enables gradual rollout with automatic fallback for resilience and risk mitigation during payment processing.")
+	{
+	}
+}
+
 public class PaymentService(
 	IApplicationFlagClient featureFlags,
 	IPaymentProcessorV1 legacyProcessor,

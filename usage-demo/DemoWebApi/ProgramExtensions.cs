@@ -1,6 +1,6 @@
 ﻿using Propel.FeatureFlags.AspNetCore.Middleware;
 
-namespace WebClientDemo;
+namespace DemoWebApi;
 
 public static class AppExtensions
 {

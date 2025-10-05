@@ -53,13 +53,13 @@ services:
       - redis
 
 
-  # Propel Demo
+  # Propel Demo Api
   propel.demo.api:
     image: ${DOCKER_REGISTRY-}propel-demo-api
     container_name: propel-demo-api
     build:
       context: .
-      dockerfile: WebClientDemo/Dockerfile
+      dockerfile: DemoWebApi/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080 
@@ -79,9 +79,39 @@ services:
     restart: unless-stopped
     volumes:
       - type: bind
-        source: ./WebClientDemo/appsettings.json
+        source: ./DemoWebApi/appsettings.json
         target: /app/appsettings.json
         read_only: true
+
+  # Propel Demo Worker
+  propel.demo.worker:
+    image: ${DOCKER_REGISTRY-}propel-demo-worker
+    container_name: propel-demo-worker
+    build:
+      context: .
+      dockerfile: DemoWorker/Dockerfile
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - POSTGRES_DB=propel
+      - POSTGRES_USER=propel_user
+      - POSTGRES_PASSWORD=propel_password
+      - REDIS_PASSWORD=
+    networks:
+      - propel-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      propel.demo.api:
+        condition: service_started
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ./DemoWorker/appsettings.json
+        target: /app/appsettings.json
+        read_only: true
+
 
 volumes:
   postgres_data:

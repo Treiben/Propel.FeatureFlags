@@ -42,7 +42,7 @@ public enum DatabaseProvider
 	SqlServer
 }
 
-public struct AOPOptions
+public class AOPOptions
 {
 	public bool EnableHttpIntercepter { get; set; }
 	public bool EnableIntercepter { get; set; }

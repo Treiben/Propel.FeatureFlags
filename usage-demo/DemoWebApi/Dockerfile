@@ -13,25 +13,30 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Directory.Build.props", "."]
-COPY ["usage-demo/WebClientDemo/WebClientDemo.csproj", "usage-demo/WebClientDemo/"]
+
+COPY ["usage-demo/DemoWebApi/DemoWebApi.csproj", "usage-demo/DemoWebApi/"]
+
 COPY ["extensions/Propel.FeatureFlags.PostgreSql/Propel.FeatureFlags.PostgreSql.csproj", "extensions/Propel.FeatureFlags.PostgreSql/"]
+
 COPY ["infrastructure/Propel.FeatureFlags.Infrastructure.PostgresSql/Propel.FeatureFlags.Infrastructure.PostgresSql.csproj", "infrastructure/Propel.FeatureFlags.Infrastructure.PostgresSql/"]
-COPY ["src/Propel.FeatureFlags/Propel.FeatureFlags.csproj", "src/Propel.FeatureFlags/"]
 COPY ["infrastructure/Propel.FeatureFlags.Infrastructure.Redis/Propel.FeatureFlags.Infrastructure.Redis.csproj", "infrastructure/Propel.FeatureFlags.Infrastructure.Redis/"]
+
+COPY ["src/Propel.FeatureFlags/Propel.FeatureFlags.csproj", "src/Propel.FeatureFlags/"]
 COPY ["src/Propel.FeatureFlags.AspNetCore/Propel.FeatureFlags.AspNetCore.csproj", "src/Propel.FeatureFlags.AspNetCore/"]
 COPY ["src/Propel.FeatureFlags.Attributes/Propel.FeatureFlags.Attributes.csproj", "src/Propel.FeatureFlags.Attributes/"]
-RUN dotnet restore "./usage-demo/WebClientDemo/WebClientDemo.csproj"
+
+RUN dotnet restore "./usage-demo/DemoWebApi/DemoWebApi.csproj"
 COPY . .
-WORKDIR "/src/usage-demo/WebClientDemo"
-RUN dotnet build "./WebClientDemo.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/usage-demo/DemoWebApi"
+RUN dotnet build "./DemoWebApi.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./WebClientDemo.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./DemoWebApi.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "WebClientDemo.dll"]
+ENTRYPOINT ["dotnet", "DemoWebApi.dll"]
