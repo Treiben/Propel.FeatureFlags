@@ -1,0 +1,62 @@
+﻿@{
+	ViewBag.Title = "Home Page";
+}
+
+<div class="jumbotron">
+	<h1>Propel Feature Flags Demo</h1>
+	<p class="lead">@ViewBag.Message</p>
+</div>
+
+<div class="row">
+	<div class="col-md-12">
+		<h2>📍 Available Demo Endpoints</h2>
+		<p>Click the links below to test feature flag functionality:</p>
+	</div>
+</div>
+
+<div class="row">
+	<div class="col-md-6">
+		<h3>🎯 Simple Examples</h3>
+		<ul class="list-group">
+			<li class="list-group-item">
+				<strong>Product API (Simple On/Off)</strong><br />
+				<a href="/api/products" target="_blank">/api/products</a>
+				<p class="text-muted">Demonstrates simple on/off feature flag for API versioning</p>
+			</li>
+		</ul>
+	</div>
+
+	<div class="col-md-6">
+		<h3>🚀 Advanced Examples</h3>
+		<ul class="list-group">
+			<li class="list-group-item">
+				<strong>Products (Full Demo)</strong><br />
+				<a href="/api/featureflags/products?userId=user123" target="_blank">/api/featureflags/products</a>
+			</li>
+			<li class="list-group-item">
+				<strong>Recommendations (50% Rollout)</strong><br />
+				<a href="/api/featureflags/recommendations/user123" target="_blank">/api/featureflags/recommendations/user123</a>
+				<p class="text-muted">Try different user IDs to see rollout</p>
+			</li>
+			<li class="list-group-item">
+				<strong>Admin Panel</strong><br />
+				<a href="/api/featureflags/admin/sensitive-operation" target="_blank">/api/featureflags/admin/sensitive-operation</a>
+			</li>
+			<li class="list-group-item">
+				<strong>Flag Status</strong><br />
+				<a href="/api/featureflags/status" target="_blank">/api/featureflags/status</a>
+				<p class="text-muted">View all configured flags</p>
+			</li>
+		</ul>
+	</div>
+</div>
+
+<div class="row" style="margin-top: 20px;">
+	<div class="col-md-12">
+		<div class="alert alert-info">
+			<strong>📝 Note:</strong> This demo uses in-memory flag evaluation without database persistence.
+			Flags are hardcoded in the InMemoryFlagStore class. In production, you would use the
+			PostgreSQL or SQL Server infrastructure packages with proper DI.
+		</div>
+	</div>
+</div>

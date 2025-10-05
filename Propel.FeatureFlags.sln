@@ -49,6 +49,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DemoWebApi", "usage-demo\De
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DemoWorker", "usage-demo\DemoWorker\DemoWorker.csproj", "{E8F05DCD-577B-08C1-3B1B-A782DCE83EF6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DemoLegacyApi", "usage-demo\DemoLegacyApi\DemoLegacyApi.csproj", "{AB1EA9EC-7A17-49B1-855C-43E302E90746}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -115,6 +117,10 @@ Global
 		{E8F05DCD-577B-08C1-3B1B-A782DCE83EF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E8F05DCD-577B-08C1-3B1B-A782DCE83EF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E8F05DCD-577B-08C1-3B1B-A782DCE83EF6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB1EA9EC-7A17-49B1-855C-43E302E90746}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB1EA9EC-7A17-49B1-855C-43E302E90746}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB1EA9EC-7A17-49B1-855C-43E302E90746}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB1EA9EC-7A17-49B1-855C-43E302E90746}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -135,6 +141,7 @@ Global
 		{5FAAC2B0-A16E-4AC3-AF6A-2648A6C2934D} = {35CEB1A8-989D-4332-A202-CEEF23281578}
 		{7B60591B-4CC7-FAE8-6B67-75A79EA6F75C} = {B35B9A4F-7FDA-4842-90DB-833533AD0C02}
 		{E8F05DCD-577B-08C1-3B1B-A782DCE83EF6} = {B35B9A4F-7FDA-4842-90DB-833533AD0C02}
+		{AB1EA9EC-7A17-49B1-855C-43E302E90746} = {B35B9A4F-7FDA-4842-90DB-833533AD0C02}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B84A57E7-342F-45BE-BD70-F37A7F4D7E27}
