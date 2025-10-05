@@ -1,57 +1,6 @@
-﻿using ApiFlagUsageDemo.FeatureFlags;
-
-using Propel.FeatureFlags.AspNetCore.Middleware;
-using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Extensions;
-
-using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.Extensions;
-using System.Reflection;
+﻿using Propel.FeatureFlags.AspNetCore.Middleware;
 
 namespace WebClientDemo;
-
-public static class BuilderExtensions
-{
-	public static void ConfigureFeatureFlags(this WebApplicationBuilder builder, Action<PropelOptions> configure)
-	{
-		var options = new PropelOptions();
-		configure.Invoke(options);
-
-		builder.Services.AddFeatureFlagServices(options);
-
-		var cacheOptions = options.Cache;
-		if (cacheOptions.EnableDistributedCache == true)
-		{
-			builder.Services.AddFeatureFlagRedisCache(cacheOptions.Connection);
-		}
-		else if (cacheOptions.EnableInMemoryCache == true)
-		{
-			builder.Services.AddFeatureFlagDefaultCache();
-		}
-
-		var dbOptions = options.Database;
-		builder.Services.AddFeatureFlagDatabase(dbOptions.ConnectionString);
-
-		if (options.RegisterFlagsWithContainer)
-		{
-			builder.Services.RegisterAllFlags();
-		}
-
-		var aopOptions = options.AttributeIntercepting;
-		if (aopOptions.EnableIntercepter)
-		{
-			// Register the interceptor service
-			builder.Services.AddAttributeInterceptors();
-		}
-
-		if (aopOptions.EnableHttpIntercepter)
-		{
-			// Register the HTTP interceptor service
-			builder.Services.AddHttpContextAccessor(); // required for HttpContext-based attributes
-			builder.Services.AddHttpAttributeInterceptors();
-		}
-	}
-}
 
 public static class AppExtensions
 {
@@ -134,7 +83,7 @@ public static class AppExtensions
 										attributes["userTier"] = userTier;
 
 									// Extract geographic info (you might use a GeoIP service)
-									var country = GetCountryFromIP(context.Connection.RemoteIpAddress);
+									var country = MiddleWareUtils.GetCountryFromIP(context.Connection.RemoteIpAddress);
 									if (!string.IsNullOrEmpty(country))
 										attributes["country"] = country;
 									return attributes;
@@ -200,81 +149,4 @@ public static class AppExtensions
 		};
 	}
 
-	static string? GetCountryFromIP(System.Net.IPAddress? ipAddress)
-	{
-		// In production, use a real GeoIP service like MaxMind
-		return ipAddress?.ToString() switch
-		{
-			var ip when ip.StartsWith("192.168") => "US", // Local dev
-			_ => "US" // Default
-		};
-	}
-
-	// Ensure the feature flags database is fully initialized. Note: In production, it's recommended to use migrations
-	public static async Task EnsureFeatureFlagsDatabase(this WebApplication app)
-	{
-		try
-		{
-			app.Logger.LogInformation("Starting feature flags database initialization...");
-
-			// This will create the database and tables if they don't exist
-			await app.Services.EnsureFeatureFlagDatabase();
-
-			app.Logger.LogInformation("Feature flags database initialization completed successfully");
-
-			// Flag seeding from SQL script file (NOT RECOMMEND FOR PRODUCTION)
-			// Use: during application startup at development time
-			await app.Services.SeedFeatureFlags("seed-db.sql");
-		}
-		catch (Exception ex)
-		{
-			app.Logger.LogError(ex, "Failed to initialize feature flags database. Application will continue but feature flags may not work properly.");
-
-			// Decide whether to continue or exit based on your requirements
-			if (app.Environment.IsProduction())
-			{
-				// In production, you might want to exit if database setup fails
-				app.Logger.LogCritical("Exiting application due to database initialization failure in production environment");
-				throw; // Re-throw to stop application startup
-			}
-			// In development/staging, continue running so developers can troubleshoot
-		}
-	}
-
-	public static async Task DeployFeatureFlagsFromFactory(this WebApplication app)
-	{
-		var serviceProvider = app.Services.CreateScope().ServiceProvider;
-		var repository = serviceProvider.GetRequiredService<IFeatureFlagRepository>();
-
-		// Get all registered feature flags from the factory
-		var factory = serviceProvider.GetRequiredService<IFeatureFlagFactory>();
-		var allFlags = factory.GetAllFlags();
-
-		// Insert each flag in the database if not already present
-		foreach (var flag in allFlags)
-		{
-			await flag.DeployAsync(repository);
-		}
-	}
-
-	// Alternative approach:
-	// If you don't have a factory or didn't register flags with the container,
-	// scan the current assembly for all IRegisteredFeatureFlag implementations
-	public static async Task DeployFeatureFlagsFromAssembly(this WebApplication app)
-	{
-		var serviceProvider = app.Services.CreateScope().ServiceProvider;
-		var repository = serviceProvider.GetRequiredService<IFeatureFlagRepository>();
-
-		var currentAssembly = Assembly.GetExecutingAssembly();
-		var allFlags = currentAssembly
-			.GetTypes()
-			.Where(t => typeof(IFeatureFlag).IsAssignableFrom(t)
-					&& !t.IsInterface
-					&& !t.IsAbstract);
-		foreach (var flag in allFlags)
-		{
-			var instance = (IFeatureFlag)Activator.CreateInstance(flag)!;
-			await instance.DeployAsync(repository);
-		}
-	}
 }

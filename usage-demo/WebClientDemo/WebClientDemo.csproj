@@ -12,19 +12,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="D:\src\system-design\Propel.FeatureFlags\README.md" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.Infrastructure.PostgresSql\Propel.FeatureFlags.Infrastructure.PostgresSql.csproj" />
-    <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.Infrastructure.Redis\Propel.FeatureFlags.Infrastructure.Redis.csproj" />
-    <ProjectReference Include="..\..\src\Propel.FeatureFlags.AspNetCore\Propel.FeatureFlags.AspNetCore.csproj" />
-    <ProjectReference Include="..\..\src\Propel.FeatureFlags.Attributes\Propel.FeatureFlags.Attributes.csproj" />
-    <ProjectReference Include="..\..\src\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
+    <ProjectReference Include="..\..\extensions\Propel.FeatureFlags.PostgreSql\Propel.FeatureFlags.PostgreSql.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,4 @@
 ﻿using Knara.UtcStrict;
-using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Domain;
 
 namespace FeatureFlags.IntegrationTests.Postgres.Support;
@@ -15,6 +14,7 @@ public class ApplicationFeatureFlag(
 
 public class FlagOptionsBuilder
 {
+	private readonly string _key;
 	private List<ITargetingRule> _targetingRules = [];
 	private ModeSet _evaluationModes = EvaluationMode.Off;
 	private Variations _variations = new Variations();
@@ -22,6 +22,11 @@ public class FlagOptionsBuilder
 	private UtcTimeWindow _window = UtcTimeWindow.AlwaysOpen;
 	private AccessControl _userAccessControl = AccessControl.Unrestricted;
 	private AccessControl _tenantAccessControl = AccessControl.Unrestricted;
+
+	public FlagOptionsBuilder(string key)
+	{
+		_key = key;
+	}
 
 	public FlagOptionsBuilder WithEvaluationModes(params EvaluationMode[] modes)
 	{
@@ -65,15 +70,16 @@ public class FlagOptionsBuilder
 		return this;
 	}
 
-	public FlagEvaluationOptions Build()
+	public EvaluationOptions Build()
 	{
-		return new FlagEvaluationOptions(
-			ModeSet: _evaluationModes,
-			Schedule: _schedule,
-			OperationalWindow: _window,
-			TargetingRules: _targetingRules,
-			UserAccessControl: _userAccessControl,
-			TenantAccessControl: _tenantAccessControl,
-			Variations: _variations);
+		return new EvaluationOptions(
+			key: "",
+			modeSet: _evaluationModes,
+			schedule: _schedule,
+			operationalWindow: _window,
+			targetingRules: _targetingRules,
+			userAccessControl: _userAccessControl,
+			tenantAccessControl: _tenantAccessControl,
+			variations: _variations);
 	}
 }

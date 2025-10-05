@@ -35,20 +35,17 @@ Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "usage-dem
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Infrastructure.SqlServer", "infrastructure\Propel.FeatureFlags.Infrastructure.SqlServer\Propel.FeatureFlags.Infrastructure.SqlServer.csproj", "{CC43FA0D-174D-049D-6F91-E33C74F921E2}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dashboard", "dashboard", "{016F2DB1-DF80-40A2-9649-0FD0AE255814}"
-	ProjectSection(SolutionItems) = preProject
-		bugs_and_todo_list.md = bugs_and_todo_list.md
-	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.Dashboard.Api", "dashboard\Propel.FeatureFlags.Dashboard.Api\Propel.FeatureFlags.Dashboard.Api.csproj", "{AE04054B-58BF-8B16-25F8-FF8A4DB671E1}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTests.Postgres", "tests\IntegrationTests.Postgres\IntegrationTests.Postgres.csproj", "{A2DF3483-1D53-6B15-287F-FA1E2027E366}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTests.Redis", "tests\IntegrationTests.Redis\IntegrationTests.Redis.csproj", "{C6E728FA-E911-0CDA-04F5-BC2FE29E50D0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTests.SqlServer", "tests\IntegrationTests.SqlServer\IntegrationTests.SqlServer.csproj", "{7626062D-482D-0D95-BF7B-BB89AB93032E}"
 EndProject
-Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "Propel.FeatureFlags.Dashboard", "dashboard\Propel.FeatureFlags.Dashboard\Propel.FeatureFlags.Dashboard.esproj", "{4BFC8618-1A1C-AFF3-2D03-3F3FF486FF64}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "extensions", "extensions", "{35CEB1A8-989D-4332-A202-CEEF23281578}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.SqlServer", "extensions\Propel.FeatureFlags.SqlServer\Propel.FeatureFlags.SqlServer.csproj", "{89D1579C-443A-430E-AFF4-C6E08DA6FBF0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Propel.FeatureFlags.PostgreSql", "extensions\Propel.FeatureFlags.PostgreSql\Propel.FeatureFlags.PostgreSql.csproj", "{5FAAC2B0-A16E-4AC3-AF6A-2648A6C2934D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -92,10 +89,6 @@ Global
 		{CC43FA0D-174D-049D-6F91-E33C74F921E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CC43FA0D-174D-049D-6F91-E33C74F921E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CC43FA0D-174D-049D-6F91-E33C74F921E2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AE04054B-58BF-8B16-25F8-FF8A4DB671E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AE04054B-58BF-8B16-25F8-FF8A4DB671E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AE04054B-58BF-8B16-25F8-FF8A4DB671E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AE04054B-58BF-8B16-25F8-FF8A4DB671E1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A2DF3483-1D53-6B15-287F-FA1E2027E366}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A2DF3483-1D53-6B15-287F-FA1E2027E366}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A2DF3483-1D53-6B15-287F-FA1E2027E366}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -108,12 +101,14 @@ Global
 		{7626062D-482D-0D95-BF7B-BB89AB93032E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7626062D-482D-0D95-BF7B-BB89AB93032E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7626062D-482D-0D95-BF7B-BB89AB93032E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4BFC8618-1A1C-AFF3-2D03-3F3FF486FF64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4BFC8618-1A1C-AFF3-2D03-3F3FF486FF64}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4BFC8618-1A1C-AFF3-2D03-3F3FF486FF64}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
-		{4BFC8618-1A1C-AFF3-2D03-3F3FF486FF64}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4BFC8618-1A1C-AFF3-2D03-3F3FF486FF64}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4BFC8618-1A1C-AFF3-2D03-3F3FF486FF64}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{89D1579C-443A-430E-AFF4-C6E08DA6FBF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89D1579C-443A-430E-AFF4-C6E08DA6FBF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89D1579C-443A-430E-AFF4-C6E08DA6FBF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89D1579C-443A-430E-AFF4-C6E08DA6FBF0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5FAAC2B0-A16E-4AC3-AF6A-2648A6C2934D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FAAC2B0-A16E-4AC3-AF6A-2648A6C2934D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FAAC2B0-A16E-4AC3-AF6A-2648A6C2934D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FAAC2B0-A16E-4AC3-AF6A-2648A6C2934D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -128,11 +123,11 @@ Global
 		{DC458ACE-8C9C-BBB3-EEAE-8F719523A091} = {B35B9A4F-7FDA-4842-90DB-833533AD0C02}
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A} = {B35B9A4F-7FDA-4842-90DB-833533AD0C02}
 		{CC43FA0D-174D-049D-6F91-E33C74F921E2} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
-		{AE04054B-58BF-8B16-25F8-FF8A4DB671E1} = {016F2DB1-DF80-40A2-9649-0FD0AE255814}
 		{A2DF3483-1D53-6B15-287F-FA1E2027E366} = {1EBFCD0E-23BF-4578-B14D-40DEF03DF792}
 		{C6E728FA-E911-0CDA-04F5-BC2FE29E50D0} = {1EBFCD0E-23BF-4578-B14D-40DEF03DF792}
 		{7626062D-482D-0D95-BF7B-BB89AB93032E} = {1EBFCD0E-23BF-4578-B14D-40DEF03DF792}
-		{4BFC8618-1A1C-AFF3-2D03-3F3FF486FF64} = {016F2DB1-DF80-40A2-9649-0FD0AE255814}
+		{89D1579C-443A-430E-AFF4-C6E08DA6FBF0} = {35CEB1A8-989D-4332-A202-CEEF23281578}
+		{5FAAC2B0-A16E-4AC3-AF6A-2648A6C2934D} = {35CEB1A8-989D-4332-A202-CEEF23281578}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B84A57E7-342F-45BE-BD70-F37A7F4D7E27}

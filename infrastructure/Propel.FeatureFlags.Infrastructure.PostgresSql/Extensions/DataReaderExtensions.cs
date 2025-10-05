@@ -1,15 +1,15 @@
 ﻿using Knara.UtcStrict;
 using Npgsql;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Helpers;
+using Propel.FeatureFlags.Utilities;
 using System.Data;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
 
-public static class DataReaderExtensions
+internal static class DataReaderExtensions
 {
-	public static async Task<T> DeserializeAsync<T>(this NpgsqlDataReader reader, string columnName)
+	internal static async Task<T> DeserializeAsync<T>(this NpgsqlDataReader reader, string columnName)
 	{
 		var ordinal = reader.GetOrdinal(columnName);
 		if (await reader.IsDBNullAsync(ordinal))
@@ -19,7 +19,7 @@ public static class DataReaderExtensions
 		return JsonSerializer.Deserialize<T>(json, JsonDefaults.JsonOptions) ?? default!;
 	}
 
-	public static async Task<T> GetFieldValueOrDefaultAsync<T>(this NpgsqlDataReader reader, string columnName, T defaultValue = default!)
+	internal static async Task<T> GetFieldValueOrDefaultAsync<T>(this NpgsqlDataReader reader, string columnName, T defaultValue = default!)
 	{
 		var ordinal = reader.GetOrdinal(columnName);
 		return await reader.IsDBNullAsync(ordinal)
@@ -27,7 +27,7 @@ public static class DataReaderExtensions
 			: await reader.GetFieldValueAsync<T>(ordinal);
 	}
 
-	public static async Task<EvaluationOptions> LoadOptionsAsync(this NpgsqlDataReader reader, FlagIdentifier identifier)
+	internal static async Task<EvaluationOptions> LoadOptionsAsync(this NpgsqlDataReader reader, FlagIdentifier identifier)
 	{
 		// Load evaluation modes
 		var evaluationModes = await reader.DeserializeAsync<int[]>("evaluation_modes");

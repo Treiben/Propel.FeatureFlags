@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
-using Propel.FeatureFlags.FlagEvaluationServices.GlobalScope;
+using Propel.FeatureFlags.Clients;
 
 namespace Propel.FeatureFlags.AspNetCore.Middleware;
 
@@ -27,14 +26,14 @@ public class FeatureFlagMiddleware
 {
 	private readonly RequestDelegate _next;
 	private readonly IGlobalFlagClient _globalFlags;
-	private readonly IFeatureFlagClient _featureFlags;
+	private readonly IApplicationFlagClient _featureFlags;
 	private readonly ILogger<FeatureFlagMiddleware> _logger;
 	private readonly FeatureFlagMiddlewareOptions _options;
 
 	public FeatureFlagMiddleware(
 		RequestDelegate next,
 		IGlobalFlagClient globalFlags,
-		IFeatureFlagClient featureFlags,
+		IApplicationFlagClient featureFlags,
 		ILogger<FeatureFlagMiddleware> logger,
 		FeatureFlagMiddlewareOptions options)
 	{

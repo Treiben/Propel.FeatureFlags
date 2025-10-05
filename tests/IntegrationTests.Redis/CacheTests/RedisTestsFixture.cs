@@ -115,9 +115,9 @@ public class InMemoryTestsFixture : IAsyncLifetime
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection ConfigureFeatureFlags(this IServiceCollection services, Action<PropelOptions> configure)
+	public static IServiceCollection ConfigureFeatureFlags(this IServiceCollection services, Action<PropelConfiguration> configure)
 	{
-		var options = new PropelOptions();
+		var options = new PropelConfiguration();
 		configure.Invoke(options);
 
 		services.AddFeatureFlagServices(options);

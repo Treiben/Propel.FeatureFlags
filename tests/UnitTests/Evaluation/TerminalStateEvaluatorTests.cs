@@ -83,7 +83,7 @@ public class TerminalStateEvaluator_ProcessEvaluation
 		var flagConfig = new EvaluationOptions(key: identifier.Key, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
+		var result = await _evaluator.Evaluate(flagConfig, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -101,7 +101,7 @@ public class TerminalStateEvaluator_ProcessEvaluation
 		var flagConfig = new EvaluationOptions(key: identifier.Key, modeSet: activeEvaluationModes, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
+		var result = await _evaluator.Evaluate(flagConfig, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
@@ -119,7 +119,7 @@ public class TerminalStateEvaluator_ProcessEvaluation
 		var flagConfig = new EvaluationOptions(key: identifier.Key, modeSet: activeEvaluationModes, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
+		var result = await _evaluator.Evaluate(flagConfig, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -141,7 +141,7 @@ public class TerminalStateEvaluator_ProcessEvaluation
 		var flagConfig = new EvaluationOptions(key: identifier.Key, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
+		var result = await _evaluator.Evaluate(flagConfig, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -158,7 +158,7 @@ public class TerminalStateEvaluator_ProcessEvaluation
 		var flagConfig = new EvaluationOptions(key: identifier.Key, modeSet: activeEvaluationModes, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
+		var result = await _evaluator.Evaluate(flagConfig, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();

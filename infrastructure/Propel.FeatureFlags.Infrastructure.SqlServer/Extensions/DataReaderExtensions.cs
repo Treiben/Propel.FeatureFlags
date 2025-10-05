@@ -1,13 +1,13 @@
 using Knara.UtcStrict;
 using Microsoft.Data.SqlClient;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Helpers;
+using Propel.FeatureFlags.Utilities;
 using System.Data;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.Infrastructure.SqlServer.Extensions;
 
-public static class SqlDataReaderExtensions
+internal static class SqlDataReaderExtensions
 {
 	public static async Task<T> DeserializeAsync<T>(this SqlDataReader reader, string columnName)
 	{
@@ -19,7 +19,7 @@ public static class SqlDataReaderExtensions
 		return JsonSerializer.Deserialize<T>(json, JsonDefaults.JsonOptions) ?? default!;
 	}
 
-	public static async Task<T> GetFieldValueOrDefaultAsync<T>(this SqlDataReader reader, string columnName, T defaultValue = default!)
+	internal static async Task<T> GetFieldValueOrDefaultAsync<T>(this SqlDataReader reader, string columnName, T defaultValue = default!)
 	{
 		var ordinal = reader.GetOrdinal(columnName);
 		return await reader.IsDBNullAsync(ordinal)
@@ -27,7 +27,7 @@ public static class SqlDataReaderExtensions
 			: await reader.GetFieldValueAsync<T>(ordinal);
 	}
 
-	public static async Task<EvaluationOptions> LoadOptionsAsync(this SqlDataReader reader, FlagIdentifier identifier)
+	internal static async Task<EvaluationOptions> LoadOptionsAsync(this SqlDataReader reader, FlagIdentifier identifier)
 	{
 		// Load evaluation modes
 		var evaluationModes = await reader.DeserializeAsync<int[]>("EvaluationModes");

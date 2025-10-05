@@ -64,7 +64,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var flagConfig = new EvaluationOptions(identifier.Key);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
+		var result = await _evaluator.Evaluate(flagConfig, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
@@ -84,7 +84,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var flagConfig = new EvaluationOptions(key: identifier.Key, operationalWindow: window, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig,
+		var result = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: evaluationTime));
 
 		// Assert
@@ -106,7 +106,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var flagConfig = new EvaluationOptions(key: identifier.Key, operationalWindow: window, variations: variations);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig,
+		var result = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: evaluationTime));
 
 		// Assert
@@ -130,9 +130,9 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 
 
 		// Act
-		var resultNight = await _evaluator.ProcessEvaluation(flagConfig,
+		var resultNight = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: nightTime));
-		var resultDay = await _evaluator.ProcessEvaluation(flagConfig,
+		var resultDay = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: dayTime));
 
 		// Assert
@@ -161,9 +161,9 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var flagConfig = new EvaluationOptions(key: identifier.Key, operationalWindow: window, variations: variations);
 
 		// Act
-		var resultMonday = await _evaluator.ProcessEvaluation(flagConfig,
+		var resultMonday = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: monday));
-		var resultSaturday = await _evaluator.ProcessEvaluation(flagConfig,
+		var resultSaturday = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: saturday));
 
 		// Assert
@@ -189,7 +189,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var flagConfig = new EvaluationOptions(key: identifier.Key, operationalWindow: window, variations: variations);
 
 		// Act - Use Eastern time context (5 PM UTC = 12 PM EST, within window)
-		var result = await _evaluator.ProcessEvaluation(flagConfig,
+		var result = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: new UtcDateTime(evaluationTime)));
 
 		// Assert
@@ -205,7 +205,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var flagConfig = new EvaluationOptions(identifier.Key);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig,
+		var result = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: null));
 
 		// Assert
@@ -228,19 +228,19 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var flagConfig = new EvaluationOptions(key: identifier.Key, operationalWindow: window, variations: variations);
 
 		// Act & Assert - During business hours (Wednesday 2 PM)
-		var businessResult = await _evaluator.ProcessEvaluation(flagConfig,
+		var businessResult = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: new UtcDateTime(new DateTime(2024, 1, 17, 14, 0, 0, DateTimeKind.Utc))));
 		businessResult.IsEnabled.ShouldBeTrue();
 		businessResult.Reason.ShouldBe("Within time window");
 
 		// Act & Assert - After hours (Wednesday 8 PM)
-		var afterResult = await _evaluator.ProcessEvaluation(flagConfig,
+		var afterResult = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: new UtcDateTime(new DateTime(2024, 1, 17, 20, 0, 0, DateTimeKind.Utc))));
 		afterResult.IsEnabled.ShouldBeFalse();
 		afterResult.Reason.ShouldBe("Outside time window");
 
 		// Act & Assert - Weekend (Saturday 2 PM)
-		var weekendResult = await _evaluator.ProcessEvaluation(flagConfig,
+		var weekendResult = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: new UtcDateTime(new DateTime(2024, 1, 20, 14, 0, 0, DateTimeKind.Utc))));
 		weekendResult.IsEnabled.ShouldBeFalse();
 		weekendResult.Reason.ShouldBe("Outside allowed days");

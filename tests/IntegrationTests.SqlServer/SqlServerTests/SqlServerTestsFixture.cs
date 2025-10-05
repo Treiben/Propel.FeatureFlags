@@ -34,8 +34,8 @@ public class SqlServerTestsFixture : IAsyncLifetime
 
 		services.AddLogging();
 
-		services.AddFeatureFlagPersistence(connectionString);
-		services.AddDatabase(new PropelOptions
+		services.AddFeatureFlagDatabase(connectionString);
+		services.AddDatabase(new PropelConfiguration
 		{
 			Database = new DatabaseOptions
 			{

@@ -1,14 +1,10 @@
-﻿using FeatureFlags.IntegrationTests.Postgres.Support;
-using Microsoft.Extensions.DependencyInjection;
-using Npgsql;
+﻿using Microsoft.Extensions.DependencyInjection;
 
-using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Extensions;
-using Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
+using Npgsql;
+using Propel.FeatureFlags.Clients;
 
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
-using Propel.FeatureFlags.Infrastructure.Extensions;
 
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
@@ -22,8 +18,8 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 	private readonly RedisContainer _redisContainer;
 
 	public IServiceProvider Services { get; private set; } = null!;
-	public IFeatureFlagEvaluator Evaluator => Services.GetRequiredService<IFeatureFlagEvaluator>();
-	public IFeatureFlagClient Client => Services.GetRequiredService<IFeatureFlagClient>();
+	public IApplicationFlagService Evaluator => Services.GetRequiredService<IApplicationFlagService>();
+	public IApplicationFlagClient Client => Services.GetRequiredService<IApplicationFlagClient>();
 	public IFeatureFlagRepository FeatureFlagRepository => Services.GetRequiredService<IFeatureFlagRepository>();
 	public IFeatureFlagCache Cache => Services.GetRequiredService<IFeatureFlagCache>();
 
@@ -107,9 +103,9 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection ConfigureFeatureFlags(this IServiceCollection services, Action<PropelOptions> configure)
+	public static IServiceCollection ConfigureFeatureFlags(this IServiceCollection services, Action<PropelConfiguration> configure)
 	{
-		var options = new PropelOptions();
+		var options = new PropelConfiguration();
 		configure.Invoke(options);
 
 		services.AddFeatureFlagServices(options);

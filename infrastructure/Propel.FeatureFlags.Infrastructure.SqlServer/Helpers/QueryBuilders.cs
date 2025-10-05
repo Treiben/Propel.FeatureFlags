@@ -3,9 +3,9 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Infrastructure.SqlServer.Helpers;
 
-public static class QueryBuilders
+internal static class QueryBuilders
 {
-	public static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(FlagIdentifier flagKey, string prefix = "")
+	internal static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(FlagIdentifier flagKey, string prefix = "")
 	{
 		var parameters = new Dictionary<string, object>
 		{
@@ -18,15 +18,9 @@ public static class QueryBuilders
 			return ($"WHERE {prefix}[Key] = @key AND {prefix}Scope = @scope", parameters);
 		}
 
-		// Application or Feature scope
-		if (string.IsNullOrEmpty(flagKey.ApplicationName))
-		{
-			throw new ArgumentException("Application name required for application-scoped flags.", nameof(flagKey.ApplicationName));
-		}
+		parameters["applicationName"] = flagKey.ApplicationName!;
 
-		parameters["applicationName"] = flagKey.ApplicationName;
-
-		if (!string.IsNullOrEmpty(flagKey.ApplicationVersion))
+		if (!string.IsNullOrWhiteSpace(flagKey.ApplicationVersion))
 		{
 			parameters["applicationVersion"] = flagKey.ApplicationVersion;
 			return ($"WHERE {prefix}[Key] = @key AND {prefix}Scope = @scope AND {prefix}ApplicationName = @applicationName AND {prefix}ApplicationVersion = @applicationVersion", parameters);
@@ -37,7 +31,7 @@ public static class QueryBuilders
 		}
 	}
 
-	public static void AddWhereParameters(this SqlCommand command, Dictionary<string, object> parameters)
+	internal static void AddWhereParameters(this SqlCommand command, Dictionary<string, object> parameters)
 	{
 		foreach (var (key, value) in parameters)
 		{

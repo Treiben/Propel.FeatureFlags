@@ -12,15 +12,15 @@ internal static class FeatureFlagCache
 	private static readonly ConcurrentDictionary<MethodInfo, FeatureFlaggedAttribute?> _attributeCache = new();
 	private static readonly ConcurrentDictionary<Type, IFeatureFlag?> _flagInstanceCache = new();
 
-	public static FeatureFlaggedAttribute? GetFeatureFlagAttribute(IInvocation invocation) //(MethodInfo method)
+	public static FeatureFlaggedAttribute? GetFeatureFlagAttribute(IInvocation invocation) 
 	{
 		var concreteMethod = invocation.GetConcreteMethod();
-		var attributeMethod = invocation.InvocationTarget.GetType().GetMethod(concreteMethod.Name);
-		return _attributeCache.GetOrAdd(attributeMethod, m =>
+		var attributeMethod = invocation.InvocationTarget!.GetType().GetMethod(concreteMethod.Name);
+		return _attributeCache.GetOrAdd(attributeMethod!, m =>
 		{
 			var attribute = attributeMethod.GetAttribute<FeatureFlaggedAttribute>() ??
-									attributeMethod.GetCustomAttribute<FeatureFlaggedAttribute>() ??
-									attributeMethod.DeclaringType?.GetAttribute<FeatureFlaggedAttribute>() ??
+									attributeMethod!.GetCustomAttribute<FeatureFlaggedAttribute>() ??
+									attributeMethod!.DeclaringType?.GetAttribute<FeatureFlaggedAttribute>() ??
 									attributeMethod.DeclaringType?.GetCustomAttribute<FeatureFlaggedAttribute>();
 			// Check method first, then declaring type
 			return attribute;

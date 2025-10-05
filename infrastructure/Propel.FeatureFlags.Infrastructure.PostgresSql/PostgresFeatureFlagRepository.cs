@@ -2,14 +2,14 @@
 using Npgsql;
 using NpgsqlTypes;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Helpers;
 using Propel.FeatureFlags.Infrastructure.PostgresSql.Extensions;
 using Propel.FeatureFlags.Infrastructure.PostgresSql.Helpers;
+using Propel.FeatureFlags.Utilities;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql;
 
-public class PostgresFeatureFlagRepository : IFeatureFlagRepository
+public sealed class PostgresFeatureFlagRepository : IFeatureFlagRepository
 {
 	private readonly string _connectionString;
 	private readonly ILogger<PostgresFeatureFlagRepository> _logger;
@@ -111,8 +111,8 @@ public class PostgresFeatureFlagRepository : IFeatureFlagRepository
 
 			using var command = new NpgsqlCommand(sql, connection);
 			command.Parameters.AddWithValue("key", identifier.Key);
-			command.Parameters.AddWithValue("application_name", applicationName);
-			command.Parameters.AddWithValue("application_version", applicationVersion);
+			command.Parameters.AddWithValue("application_name", applicationName!);
+			command.Parameters.AddWithValue("application_version", applicationVersion!);
 			command.Parameters.AddWithValue("scope", (int)Scope.Application);
 			command.Parameters.AddWithValue("name", name);
 			command.Parameters.AddWithValue("description", description);

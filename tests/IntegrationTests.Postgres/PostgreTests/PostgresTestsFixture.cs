@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
-using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.Extensions;
 using Testcontainers.PostgreSql;
 
 namespace FeatureFlags.IntegrationTests.Postgres.PostgreTests;
@@ -12,7 +10,6 @@ public class PostgresTestsFixture : IAsyncLifetime
 	private readonly PostgreSqlContainer _container;
 	public IServiceProvider Services {get; private set; } = null!;
 	public IFeatureFlagRepository FeatureFlagRepository => Services.GetRequiredService<IFeatureFlagRepository>();
-	public IDashboardRepository DashboardRepository => Services.GetRequiredService<IDashboardRepository>();
 
 	public PostgresTestsFixture()
 	{
@@ -34,7 +31,7 @@ public class PostgresTestsFixture : IAsyncLifetime
 		services.AddLogging();
 
 		services.AddFeatureFlagDatabase(connectionString);
-		services.AddDatabase(new PropelOptions
+		services.AddDatabase(new PropelConfiguration
 		{
 			Database = new DatabaseOptions
 			{

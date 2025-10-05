@@ -1,5 +1,5 @@
 ﻿using ApiFlagUsageDemo.FeatureFlags;
-using Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
+using Propel.FeatureFlags.Clients;
 
 namespace ApiFlagUsageDemo.Services;
 
@@ -36,7 +36,7 @@ namespace ApiFlagUsageDemo.Services;
 
 // ===== 1. SERVICE LAYER INTEGRATION =====
 public class PaymentService(
-	IFeatureFlagClient featureFlags,
+	IApplicationFlagClient featureFlags,
 	IPaymentProcessorV1 legacyProcessor,
 	IPaymentProcessorV2 newProcessor,
 	IFeatureFlagFactory flagFactory,

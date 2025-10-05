@@ -3,7 +3,7 @@ using Npgsql;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql;
 
-public class PostgresDatabaseInitializer
+public sealed class PostgresDatabaseInitializer
 {
 	private readonly string _connectionString;
 	private readonly string _masterConnectionString;
@@ -226,21 +226,6 @@ CREATE TABLE feature_flags_audit (
 	timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 	notes TEXT NULL
 );
-
--- Create indexes for feature_flags table
-CREATE INDEX IF NOT EXISTS ix_feature_flags_evaluation_modes ON feature_flags USING GIN(evaluation_modes);
-CREATE INDEX IF NOT EXISTS idx_feature_flags_scheduled_enable ON feature_flags (scheduled_enable_date) WHERE scheduled_enable_date IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_feature_flags_enabled_users ON feature_flags USING GIN (enabled_users);
-CREATE INDEX IF NOT EXISTS idx_feature_flags_enabled_tenants ON feature_flags USING GIN (enabled_tenants);
-CREATE INDEX IF NOT EXISTS idx_feature_flags_disabled_tenants ON feature_flags USING GIN (disabled_tenants);
-
--- Add indexes for read operation optimization (application_name, application_version, scope)
-CREATE INDEX IF NOT EXISTS idx_feature_flags_application_name ON feature_flags (application_name);
-CREATE INDEX IF NOT EXISTS idx_feature_flags_application_version ON feature_flags (application_version);
-CREATE INDEX IF NOT EXISTS idx_feature_flags_scope ON feature_flags (scope);
-
--- Composite index for filtering operations from BuildFilterConditions method
-CREATE INDEX IF NOT EXISTS idx_feature_flags_scope_app_name ON feature_flags (scope, application_name);
 ";
 	}
 }

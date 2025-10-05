@@ -1,14 +1,14 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Data.SqlClient;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Helpers;
 using Propel.FeatureFlags.Infrastructure.SqlServer.Extensions;
 using Propel.FeatureFlags.Infrastructure.SqlServer.Helpers;
 using System.Text.Json;
+using Propel.FeatureFlags.Utilities;
 
 namespace Propel.FeatureFlags.Infrastructure.SqlServer;
 
-public class SqlFeatureFlagRepository : IFeatureFlagRepository
+public sealed class SqlFeatureFlagRepository : IFeatureFlagRepository
 {
 	private readonly string _connectionString;
 	private readonly ILogger<SqlFeatureFlagRepository> _logger;
@@ -95,8 +95,7 @@ public class SqlFeatureFlagRepository : IFeatureFlagRepository
 
 		const string sql = @"
             IF NOT EXISTS (SELECT 1 FROM FeatureFlags 
-                          WHERE [Key] = @key AND ApplicationName = @applicationName 
-                          AND ApplicationVersion = @applicationVersion AND Scope = @scope)
+                          WHERE [Key] = @key AND ApplicationName = @applicationName AND ApplicationVersion = @applicationVersione)
             BEGIN
                 INSERT INTO FeatureFlags (
                     [Key], ApplicationName, ApplicationVersion, Scope, Name, Description, EvaluationModes
@@ -129,7 +128,7 @@ public class SqlFeatureFlagRepository : IFeatureFlagRepository
 				return;
 			}
 
-			await FlagAuditHelpers.CreateInitialMetadataRecord(identifier, name, description, connection, cancellationToken);
+			await FlagAuditHelpers.CreateInitialMetadataRecord(identifier, connection, cancellationToken);
 			await FlagAuditHelpers.AddAuditTrail(identifier, connection, cancellationToken);
 
 			_logger.LogDebug("Successfully created feature flag: {Key}", identifier.Key);

@@ -1,9 +1,8 @@
-using ApiFlagUsageDemo.FeatureFlags;
 using ApiFlagUsageDemo.MinimalApiEndpoints;
 using ApiFlagUsageDemo.Services;
-using Propel.FeatureFlags.Extensions;
-
+using Propel.FeatureFlags.Attributes.Extensions;
 using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.PostgreSql;
 using WebClientDemo;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,27 +15,28 @@ builder.Services.AddHttpContextAccessor();
 //-----------------------------------------------------------------------------
 // Configure Propel FeatureFlags
 //-----------------------------------------------------------------------------
-builder.ConfigureFeatureFlags(options =>
+builder.ConfigureFeatureFlags(config =>
 {
-	options.RegisterFlagsWithContainer = true;	// automatically register all flags in the assembly with the DI container
-	options.InsertFlagsInDatabase = true;       // automatically insert flags in the database at startup if they don't exist
+	config.RegisterFlagsWithContainer = true;				// automatically register all flags in the assembly with the DI container
+	config.EnableFlagFactory = true;						// enable IFeatureFlagFactory for type-safe flag access
 
-	options.Cache = new CacheOptions			// Configure caching (optional, but recommended for performance and scalability)
+	config.SqlConnection = 
+		builder.Configuration
+				.GetConnectionString("DefaultConnection")!; // PostgreSQL connection string
+
+	config.Cache = new CacheOptions							// Configure caching (optional, but recommended for performance and scalability)
 	{
-		EnableInMemoryCache = false,
-		EnableDistributedCache = false,
+		EnableDistributedCache = true,
 		Connection = builder.Configuration.GetConnectionString("RedisConnection")!,
 	};
+	
+	var interception = config.Interception;
+	interception.EnableHttpIntercepter = true;			// automatically add interceptors for attribute-based flags
 
-	options.Database.ConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")!; 
-	options.AttributeIntercepting.EnableHttpIntercepter = true; // automatically add interceptors for attribute-based flags
 });
 
 // optional: register your services with methods decorated with [FeatureFlagged] attribute
-builder.Services.RegisterServiceWithFlagAttributes<INotificationService, NotificationService>();
-
-//optional: for large code bases with tons of flags, you might want to implement your own feature flag factory
-builder.Services.AddSingleton<IFeatureFlagFactory, DemoFeatureFlagFactory>();
+builder.Services.RegisterWithFeatureFlagInterception<INotificationService, NotificationService>();
 
 //-----------------------------------------------------------------------------
 // Register your application services normally
@@ -48,14 +48,14 @@ builder.Services.AddScoped<PaymentService>();
 
 var app = builder.Build();
 
-// optional: ensure the feature flags database is initialized and feature flags are registered
+// optional: ensure the feature flags database exists and schema is created
 if (app.Environment.IsDevelopment())
 {
-	await app.EnsureFeatureFlagsDatabase();
+	await app.EnsureFeatureFlagDatabase();
 }
 
-// optional: deploy feature flags to the database (RECOMMENDED)
-await app.DeployFeatureFlagsFromFactory();
+// recommended: automatically add flags in the database at startup if they don't exist
+await app.AutoDeployFlags();
 
 // Configure the HTTP request pipeline.
 app.UseHttpsRedirection();

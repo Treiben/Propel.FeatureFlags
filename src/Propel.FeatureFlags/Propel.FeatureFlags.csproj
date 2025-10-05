@@ -8,12 +8,12 @@
     <IsPackable>true</IsPackable>
     <Description>Core feature flag models and evaluation engine for .NET applications</Description>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="Knara.UtcStrict" Version="1.1.0" />
-    <PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.9" />
     <PackageReference Include="System.Text.Json" Version="9.0.9" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
   </ItemGroup>
 
 </Project>

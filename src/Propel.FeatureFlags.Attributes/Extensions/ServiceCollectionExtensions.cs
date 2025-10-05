@@ -1,10 +1,9 @@
 ﻿using Castle.DynamicProxy;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Propel.FeatureFlags.Attributes;
 using Propel.FeatureFlags.Attributes.Interceptors;
 
-namespace Propel.FeatureFlags.Extensions;
+namespace Propel.FeatureFlags.Attributes.Extensions;
 
 public static class ServiceCollectionExtensions
 {
@@ -26,7 +25,7 @@ public static class ServiceCollectionExtensions
 		return services;
 	}
 
-	public static IServiceCollection RegisterServiceWithFlagAttributes<TInterface, TImplementation>(this IServiceCollection services)
+	public static IServiceCollection RegisterWithFeatureFlagInterception<TInterface, TImplementation>(this IServiceCollection services)
 	where TInterface : class
 	where TImplementation : class, TInterface
 	{

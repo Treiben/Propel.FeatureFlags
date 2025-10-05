@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Propel.FeatureFlags.AspNetCore.Extensions;
+using Propel.FeatureFlags.Clients;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
 
 namespace Propel.FeatureFlags.Attributes;
 
@@ -27,9 +27,9 @@ internal sealed class HttpFeatureFlagEvaluator(IHttpContextAccessor httpContextA
 	}
 }
 
-internal sealed class DefaultEvaluator(IFeatureFlagClient featureFlagClient) : IFeatureFlagEvaluator
+internal sealed class DefaultEvaluator(IApplicationFlagClient featureFlagClient) : IFeatureFlagEvaluator
 {
-	private readonly IFeatureFlagClient _featureFlagClient = featureFlagClient ?? throw new ArgumentNullException(nameof(featureFlagClient));
+	private readonly IApplicationFlagClient _featureFlagClient = featureFlagClient ?? throw new ArgumentNullException(nameof(featureFlagClient));
 	public async Task<bool> IsEnabledAsync(IFeatureFlag flag)
 	{
 		return await _featureFlagClient.IsEnabledAsync(flag);

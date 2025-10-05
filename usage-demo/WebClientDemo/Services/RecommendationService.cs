@@ -1,5 +1,5 @@
 ﻿using ApiFlagUsageDemo.FeatureFlags;
-using Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
+using Propel.FeatureFlags.Clients;
 
 namespace ApiFlagUsageDemo.Services;
 
@@ -11,7 +11,7 @@ public interface IRecommendationService
 }
 
 // Service demonstrating feature flag call using IFeatureFlagClient instead of HttpContext
-public class RecommendationService(IFeatureFlagClient featureFlags, ILogger<RecommendationService> logger) : IRecommendationService
+public class RecommendationService(IApplicationFlagClient featureFlags, ILogger<RecommendationService> logger) : IRecommendationService
 {
 	public async Task<List<Product>> GetRecommendationsAsync(string userId, string category)
 	{

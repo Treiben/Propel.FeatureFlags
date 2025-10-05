@@ -3,9 +3,9 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Infrastructure.SqlServer.Helpers;
 
-public static class FlagAuditHelpers
+internal static class FlagAuditHelpers
 {
-	public static async Task AddAuditTrail(FlagIdentifier flag,
+	internal static async Task AddAuditTrail(FlagIdentifier flag,
 							SqlConnection connection,
 							CancellationToken cancellationToken)
 	{
@@ -21,7 +21,7 @@ public static class FlagAuditHelpers
 			using var command = new SqlCommand(sql, connection);
 			command.AddIdentifierParameters(flag);
 			command.Parameters.AddWithValue("@timestamp", DateTimeOffset.UtcNow);
-			command.Parameters.AddWithValue("@action", PersistenceActions.FlagCreated);
+			command.Parameters.AddWithValue("@action", "flag-created");
 
 			if (connection.State != System.Data.ConnectionState.Open)
 				await connection.OpenAsync(cancellationToken);
@@ -33,7 +33,7 @@ public static class FlagAuditHelpers
 		}
 	}
 
-	public static async Task CreateInitialMetadataRecord(FlagIdentifier flag, string name, string description, SqlConnection connection, CancellationToken cancellationToken)
+	internal static async Task CreateInitialMetadataRecord(FlagIdentifier flag, SqlConnection connection, CancellationToken cancellationToken)
 	{
 		const string sql = @"
             INSERT INTO FeatureFlagsMetadata (
@@ -58,7 +58,7 @@ public static class FlagAuditHelpers
 		}
 	}
 
-	public static async Task<bool> FlagAlreadyCreated(FlagIdentifier flag, SqlConnection connection, CancellationToken cancellationToken)
+	internal static async Task<bool> FlagAlreadyCreated(FlagIdentifier flag, SqlConnection connection, CancellationToken cancellationToken)
 	{
 		var (whereClause, parameters) = QueryBuilders.BuildWhereClause(flag);
 		var sql = $"SELECT COUNT(*) FROM FeatureFlags {whereClause}";

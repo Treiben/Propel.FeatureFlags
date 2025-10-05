@@ -28,7 +28,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\dashboard\Propel.FeatureFlags.Dashboard.Api\Propel.FeatureFlags.Dashboard.Api.csproj" />
     <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.Infrastructure.Redis\Propel.FeatureFlags.Infrastructure.Redis.csproj" />
     <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.Infrastructure.SqlServer\Propel.FeatureFlags.Infrastructure.SqlServer.csproj" />
   </ItemGroup>

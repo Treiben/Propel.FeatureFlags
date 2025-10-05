@@ -98,8 +98,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(tenantId: tenantId);
 
 		// Act & Assert
-		var exception = await Should.ThrowAsync<EvaluationArgumentException>(
-			() => _evaluator.ProcessEvaluation(flagConfig, context));
+		var exception = await Should.ThrowAsync<EvaluationOptionsArgumentException>(
+			() => _evaluator.Evaluate(flagConfig, context));
 		exception.Message.ShouldBe("Tenant ID is required for percentage rollout evaluation.");
 	}
 
@@ -126,7 +126,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(tenantId: "tenant123");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
@@ -149,7 +149,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(tenantId: "tenant123");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -171,7 +171,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(tenantId: "any-tenant");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -192,8 +192,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(tenantId: "consistent-tenant");
 
 		// Act - Multiple evaluations should be consistent
-		var result1 = await _evaluator.ProcessEvaluation(flagConfig, context);
-		var result2 = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result1 = await _evaluator.Evaluate(flagConfig, context);
+		var result2 = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result1.IsEnabled.ShouldBe(result2.IsEnabled);
@@ -242,8 +242,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(tenantId: "consistent-tenant");
 
 		// Act
-		var result1 = await _evaluator.ProcessEvaluation(flagConfig1, context);
-		var result2 = await _evaluator.ProcessEvaluation(flagConfig2, context);
+		var result1 = await _evaluator.Evaluate(flagConfig1, context);
+		var result2 = await _evaluator.Evaluate(flagConfig2, context);
 
 		// Assert - Results may differ due to different flag keys in hash
 		result1.IsEnabled.ShouldBeOneOf(true, false);
@@ -283,12 +283,12 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		flagConfig.Variations.DefaultVariation = "standard-feature";
 
 		// Act & Assert - Premium customer gets access
-		var premiumResult = await _evaluator.ProcessEvaluation(flagConfig,
+		var premiumResult = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(tenantId: "premium-corp"));
 		premiumResult.IsEnabled.ShouldBeTrue();
 
 		// Act & Assert - Regular tenant may or may not get access
-		var regularResult = await _evaluator.ProcessEvaluation(flagConfig,
+		var regularResult = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(tenantId: "regular-tenant"));
 		regularResult.IsEnabled.ShouldBeOneOf(true, false);
 
@@ -323,7 +323,7 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(tenantId: "tenant123");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
@@ -353,8 +353,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(tenantId: "acme-corp");
 
 		// Act - Multiple calls should return same variation
-		var result1 = await _evaluator.ProcessEvaluation(flagConfig, context);
-		var result2 = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result1 = await _evaluator.Evaluate(flagConfig, context);
+		var result2 = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result1.IsEnabled.ShouldBeTrue();

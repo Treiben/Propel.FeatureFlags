@@ -1,6 +1,5 @@
 using FeatureFlags.IntegrationTests.Postgres.Support;
 using Knara.UtcStrict;
-using Propel.FeatureFlags.Dashboard.Api.Domain;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
 
@@ -13,7 +12,7 @@ public class GetAsync_WithColumnMapping(PostgresTestsFixture fixture) : IClassFi
 	{
 		// Arrange
 		await fixture.ClearAllData();
-		var options = new FlagOptionsBuilder()
+		var options = new FlagOptionsBuilder("test-flag")
 				.WithEvaluationModes(EvaluationMode.UserTargeted)
 				.WithSchedule(UtcSchedule.CreateSchedule(DateTimeOffset.UtcNow.AddDays(1), DateTimeOffset.UtcNow.AddDays(7)))
 				.WithOperationalWindow(new UtcTimeWindow(
@@ -37,17 +36,6 @@ public class GetAsync_WithColumnMapping(PostgresTestsFixture fixture) : IClassFi
 					TargetingRuleFactory.CreateTargetingRule("region", TargetingOperator.In, ["US", "CA"], "treatment")
 				])
 				.Build();
-
-		var identifier = new FlagIdentifier("complex-eval-flag", Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
-		var administration = new FlagAdministration(
-			Name: "Complex Flag",
-			Description: "Contains every evaluation option",
-			RetentionPolicy: RetentionPolicy.OneMonthRetentionPolicy,
-			Tags: new Dictionary<string, string> { { "eval-groups", "marketing" } },
-			ChangeHistory: [AuditTrail.FlagCreated("test-user")]);
-
-		var featureFlag = new FeatureFlag(identifier, administration, options);
-		await fixture.DashboardRepository.CreateAsync(featureFlag);
 
 		// Act
 		var result = await fixture.FeatureFlagRepository.GetEvaluationOptionsAsync(identifier);
@@ -98,15 +86,6 @@ public class GetAsync_WithColumnMapping(PostgresTestsFixture fixture) : IClassFi
 							.WithEvaluationModes(EvaluationMode.On)
 							.Build();
 		var identifier = new FlagIdentifier("minimal-flag", Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
-		var administration = new FlagAdministration(
-			Name: "Minimal Flag",
-			Description: "Contains only On mode",
-			RetentionPolicy: RetentionPolicy.OneMonthRetentionPolicy,
-			Tags: [],
-			ChangeHistory: [AuditTrail.FlagCreated("test-user")]);
-
-		var featureFlag = new FeatureFlag(identifier, administration, options);
-		await fixture.DashboardRepository.CreateAsync(featureFlag);
 
 		// Act
 		var result = await fixture.FeatureFlagRepository.GetEvaluationOptionsAsync(identifier);
@@ -147,15 +126,6 @@ public class GetAsync_WithColumnMapping(PostgresTestsFixture fixture) : IClassFi
 			})
 			.Build();
 		var identifier = new FlagIdentifier("json-test-flag", Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
-		var administration = new FlagAdministration(
-			Name: "Jsonn Flag",
-			Description: "Test deserialization",
-			RetentionPolicy: RetentionPolicy.OneMonthRetentionPolicy,
-			Tags: [],
-			ChangeHistory: [AuditTrail.FlagCreated("test-user")]);
-
-		var featureFlag = new FeatureFlag(identifier, administration, options);
-		await fixture.DashboardRepository.CreateAsync(featureFlag);
 
 		// Act
 		var result = await fixture.FeatureFlagRepository.GetEvaluationOptionsAsync(identifier);
@@ -214,15 +184,6 @@ public class GetAsync_WithNonExistentFlag(PostgresTestsFixture fixture) : IClass
 							})
 							.Build();
 		var identifier = FlagIdentifier.CreateGlobal("json-test-flag");
-		var administration = new FlagAdministration(
-			Name: "Jsonn Flag",
-			Description: "Test deserialization",
-			RetentionPolicy: RetentionPolicy.OneMonthRetentionPolicy,
-			Tags: [],
-			ChangeHistory: [AuditTrail.FlagCreated("test-user")]);
-
-		var featureFlag = new FeatureFlag(identifier, administration, options);
-		await fixture.DashboardRepository.CreateAsync(featureFlag);
 
 		// Act
 		var identifier1 = new FlagIdentifier("json-test-flag", Scope.Application, "test", "12.0.0.0");
@@ -240,15 +201,6 @@ public class GetAsync_WithNonExistentFlag(PostgresTestsFixture fixture) : IClass
 							.WithEvaluationModes(EvaluationMode.On)
 							.Build();
 		var identifier = new FlagIdentifier("a-flag", Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
-		var administration = new FlagAdministration(
-			Name: "A Flag",
-			Description: "Contains only On mode",
-			RetentionPolicy: RetentionPolicy.OneMonthRetentionPolicy,
-			Tags: [],
-			ChangeHistory: [AuditTrail.FlagCreated("test-user")]);
-
-		var featureFlag = new FeatureFlag(identifier, administration, options);
-		await fixture.DashboardRepository.CreateAsync(featureFlag);
 
 		var differentAppKey = new FlagIdentifier("app-flag",
 			Scope.Application,

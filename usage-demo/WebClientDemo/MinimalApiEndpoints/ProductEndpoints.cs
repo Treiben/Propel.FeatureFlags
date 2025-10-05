@@ -1,5 +1,6 @@
 ﻿using ApiFlagUsageDemo.FeatureFlags;
 using Propel.FeatureFlags.AspNetCore.Extensions;
+using Propel.FeatureFlags.Clients;
 
 namespace ApiFlagUsageDemo.MinimalApiEndpoints;
 

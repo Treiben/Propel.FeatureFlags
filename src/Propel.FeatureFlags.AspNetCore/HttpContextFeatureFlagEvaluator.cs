@@ -1,10 +1,10 @@
-﻿using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
+﻿using Propel.FeatureFlags.Clients;
+using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.AspNetCore;
 
 public class HttpContextFeatureFlagEvaluator(
-	IFeatureFlagClient client,
+	IApplicationFlagClient client,
 	string? tenantId, 
 	string? userId,
 	Dictionary<string, object> attributes)

@@ -14,7 +14,7 @@ public class TargetingRulesEvaluatorTests
 		var context = new EvaluationContext(userId: "user123", attributes: new Dictionary<string, object> { { "userId", "user123" } });
 
 		// Act
-		var result = await evaluator.ProcessEvaluation(criteria, context);
+		var result = await evaluator.Evaluate(criteria, context);
 
 		// Assert
 		Assert.NotNull(result);
@@ -31,7 +31,7 @@ public class TargetingRulesEvaluatorTests
 		var context = new EvaluationContext(userId: "user123", attributes: new Dictionary<string, object> { { "age", "25" } });
 
 		// Act
-		var result = await evaluator.ProcessEvaluation(criteria, context);
+		var result = await evaluator.Evaluate(criteria, context);
 
 		// Assert
 		Assert.NotNull(result);
@@ -48,7 +48,7 @@ public class TargetingRulesEvaluatorTests
 		var context = new EvaluationContext(attributes: new Dictionary<string, object> { { "userId", "user456" } });
 
 		// Act
-		var result = await evaluator.ProcessEvaluation(criteria, context);
+		var result = await evaluator.Evaluate(criteria, context);
 
 		// Assert
 		Assert.NotNull(result);
@@ -65,7 +65,7 @@ public class TargetingRulesEvaluatorTests
 		var context = new EvaluationContext(attributes: new Dictionary<string, object> { { "tenantId", "tenant1" } });
 
 		// Act
-		var result = await evaluator.ProcessEvaluation(criteria, context);
+		var result = await evaluator.Evaluate(criteria, context);
 
 		// Assert
 		Assert.NotNull(result);

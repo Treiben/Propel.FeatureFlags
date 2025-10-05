@@ -26,7 +26,7 @@ internal sealed class AsyncInterceptionHandler(IFeatureFlagEvaluator evaluator)
 	private async Task HandleVoid(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
 	{
 		var flag = FeatureFlagCache.GetFeatureFlagInstance(flagAttribute.FlagType);
-		if (await evaluator.IsEnabledAsync(flag))
+		if (flag is not null && await evaluator.IsEnabledAsync(flag))
 		{
 			// Fixed to call the method directly on the target, not through the proxy because that would cause infinite recursion
 			// Call the actual target method directly, not through the proxy
@@ -45,7 +45,7 @@ internal sealed class AsyncInterceptionHandler(IFeatureFlagEvaluator evaluator)
 	private async Task<T> HandleGeneric<T>(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
 	{
 		var flag = FeatureFlagCache.GetFeatureFlagInstance(flagAttribute.FlagType);
-		if (await evaluator.IsEnabledAsync(flag))
+		if (flag is not null && await evaluator.IsEnabledAsync(flag))
 		{
 			// Fixed to call the method directly on the target, not through the proxy because that would cause infinite recursion
 			// Call the actual target method directly, not through the proxy
@@ -67,9 +67,9 @@ internal sealed class AsyncInterceptionHandler(IFeatureFlagEvaluator evaluator)
 
 	private static async Task HandleFallback(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
 	{
-		if (string.IsNullOrEmpty(flagAttribute.FallbackMethod)) return;	
+		if (string.IsNullOrWhiteSpace(flagAttribute.FallbackMethod)) return;	
 
-		var fallbackMethod = invocation.TargetType.GetMethod(flagAttribute.FallbackMethod);
+		var fallbackMethod = invocation.TargetType!.GetMethod(flagAttribute.FallbackMethod);
 		if (fallbackMethod != null)
 		{
 			var result = fallbackMethod.Invoke(invocation.InvocationTarget, invocation.Arguments);
@@ -80,9 +80,9 @@ internal sealed class AsyncInterceptionHandler(IFeatureFlagEvaluator evaluator)
 
 	private static async Task<T> HandleFallbackGeneric<T>(IInvocation invocation, FeatureFlaggedAttribute flagAttribute)
 	{
-		if (!string.IsNullOrEmpty(flagAttribute.FallbackMethod))
+		if (!string.IsNullOrWhiteSpace(flagAttribute.FallbackMethod))
 		{
-			var fallbackMethod = invocation.TargetType.GetMethod(flagAttribute.FallbackMethod);
+			var fallbackMethod = invocation.TargetType!.GetMethod(flagAttribute.FallbackMethod);
 			if (fallbackMethod != null)
 			{
 				var result = fallbackMethod.Invoke(invocation.InvocationTarget, invocation.Arguments);

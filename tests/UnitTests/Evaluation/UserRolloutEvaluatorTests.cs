@@ -63,8 +63,8 @@ public class UserRolloutEvaluatorTests
 		var context = new EvaluationContext();
 
 		// Act & Assert
-		var exception = await Should.ThrowAsync<EvaluationArgumentException>(
-			() => _evaluator.ProcessEvaluation(flagConfig, context));
+		var exception = await Should.ThrowAsync<EvaluationOptionsArgumentException>(
+			() => _evaluator.Evaluate(flagConfig, context));
 	}
 
 	[Fact]
@@ -80,7 +80,7 @@ public class UserRolloutEvaluatorTests
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -104,7 +104,7 @@ public class UserRolloutEvaluatorTests
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -126,7 +126,7 @@ public class UserRolloutEvaluatorTests
 		var context = new EvaluationContext(userId: "any-user");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -157,7 +157,7 @@ public class UserRolloutEvaluatorTests
 		var context = new EvaluationContext(userId: "any-user");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -179,8 +179,8 @@ public class UserRolloutEvaluatorTests
 		var context = new EvaluationContext(userId: "consistent-user");
 
 		// Act - Multiple evaluations should be consistent
-		var result1 = await _evaluator.ProcessEvaluation(flagConfig, context);
-		var result2 = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result1 = await _evaluator.Evaluate(flagConfig, context);
+		var result2 = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result1.ShouldNotBeNull();
@@ -222,9 +222,9 @@ public class UserRolloutEvaluatorTests
 			variations: Variations);
 
 		// Act
-		var betaResult = await _evaluator.ProcessEvaluation(flagConfig,
+		var betaResult = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(userId: "beta-tester"));
-		var regularResult = await _evaluator.ProcessEvaluation(flagConfig,
+		var regularResult = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(userId: "regular-user"));
 
 		// Assert
@@ -260,7 +260,7 @@ public class UserRolloutEvaluatorTests
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.ShouldNotBeNull();
@@ -291,8 +291,8 @@ public class UserRolloutEvaluatorTests
 		var context = new EvaluationContext(userId: "user123");
 
 		// Act - Multiple calls should return same variation
-		var result1 = await _evaluator.ProcessEvaluation(flagConfig, context);
-		var result2 = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result1 = await _evaluator.Evaluate(flagConfig, context);
+		var result2 = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result1.ShouldNotBeNull();

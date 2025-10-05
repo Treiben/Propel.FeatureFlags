@@ -1,10 +1,9 @@
 ﻿using FeatureFlags.IntegrationTests.SqlServer.Support;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
-
+using Propel.FeatureFlags.Clients;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Extensions;
-using Propel.FeatureFlags.FlagEvaluationServices.ApplicationScope;
 
 using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.Infrastructure.Cache;
@@ -21,8 +20,8 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 	private readonly RedisContainer _redisContainer;
 
 	public IServiceProvider Services { get; private set; } = null!;
-	public IFeatureFlagEvaluator Evaluator => Services.GetRequiredService<IFeatureFlagEvaluator>();
-	public IFeatureFlagClient Client => Services.GetRequiredService<IFeatureFlagClient>();
+	public IApplicationFlagService Evaluator => Services.GetRequiredService<IApplicationFlagService>();
+	public IApplicationFlagClient Client => Services.GetRequiredService<IApplicationFlagClient>();
 	public IFeatureFlagRepository FeatureFlagRepository => Services.GetRequiredService<IFeatureFlagRepository>();
 	public IFeatureFlagCache Cache => Services.GetRequiredService<IFeatureFlagCache>();
 
@@ -106,9 +105,9 @@ public class FlagEvaluationTestsFixture : IAsyncLifetime
 
 public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection ConfigureFeatureFlags(this IServiceCollection services, Action<PropelOptions> configure)
+	public static IServiceCollection ConfigureFeatureFlags(this IServiceCollection services, Action<PropelConfiguration> configure)
 	{
-		var options = new PropelOptions();
+		var options = new PropelConfiguration();
 		configure.Invoke(options);
 
 		services.AddFeatureFlagServices(options);
@@ -124,7 +123,7 @@ public static class ServiceCollectionExtensions
 		}
 
 		var dbOptions = options.Database;
-		services.AddFeatureFlagPersistence(dbOptions.ConnectionString);
+		services.AddFeatureFlagDatabase(dbOptions.ConnectionString);
 
 		return services;
 	}

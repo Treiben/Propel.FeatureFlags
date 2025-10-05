@@ -59,7 +59,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var flagConfig = new EvaluationOptions(key: identifier.Key);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, new EvaluationContext());
+		var result = await _evaluator.Evaluate(flagConfig, new EvaluationContext());
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
@@ -83,7 +83,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: new UtcDateTime (evaluationTime));
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -105,7 +105,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: enableDate);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flag, context);
+		var result = await _evaluator.Evaluate(flag, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
@@ -129,7 +129,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
@@ -154,7 +154,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
@@ -178,7 +178,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: disableDate);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -204,7 +204,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: evaluationTime);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeFalse();
@@ -228,7 +228,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var context = new EvaluationContext(evaluationTime: null);
 
 		// Act
-		var result = await _evaluator.ProcessEvaluation(flagConfig, context);
+		var result = await _evaluator.Evaluate(flagConfig, context);
 
 		// Assert
 		result.IsEnabled.ShouldBeTrue();
@@ -249,19 +249,19 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 			);
 
 		// Act & Assert - Before launch
-		var resultBefore = await _evaluator.ProcessEvaluation(flagConfig,
+		var resultBefore = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: new UtcDateTime(launchDate.AddMinutes(-1))));
 		resultBefore.IsEnabled.ShouldBeFalse();
 		resultBefore.Variation.ShouldBe(flagConfig.Variations.DefaultVariation);
 
 		// Act & Assert - During active period
-		var resultDuring = await _evaluator.ProcessEvaluation(flagConfig,
+		var resultDuring = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: new UtcDateTime(launchDate.AddDays(3))));
 		resultDuring.IsEnabled.ShouldBeTrue();
 		resultDuring.Variation.ShouldBe(flagConfig.Variations.DefaultVariation);
 
 		// Act & Assert - After end
-		var resultAfter = await _evaluator.ProcessEvaluation(flagConfig,
+		var resultAfter = await _evaluator.Evaluate(flagConfig,
 			new EvaluationContext(evaluationTime: new UtcDateTime(endDate.AddMinutes(1))));
 		resultAfter.IsEnabled.ShouldBeFalse();
 		resultAfter.Variation.ShouldBe(flagConfig.Variations.DefaultVariation);

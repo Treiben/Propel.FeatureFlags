@@ -3,7 +3,7 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Infrastructure.Cache;
 
-public sealed class InMemoryFlagCache(IMemoryCache cache, PropelOptions options) : IFeatureFlagCache
+public sealed class InMemoryFlagCache(IMemoryCache cache, PropelConfiguration options) : IFeatureFlagCache
 {
 	private readonly IMemoryCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
 	private readonly CacheOptions _cacheConfiguration = options.Cache ?? throw new ArgumentNullException(nameof(CacheOptions));

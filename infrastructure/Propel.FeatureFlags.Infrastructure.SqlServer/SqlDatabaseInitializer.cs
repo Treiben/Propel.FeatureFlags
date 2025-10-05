@@ -3,7 +3,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Propel.FeatureFlags.Infrastructure.SqlServer;
 
-public class SqlDatabaseInitializer
+public sealed class SqlDatabaseInitializer
 {
 	private readonly string _connectionString;
 	private readonly string _masterConnectionString;

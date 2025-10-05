@@ -1,4 +1,4 @@
-﻿using Propel.FeatureFlags.Helpers;
+﻿using Propel.FeatureFlags.Utilities;
 
 namespace Propel.FeatureFlags.Domain;
 

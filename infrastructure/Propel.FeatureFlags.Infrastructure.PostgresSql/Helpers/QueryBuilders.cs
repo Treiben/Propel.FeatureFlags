@@ -4,9 +4,9 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.Infrastructure.PostgresSql.Helpers;
 
-public static class QueryBuilders
+internal static class QueryBuilders
 {
-	public static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(FlagIdentifier flagKey, string prefix = "")
+	internal static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(FlagIdentifier flagKey, string prefix = "")
 	{
 		var parameters = new Dictionary<string, object>
 		{
@@ -38,7 +38,7 @@ public static class QueryBuilders
 		}
 	}
 
-	public static void AddWhereParameters(this NpgsqlCommand command, Dictionary<string, object> parameters)
+	internal static void AddWhereParameters(this NpgsqlCommand command, Dictionary<string, object> parameters)
 	{
 		foreach (var (key, value) in parameters)
 		{

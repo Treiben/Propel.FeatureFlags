@@ -1,16 +1,16 @@
 ﻿using Microsoft.Extensions.Logging;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Helpers;
 using Propel.FeatureFlags.Infrastructure.Cache;
+using Propel.FeatureFlags.Utilities;
 using StackExchange.Redis;
 using System.Net;
 using System.Text.Json;
 
 namespace Propel.FeatureFlags.Infrastructure.Redis;
 
-public class RedisFeatureFlagCache(
+public sealed class RedisFeatureFlagCache(
 	IConnectionMultiplexer redis, 
-	PropelOptions options, 
+	PropelConfiguration options, 
 	ILogger<RedisFeatureFlagCache> logger) : IFeatureFlagCache
 {
 	private readonly IDatabase _database = redis.GetDatabase();
