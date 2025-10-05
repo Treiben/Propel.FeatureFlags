@@ -3,16 +3,16 @@ using Propel.FeatureFlags.FlagEvaluators;
 
 namespace Propel.FeatureFlags.Clients;
 
-public interface IFeatureFlagProcessor
+public interface IEvaluators
 {
-	ValueTask<EvaluationResult?> ProcessEvaluation(EvaluationOptions flag, EvaluationContext context);
+	ValueTask<EvaluationResult?> Evaluate(EvaluationOptions flag, EvaluationContext context);
 }
 
-public sealed class FeatureFlagProcessor : IFeatureFlagProcessor
+public sealed class AllEvaluators : IEvaluators
 {
 	private readonly IOptionsEvaluator[] _evaluators;
 
-	public FeatureFlagProcessor(HashSet<IOptionsEvaluator> handlers)
+	public AllEvaluators(HashSet<IOptionsEvaluator> handlers)
 	{
 		if (handlers == null)
 			throw new ArgumentNullException(nameof(handlers));
@@ -21,18 +21,18 @@ public sealed class FeatureFlagProcessor : IFeatureFlagProcessor
 		_evaluators = [.. handlers.OrderBy(h => h.EvaluationOrder)];
 	}
 
-	public async ValueTask<EvaluationResult?> ProcessEvaluation(EvaluationOptions flag, EvaluationContext context)
+	public async ValueTask<EvaluationResult?> Evaluate(EvaluationOptions evaluationOptions, EvaluationContext context)
 	{
 		EvaluationResult? result = default;
 
 		var evaluators = _evaluators
-				.Where(h => h.CanProcess(flag, context))
+				.Where(h => h.CanProcess(evaluationOptions, context))
 				.OrderBy(p => p.EvaluationOrder)
 				.ToList();
 
 		foreach (var evaluator in evaluators)
 		{
-			result = await evaluator.Evaluate(flag, context);
+			result = await evaluator.Evaluate(evaluationOptions, context);
 			if (result != null && result.IsEnabled == false)
 			{
 				return result;
@@ -50,5 +50,22 @@ public sealed class FeatureFlagProcessor : IFeatureFlagProcessor
 		}
 
 		return result;
+	}
+}
+
+public static class DefaultEvaluators
+{
+	public static IEvaluators Create()
+	{
+		// Create processor with all evaluators for legacy applications that don't use DI
+		return new AllEvaluators(new HashSet<IOptionsEvaluator>(
+		[
+			new ActivationScheduleEvaluator(),
+			new OperationalWindowEvaluator(),
+			new TargetingRulesEvaluator(),
+			new TenantRolloutEvaluator(),
+			new TerminalStateEvaluator(),
+			new UserRolloutEvaluator(),
+		]));
 	}
 }

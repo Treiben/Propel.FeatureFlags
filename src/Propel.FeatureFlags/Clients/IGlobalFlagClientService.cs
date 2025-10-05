@@ -11,11 +11,11 @@ public interface IGlobalFlagClientService
 
 public sealed class GlobalFlagClientService(
 	IFeatureFlagRepository repository,
-	IFeatureFlagProcessor flagProcessor,
+	IEvaluators flagProcessor,
 	IFeatureFlagCache? cache = null) : IGlobalFlagClientService
 {
 	private readonly IFeatureFlagRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
-	private readonly IFeatureFlagProcessor _flagProcessor = flagProcessor ?? throw new ArgumentNullException(nameof(flagProcessor));
+	private readonly IEvaluators _flagProcessor = flagProcessor ?? throw new ArgumentNullException(nameof(flagProcessor));
 
 	public async Task<EvaluationResult?> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
@@ -25,7 +25,7 @@ public sealed class GlobalFlagClientService(
 			throw new Exception("The global feature flag is not found. Please create the flag in the system before evaluating it or remove reference to it.");
 		}
 
-		return await _flagProcessor.ProcessEvaluation(flagConfig, context);
+		return await _flagProcessor.Evaluate(flagConfig, context);
 	}
 
 	private async Task<EvaluationOptions?> GetFlagConfiguration(string flagKey, CancellationToken cancellationToken)

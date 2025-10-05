@@ -11,8 +11,8 @@ public interface IApplicationFlagClient
 	Task<EvaluationResult?> EvaluateAsync(IFeatureFlag flag, string? tenantId = null, string? userId = null, Dictionary<string, object>? attributes = null);
 }
 
-public sealed class FeatureFlagClient(
-	IApplicationFlagService evaluator) : IApplicationFlagClient
+public sealed class ApplicationFlagClient(
+	IApplicationFlagProcessor processor) : IApplicationFlagClient
 {
 	public async Task<bool> IsEnabledAsync(
 		IFeatureFlag flag,
@@ -25,7 +25,7 @@ public sealed class FeatureFlagClient(
 			userId: userId,
 			attributes: attributes);
 
-		var result = await evaluator.Evaluate(flag, context);
+		var result = await processor.Evaluate(flag, context);
 		return result!.IsEnabled;
 	}
 
@@ -41,7 +41,7 @@ public sealed class FeatureFlagClient(
 			userId: userId,
 			attributes: attributes);
 
-		return await evaluator.GetVariation(flag, defaultValue, context);
+		return await processor.GetVariation(flag, defaultValue, context);
 	}
 
 	public async Task<EvaluationResult?> EvaluateAsync(
@@ -55,6 +55,6 @@ public sealed class FeatureFlagClient(
 			userId: userId,
 			attributes: attributes);
 
-		return await evaluator.Evaluate(flag, context);
+		return await processor.Evaluate(flag, context);
 	}
 }

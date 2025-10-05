@@ -6,19 +6,19 @@ using System.Text.Json;
 
 namespace Propel.FeatureFlags.Clients;
 
-public interface IApplicationFlagService
+public interface IApplicationFlagProcessor
 {
 	Task<EvaluationResult?> Evaluate(IFeatureFlag flag, EvaluationContext context, CancellationToken cancellationToken = default);
 	Task<T> GetVariation<T>(IFeatureFlag flag, T defaultValue, EvaluationContext context, CancellationToken cancellationToken = default);
 }
 
-public sealed class FeatureFlagClientService(
+public sealed class ApplicationFlagProcessor(
 	IFeatureFlagRepository repository,
-	IFeatureFlagProcessor flagProcessor,
-	IFeatureFlagCache? cache = null) : IApplicationFlagService
+	IEvaluators evaluators,
+	IFeatureFlagCache? cache = null) : IApplicationFlagProcessor
 {
 	private readonly IFeatureFlagRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
-	private readonly IFeatureFlagProcessor _flagProcessor = flagProcessor ?? throw new ArgumentNullException(nameof(flagProcessor));
+	private readonly IEvaluators _flagProcessor = evaluators ?? throw new ArgumentNullException(nameof(evaluators));
 
 	private string ApplicationName => ApplicationInfo.Name;
 	private string ApplicationVersion => ApplicationInfo.Version;
@@ -39,7 +39,7 @@ public sealed class FeatureFlagClientService(
 				);
 			}
 
-			return await _flagProcessor.ProcessEvaluation(flagConfig, context);
+			return await _flagProcessor.Evaluate(flagConfig, context);
 		}
 		catch (Exception ex)
 		{
@@ -64,7 +64,7 @@ public sealed class FeatureFlagClientService(
 			}
 
 			// Evaluate using the already-fetched flag configuration
-			var result = await _flagProcessor.ProcessEvaluation(flagConfig, context);
+			var result = await _flagProcessor.Evaluate(flagConfig, context);
 			if (result?.IsEnabled == false)
 			{
 				return defaultVariation;
