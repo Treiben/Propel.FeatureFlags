@@ -29,7 +29,7 @@ public static class ServiceCollectionExtensions
 	where TInterface : class
 	where TImplementation : class, TInterface
 	{
-		services.AddSingleton<TImplementation>();
+		services.TryAddSingleton<TImplementation>();
 
 		services.TryAddScoped(provider =>
 		{
