@@ -7,6 +7,15 @@ services:
       # Enable more verbose logging in development
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
 
+  sqlserver:
+    # Expose SQL Server port for local development tools
+    ports:
+      - "1433:1433"
+    environment:
+      # Enable additional development features
+      MSSQL_AGENT_ENABLED: "true"
+      MSSQL_COLLATION: "SQL_Latin1_General_CP1_CI_AS"
+
   redis:
     # Expose Redis port for local development tools
     ports:
