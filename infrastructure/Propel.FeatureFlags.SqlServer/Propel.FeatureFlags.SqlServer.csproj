@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <Description>SqlServer storage provider for Propel Feature Flags using SqlClient. Handles database operations and schema migrations for feature flag data with automatic schema creation and JSON storage for targeting rules and configurations.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Propel.FeatureFlags.AspNetCore\Propel.FeatureFlags.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\Propel.FeatureFlags.Attributes\Propel.FeatureFlags.Attributes.csproj" />
+  </ItemGroup>
+
+</Project>

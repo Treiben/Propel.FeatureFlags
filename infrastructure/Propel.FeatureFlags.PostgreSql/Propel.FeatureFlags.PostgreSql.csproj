@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>true</IsPackable>
+    <Description>PostgreSQL storage provider for Propel Feature Flags using Npgsql. Handles database operations and schema migraions for feature flag data with automatic schema creation and JSON storage for targeting rules and configurations.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="9.0.3" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Propel.FeatureFlags.AspNetCore\Propel.FeatureFlags.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\Propel.FeatureFlags.Attributes\Propel.FeatureFlags.Attributes.csproj" />
+    <ProjectReference Include="..\..\src\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
+  </ItemGroup>
+
+</Project>
