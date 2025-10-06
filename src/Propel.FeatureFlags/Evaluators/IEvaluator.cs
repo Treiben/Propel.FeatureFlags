@@ -2,14 +2,14 @@
 
 namespace Propel.FeatureFlags.FlagEvaluators;
 
-public interface IOptionsEvaluator
+public interface IEvaluator
 {
 	EvaluationOrder EvaluationOrder { get; }
 	bool CanProcess(EvaluationOptions options, EvaluationContext context);
 	ValueTask<EvaluationResult?> Evaluate(EvaluationOptions options, EvaluationContext context);
 }
 
-public abstract class EvaluatorBase : IOptionsEvaluator
+public abstract class EvaluatorBase : IEvaluator
 {
 	public abstract EvaluationOrder EvaluationOrder { get; }
 	public abstract bool CanProcess(EvaluationOptions flag, EvaluationContext context);

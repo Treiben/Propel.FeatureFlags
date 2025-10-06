@@ -3,16 +3,16 @@ using Propel.FeatureFlags.FlagEvaluators;
 
 namespace Propel.FeatureFlags.Clients;
 
-public interface IEvaluators
+public interface IEvaluatorsSet
 {
 	ValueTask<EvaluationResult?> Evaluate(EvaluationOptions flag, EvaluationContext context);
 }
 
-public sealed class AllEvaluators : IEvaluators
+public sealed class EvaluatorsSet : IEvaluatorsSet
 {
-	private readonly IOptionsEvaluator[] _evaluators;
+	private readonly IEvaluator[] _evaluators;
 
-	public AllEvaluators(HashSet<IOptionsEvaluator> handlers)
+	public EvaluatorsSet(HashSet<IEvaluator> handlers)
 	{
 		if (handlers == null)
 			throw new ArgumentNullException(nameof(handlers));
@@ -55,10 +55,10 @@ public sealed class AllEvaluators : IEvaluators
 
 public static class DefaultEvaluators
 {
-	public static IEvaluators Create()
+	public static IEvaluatorsSet Create()
 	{
 		// Create processor with all evaluators for legacy applications that don't use DI
-		return new AllEvaluators(new HashSet<IOptionsEvaluator>(
+		return new EvaluatorsSet(new HashSet<IEvaluator>(
 		[
 			new ActivationScheduleEvaluator(),
 			new OperationalWindowEvaluator(),

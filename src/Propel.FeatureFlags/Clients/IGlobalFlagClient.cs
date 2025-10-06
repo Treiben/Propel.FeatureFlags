@@ -9,7 +9,7 @@ public interface IGlobalFlagClient
 }
 
 public sealed class GlobalFlagClient(
-	IGlobalFlagClientService evaluator) : IGlobalFlagClient
+	IGlobalFlagProcessor processor) : IGlobalFlagClient
 {
 	public async Task<bool> IsEnabledAsync(
 		string flagKey,
@@ -22,7 +22,7 @@ public sealed class GlobalFlagClient(
 			userId: userId,
 			attributes: attributes);
 
-		var result = await evaluator.Evaluate(flagKey, context);
+		var result = await processor.Evaluate(flagKey, context);
 		return result!.IsEnabled;
 	}
 
@@ -37,6 +37,6 @@ public sealed class GlobalFlagClient(
 			userId: userId,
 			attributes: attributes);
 
-		return await evaluator.Evaluate(flagKey, context);
+		return await processor.Evaluate(flagKey, context);
 	}
 }

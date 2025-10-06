@@ -14,11 +14,11 @@ public interface IApplicationFlagProcessor
 
 public sealed class ApplicationFlagProcessor(
 	IFeatureFlagRepository repository,
-	IEvaluators evaluators,
+	IEvaluatorsSet evaluators,
 	IFeatureFlagCache? cache = null) : IApplicationFlagProcessor
 {
 	private readonly IFeatureFlagRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
-	private readonly IEvaluators _flagProcessor = evaluators ?? throw new ArgumentNullException(nameof(evaluators));
+	private readonly IEvaluatorsSet _flagProcessor = evaluators ?? throw new ArgumentNullException(nameof(evaluators));
 
 	private string ApplicationName => ApplicationInfo.Name;
 	private string ApplicationVersion => ApplicationInfo.Version;

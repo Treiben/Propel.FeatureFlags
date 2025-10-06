@@ -4,18 +4,18 @@ using Propel.FeatureFlags.Infrastructure.Cache;
 
 namespace Propel.FeatureFlags.Clients;
 
-public interface IGlobalFlagClientService
+public interface IGlobalFlagProcessor
 {
 	Task<EvaluationResult?> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default);
 }
 
-public sealed class GlobalFlagClientService(
+public sealed class GlobalFlagProcessor(
 	IFeatureFlagRepository repository,
-	IEvaluators flagProcessor,
-	IFeatureFlagCache? cache = null) : IGlobalFlagClientService
+	IEvaluatorsSet evaluators,
+	IFeatureFlagCache? cache = null) : IGlobalFlagProcessor
 {
 	private readonly IFeatureFlagRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
-	private readonly IEvaluators _flagProcessor = flagProcessor ?? throw new ArgumentNullException(nameof(flagProcessor));
+	private readonly IEvaluatorsSet _evaluators = evaluators ?? throw new ArgumentNullException(nameof(evaluators));
 
 	public async Task<EvaluationResult?> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
@@ -25,7 +25,7 @@ public sealed class GlobalFlagClientService(
 			throw new Exception("The global feature flag is not found. Please create the flag in the system before evaluating it or remove reference to it.");
 		}
 
-		return await _flagProcessor.Evaluate(flagConfig, context);
+		return await _evaluators.Evaluate(flagConfig, context);
 	}
 
 	private async Task<EvaluationOptions?> GetFlagConfiguration(string flagKey, CancellationToken cancellationToken)

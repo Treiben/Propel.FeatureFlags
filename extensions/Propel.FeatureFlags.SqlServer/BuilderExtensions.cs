@@ -54,7 +54,7 @@ public static class BuilderExtensions
 			builder.Services.TryAddSingleton<IFeatureFlagFactory, FeatureFlagFactory>();
 	}
 
-	public static async Task EnsureFeatureFlagDatabase(this IHost host)
+	public static async Task InitializeFeatureFlagsDatabase(this IHost host)
 	{
 		var environment = host.Services.GetService<IHostEnvironment>();
 		var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger(environment!.ApplicationName);

@@ -18,7 +18,7 @@ internal static class CoreServicesExtensions
 		services.AddSingleton<IApplicationFlagProcessor, ApplicationFlagProcessor>();
 		services.AddSingleton<IApplicationFlagClient, ApplicationFlagClient>();
 
-		services.AddSingleton<IGlobalFlagClientService, GlobalFlagClientService>();
+		services.AddSingleton<IGlobalFlagProcessor, GlobalFlagProcessor>();
 		services.AddSingleton<IGlobalFlagClient, GlobalFlagClient>();
 
 		// Register evaluation manager with all handlers
@@ -37,8 +37,8 @@ internal static class CoreServicesExtensions
 	public static IServiceCollection RegisterEvaluators(this IServiceCollection services)
 	{
 		// Register evaluation manager with all handlers
-		services.AddSingleton<IEvaluators>(_ => new AllEvaluators(
-			new HashSet<IOptionsEvaluator>(
+		services.AddSingleton<IEvaluatorsSet>(_ => new EvaluatorsSet(
+			new HashSet<IEvaluator>(
 				[   new ActivationScheduleEvaluator(),
 					new OperationalWindowEvaluator(),
 					new TargetingRulesEvaluator(),
