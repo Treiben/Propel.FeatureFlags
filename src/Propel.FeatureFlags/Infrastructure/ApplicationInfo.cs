@@ -12,12 +12,25 @@ public static class ApplicationInfo
 
 	private static (string name, string version) GetApplicationInfo()
 	{
+		var envName = Environment.GetEnvironmentVariable("APP_NAME");
+		var envVersion = Environment.GetEnvironmentVariable("APP_VERSION");
+
+		if (envName != null && envVersion != null)
+		{
+			return (envName, envVersion);
+		}
+
+		if (envName != null)
+		{
+			return (envName, "1.0.0.0");
+		}
+
 		// Try to get the entry assembly first (main application)
 		var entryAssembly = Assembly.GetEntryAssembly();
 		if (entryAssembly != null)
 		{
 			var name = entryAssembly.GetName().Name ?? "Unknown";
-			var version = entryAssembly.GetName().Version?.ToString() ?? "1.0.0";
+			var version = entryAssembly.GetName().Version?.ToString() ?? "1.0.0.0";
 			return (name, version);
 		}
 
@@ -26,12 +39,12 @@ public static class ApplicationInfo
 		if (callingAssembly != null)
 		{
 			var name = callingAssembly.GetName().Name ?? "Unknown";
-			var version = callingAssembly.GetName().Version?.ToString() ?? "1.0.0";
+			var version = callingAssembly.GetName().Version?.ToString() ?? "1.0.0.0";
 			return (name, version);
 		}
 
 		// Final fallback to process name
 		var processName = Process.GetCurrentProcess().ProcessName;
-		return (processName, "1.0.0");
+		return (processName, "1.0.0.0");
 	}
 }
