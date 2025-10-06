@@ -85,7 +85,7 @@ internal sealed class SqlFeatureFlagRepository(string connectionString, ILogger<
 
 		const string sql = @"
             IF NOT EXISTS (SELECT 1 FROM FeatureFlags 
-                          WHERE [Key] = @key AND ApplicationName = @applicationName AND ApplicationVersion = @applicationVersione)
+                          WHERE [Key] = @key AND ApplicationName = @applicationName AND ApplicationVersion = @applicationVersion)
             BEGIN
                 INSERT INTO FeatureFlags (
                     [Key], ApplicationName, ApplicationVersion, Scope, Name, Description, EvaluationModes

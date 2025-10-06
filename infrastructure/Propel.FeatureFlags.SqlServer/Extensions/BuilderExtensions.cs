@@ -64,10 +64,6 @@ public static class BuilderExtensions
 			await host.Services.EnsureFeatureFlagDatabase();
 
 			logger.LogInformation("Feature flags database initialization completed successfully");
-
-			// Flag seeding from SQL script file (NOT RECOMMEND FOR PRODUCTION)
-			// Use: during application startup at development time
-			await host.Services.SeedFeatureFlags("seed-db.sql");
 		}
 		catch (Exception ex)
 		{
