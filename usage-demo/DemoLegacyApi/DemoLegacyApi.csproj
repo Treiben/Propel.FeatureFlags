@@ -195,11 +195,15 @@
     <Compile Include="Areas\HelpPage\XmlDocumentationProvider.cs" />
     <Compile Include="Controllers\DemoController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
-    <Compile Include="FeatureFlags\AllFlags.cs" />
-    <Compile Include="FeatureFlags\FeatureFlagDeploymentExtensions.cs" />
-    <Compile Include="FeatureFlags\FeatureFlagContainer.cs" />
-    <Compile Include="FeatureFlags\FeatureFlagService.cs" />
-    <Compile Include="FeatureFlags\InMemoryFeatureFlagRepository.cs" />
+    <Compile Include="CrossCuttingConcerns\FeatureFlags\ApplicationFlags\AdminPanelEnabledFeatureFlag.cs" />
+    <Compile Include="CrossCuttingConcerns\FeatureFlags\FeatureFlagDeploymentExtensions.cs" />
+    <Compile Include="CrossCuttingConcerns\FeatureFlags\FeatureFlagContainer.cs" />
+    <Compile Include="CrossCuttingConcerns\FeatureFlags\FeatureFlagService.cs" />
+    <Compile Include="CrossCuttingConcerns\FeatureFlags\FeatureFlagInMemoryRepository.cs" />
+    <Compile Include="CrossCuttingConcerns\FeatureFlags\ApplicationFlags\NewEmailServiceFeatureFlag.cs" />
+    <Compile Include="CrossCuttingConcerns\FeatureFlags\ApplicationFlags\NewPaymentProcessorFeatureFlag.cs" />
+    <Compile Include="CrossCuttingConcerns\FeatureFlags\ApplicationFlags\NewProductApiFeatureFlag.cs" />
+    <Compile Include="CrossCuttingConcerns\FeatureFlags\ApplicationFlags\RecommendationAlgorithmFeatureFlag.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>

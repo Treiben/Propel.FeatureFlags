@@ -5,47 +5,97 @@
 <div class="jumbotron">
 	<h1>Propel Feature Flags Demo</h1>
 	<p class="lead">@ViewBag.Message</p>
+	<p>This demo showcases feature flag evaluation patterns in a .NET Framework 4.8.1 Web API application using in-memory storage.</p>
 </div>
 
 <div class="row">
 	<div class="col-md-12">
-		<h2>📍 Available Demo Endpoints</h2>
-		<p>Click the links below to test feature flag functionality:</p>
+		<h2>📍 Feature Flag Demo Endpoints</h2>
+		<p>Click the links below to test different feature flag evaluation patterns:</p>
 	</div>
 </div>
 
 <div class="row">
 	<div class="col-md-6">
-		<h3>🎯 Simple Examples</h3>
+		<h3>🎯 Basic Patterns</h3>
 		<ul class="list-group">
 			<li class="list-group-item">
-				<strong>Product API (Simple On/Off)</strong><br />
-				<a href="/api/products" target="_blank">/api/products</a>
-				<p class="text-muted">Demonstrates simple on/off feature flag for API versioning</p>
+				<strong>1️⃣ Product API Versioning</strong><br />
+				<a href="/api/featureflags/products" target="_blank" class="btn btn-sm btn-primary" style="margin-top: 5px;">GET /api/featureflags/products</a>
+				<p class="text-muted" style="margin-top: 10px;">
+					<strong>Pattern:</strong> Simple On/Off Toggle<br />
+					Demonstrates API versioning using a basic feature flag. When enabled, returns v2 API with 4 products;
+					when disabled, returns legacy v1 API with 2 products.
+				</p>
+			</li>
+
+			<li class="list-group-item">
+				<strong>2️⃣ User Percentage Rollout</strong><br />
+				<a href="/api/featureflags/recommendations/user123" target="_blank" class="btn btn-sm btn-primary" style="margin-top: 5px;">GET /api/featureflags/recommendations/user123</a>
+				<a href="/api/featureflags/recommendations/user456" target="_blank" class="btn btn-sm btn-primary" style="margin-top: 5px;">Try user456</a>
+				<a href="/api/featureflags/recommendations/user789" target="_blank" class="btn btn-sm btn-primary" style="margin-top: 5px;">Try user789</a>
+				<p class="text-muted" style="margin-top: 10px;">
+					<strong>Pattern:</strong> Gradual Rollout (50%)<br />
+					Demonstrates percentage-based feature rollout. Approximately 50% of users will see the new ML-based
+					recommendation algorithm, while others see the legacy collaborative filtering. Try different user IDs
+					to see consistent assignment.
+				</p>
+			</li>
+
+			<li class="list-group-item">
+				<strong>3️⃣ Admin Panel Access Control</strong><br />
+				<a href="/api/featureflags/admin/sensitive-operation" target="_blank" class="btn btn-sm btn-primary" style="margin-top: 5px;">GET /api/featureflags/admin/sensitive-operation</a>
+				<p class="text-muted" style="margin-top: 10px;">
+					<strong>Pattern:</strong> Access Control Toggle<br />
+					Demonstrates using feature flags for access control. When enabled, returns success; when disabled,
+					returns 404 (feature not found). Useful for hiding sensitive operations or admin features.
+				</p>
 			</li>
 		</ul>
 	</div>
 
 	<div class="col-md-6">
-		<h3>🚀 Advanced Examples</h3>
+		<h3>🚀 Advanced Patterns</h3>
 		<ul class="list-group">
 			<li class="list-group-item">
-				<strong>Products (Full Demo)</strong><br />
-				<a href="/api/featureflags/products?userId=user123" target="_blank">/api/featureflags/products</a>
+				<strong>4️⃣ Payment Processor Switch</strong><br />
+				<span class="text-muted">POST /api/featureflags/payments/process</span>
+				<p class="text-muted" style="margin-top: 10px;">
+					<strong>Pattern:</strong> Service Layer Integration<br />
+					Demonstrates switching between payment processors with feature flags. Requires POST request with body:
+					<code>{"customerId": "cust123", "amount": 99.99, "currency": "USD"}</code>
+					<br />Use Postman or similar tool to test this endpoint.
+				</p>
+				<div class="well well-sm">
+					<small>
+						<strong>Example cURL:</strong><br />
+						<code style="font-size: 10px;">
+							curl -X POST "http://localhost:PORT/api/featureflags/payments/process" -H "Content-Type: application/json" -d '{"customerId":"cust123","amount":99.99,"currency":"USD"}'
+						</code>
+					</small>
+				</div>
 			</li>
+
 			<li class="list-group-item">
-				<strong>Recommendations (50% Rollout)</strong><br />
-				<a href="/api/featureflags/recommendations/user123" target="_blank">/api/featureflags/recommendations/user123</a>
-				<p class="text-muted">Try different user IDs to see rollout</p>
+				<strong>5️⃣ Email Service Toggle</strong><br />
+				<span class="text-muted">POST /api/featureflags/notifications/send-email</span>
+				<p class="text-muted" style="margin-top: 10px;">
+					<strong>Pattern:</strong> Notification Service Switch<br />
+					Demonstrates switching between email service providers (SendGrid vs SMTP). Requires POST request with body:
+					<code>{"userId": "user123", "subject": "Test", "body": "Hello"}</code>
+					<br />Use Postman or similar tool to test this endpoint.
+				</p>
 			</li>
+
 			<li class="list-group-item">
-				<strong>Admin Panel</strong><br />
-				<a href="/api/featureflags/admin/sensitive-operation" target="_blank">/api/featureflags/admin/sensitive-operation</a>
-			</li>
-			<li class="list-group-item">
-				<strong>Flag Status</strong><br />
-				<a href="/api/featureflags/status" target="_blank">/api/featureflags/status</a>
-				<p class="text-muted">View all configured flags</p>
+				<strong>6️⃣ Flag Status Dashboard</strong><br />
+				<a href="/api/featureflags/status" target="_blank" class="btn btn-sm btn-success" style="margin-top: 5px;">GET /api/featureflags/status</a>
+				<p class="text-muted" style="margin-top: 10px;">
+					<strong>Pattern:</strong> Diagnostic Endpoint<br />
+					Returns the current status and configuration of all feature flags in the system. Useful for
+					debugging and monitoring which flags are enabled/disabled. Shows flag key, name, description,
+					enabled status, and evaluation reason.
+				</p>
 			</li>
 		</ul>
 	</div>
@@ -53,10 +103,57 @@
 
 <div class="row" style="margin-top: 20px;">
 	<div class="col-md-12">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<h3 class="panel-title">🧪 Testing Instructions</h3>
+			</div>
+			<div class="panel-body">
+				<h4>GET Endpoints (Click to Test):</h4>
+				<ul>
+					<li>Simply click the blue/green buttons above to test GET endpoints in your browser</li>
+					<li>Endpoints will open in a new tab showing JSON responses</li>
+				</ul>
+
+				<h4>POST Endpoints (Use Postman/cURL):</h4>
+				<ul>
+					<li><strong>Payment Processing:</strong> POST to <code>/api/featureflags/payments/process</code></li>
+					<li><strong>Email Service:</strong> POST to <code>/api/featureflags/notifications/send-email</code></li>
+					<li>See code samples in the endpoint descriptions above</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="row" style="margin-top: 20px;">
+	<div class="col-md-12">
 		<div class="alert alert-info">
-			<strong>📝 Note:</strong> This demo uses in-memory flag evaluation without database persistence.
-			Flags are hardcoded in the InMemoryFlagStore class. In production, you would use the
-			PostgreSQL or SQL Server infrastructure packages with proper DI.
+			<strong>📝 Implementation Notes:</strong>
+			<ul style="margin-top: 10px; margin-bottom: 0;">
+				<li>This demo uses <strong>in-memory flag evaluation</strong> without database persistence</li>
+				<li>Flags are auto-deployed on application startup via <code>FeatureFlagContainer</code> singleton</li>
+				<li>All flag definitions are in <code>AllFlags.cs</code> with configurable on/off modes</li>
+				<li>The implementation uses proper abstraction layers (Factory, Client, Repository patterns)</li>
+				<li>For production use, replace <code>InMemoryFeatureFlagRepository</code> with PostgreSQL or SQL Server implementations</li>
+			</ul>
+		</div>
+	</div>
+</div>
+
+<div class="row" style="margin-top: 20px;">
+	<div class="col-md-12">
+		<div class="alert alert-warning">
+			<strong>⚙️ Current Flag Configuration:</strong>
+			<ul style="margin-top: 10px; margin-bottom: 0;">
+				<li><strong>new-product-api:</strong> ON (v2 API enabled)</li>
+				<li><strong>recommendation-algorithm:</strong> OFF (50% user rollout disabled by default)</li>
+				<li><strong>admin-panel-enabled:</strong> ON (Admin access granted)</li>
+				<li><strong>new-payment-processor:</strong> OFF (Legacy processor active)</li>
+				<li><strong>new-email-service:</strong> OFF (SMTP service active)</li>
+			</ul>
+			<p style="margin-top: 10px; margin-bottom: 0;">
+				<em>Modify flag settings in <code>AllFlags.cs</code> to change default behavior</em>
+			</p>
 		</div>
 	</div>
 </div>

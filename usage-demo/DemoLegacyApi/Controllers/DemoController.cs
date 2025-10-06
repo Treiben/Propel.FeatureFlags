@@ -1,5 +1,5 @@
-﻿using DemoLegacyApi.FeatureFlags;
-using Propel.FeatureFlags.Domain;
+﻿using DemoLegacyApi.CrossCuttingConcerns.FeatureFlags;
+using DemoLegacyApi.FeatureFlags.ApplicationFlags;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -17,6 +17,11 @@ namespace DemoLegacyApi.Controllers
 	{
 		// Singleton instances (simulating what DI would provide)
 		private static readonly FeatureFlagService _flagService = new FeatureFlagService();
+
+		public DemoController()
+		{
+			
+		}
 
 
 		//=================================================================================
@@ -226,19 +231,6 @@ namespace DemoLegacyApi.Controllers
 				totalFlags = statusList.Count,
 				flags = statusList
 			});
-		}
-
-		private IFeatureFlag CreateFlagInstance(string key)
-		{
-			return key switch
-			{
-				"new-product-api" => new NewProductApiFeatureFlag(),
-				"recommendation-algorithm" => new RecommendationAlgorithmFeatureFlag(),
-				"admin-panel-enabled" => new AdminPanelEnabledFeatureFlag(),
-				"new-payment-processor" => new NewPaymentProcessorFeatureFlag(),
-				"new-email-service" => new NewEmailServiceFeatureFlag(),
-				_ => new GenericFeatureFlag(key)
-			};
 		}
 	}
 

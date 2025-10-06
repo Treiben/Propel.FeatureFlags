@@ -51,7 +51,7 @@ var app = builder.Build();
 // optional: ensure the feature flags database exists and schema is created
 if (app.Environment.IsDevelopment())
 {
-	await app.EnsureFeatureFlagDatabase();
+	await app.InitializeFeatureFlagsDatabase();
 }
 
 // recommended: automatically add flags in the database at startup if they don't exist

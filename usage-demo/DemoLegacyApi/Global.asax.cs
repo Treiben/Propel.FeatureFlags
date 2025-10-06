@@ -1,4 +1,4 @@
-﻿using DemoLegacyApi.FeatureFlags;
+﻿using DemoLegacyApi.CrossCuttingConcerns.FeatureFlags;
 using System.Web.Http;
 using System.Web.Mvc;
 using System.Web.Optimization;
@@ -32,7 +32,7 @@ namespace DemoLegacyApi
 			var repository = container.GetRepository();
 
 			// Auto-deploy all flags to the repository
-			// This will create flags in the repository if they don't exist
+			// This will create flags in the persistence if they don't exist
 			factory.AutoDeployFlags(repository).GetAwaiter().GetResult();
 
 			System.Diagnostics.Debug.WriteLine("Feature flags initialized and deployed successfully");

@@ -7,10 +7,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DemoLegacyApi.FeatureFlags
+namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 {
 	//=================================================================================
 	// In-Memory Flag Store (Simulates Database/Repository)
+	// In real applications, use a persistent repository implementation
 	//=================================================================================
 
 	public class FeatureFlagEntity
@@ -31,12 +32,12 @@ namespace DemoLegacyApi.FeatureFlags
 		public Variations Variations { get; set; }
 	}
 
-	public class InMemoryFeatureFlagRepository : IFeatureFlagRepository
+	public class FeatureFlagInMemoryRepository : IFeatureFlagRepository
 	{
 		private readonly List<FeatureFlagEntity> _flags;
 		private readonly object _lock = new object();
 
-		public InMemoryFeatureFlagRepository()
+		public FeatureFlagInMemoryRepository()
 		{
 			_flags = new List<FeatureFlagEntity>();
 		}

@@ -3,12 +3,8 @@ using Propel.FeatureFlags.Domain;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace DemoLegacyApi.FeatureFlags
+namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 {
-	//=================================================================================
-	// In-Memory Flag Service (Implements IApplicationFlagService)
-	//=================================================================================
-
 	public class FeatureFlagService
 	{
 		private readonly IApplicationFlagClient _flagClient;

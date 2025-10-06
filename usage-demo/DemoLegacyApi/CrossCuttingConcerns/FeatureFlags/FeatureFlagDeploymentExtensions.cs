@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DemoLegacyApi.FeatureFlags
+namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 {
 	public static class FeatureFlagDeploymentExtensions
 	{

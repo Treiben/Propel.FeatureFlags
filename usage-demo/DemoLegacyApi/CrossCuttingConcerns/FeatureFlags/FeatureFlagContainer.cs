@@ -1,12 +1,13 @@
 ﻿using Propel.FeatureFlags.Clients;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.Cache;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace DemoLegacyApi.FeatureFlags
+namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 {
 	public class FeatureFlagContainer
 	{
@@ -16,6 +17,7 @@ namespace DemoLegacyApi.FeatureFlags
 		public static FeatureFlagContainer Instance => _instance.Value;
 
 		private readonly IFeatureFlagRepository _repository;
+		private readonly IFeatureFlagCache _cache;
 		private readonly object _factoryLock = new object();
 		private readonly object _clientLock = new object();
 		private volatile IApplicationFlagClient _client;
@@ -23,7 +25,7 @@ namespace DemoLegacyApi.FeatureFlags
 
 		private FeatureFlagContainer()
 		{
-			_repository = new InMemoryFeatureFlagRepository();
+			_repository = new FeatureFlagInMemoryRepository();
 		}
 
 		public IFeatureFlagRepository GetRepository()
@@ -74,7 +76,9 @@ namespace DemoLegacyApi.FeatureFlags
 		{
 			var flags = new List<IFeatureFlag>();
 
-			var currentAssembly = Assembly.GetEntryAssembly();
+			var currentAssembly = Assembly.GetEntryAssembly() 
+				?? Assembly.GetCallingAssembly()
+				?? Assembly.GetExecutingAssembly();
 
 			var allFlags = currentAssembly
 				.GetTypes()
