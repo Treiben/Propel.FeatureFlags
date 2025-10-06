@@ -1,4 +1,7 @@
 ﻿using DemoLegacyApi.CrossCuttingConcerns.FeatureFlags;
+using DemoLegacyApi.CrossCuttingConcerns.FeatureFlags.Sqlite;
+using System;
+using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Mvc;
 using System.Web.Optimization;
@@ -8,6 +11,8 @@ namespace DemoLegacyApi
 {
 	public class WebApiApplication : System.Web.HttpApplication
 	{
+		public const string InMemoryConnectionString = "Data Source=InMemoryFeatureFlags;Mode=Memory;Cache=Shared";
+		
 		protected void Application_Start()
 		{
 			AreaRegistration.RegisterAllAreas();
@@ -16,14 +21,28 @@ namespace DemoLegacyApi
 			RouteConfig.RegisterRoutes(RouteTable.Routes);
 			BundleConfig.RegisterBundles(BundleTable.Bundles);
 
+			Environment.SetEnvironmentVariable("APP_NAME", "DemoLegacyApi");
+			Environment.SetEnvironmentVariable("APP_VERSION", "1.0.0");
+
 			// Bootstrap Feature Flags
 			InitializeFeatureFlags();
 		}
 
+		protected void Application_End()
+		{
+			// Close the persistent in-memory database connection
+			FeatureFlagContainer.CloseDatabase();
+		}
+
+		// Note: feature flags for legacy applications require some boiler-plate code
+		// to initialize the flag repository and deploy flags on application start.
 		private void InitializeFeatureFlags()
 		{
-			// Get the singleton container instance
+			// Get the singleton container instance (this opens the persistent connection)
 			var container = FeatureFlagContainer.Instance;
+
+			// Initialize database FIRST (this must happen before creating the container)
+			InitializeDatabaseAsync().GetAwaiter().GetResult();
 
 			// Initialize the factory (this will scan and register all flags)
 			var factory = container.GetOrCreateFlagFactory();
@@ -38,10 +57,24 @@ namespace DemoLegacyApi
 			System.Diagnostics.Debug.WriteLine("Feature flags initialized and deployed successfully");
 		}
 
-		// Note: feature flags for legacy applications require some boiler-plate code
-		// to initialize the flag repository and deploy flags on application start.
+		private async Task InitializeDatabaseAsync()
+		{
+			try
+			{
+				var initializer = FeatureFlagContainer.Instance.GetDatabaseInitializer();
 
-		// FeatureFlagContainer is a static helper class to hold singleton instances
-		// and help with initialization and flag deployment.
+				var success = await initializer.InitializeAsync();
+				if (!success)
+				{
+					throw new InvalidOperationException("Failed to initialize SQLite in-memory database");
+				}
+				Console.WriteLine("SQLite in-memory database initialized successfully");
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Error initializing SQLite database: {ex.Message}");
+				throw;
+			}
+		}
 	}
 }
