@@ -9,21 +9,11 @@ using System.Text.Json;
 
 namespace Propel.FeatureFlags.PostgreSql;
 
-internal sealed class PostgresFeatureFlagRepository : IFeatureFlagRepository
+internal sealed class PostgresFeatureFlagRepository(string connectionString, ILogger<PostgresFeatureFlagRepository> logger) : IFeatureFlagRepository
 {
-	private readonly string _connectionString;
-	private readonly ILogger<PostgresFeatureFlagRepository> _logger;
-
-	public PostgresFeatureFlagRepository(string connectionString, ILogger<PostgresFeatureFlagRepository> logger)
-	{
-		_connectionString = connectionString;
-		_logger = logger;
-		_logger.LogDebug("PostgreSQL Feature Flag Repository initialized with connection pooling");
-	}
-
 	public async Task<EvaluationOptions?> GetEvaluationOptionsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default)
 	{
-		_logger.LogDebug("Getting feature flag with key: {Key}, Scope: {Scope}, Application: {Application}",
+		logger.LogDebug("Getting feature flag with key: {Key}, Scope: {Scope}, Application: {Application}",
 			identifier.Key, identifier.Scope, identifier.ApplicationName);
 
 		var (whereClause, parameters) = QueryBuilders.BuildWhereClause(identifier);
@@ -48,7 +38,7 @@ internal sealed class PostgresFeatureFlagRepository : IFeatureFlagRepository
 
 		try
 		{
-			using var connection = new NpgsqlConnection(_connectionString);
+			using var connection = new NpgsqlConnection(connectionString);
 			using var command = new NpgsqlCommand(sql, connection);
 			command.AddWhereParameters(parameters);
 
@@ -57,18 +47,18 @@ internal sealed class PostgresFeatureFlagRepository : IFeatureFlagRepository
 
 			if (!await reader.ReadAsync(cancellationToken))
 			{
-				_logger.LogDebug("Feature flag with key {Key} not found within application {Application} scope", identifier.Key, identifier.ApplicationName);
+				logger.LogDebug("Feature flag with key {Key} not found within application {Application} scope", identifier.Key, identifier.ApplicationName);
 				return null;
 			}
 
 			var flag = await reader.LoadOptionsAsync(identifier);
-			_logger.LogDebug("Retrieved feature flag: {Key} with evaluation modes {Modes}",
+			logger.LogDebug("Retrieved feature flag: {Key} with evaluation modes {Modes}",
 				flag.Key, string.Join(",", flag.ModeSet.Modes));
 			return flag;
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
 		{
-			_logger.LogError(ex, "Error retrieving feature flag with key {Key} for {Application}", identifier.Key, identifier.ApplicationName);
+			logger.LogError(ex, "Error retrieving feature flag with key {Key} for {Application}", identifier.Key, identifier.ApplicationName);
 			throw;
 		}
 	}
@@ -80,7 +70,7 @@ internal sealed class PostgresFeatureFlagRepository : IFeatureFlagRepository
 			throw new InvalidOperationException("Only application-level flags are allowed to be created from client applications. Global flags are outside of application domain and must be created by management tools.");
 		}
 
-		_logger.LogDebug("Creating feature flag with key: {Key} for application: {Application}", identifier.Key, identifier.ApplicationName);
+		logger.LogDebug("Creating feature flag with key: {Key} for application: {Application}", identifier.Key, identifier.ApplicationName);
 
 		var applicationName = identifier.ApplicationName;
 		if (string.IsNullOrEmpty(identifier.ApplicationName))
@@ -104,7 +94,7 @@ internal sealed class PostgresFeatureFlagRepository : IFeatureFlagRepository
 
 		try
 		{
-			using var connection = new NpgsqlConnection(_connectionString);
+			using var connection = new NpgsqlConnection(connectionString);
 			await connection.OpenAsync(cancellationToken);
 
 			bool flagAlreadyCreated = await FlagAuditHelpers.FlagAlreadyCreated(identifier, connection, cancellationToken);
@@ -122,7 +112,7 @@ internal sealed class PostgresFeatureFlagRepository : IFeatureFlagRepository
 			var rowsAffected = await command.ExecuteNonQueryAsync(cancellationToken);
 			if (rowsAffected == 0)
 			{
-				_logger.LogWarning("Feature flag with key '{Key}' already exists in scope '{Scope}' for application '{ApplicationName}'. Nothing to add there.",
+				logger.LogWarning("Feature flag with key '{Key}' already exists in scope '{Scope}' for application '{ApplicationName}'. Nothing to add there.",
 					identifier.Key, identifier.Scope, identifier.ApplicationName);
 				return;
 			}
@@ -130,11 +120,11 @@ internal sealed class PostgresFeatureFlagRepository : IFeatureFlagRepository
 			await FlagAuditHelpers.CreateInitialMetadataRecord(identifier, name, description, connection, cancellationToken);
 			await FlagAuditHelpers.AddAuditTrail(identifier, connection, cancellationToken);
 
-			_logger.LogDebug("Successfully created feature flag: {Key}", identifier.Key);
+			logger.LogDebug("Successfully created feature flag: {Key}", identifier.Key);
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException && ex is not ApplicationFlagException)
 		{
-			_logger.LogError(ex, "Error creating feature flag with key {Key} {Scope} {Application} {Version}",
+			logger.LogError(ex, "Error creating feature flag with key {Key} {Scope} {Application} {Version}",
 				identifier.Key, identifier.Scope, identifier.ApplicationName, identifier.ApplicationVersion);
 
 			throw new ApplicationFlagException("Error creating feature flag", ex,

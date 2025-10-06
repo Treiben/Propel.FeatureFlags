@@ -12,7 +12,7 @@ namespace Propel.FeatureFlags.Redis;
 internal sealed class RedisFeatureFlagCache(
 	IConnectionMultiplexer redis, 
 	PropelConfiguration options, 
-	ILogger<RedisFeatureFlagCache> logger) : IFeatureFlagCache
+	ILogger<RedisFeatureFlagCache>? logger) : IFeatureFlagCache
 {
 	private readonly IDatabase _database = redis.GetDatabase();
 	private readonly CacheOptions _cacheConfiguration = options.Cache ?? throw new ArgumentNullException(nameof(CacheOptions));
@@ -21,7 +21,7 @@ internal sealed class RedisFeatureFlagCache(
 	public async Task<EvaluationOptions?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
-		logger.LogDebug("Getting feature flag {Key} from cache", cacheKey.Key);
+		logger?.LogDebug("Getting feature flag {Key} from cache", cacheKey.Key);
 		if (cancellationToken.IsCancellationRequested)
 		{
 			throw new OperationCanceledException(cancellationToken);
@@ -32,17 +32,17 @@ internal sealed class RedisFeatureFlagCache(
 			var value = await _database.StringGetAsync(key);
 			if (!value.HasValue)
 			{
-				logger.LogDebug("Cache key {Key} not found in cache", key);
+				logger?.LogDebug("Cache key {Key} not found in cache", key);
 				return null;
 			}
 
 			var flag = JsonSerializer.Deserialize<EvaluationOptions>(value!, JsonDefaults.JsonOptions);
-			logger.LogDebug("Cache key {Key} retrieved from cache", key);
+			logger?.LogDebug("Cache key {Key} retrieved from cache", key);
 			return flag;
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
 		{
-			logger.LogWarning(ex, "Failed to get feature flag {Key} from cache", cacheKey.Key);
+			logger?.LogWarning(ex, "Failed to get feature flag {Key} from cache", cacheKey.Key);
 			return null;
 		}
 	}
@@ -50,7 +50,7 @@ internal sealed class RedisFeatureFlagCache(
 	public async Task SetAsync(CacheKey cacheKey, EvaluationOptions flag, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
-		logger.LogDebug("Setting feature flag {Key} in cache with expiration {Expiration}", cacheKey.Key, _cacheConfiguration.CacheDurationInMinutes);
+		logger?.LogDebug("Setting feature flag {Key} in cache with expiration {Expiration}", cacheKey.Key, _cacheConfiguration.CacheDurationInMinutes);
 		if (cancellationToken.IsCancellationRequested)
 		{
 			throw new OperationCanceledException(cancellationToken);
@@ -59,26 +59,26 @@ internal sealed class RedisFeatureFlagCache(
 		try
 		{
 			var value = JsonSerializer.Serialize(flag, JsonDefaults.JsonOptions);
-			logger.LogDebug("Serialized cache key {Key} to JSON", key);
+			logger?.LogDebug("Serialized cache key {Key} to JSON", key);
 			if (await _database.StringSetAsync(key, value, _cacheConfiguration.CacheDurationInMinutes))
 			{
-				logger.LogDebug("Feature flag {Key} set in cache successfully", key);
+				logger?.LogDebug("Feature flag {Key} set in cache successfully", key);
 			}
 			else
 			{
-				logger.LogWarning("Failed to set feature flag {Key} in cache", key);
+				logger?.LogWarning("Failed to set feature flag {Key} in cache", key);
 			}
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
 		{
-			logger.LogWarning(ex, "Failed to set feature flag {Key} in cache", key);
+			logger?.LogWarning(ex, "Failed to set feature flag {Key} in cache", key);
 		}
 	}
 
 	public async Task RemoveAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
-		logger.LogDebug("Removing feature flag {Key} from cache", key);
+		logger?.LogDebug("Removing feature flag {Key} from cache", key);
 		if (cancellationToken.IsCancellationRequested)
 		{
 			throw new OperationCanceledException(cancellationToken);
@@ -87,19 +87,19 @@ internal sealed class RedisFeatureFlagCache(
 		try
 		{
 			if (await _database.KeyDeleteAsync(key))
-				logger.LogDebug("Feature flag {Key} removed from cache successfully", key);
+				logger?.LogDebug("Feature flag {Key} removed from cache successfully", key);
 			else
-				logger.LogWarning("Feature flag {Key} not found in cache", key);
+				logger?.LogWarning("Feature flag {Key} not found in cache", key);
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException)
 		{
-			logger.LogWarning(ex, "Failed to remove feature flag {Key} from cache", key);
+			logger?.LogWarning(ex, "Failed to remove feature flag {Key} from cache", key);
 		}
 	}
 
 	public async Task ClearAsync(CancellationToken cancellationToken = default)
 	{
-		logger.LogDebug("Clearing all feature flags from cache");
+		logger?.LogDebug("Clearing all feature flags from cache");
 
 		try
 		{
@@ -113,16 +113,16 @@ internal sealed class RedisFeatureFlagCache(
 			}
 
 			await Task.WhenAll(tasks);
-			logger.LogDebug("Successfully cleared all feature flags from cache");
+			logger?.LogDebug("Successfully cleared all feature flags from cache");
 		}
 		catch (OperationCanceledException)
 		{
-			logger.LogInformation("Clear cache operation was cancelled");
+			logger?.LogInformation("Clear cache operation was cancelled");
 			throw;
 		}
 		catch (Exception ex)
 		{
-			logger.LogWarning(ex, "Failed to clear feature flag cache");
+			logger?.LogWarning(ex, "Failed to clear feature flag cache");
 			throw;
 		}
 	}
@@ -165,12 +165,12 @@ internal sealed class RedisFeatureFlagCache(
 		try
 		{
 			var deletedCount = await _database.KeyDeleteAsync([.. keys]);
-			logger.LogDebug("Deleted {Count} of {Total} feature flag keys from cache",
+			logger?.LogDebug("Deleted {Count} of {Total} feature flag keys from cache",
 				deletedCount, keys.Count);
 		}
 		catch (Exception ex)
 		{
-			logger.LogWarning(ex, "Failed to delete batch of {Count} keys", keys.Count);
+			logger?.LogWarning(ex, "Failed to delete batch of {Count} keys", keys.Count);
 			// Continue processing other batches rather than failing completely
 		}
 	}
