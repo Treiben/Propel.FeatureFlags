@@ -27,7 +27,7 @@ builder.Services.AddLogging(config =>
 {
 	config.AddConsole();
 	config.AddDebug();
-	config.SetMinimumLevel(LogLevel.Information);
+	config.SetMinimumLevel(LogLevel.Debug);
 });
 
 //-----------------------------------------------------------------------------
