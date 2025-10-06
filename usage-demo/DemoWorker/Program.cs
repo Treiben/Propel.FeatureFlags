@@ -8,7 +8,7 @@ using Propel.FeatureFlags.Attributes.Extensions;
 using Propel.FeatureFlags.Clients;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.PostgreSql;
+using Propel.FeatureFlags.SqlServer.Extensions;
 
 //-----------------------------------------------------------------------------
 // Build Host with Configuration
@@ -44,9 +44,7 @@ builder.ConfigureFeatureFlags(config =>
 
 	config.Cache = new CacheOptions                         // Configure caching (optional, but recommended for performance and scalability)
 	{
-		EnableDistributedCache = false,
-		EnableInMemoryCache = false,
-		//Connection = builder.Configuration.GetConnectionString("RedisConnection")!,
+		EnableInMemoryCache = true,
 	};
 
 	var interception = config.Interception;

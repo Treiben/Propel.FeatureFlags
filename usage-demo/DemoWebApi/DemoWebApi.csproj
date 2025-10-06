@@ -16,7 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\extensions\Propel.FeatureFlags.PostgreSql\Propel.FeatureFlags.PostgreSql.csproj" />
+    <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.PostgreSql\Propel.FeatureFlags.PostgreSql.csproj" />
+    <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.Redis\Propel.FeatureFlags.Redis.csproj" />
   </ItemGroup>
 
 </Project>

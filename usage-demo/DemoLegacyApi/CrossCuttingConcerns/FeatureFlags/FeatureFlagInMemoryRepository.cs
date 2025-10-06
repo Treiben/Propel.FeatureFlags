@@ -14,7 +14,7 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 	// In real applications, use a persistent repository implementation
 	//=================================================================================
 
-	public class FeatureFlagEntity
+	public class FeatureFlagInMemoryEntity
 	{
 		public string Key { get; set; }
 		public string Name { get; set; }
@@ -22,6 +22,7 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 		public string ApplicationName { get; set; }
 		public string ApplicationVersion { get; set; }
 		public Scope Scope { get; set; }
+		public EvaluationMode[] EvaluationModes { get; set; }
 		public ModeSet ModeSet { get; set; }
 		public UtcSchedule Schedule { get; set; }
 		public UtcTimeWindow OperationalWindow { get; set; }
@@ -34,12 +35,12 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 
 	public class FeatureFlagInMemoryRepository : IFeatureFlagRepository
 	{
-		private readonly List<FeatureFlagEntity> _flags;
+		private readonly List<FeatureFlagInMemoryEntity> _flags;
 		private readonly object _lock = new object();
 
 		public FeatureFlagInMemoryRepository()
 		{
-			_flags = new List<FeatureFlagEntity>();
+			_flags = new List<FeatureFlagInMemoryEntity>();
 		}
 
 		public Task<EvaluationOptions> GetEvaluationOptionsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default)
@@ -95,7 +96,7 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 
 				var modeSet = new ModeSet(new HashSet<EvaluationMode> { activeMode });
 
-				var newFlag = new FeatureFlagEntity
+				var newFlag = new FeatureFlagInMemoryEntity
 				{
 					Key = identifier.Key,
 					Name = name,

@@ -17,7 +17,6 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 		public static FeatureFlagContainer Instance => _instance.Value;
 
 		private readonly IFeatureFlagRepository _repository;
-		private readonly IFeatureFlagCache _cache;
 		private readonly object _factoryLock = new object();
 		private readonly object _clientLock = new object();
 		private volatile IApplicationFlagClient _client;

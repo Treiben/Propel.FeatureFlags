@@ -3,7 +3,8 @@ using DemoWebApi.MinimalApiEndpoints;
 using DemoWebApi.Services;
 using Propel.FeatureFlags.Attributes.Extensions;
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.PostgreSql;
+using Propel.FeatureFlags.PostgreSql.Extensions;
+using Propel.FeatureFlags.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,24 +17,25 @@ builder.Services.AddHttpContextAccessor();
 // Configure Propel FeatureFlags
 //-----------------------------------------------------------------------------
 builder.ConfigureFeatureFlags(config =>
-{
-	config.RegisterFlagsWithContainer = true;				// automatically register all flags in the assembly with the DI container
-	config.EnableFlagFactory = true;						// enable IFeatureFlagFactory for type-safe flag access
+		{
+			config.RegisterFlagsWithContainer = true;				// automatically register all flags in the assembly with the DI container
+			config.EnableFlagFactory = true;						// enable IFeatureFlagFactory for type-safe flag access
 
-	config.SqlConnection = 
-		builder.Configuration
-				.GetConnectionString("DefaultConnection")!; // PostgreSQL connection string
+			config.SqlConnection = 
+				builder.Configuration
+						.GetConnectionString("DefaultConnection")!; // PostgreSQL connection string
 
-	config.Cache = new CacheOptions							// Configure caching (optional, but recommended for performance and scalability)
-	{
-		EnableDistributedCache = true,
-		Connection = builder.Configuration.GetConnectionString("RedisConnection")!,
-	};
+			config.Cache = new CacheOptions							// Configure caching (optional, but recommended for performance and scalability)
+			{
+				CacheDurationInMinutes = TimeSpan.FromMinutes(30),
+				SlidingDurationInMinutes = TimeSpan.FromMinutes(10)
+
+			};
 	
-	var interception = config.Interception;
-	interception.EnableHttpIntercepter = true;			// automatically add interceptors for attribute-based flags
-
-});
+			var interception = config.Interception;
+			interception.EnableHttpIntercepter = true;			// automatically add interceptors for attribute-based flags
+		})
+	.AddRedisCache(builder.Configuration.GetConnectionString("RedisConnection")!);
 
 // optional: register your services with methods decorated with [FeatureFlagged] attribute
 builder.Services.RegisterWithFeatureFlagInterception<INotificationService, NotificationService>();
