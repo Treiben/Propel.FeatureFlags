@@ -9,7 +9,7 @@ public static class FeatureFlagMiddlewareExtensions
 	/// </summary>
 	public static IApplicationBuilder UseFeatureFlags(this IApplicationBuilder app)
 	{
-		app.UseMiddleware<FeatureFlagMiddleware>();
+		app.UseMiddleware<FeatureFlagMiddleware>(new FeatureFlagMiddlewareOptions());
 		return app;
 	}
 

@@ -13,7 +13,7 @@ public class GlobalFlag
 
 public class FeatureFlagMiddlewareOptions
 {
-	public bool EnableMaintenanceMode { get; set; } = true;
+	public bool EnableMaintenanceMode { get; set; } = false;
 	public string MaintenanceFlagKey { get; set; } = "maintenance-mode";
 	public object? MaintenanceResponse { get; set; }
 	public List<GlobalFlag> GlobalFlags { get; set; } = [];
@@ -42,10 +42,6 @@ public class FeatureFlagMiddleware
 		_featureFlags = featureFlags;
 		_logger = logger;
 		_options = options;
-
-		// Logging AFTER logger is initialized
-		_logger.LogDebug("FeatureFlagMiddleware initialized with MaintenanceMode={EnableMaintenanceMode}, MaintenanceFlagKey={MaintenanceFlagKey}",
-			_options.EnableMaintenanceMode, _options.MaintenanceFlagKey);
 	}
 
 	public async Task InvokeAsync(HttpContext context)
