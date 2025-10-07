@@ -4,9 +4,9 @@ namespace Propel.FeatureFlags.Infrastructure;
 
 public interface IFeatureFlagRepository
 {
-	Task<EvaluationOptions?> GetEvaluationOptionsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default);
+	Task<EvaluationOptions?> GetEvaluationOptionsAsync(string key, CancellationToken cancellationToken = default);
 
-	Task CreateApplicationFlagAsync(FlagIdentifier identifier, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default);
+	Task CreateApplicationFlagAsync(string key, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default);
 }
 
 public class ApplicationFlagException : Exception

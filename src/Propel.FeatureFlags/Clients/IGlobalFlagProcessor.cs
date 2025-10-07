@@ -42,10 +42,7 @@ public sealed class GlobalFlagProcessor(
 		// If not in cache, get from repository
 		if (flagConfig == null)
 		{
-			flagConfig = await _repository.GetEvaluationOptionsAsync(new FlagIdentifier(
-					key: flagKey,
-					scope: Scope.Global
-				), cancellationToken);
+			flagConfig = await _repository.GetEvaluationOptionsAsync(flagKey, cancellationToken);
 
 			// Cache for future requests if found
 			if (flagConfig != null && cache != null)

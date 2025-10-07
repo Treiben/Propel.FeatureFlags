@@ -11,8 +11,9 @@ namespace Propel.FeatureFlags.PostgreSql;
 
 internal sealed class PostgresFeatureFlagRepository(string connectionString, ILogger<PostgresFeatureFlagRepository> logger) : IFeatureFlagRepository
 {
-	public async Task<EvaluationOptions?> GetEvaluationOptionsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default)
+	public async Task<EvaluationOptions?> GetEvaluationOptionsAsync(string key, CancellationToken cancellationToken = default)
 	{
+		var identifier = new FlagIdentifier(key, Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
 		logger.LogDebug("Getting feature flag with key: {Key}, Scope: {Scope}, Application: {Application}",
 			identifier.Key, identifier.Scope, identifier.ApplicationName);
 
@@ -63,26 +64,11 @@ internal sealed class PostgresFeatureFlagRepository(string connectionString, ILo
 		}
 	}
 
-	public async Task CreateApplicationFlagAsync(FlagIdentifier identifier, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default)
+	public async Task CreateApplicationFlagAsync(string key, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default)
 	{
-		if (identifier.Scope == Scope.Global)
-		{
-			throw new InvalidOperationException("Only application-level flags are allowed to be created from client applications. Global flags are outside of application domain and must be created by management tools.");
-		}
+		var identifier = new FlagIdentifier(key, Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
 
 		logger.LogDebug("Creating feature flag with key: {Key} for application: {Application}", identifier.Key, identifier.ApplicationName);
-
-		var applicationName = identifier.ApplicationName;
-		if (string.IsNullOrEmpty(identifier.ApplicationName))
-		{
-			applicationName = ApplicationInfo.Name;
-		}
-
-		var applicationVersion = identifier.ApplicationVersion;
-		if (string.IsNullOrEmpty(identifier.ApplicationVersion))
-		{
-			applicationVersion = ApplicationInfo.Version ?? "1.0.0.0";
-		}
 
 		const string sql = @"
             INSERT INTO feature_flags (
@@ -97,12 +83,12 @@ internal sealed class PostgresFeatureFlagRepository(string connectionString, ILo
 			using var connection = new NpgsqlConnection(connectionString);
 			await connection.OpenAsync(cancellationToken);
 
-			bool flagAlreadyCreated = await FlagAuditHelpers.FlagAlreadyCreated(identifier, connection, cancellationToken);
+			bool flagAlreadyCreated = await RepositoryHelpers.CheckFlagExists(identifier, connection, cancellationToken);
 
 			using var command = new NpgsqlCommand(sql, connection);
 			command.Parameters.AddWithValue("key", identifier.Key);
-			command.Parameters.AddWithValue("application_name", applicationName!);
-			command.Parameters.AddWithValue("application_version", applicationVersion!);
+			command.Parameters.AddWithValue("application_name", identifier.ApplicationName!);
+			command.Parameters.AddWithValue("application_version", identifier.ApplicationVersion!);
 			command.Parameters.AddWithValue("scope", (int)Scope.Application);
 			command.Parameters.AddWithValue("name", name);
 			command.Parameters.AddWithValue("description", description);
@@ -117,8 +103,8 @@ internal sealed class PostgresFeatureFlagRepository(string connectionString, ILo
 				return;
 			}
 
-			await FlagAuditHelpers.CreateInitialMetadataRecord(identifier, name, description, connection, cancellationToken);
-			await FlagAuditHelpers.AddAuditTrail(identifier, connection, cancellationToken);
+			await RepositoryHelpers.GenerateMetadataRecordAsync(identifier, connection, cancellationToken);
+			await RepositoryHelpers.GenerateAuditRecordAsync(identifier, connection, cancellationToken);
 
 			logger.LogDebug("Successfully created feature flag: {Key}", identifier.Key);
 		}

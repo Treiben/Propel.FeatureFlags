@@ -111,12 +111,7 @@ public sealed class ApplicationFlagProcessor(
 		// If not in cache, get from repository
 		if (flagData == null)
 		{
-			flagData = await _repository.GetEvaluationOptionsAsync(new FlagIdentifier(
-				key: flagKey,
-				scope: Scope.Application,
-				applicationName: ApplicationName,
-				applicationVersion: ApplicationVersion
-			), cancellationToken);
+			flagData = await _repository.GetEvaluationOptionsAsync(flagKey, cancellationToken);
 
 			// Cache for future requests if found
 			if (flagData != null && cache != null)
@@ -130,21 +125,20 @@ public sealed class ApplicationFlagProcessor(
 
 	private async Task RegisterApplicationFlag(IFeatureFlag applicationFlag, CancellationToken cancellationToken)
 	{
-		var identifier = new FlagIdentifier(applicationFlag.Key, scope: Scope.Application, applicationName: ApplicationName, applicationVersion: ApplicationVersion);
 		var activationMode = applicationFlag.OnOffMode == EvaluationMode.On ? EvaluationMode.On : EvaluationMode.Off;
 		var name = applicationFlag.Name ?? applicationFlag.Key;
 		var description = applicationFlag.Description ?? $"Auto-created flag for {applicationFlag.Key} in application {ApplicationName}";
 		try
 		{
 			// Save to repository and return the created flag (repository may set additional properties)
-			await _repository.CreateApplicationFlagAsync(identifier, activationMode, name, description, cancellationToken);
+			await _repository.CreateApplicationFlagAsync(applicationFlag.Key, activationMode, name, description, cancellationToken);
 			// Cache for future requests
 			if (cache != null)
 			{
 				// Create composite key for uniqueness per application
 				var cacheKey = new ApplicationCacheKey(applicationFlag.Key, ApplicationName, ApplicationVersion);
 				await cache.SetAsync(cacheKey,
-					new EvaluationOptions(key: identifier.Key, modeSet: new ModeSet([activationMode])),
+					new EvaluationOptions(key: applicationFlag.Key, modeSet: new ModeSet([activationMode])),
 					cancellationToken);
 			}
 		}

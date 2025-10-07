@@ -1,12 +1,11 @@
-﻿using Knara.UtcStrict;
-using Npgsql;
+﻿using Npgsql;
 using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.PostgreSql.Helpers;
 
-internal static class FlagAuditHelpers
+internal static class RepositoryHelpers
 {
-	internal static async Task AddAuditTrail(FlagIdentifier flag,
+	internal static async Task GenerateAuditRecordAsync(FlagIdentifier flag,
 							NpgsqlConnection connection,
 							CancellationToken cancellationToken)
 	{
@@ -20,7 +19,7 @@ internal static class FlagAuditHelpers
 		try
 		{
 			using var command = new NpgsqlCommand(sql, connection);
-			command.AddIdentifierParameters(flag);
+			command.AddPrimaryKeyParameters(flag);
 			command.Parameters.AddWithValue("timestamp", DateTimeOffset.UtcNow);
 			command.Parameters.AddWithValue("action", "flag-created");
 
@@ -34,7 +33,7 @@ internal static class FlagAuditHelpers
 		}
 	}
 
-	internal static async Task CreateInitialMetadataRecord(FlagIdentifier flag, string name, string description, NpgsqlConnection connection, CancellationToken cancellationToken)
+	internal static async Task GenerateMetadataRecordAsync(FlagIdentifier flag, NpgsqlConnection connection, CancellationToken cancellationToken)
 	{
 		const string sql = @"
             INSERT INTO feature_flags_metadata (
@@ -45,7 +44,7 @@ internal static class FlagAuditHelpers
 		try
 		{
 			using var command = new NpgsqlCommand(sql, connection);
-			command.AddIdentifierParameters(flag);
+			command.AddPrimaryKeyParameters(flag);
 			command.Parameters.AddWithValue("expiration_date", DateTimeOffset.UtcNow.AddDays(30));
 			command.Parameters.AddWithValue("is_permanent", false);
 
@@ -59,7 +58,7 @@ internal static class FlagAuditHelpers
 		}
 	}
 
-	internal static async Task<bool> FlagAlreadyCreated(FlagIdentifier flag, NpgsqlConnection connection, CancellationToken cancellationToken)
+	internal static async Task<bool> CheckFlagExists(FlagIdentifier flag, NpgsqlConnection connection, CancellationToken cancellationToken)
 	{
 		var (whereClause, parameters) = QueryBuilders.BuildWhereClause(flag);
 		var sql = $"SELECT COUNT(*) FROM feature_flags {whereClause}";
@@ -74,7 +73,7 @@ internal static class FlagAuditHelpers
 		return count > 0;
 	}
 
-	internal static void AddIdentifierParameters(this NpgsqlCommand command, FlagIdentifier flag)
+	internal static void AddPrimaryKeyParameters(this NpgsqlCommand command, FlagIdentifier flag)
 	{
 		command.Parameters.AddWithValue("key", flag.Key);
 		command.Parameters.AddWithValue("application_name", flag.ApplicationName ?? throw new ArgumentException("Application name must be provided!"));

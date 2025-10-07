@@ -3,9 +3,9 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.SqlServer.Helpers;
 
-internal static class FlagAuditHelpers
+internal static class RepositoryHelpers
 {
-	internal static async Task AddAuditTrail(FlagIdentifier flag,
+	internal static async Task GenerateAuditRecordAsync(FlagIdentifier flag,
 							SqlConnection connection,
 							CancellationToken cancellationToken)
 	{
@@ -33,7 +33,7 @@ internal static class FlagAuditHelpers
 		}
 	}
 
-	internal static async Task CreateInitialMetadataRecord(FlagIdentifier flag, SqlConnection connection, CancellationToken cancellationToken)
+	internal static async Task GenerateMetadataRecordAsync(FlagIdentifier flag, SqlConnection connection, CancellationToken cancellationToken)
 	{
 		const string sql = @"
             INSERT INTO FeatureFlagsMetadata (
@@ -58,7 +58,7 @@ internal static class FlagAuditHelpers
 		}
 	}
 
-	internal static async Task<bool> FlagAlreadyCreated(FlagIdentifier flag, SqlConnection connection, CancellationToken cancellationToken)
+	internal static async Task<bool> CheckFlagExists(FlagIdentifier flag, SqlConnection connection, CancellationToken cancellationToken)
 	{
 		var (whereClause, parameters) = QueryBuilders.BuildWhereClause(flag);
 		var sql = $"SELECT COUNT(*) FROM FeatureFlags {whereClause}";
