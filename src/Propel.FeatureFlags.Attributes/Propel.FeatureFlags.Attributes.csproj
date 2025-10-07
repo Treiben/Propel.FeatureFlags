@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <Description>Aspect-Oriented Programming (AOP) integration for Propel Feature Flags using Castle DynamicProxy. Enables declarative feature flag evaluation through the [FeatureFlagged] attribute with support for both synchronous and asynchronous methods, fallback method execution, and automatic proxy generation for runtime interception.</Description>
   </PropertyGroup>
   

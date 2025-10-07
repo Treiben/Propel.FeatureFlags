@@ -8,6 +8,7 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
     <InvariantGlobalization>false</InvariantGlobalization>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

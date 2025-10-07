@@ -5,8 +5,9 @@
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsPackable>true</IsPackable>
     <InvariantGlobalization>false</InvariantGlobalization>
+    <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <Description>SqlServer storage provider for Propel Feature Flags using SqlClient. Handles database operations and schema migrations for feature flag data with automatic schema creation and JSON storage for targeting rules and configurations.</Description>
   </PropertyGroup>
 

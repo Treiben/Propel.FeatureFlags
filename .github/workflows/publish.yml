@@ -9,34 +9,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: | 
-          9.0.x
-          8.0.x
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            8.0.x
 
-    - name: Clean build artifacts
-      run: |
-        dotnet clean --configuration Release
-        rm -rf ./packages
+      - name: Clean build artifacts
+        run: |
+          dotnet clean --configuration Release
+          rm -rf ./packages
 
-    - name: Restore dependencies
-      run: dotnet restore
+      - name: Restore dependencies
+        run: |
+          dotnet restore src/Propel.FeatureFlags/Propel.FeatureFlags.csproj
+          dotnet restore src/Propel.FeatureFlags.AspNetCore/Propel.FeatureFlags.AspNetCore.csproj
+          dotnet restore src/Propel.FeatureFlags.Attributes/Propel.FeatureFlags.Attributes.csproj
+          dotnet restore infrastructure/Propel.FeatureFlags.PostgreSql/Propel.FeatureFlags.PostgreSql.csproj
+          dotnet restore infrastructure/Propel.FeatureFlags.Redis/Propel.FeatureFlags.Redis.csproj
+          dotnet restore infrastructure/Propel.FeatureFlags.SqlServer/Propel.FeatureFlags.SqlServer.csproj
 
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
+      - name: Build
+        run: |
+          dotnet build src/Propel.FeatureFlags/Propel.FeatureFlags.csproj --configuration Release --no-restore
+          dotnet build src/Propel.FeatureFlags.AspNetCore/Propel.FeatureFlags.AspNetCore.csproj --configuration Release --no-restore
+          dotnet build src/Propel.FeatureFlags.Attributes/Propel.FeatureFlags.Attributes.csproj --configuration Release --no-restore
+          dotnet build infrastructure/Propel.FeatureFlags.PostgreSql/Propel.FeatureFlags.PostgreSql.csproj --configuration Release --no-restore
+          dotnet build infrastructure/Propel.FeatureFlags.Redis/Propel.FeatureFlags.Redis.csproj --configuration Release --no-restore
+          dotnet build infrastructure/Propel.FeatureFlags.SqlServer/Propel.FeatureFlags.SqlServer.csproj --configuration Release --no-restore
 
-    - name: Pack specific packages
-      run: |
-        dotnet pack src/Propel.FeatureFlags/Propel.FeatureFlags.csproj --configuration Release --no-build --output ./packages
-        dotnet pack src/Propel.FeatureFlags.AspNetCore/Propel.FeatureFlags.AspNetCore.csproj --configuration Release --no-build --output ./packages
-        dotnet pack src/Propel.FeatureFlags.Attributes/Propel.FeatureFlags.Attributes.csproj --configuration Release --no-build --output ./packages
-        dotnet pack src/infrastructure/Propel.FeatureFlags.Infrastructure.PostgresSql/Propel.FeatureFlags.Infrastructure.PostgresSql.csproj --configuration Release --no-build --output ./packages
-        dotnet pack src/infrastructure/Propel.FeatureFlags.Infrastructure.Redis/Propel.FeatureFlags.Infrastructure.Redis.csproj --configuration Release --no-build --output ./packages
+      - name: Pack specific packages
+        run: |
+          dotnet pack src/Propel.FeatureFlags/Propel.FeatureFlags.csproj --configuration Release --no-build --output ./packages
+          dotnet pack src/Propel.FeatureFlags.AspNetCore/Propel.FeatureFlags.AspNetCore.csproj --configuration Release --no-build --output ./packages
+          dotnet pack src/Propel.FeatureFlags.Attributes/Propel.FeatureFlags.Attributes.csproj --configuration Release --no-build --output ./packages
+          dotnet pack infrastructure/Propel.FeatureFlags.PostgreSql/Propel.FeatureFlags.PostgreSql.csproj --configuration Release --no-build --output ./packages
+          dotnet pack infrastructure/Propel.FeatureFlags.Redis/Propel.FeatureFlags.Redis.csproj --configuration Release --no-build --output ./packages
+          dotnet pack infrastructure/Propel.FeatureFlags.SqlServer/Propel.FeatureFlags.SqlServer.csproj --configuration Release --no-build --output ./packages
 
-    - name: Publish to NuGet
-      run: dotnet nuget push ./packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      - name: Publish to NuGet
+        run: dotnet nuget push ./packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

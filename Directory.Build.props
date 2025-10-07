@@ -3,12 +3,12 @@
     <Version>1.0.0</Version>
     <Authors>Tatyana Asriyan</Authors>
     <Company>Propel</Company>
-    <PackageProjectUrl>https://github.com/tasriyan/Propel.FeatureFlags</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/tasriyan/Propel.FeatureFlags</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Treiben/Propel.FeatureFlags</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Treiben/Propel.FeatureFlags</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>feature-flags;dotnet;toggle;targeting;rollout;a/b;multi-tenant</PackageTags>
+    <PackageTags>feature-flags;dotnet;release;user-targeting;percentage-rollout;a/b-testing;multi-tenant;tenant-targeting;on-off-toggle;type-safe;postgres;sql-server;redis</PackageTags>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   
