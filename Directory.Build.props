@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
-    <Version>1.0.0-beta.1</Version>
-    <PackageVersion>1.0.0-beta.1</PackageVersion>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <Version>1.0.1-beta.1</Version>
+    <PackageVersion>1.0.1-beta.1</PackageVersion>
+    <AssemblyVersion>1.0.0.1</AssemblyVersion>
+    <FileVersion>1.0.0.1</FileVersion>
     
     <Authors>Tatyana Asriyan</Authors>
     <Company>Propel</Company>
@@ -15,6 +15,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>feature-flags;dotnet;release;user-targeting;percentage-rollout;a/b-testing;multi-tenant;tenant-targeting;on-off-toggle;type-safe;postgres;sql-server;redis</PackageTags>
     <IsPackable>false</IsPackable>
+    <PackageIcon>propel.png</PackageIcon>
   </PropertyGroup>
   
   <ItemGroup>
