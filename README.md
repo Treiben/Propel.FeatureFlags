@@ -16,6 +16,7 @@ A type-safe feature flag library for .NET that separates continuous delivery fro
 - [Evaluation Modes](#evaluation-modes)
 - [Flag Factory Pattern](#flag-factory-pattern)
 - [Application vs Global Flags](#application-vs-global-flags)
+- [Working in legacy application](docs/legacy-dotnet-framework.md)
 - [Best Practices](#best-practices)
 - [Examples](#examples)
 - [Package Reference](#package-reference)
@@ -709,7 +710,7 @@ This safety mechanism ensures your application never crashes due to missing flag
 
 Complete working examples are available in the `/usage-demo` directory:
 
-- **[WebClientDemo](usage-demo/WebClientDemo)** - ASP.NET Core Web API demonstrating:
+- **[WebClientDemo](usage-demo/DemoWebApi)** - ASP.NET Core Web API demonstrating:
   - Simple on/off flags
   - Scheduled releases
   - Time window flags
@@ -717,13 +718,13 @@ Complete working examples are available in the `/usage-demo` directory:
   - User targeting with custom attributes
   - Attribute-based flags with interceptors
 
-- **[ConsoleAppDemo](usage-demo/ConsoleAppDemo)** - Console worker application demonstrating:
+- **[ConsoleAppDemo](usage-demo/DemoWorker)** - Console worker application demonstrating:
   - Background service integration
   - Attribute-based flags without HTTP context
   - Direct flag evaluation via `IApplicationFlagClient`
   - Using `IFeatureFlagFactory` for type-safe access
 
-- **[Legacy .NET Framework](docs/legacy-dotnet-framework.md)** - Working with full .NET Framework applications (documentation coming soon)
+- **[Legacy .NET Framework](usage-demo/DemoLegacyApi)** - Working with full .NET Framework applications ([documentation](docs/legacy-dotnet-framework.md))
 
 [⬆ Back to top](#table-of-contents)
 
