@@ -21,7 +21,6 @@ jobs:
 
       - name: Clean build artifacts
         run: |
-          dotnet clean --configuration Release
           rm -rf ./packages
 
       - name: Restore dependencies
