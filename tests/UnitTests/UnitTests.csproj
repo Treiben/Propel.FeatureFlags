@@ -40,10 +40,4 @@
     <Using Include="Shouldly" />
   </ItemGroup>
 
-
-  <ItemGroup>
-    <Folder Include="AspNetCore\" />
-    <Folder Include="Services\" />
-  </ItemGroup>
-
 </Project>

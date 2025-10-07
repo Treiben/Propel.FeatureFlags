@@ -99,8 +99,8 @@ public class TenantRolloutEvaluator_ProcessEvaluation
 
 		// Act & Assert
 		var exception = await Should.ThrowAsync<EvaluationOptionsArgumentException>(
-			() => _evaluator.Evaluate(flagConfig, context));
-		exception.Message.ShouldBe("Tenant ID is required for percentage rollout evaluation.");
+			async () => await _evaluator.Evaluate(flagConfig, context));
+		exception.Message.ShouldContain("Tenant ID is required for percentage rollout evaluation");
 	}
 
 	[Fact]

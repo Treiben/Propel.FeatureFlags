@@ -1,9 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
-
-using Propel.FeatureFlags.Dashboard.Api.Infrastructure;
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.Extensions;
+using Propel.FeatureFlags.SqlServer.Extensions;
 using Testcontainers.MsSql;
 
 namespace FeatureFlags.IntegrationTests.SqlServer.SqlServerTests;
@@ -13,7 +11,6 @@ public class SqlServerTestsFixture : IAsyncLifetime
 	private readonly MsSqlContainer _container;
 	public IServiceProvider Services { get; private set; } = null!;
 	public IFeatureFlagRepository FeatureFlagRepository => Services.GetRequiredService<IFeatureFlagRepository>();
-	public IDashboardRepository DashboardRepository => Services.GetRequiredService<IDashboardRepository>();
 
 	public SqlServerTestsFixture()
 	{
@@ -33,21 +30,13 @@ public class SqlServerTestsFixture : IAsyncLifetime
 		var services = new ServiceCollection();
 
 		services.AddLogging();
-
-		services.AddFeatureFlagDatabase(connectionString);
-		services.AddDatabase(new PropelConfiguration
-		{
-			Database = new DatabaseOptions
-			{
-				Provider = DatabaseProvider.SqlServer,
-				ConnectionString = connectionString
-			}
-		});
+		services.AddFeatureFlagRepository(connectionString);
 
 		Services = services.BuildServiceProvider();
-
 		await Services.EnsureFeatureFlagDatabase();
 	}
+
+	public string GetConnectionString() => _container.GetConnectionString();
 
 	public async Task DisposeAsync()
 	{

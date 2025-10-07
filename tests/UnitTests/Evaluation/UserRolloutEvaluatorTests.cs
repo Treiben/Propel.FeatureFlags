@@ -64,7 +64,7 @@ public class UserRolloutEvaluatorTests
 
 		// Act & Assert
 		var exception = await Should.ThrowAsync<EvaluationOptionsArgumentException>(
-			() => _evaluator.Evaluate(flagConfig, context));
+			async () => await _evaluator.Evaluate(flagConfig, context));
 	}
 
 	[Fact]

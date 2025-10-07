@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Propel.FeatureFlags.Extensions;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.Extensions;
 using Propel.FeatureFlags.Infrastructure.Cache;
+using Propel.FeatureFlags.Redis;
 using Testcontainers.Redis;
 
 namespace FeatureFlags.IntegrationTests.Redis.CacheTests;
@@ -20,7 +20,7 @@ public class RedisTestsFixture : IAsyncLifetime
 			.WithPortBinding(6379, true)
 			.Build();
 	}
-
+	 
 	public async Task InitializeAsync()
 	{
 		var redisConnectionString = await StartContainer();
@@ -28,17 +28,8 @@ public class RedisTestsFixture : IAsyncLifetime
 		var services = new ServiceCollection();
 
 		services.AddLogging();
-
-		services.ConfigureFeatureFlags(options =>
-		{
-			options.Cache = new CacheOptions
-			{
-				EnableDistributedCache = true,
-				Connection = redisConnectionString,
-				CacheDurationInMinutes = TimeSpan.FromMinutes(1)
-			};
-		});
-
+		services.AddSingleton(new PropelConfiguration());
+		services.AddRedisCache(redisConnectionString);
 		Services = services.BuildServiceProvider();
 	}
 
@@ -70,15 +61,9 @@ public class InMemoryTestsFixture : IAsyncLifetime
 		var services = new ServiceCollection();
 
 		services.AddLogging();
-
-		services.ConfigureFeatureFlags(options =>
-		{
-			options.Cache = new CacheOptions
-			{
-				EnableInMemoryCache = true,
-				CacheDurationInMinutes = TimeSpan.FromMinutes(1)
-			};
-		});
+		services.AddSingleton(new PropelConfiguration());
+		services.AddMemoryCache();
+		services.TryAddSingleton<IFeatureFlagCache, InMemoryFlagCache>();
 
 		Services = services.BuildServiceProvider();
 	}
@@ -92,46 +77,5 @@ public class InMemoryTestsFixture : IAsyncLifetime
 	public async Task ClearAllFlags()
 	{
 		await Cache.ClearAsync();
-	}
-
-	// Helper method to check if a key exists in the underlying memory cache
-	//public bool KeyExists(string key)
-	//{
-	//	return _memoryCache.TryGetValue(key, out _);
-	//}
-
-	//// Helper method to set a non-feature flag key directly in the memory cache
-	//public void SetNonFeatureFlagKey(string key, object value)
-	//{
-	//	_memoryCache.Set(key, value);
-	//}
-
-	//// Helper method to check if a non-feature flag key exists
-	//public bool NonFeatureFlagKeyExists(string key)
-	//{
-	//	return _memoryCache.TryGetValue(key, out _);
-	//}
-}
-
-public static class ServiceCollectionExtensions
-{
-	public static IServiceCollection ConfigureFeatureFlags(this IServiceCollection services, Action<PropelConfiguration> configure)
-	{
-		var options = new PropelConfiguration();
-		configure.Invoke(options);
-
-		services.AddFeatureFlagServices(options);
-
-		var cacheOptions = options.Cache;
-		if (cacheOptions.EnableDistributedCache == true)
-		{
-			services.AddFeatureFlagRedisCache(cacheOptions.Connection);
-		}
-		else if (cacheOptions.EnableInMemoryCache == true)
-		{
-			services.AddFeatureFlagDefaultCache();
-		}
-
-		return services;
 	}
 }
