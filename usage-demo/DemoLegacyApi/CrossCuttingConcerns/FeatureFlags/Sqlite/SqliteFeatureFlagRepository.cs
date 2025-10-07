@@ -20,8 +20,9 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags.Sqlite
 			_inMemoryConnection = inMemoryConnection;
 		}
 
-		public async Task<EvaluationOptions?> GetEvaluationOptionsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default)
+		public async Task<EvaluationOptions?> GetEvaluationOptionsAsync(string key, CancellationToken cancellationToken = default)
 		{
+			var identifier = new FlagIdentifier(key, Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
 			var (whereClause, parameters) = QueryBuilders.BuildWhereClause(identifier);
 			
 			// SQLite doesn't use square brackets for identifiers
@@ -71,26 +72,10 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags.Sqlite
 			}
 		}
 
-		public async Task CreateApplicationFlagAsync(FlagIdentifier identifier, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default)
+		public async Task CreateApplicationFlagAsync(string key, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default)
 		{
-			if (identifier.Scope == Scope.Global)
-			{
-				throw new InvalidOperationException("Only application-level flags are allowed to be created from client applications. Global flags are outside of application domain and must be created by management tools.");
-			}
+			var identifier = new FlagIdentifier(key, Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
 
-			var applicationName = identifier.ApplicationName;
-			if (string.IsNullOrEmpty(identifier.ApplicationName))
-			{
-				applicationName = ApplicationInfo.Name;
-			}
-
-			var applicationVersion = identifier.ApplicationVersion;
-			if (string.IsNullOrEmpty(identifier.ApplicationVersion))
-			{
-				applicationVersion = ApplicationInfo.Version ?? "1.0.0.0";
-			}
-
-			// SQLite uses INSERT OR IGNORE instead of IF NOT EXISTS/BEGIN/END
 			const string sql = @"
 				INSERT OR IGNORE INTO FeatureFlags (
 					Key, ApplicationName, ApplicationVersion, Scope, Name, Description, EvaluationModes
@@ -108,8 +93,8 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags.Sqlite
 				using (var command = new SqliteCommand(sql, _inMemoryConnection))
 				{
 					command.Parameters.AddWithValue("@key", identifier.Key);
-					command.Parameters.AddWithValue("@applicationName", applicationName);
-					command.Parameters.AddWithValue("@applicationVersion", applicationVersion);
+					command.Parameters.AddWithValue("@applicationName", identifier.ApplicationName);
+					command.Parameters.AddWithValue("@applicationVersion", identifier.ApplicationVersion);
 					command.Parameters.AddWithValue("@scope", (int)Scope.Application);
 					command.Parameters.AddWithValue("@name", name);
 					command.Parameters.AddWithValue("@description", description);

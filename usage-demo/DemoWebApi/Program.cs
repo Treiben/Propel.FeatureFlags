@@ -65,7 +65,9 @@ app.UseHttpsRedirection();
 app.MapHealthChecks("/health");
 
 // optional:add the feature flag middleware to the pipeline for global flags evaluation and to extract evaluation context from request paths or headers
-app.AddFeatureFlagMiddleware("maintenance+headers"); // example scenarios: "basic", "saas", "maintenance", "global", "user-extraction", "headers"
+//app.AddFeatureFlagMiddleware("maintenance+headers"); // example scenarios: "basic", "saas", "maintenance", "global", "user-extraction", "headers"
+
+app.AddFeatureFlagMiddleware("basic");
 
 app.MapAdminEndpoints();
 app.MapNotificationsEndpoints();
