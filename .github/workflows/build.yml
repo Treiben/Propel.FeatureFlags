@@ -55,6 +55,7 @@ jobs:
           dotnet restore infrastructure/Propel.FeatureFlags.PostgreSql/Propel.FeatureFlags.PostgreSql.csproj
           dotnet restore infrastructure/Propel.FeatureFlags.Redis/Propel.FeatureFlags.Redis.csproj
           dotnet restore infrastructure/Propel.FeatureFlags.SqlServer/Propel.FeatureFlags.SqlServer.csproj
+          dotnet restore infrastructure/Propel.FeatureFlags.DependencyInjection.Extensions/Propel.FeatureFlags.DependencyInjection.Extensions.csproj
           
           dotnet restore tests/IntegrationTests.Postgres/IntegrationTests.Postgres.csproj
           dotnet restore tests/IntegrationTests.Redis/IntegrationTests.Redis.csproj     
@@ -69,6 +70,7 @@ jobs:
           dotnet build infrastructure/Propel.FeatureFlags.PostgreSql/Propel.FeatureFlags.PostgreSql.csproj --configuration Release --no-restore
           dotnet build infrastructure/Propel.FeatureFlags.Redis/Propel.FeatureFlags.Redis.csproj --configuration Release --no-restore
           dotnet build infrastructure/Propel.FeatureFlags.SqlServer/Propel.FeatureFlags.SqlServer.csproj --configuration Release --no-restore
+          dotnet build infrastructure/Propel.FeatureFlags.DependencyInjection.Extensions/Propel.FeatureFlags.DependencyInjection.Extensions.csproj --configuration Release --no-restore
 
           dotnet build tests/IntegrationTests.Postgres/IntegrationTests.Postgres.csproj --configuration Release --no-restore
           dotnet build tests/IntegrationTests.Redis/IntegrationTests.Redis.csproj --configuration Release --no-restore

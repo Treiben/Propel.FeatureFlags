@@ -31,6 +31,7 @@ jobs:
           dotnet restore infrastructure/Propel.FeatureFlags.PostgreSql/Propel.FeatureFlags.PostgreSql.csproj
           dotnet restore infrastructure/Propel.FeatureFlags.Redis/Propel.FeatureFlags.Redis.csproj
           dotnet restore infrastructure/Propel.FeatureFlags.SqlServer/Propel.FeatureFlags.SqlServer.csproj
+          dotnet restore infrastructure/Propel.FeatureFlags.DependencyInjection.Extensions/Propel.FeatureFlags.DependencyInjection.Extensions.csproj
 
       - name: Build
         run: |
@@ -40,6 +41,7 @@ jobs:
           dotnet build infrastructure/Propel.FeatureFlags.PostgreSql/Propel.FeatureFlags.PostgreSql.csproj --configuration Release --no-restore
           dotnet build infrastructure/Propel.FeatureFlags.Redis/Propel.FeatureFlags.Redis.csproj --configuration Release --no-restore
           dotnet build infrastructure/Propel.FeatureFlags.SqlServer/Propel.FeatureFlags.SqlServer.csproj --configuration Release --no-restore
+          dotnet build infrastructure/Propel.FeatureFlags.DependencyInjection.Extensions/Propel.FeatureFlags.DependencyInjection.Extensions.csproj --configuration Release --no-restore
 
       - name: Pack specific packages
         run: |
@@ -49,6 +51,7 @@ jobs:
           dotnet pack infrastructure/Propel.FeatureFlags.PostgreSql/Propel.FeatureFlags.PostgreSql.csproj --configuration Release --no-build --output ./packages
           dotnet pack infrastructure/Propel.FeatureFlags.Redis/Propel.FeatureFlags.Redis.csproj --configuration Release --no-build --output ./packages
           dotnet pack infrastructure/Propel.FeatureFlags.SqlServer/Propel.FeatureFlags.SqlServer.csproj --configuration Release --no-build --output ./packages
+          dotnet pack infrastructure/Propel.FeatureFlags.DependencyInjection.Extensions/Propel.FeatureFlags.DependencyInjection.Extensions.csproj --configuration Release --no-build --output ./packages
 
       - name: Publish to NuGet
         run: dotnet nuget push ./packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
