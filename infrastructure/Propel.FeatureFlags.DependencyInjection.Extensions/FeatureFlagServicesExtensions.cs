@@ -1,19 +1,17 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Propel.FeatureFlags.Clients;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.FlagEvaluators;
 using Propel.FeatureFlags.Infrastructure;
-using Propel.FeatureFlags.Infrastructure.Cache;
 using System.Reflection;
 
-namespace Propel.FeatureFlags.SqlServer.Extensions;
+namespace Propel.FeatureFlags.DependencyInjection.Extensions;
 
-internal static class CoreServicesExtensions
+internal static class FeatureFlagServicesExtensions
 {
-	public static IServiceCollection AddFeatureFlagServices(this IServiceCollection services, PropelConfiguration options)
+	internal static IServiceCollection AddFeatureFlagServices(this IServiceCollection services, PropelConfiguration propelConfiguration)
 	{
-		services.AddSingleton(options);
+		services.AddSingleton(propelConfiguration);
 
 		services.AddSingleton<IApplicationFlagProcessor, ApplicationFlagProcessor>();
 		services.AddSingleton<IApplicationFlagClient, ApplicationFlagClient>();
@@ -27,14 +25,7 @@ internal static class CoreServicesExtensions
 		return services;
 	}
 
-	public static IServiceCollection AddInMemoryCache(this IServiceCollection services)
-	{
-		services.AddMemoryCache();
-		services.TryAddSingleton<IFeatureFlagCache, InMemoryFlagCache>();
-		return services;
-	}
-
-	public static IServiceCollection RegisterEvaluators(this IServiceCollection services)
+	internal static IServiceCollection RegisterEvaluators(this IServiceCollection services)
 	{
 		// Register evaluation manager with all handlers
 		services.AddSingleton<IEvaluatorsSet>(_ => new EvaluatorsSet(
@@ -49,7 +40,7 @@ internal static class CoreServicesExtensions
 		return services;
 	}
 
-	public static IServiceCollection RegisterFlagsFromExecutingAssembly(this IServiceCollection services)
+	internal static IServiceCollection RegisterFlagsFromExecutingAssembly(this IServiceCollection services)
 	{
 		var currentAssembly = Assembly.GetEntryAssembly();
 

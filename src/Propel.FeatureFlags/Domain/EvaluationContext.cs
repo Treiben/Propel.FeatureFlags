@@ -2,6 +2,12 @@
 
 namespace Propel.FeatureFlags.Domain;
 
+/// <summary>
+/// Represents the context in which an evaluation is performed, including tenant, user, attributes, and evaluation time.
+/// </summary>
+/// <remarks>This class provides contextual information that can be used to customize or influence the outcome of
+/// an evaluation. It includes optional identifiers for the tenant and user, a collection of custom attributes, and the
+/// time at which the evaluation occurs.</remarks>
 public class EvaluationContext
 {
 	public EvaluationContext(

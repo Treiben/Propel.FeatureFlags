@@ -7,8 +7,9 @@ using Propel.FeatureFlags.Attributes;
 using Propel.FeatureFlags.Attributes.Extensions;
 using Propel.FeatureFlags.Clients;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.Cache;
 using Propel.FeatureFlags.SqlServer.Extensions;
+using Propel.FeatureFlags.DependencyInjection.Extensions;
 
 //-----------------------------------------------------------------------------
 // Build Host with Configuration
@@ -33,24 +34,25 @@ builder.Services.AddLogging(config =>
 //-----------------------------------------------------------------------------
 // Configure Propel FeatureFlags
 //-----------------------------------------------------------------------------
-builder.ConfigureFeatureFlags(config =>
-{
-	config.RegisterFlagsWithContainer = true;               // automatically register all flags in the assembly with the DI container
-	config.EnableFlagFactory = true;                        // enable IFeatureFlagFactory for type-safe flag access
+builder.Services
+	.ConfigureFeatureFlags(config =>
+		{
+			config.RegisterFlagsWithContainer = true;						// automatically register all flags in the assembly with the DI container
+			config.EnableFlagFactory = true;								// enable IFeatureFlagFactory for type-safe flag access
 
-	config.SqlConnection =
-		builder.Configuration
-				.GetConnectionString("DefaultConnection")!; // PostgreSQL connection string
 
-	config.Cache = new CacheOptions                         // Configure caching (optional, but recommended for performance and scalability)
-	{
-		EnableInMemoryCache = true,
-	};
+			config.LocalCacheConfiguration = new LocalCacheConfiguration	// Configure caching (optional, but recommended for performance and scalability)
+			{
+				LocalCacheEnabled = true,
+				CacheDurationInMinutes = 10,								// short local cache duration for better consistency,
+				CacheSizeLimit = 1000                                       // limit local cache size to prevent memory bloat
+			};
 
-	var interception = config.Interception;
-	// Note: For console apps, use EnableIntercepter instead of EnableHttpIntercepter
-	interception.EnableIntercepter = true;                  // enable basic attribute interception (non-HTTP)
-});
+			var interception = config.Interception;
+			// Note: For console apps, use EnableIntercepter instead of EnableHttpIntercepter
+			interception.EnableIntercepter = true;							 // enable basic attribute interception (non-HTTP)
+		})
+	.AddSqlServerFeatureFlags(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
 // Register your services with methods decorated with [FeatureFlagged] attribute
 builder.Services.RegisterWithFeatureFlagInterception<INotificationService, NotificationService>();

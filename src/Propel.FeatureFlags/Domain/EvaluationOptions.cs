@@ -2,6 +2,12 @@
 
 namespace Propel.FeatureFlags.Domain;
 
+/// <summary>
+/// Represents a set of options used to configure the evaluation of a feature, rule, or operation.
+/// </summary>
+/// <remarks>This class provides a flexible configuration for evaluating features or operations based on various
+/// criteria,  such as modes, schedules, operational windows, targeting rules, and access controls. It is designed to
+/// support  scenarios like feature flagging, A/B testing, and conditional access control.</remarks>
 public class EvaluationOptions
 {
 	public string Key { get; } 

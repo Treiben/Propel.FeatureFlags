@@ -2,6 +2,13 @@
 
 namespace Propel.FeatureFlags.AspNetCore.Middleware;
 
+/// <summary>
+/// Provides a builder for configuring options used by the feature flag middleware.
+/// </summary>
+/// <remarks>This class allows for the fluent configuration of feature flag middleware options, such as enabling
+/// or disabling maintenance mode,  defining global flags, and specifying custom extractors for tenant IDs, user IDs,
+/// and additional attributes.  Use the <see cref="Build"/> method to finalize and retrieve the configured
+/// options.</remarks>
 public class FeatureFlagMiddlewareOptionsBuilder
 {
 	private readonly FeatureFlagMiddlewareOptions _options = new();

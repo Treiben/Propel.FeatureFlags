@@ -1,5 +1,11 @@
 ﻿namespace Propel.FeatureFlags.Domain;
 
+/// <summary>
+/// Represents a unique identifier for a feature flag, including its key, scope, and optional application context.
+/// </summary>
+/// <remarks>A <see cref="FlagIdentifier"/> is used to uniquely identify a feature flag within a specific scope. 
+/// The scope determines whether the flag is global or tied to a specific application.  When the scope is <see
+/// cref="Scope.Application"/>, the application name must be provided.</remarks>
 public class FlagIdentifier
 {
 	public string Key { get; }

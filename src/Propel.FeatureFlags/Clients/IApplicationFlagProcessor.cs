@@ -6,9 +6,24 @@ using System.Text.Json;
 
 namespace Propel.FeatureFlags.Clients;
 
+/// <summary>
+/// Defines methods for evaluating feature flags and retrieving their variations based on the provided evaluation
+/// context.
+/// </summary>
+/// <remarks>This interface is designed to support feature flag evaluation in applications, allowing developers to
+/// determine the state of a feature flag and retrieve specific variations of its value. Implementations of this
+/// interface should handle the evaluation logic and provide appropriate results based on the supplied context and
+/// feature flag configuration.</remarks>
 public interface IApplicationFlagProcessor
 {
+	/// <summary>
+	/// Evaluates the specified feature flag within the given evaluation context and returns the result.
+	/// </summary>
 	Task<EvaluationResult?> Evaluate(IFeatureFlag flag, EvaluationContext context, CancellationToken cancellationToken = default);
+	/// <summary>
+	/// Retrieves the variation of a feature flag for the specified context, returning a default value if the flag is not
+	/// configured or cannot be evaluated.
+	/// </summary>
 	Task<T> GetVariation<T>(IFeatureFlag flag, T defaultValue, EvaluationContext context, CancellationToken cancellationToken = default);
 }
 
@@ -23,6 +38,20 @@ public sealed class ApplicationFlagProcessor(
 	private string ApplicationName => ApplicationInfo.Name;
 	private string ApplicationVersion => ApplicationInfo.Version;
 
+	/// <summary>
+	/// Evaluates the specified feature flag within the given evaluation context and returns the result.
+	/// </summary>
+	/// <remarks>This method attempts to retrieve the configuration for the specified feature flag. If the
+	/// configuration does not exist, the method automatically creates a default flag in the database. The evaluation
+	/// process uses the provided context to determine the flag's state. In case of an error, the method returns a disabled
+	/// result with an appropriate reason.</remarks>
+	/// <param name="applicationFlag">The feature flag to evaluate. This parameter must not be <see langword="null"/>.</param>
+	/// <param name="context">The evaluation context containing user or environment-specific data used to determine the flag's state. This
+	/// parameter must not be <see langword="null"/>.</param>
+	/// <param name="cancellationToken">A token to monitor for cancellation requests. The default value is <see cref="CancellationToken.None"/>.</param>
+	/// <returns>An <see cref="EvaluationResult"/> representing the evaluation outcome. If the feature flag is not configured, the
+	/// method creates a default flag in the database and returns a result based on the flag's mode. If an error occurs
+	/// during evaluation, the result indicates that the flag is disabled.</returns>
 	public async Task<EvaluationResult?> Evaluate(IFeatureFlag applicationFlag, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
 		try
@@ -50,6 +79,24 @@ public sealed class ApplicationFlagProcessor(
 		}
 	}
 
+	/// <summary>
+	/// Retrieves the variation of a feature flag for the specified context, returning a default value if the flag is not
+	/// configured or cannot be evaluated.
+	/// </summary>
+	/// <remarks>This method evaluates the specified feature flag using the provided context and retrieves the
+	/// corresponding variation value. If the flag is not configured, it will be automatically registered, and the default
+	/// variation will be returned.   The method handles deserialization of JSON-based variation values into the specified
+	/// type <typeparamref name="T"/>. If the variation value cannot be deserialized, converted, or matched to the
+	/// requested type, the default variation is returned.  Exceptions other than <see cref="OperationCanceledException"/>
+	/// are caught and suppressed, ensuring that the default variation is returned in case of unexpected errors.</remarks>
+	/// <typeparam name="T">The type of the variation value to retrieve.</typeparam>
+	/// <param name="applicationFlag">The feature flag to evaluate. The <see cref="IFeatureFlag.Key"/> property must uniquely identify the flag.</param>
+	/// <param name="defaultVariation">The default value to return if the flag is not configured, disabled, or cannot be evaluated.</param>
+	/// <param name="context">The evaluation context that provides additional information for flag evaluation, such as user attributes or
+	/// environment details.</param>
+	/// <param name="cancellationToken">A token to monitor for cancellation requests. Defaults to <see cref="CancellationToken.None"/>.</param>
+	/// <returns>The variation value of the feature flag if it is enabled and a matching variation is found; otherwise, <paramref
+	/// name="defaultVariation"/>.</returns>
 	public async Task<T> GetVariation<T>(IFeatureFlag applicationFlag, T defaultVariation, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
 		try

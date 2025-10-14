@@ -1,5 +1,6 @@
 ﻿using DemoWebApi.FeatureFlags;
 using Propel.FeatureFlags.AspNetCore.Extensions;
+using Propel.FeatureFlags.Clients;
 
 namespace DemoWebApi.MinimalApiEndpoints;
 
@@ -42,13 +43,16 @@ public static class RecommendationsEndpoints
 		// Type-safe feature flag evaluation
 		// Provides compile-time safety, auto-completion, and better maintainability
 		// Uses strongly-typed feature flag definition with default values
-		app.MapGet("/recommendations/{userId}", async (string userId, HttpContext context) =>
+		app.MapGet("/recommendations/{userId}", async (string userId, IApplicationFlagClient featureFlags) =>
 		{
 			// Type-safe evaluation ensures the flag exists with proper defaults
 			// If flag doesn't exist in database, it will be auto-created with the configured defaults
 			var featureFlag = new RecommendationAlgorithmFeatureFlag();
-			var algorithmType = await context.FeatureFlags()
-				.GetVariationAsync(featureFlag, "collaborative-filtering");
+			var algorithmType = await featureFlags.GetVariationAsync(
+				flag: featureFlag,
+				defaultValue: "collaborative-filtering", // default
+				userId: userId
+			);
 
 			return algorithmType switch
 			{

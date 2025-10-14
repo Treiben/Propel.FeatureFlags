@@ -30,7 +30,7 @@ public class SqlServerTestsFixture : IAsyncLifetime
 		var services = new ServiceCollection();
 
 		services.AddLogging();
-		services.AddFeatureFlagRepository(connectionString);
+		services.AddSqlServerFeatureFlags(connectionString);
 
 		Services = services.BuildServiceProvider();
 		await Services.EnsureFeatureFlagDatabase();

@@ -2,6 +2,12 @@
 
 namespace Propel.FeatureFlags.FlagEvaluators;
 
+/// <summary>
+/// Evaluates whether a tenant satisfies the conditions for a rollout based on percentage or targeted access control.
+/// </summary>
+/// <remarks>This evaluator processes tenant-specific rollout conditions, including percentage-based rollouts and
+/// targeted tenant access restrictions. It determines whether a tenant is eligible for a feature or configuration based
+/// on the provided evaluation options and context.</remarks>
 public sealed class TenantRolloutEvaluator : EvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.TenantRollout;

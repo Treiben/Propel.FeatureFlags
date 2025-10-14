@@ -1,27 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <InvariantGlobalization>false</InvariantGlobalization>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Description>SqlServer storage provider for Propel Feature Flags using SqlClient. Handles database operations and schema migrations for feature flag data with automatic schema creation and JSON storage for targeting rules and configurations.</Description>
+    <Description>Core feature flag models and evaluation engine for .NET applications</Description>
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="IntegrationTests.Redis" />
+    <InternalsVisibleTo Include="IntegrationTests.Postgres" />
     <InternalsVisibleTo Include="IntegrationTests.SqlServer" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
-  </ItemGroup>
-  
-  <ItemGroup>
     <ProjectReference Include="..\..\src\Propel.FeatureFlags.AspNetCore\Propel.FeatureFlags.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\Propel.FeatureFlags.Attributes\Propel.FeatureFlags.Attributes.csproj" />
+    <ProjectReference Include="..\..\src\Propel.FeatureFlags\Propel.FeatureFlags.csproj" />
   </ItemGroup>
 
 </Project>

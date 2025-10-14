@@ -4,6 +4,12 @@ using System.Text.Json.Serialization;
 
 namespace Propel.FeatureFlags.Utilities;
 
+/// <summary>
+/// Provides default configuration settings for JSON serialization and deserialization.
+/// </summary>
+/// <remarks>This class defines a set of preconfigured <see cref="JsonSerializerOptions"/> tailored for common use
+/// cases,  including camelCase property naming, case-insensitive property matching, and support for custom converters.
+/// It is intended to simplify and standardize JSON handling across the application.</remarks>
 public static class JsonDefaults
 {
 	public static readonly JsonSerializerOptions JsonOptions = new()
@@ -21,6 +27,13 @@ public static class JsonDefaults
 	};
 }
 
+/// <summary>
+/// Provides custom JSON serialization and deserialization for objects implementing the <see cref="ITargetingRule"/>
+/// interface.
+/// </summary>
+/// <remarks>This converter supports polymorphic serialization and deserialization of targeting rules based on a
+/// type discriminator or the structure of the JSON payload. It handles the <see cref="StringTargetingRule"/> and <see
+/// cref="NumericTargetingRule"/> types.</remarks>
 public class TargetingRuleJsonConverter : JsonConverter<ITargetingRule>
 {
 	private const string TypeDiscriminator = "$type";
@@ -114,6 +127,15 @@ public class TargetingRuleJsonConverter : JsonConverter<ITargetingRule>
 	}
 }
 
+/// <summary>
+/// Provides a custom JSON converter for serializing and deserializing enumeration values of type <typeparamref
+/// name="T"/>.
+/// </summary>
+/// <remarks>This converter supports both string and numeric representations of enumeration values during
+/// deserialization: - If the JSON token is a string, the converter attempts to parse the string as an enumeration name,
+/// ignoring case. - If the JSON token is a number, the converter attempts to map the numeric value to a defined
+/// enumeration value. During serialization, enumeration values are written as their numeric representation.</remarks>
+/// <typeparam name="T">The enumeration type to be converted. Must be a value type that is an enumeration.</typeparam>
 public class EnumJsonConverter<T> : JsonConverter<T> where T : struct, Enum
 {
 	public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

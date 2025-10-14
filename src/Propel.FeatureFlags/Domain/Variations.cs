@@ -2,11 +2,26 @@
 
 namespace Propel.FeatureFlags.Domain;
 
+/// <summary>
+/// Represents a collection of variations, typically used for feature flagging or A/B testing scenarios.
+/// </summary>
+/// <remarks>This class allows managing a set of named variations, with a designated default variation.  It
+/// provides functionality to consistently select a variation for a given key and identifier,  ensuring deterministic
+/// assignment based on a hash-based algorithm. </remarks>
 public class Variations
 {
 	public Dictionary<string, object> Values { get; set; } = [];
 	public string DefaultVariation { get; set; } = "";
 
+	/// <summary>
+	/// Selects a variation for the given key and identifier, ensuring consistent assignment across calls.
+	/// </summary>
+	/// <remarks>This method ensures that the same <paramref name="id"/> will always be assigned the same variation
+	/// for a given <paramref name="key"/>. Variations are selected from the set of eligible variations, excluding the
+	/// default variation.</remarks>
+	/// <param name="key">A unique key representing the context or feature for which the variation is being selected.</param>
+	/// <param name="id">A unique identifier, such as a user ID, used to ensure consistent variation assignment for the same entity.</param>
+	/// <returns>The selected variation as a string. If no eligible variations are available, the default variation is returned.</returns>
 	public string SelectVariationFor(string key, string id)
 	{
 		var eligibleVariations = Values.Keys

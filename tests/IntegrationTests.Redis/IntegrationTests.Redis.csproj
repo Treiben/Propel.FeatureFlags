@@ -29,6 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.DependencyInjection.Extensions\Propel.FeatureFlags.DependencyInjection.Extensions.csproj" />
     <ProjectReference Include="..\..\infrastructure\Propel.FeatureFlags.Redis\Propel.FeatureFlags.Redis.csproj" />
   </ItemGroup>
 

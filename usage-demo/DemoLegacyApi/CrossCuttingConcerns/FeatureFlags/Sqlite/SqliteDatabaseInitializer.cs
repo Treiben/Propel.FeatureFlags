@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags.Sqlite
 {
-	internal sealed class SqliteDatabaseInitializer
+	internal sealed class SqliteDatabaseInitializer : IDisposable
 	{
 		private readonly SqliteConnection _inMemoryConnection;
 
@@ -18,7 +18,7 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags.Sqlite
 		{
 			// For in-memory databases, we don't check if database exists
 			// It's created when the connection is opened
-			
+
 			var schemaExists = await SchemaExistsAsync(cancellationToken);
 			if (!schemaExists)
 			{
@@ -34,7 +34,7 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags.Sqlite
 				SELECT COUNT(*) 
 				FROM sqlite_master 
 				WHERE type='table' AND name='FeatureFlags'";
-			
+
 			using (var checkCmd = new SqliteCommand(checkTableSql, _inMemoryConnection))
 			{
 				var result = await checkCmd.ExecuteScalarAsync(cancellationToken);
@@ -141,6 +141,13 @@ CREATE TABLE IF NOT EXISTS FeatureFlagsAudit (
     Timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     Notes TEXT NULL
 );";
+		}
+
+		public void Dispose()
+		{
+            if (_inMemoryConnection == null || _inMemoryConnection.State == System.Data.ConnectionState.Open)
+                return;
+			_inMemoryConnection?.Dispose();
 		}
 	}
 }

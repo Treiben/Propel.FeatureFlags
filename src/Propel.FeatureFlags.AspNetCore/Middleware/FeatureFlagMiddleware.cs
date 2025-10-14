@@ -4,6 +4,13 @@ using Propel.FeatureFlags.Clients;
 
 namespace Propel.FeatureFlags.AspNetCore.Middleware;
 
+/// <summary>
+/// Represents a global feature flag with associated metadata, including a key, status code, and response object.
+/// </summary>
+/// <remarks>This class is typically used to define and manage feature flags in an application, allowing for the
+/// configuration of feature availability and associated responses. The <see cref="Key"/> property identifies the
+/// feature, while <see cref="StatusCode"/> and <see cref="Response"/> provide metadata for handling feature-related
+/// requests.</remarks>
 public class GlobalFlag
 {
 	public string Key { get; set; } = string.Empty;
@@ -11,17 +18,56 @@ public class GlobalFlag
 	public object Response { get; set; } = new { error = "Feature not available" };
 }
 
+/// <summary>
+/// Configuration options for the <see cref="FeatureFlagMiddleware"/>, including maintenance mode settings,
+/// </summary>
 public class FeatureFlagMiddlewareOptions
 {
+	/// <summary>
+	/// Gets or sets a value indicating whether the application is in maintenance mode.
+	/// </summary>
 	public bool EnableMaintenanceMode { get; set; } = false;
+
+	/// <summary>
+	/// Gets or sets the key used to identify the maintenance flag in the system. Default is "maintenance-mode".
+	/// </summary>
 	public string MaintenanceFlagKey { get; set; } = "maintenance-mode";
+
+	/// <summary>
+	/// Gets or sets the response data related to a maintenance operation.
+	/// </summary>
 	public object? MaintenanceResponse { get; set; }
 	public List<GlobalFlag> GlobalFlags { get; set; } = [];
 	public List<Func<HttpContext, Dictionary<string, object>>> AttributeExtractors { get; set; } = [];
+
+	/// <summary>
+	/// Gets or sets the function used to extract the tenant identifier from the <see cref="HttpContext"/>.
+	/// </summary>
+	/// <remarks>This property allows customization of how the tenant identifier is resolved from the HTTP request
+	/// context.  The function should return a unique identifier for the tenant, or <see langword="null"/> if no tenant is
+	/// associated  with the request.</remarks>
 	public Func<HttpContext, string?>? TenantIdExtractor { get; set; }
+
+	/// <summary>
+	/// Gets or sets the function used to extract the user ID from an <see cref="HttpContext"/>.
+	/// </summary>
+	/// <remarks>This property allows customization of how the user ID is retrieved from the HTTP context,  such as
+	/// extracting it from headers, claims, or other context-specific data.</remarks>
 	public Func<HttpContext, string?>? UserIdExtractor { get; set; }
 }
 
+/// <summary>
+/// Middleware that evaluates feature flags and global flags for incoming HTTP requests, enabling or restricting access
+/// based on the configured rules.
+/// </summary>
+/// <remarks>This middleware integrates with feature flagging systems to enforce global and application-specific
+/// feature gates. It evaluates flags based on tenant, user, and request attributes, and can block requests if certain
+/// conditions are not met.  Key features include: - Maintenance mode enforcement: Returns a 503 response if maintenance
+/// mode is active. - Global flag evaluation: Blocks requests if any configured global flag is disabled. - Contextual
+/// feature flag evaluation: Adds a feature flag evaluator to the <see cref="HttpContext.Items"/> collection for
+/// downstream middleware or application logic.  To use this middleware, configure it with <see
+/// cref="FeatureFlagMiddlewareOptions"/> to define global flags, maintenance mode settings, and custom attribute
+/// extractors.</remarks>
 public class FeatureFlagMiddleware
 {
 	private readonly RequestDelegate _next;
@@ -44,6 +90,20 @@ public class FeatureFlagMiddleware
 		_options = options;
 	}
 
+	/// <summary>
+	/// Processes the incoming HTTP request, evaluates feature flags and maintenance mode, and determines whether to
+	/// continue to the next middleware or return an appropriate response.
+	/// </summary>
+	/// <remarks>This middleware performs the following operations: <list type="bullet"> <item><description>Extracts
+	/// tenant and user identifiers from the request.</description></item> <item><description>Checks if the application is
+	/// in maintenance mode and, if so, returns a 503 Service Unavailable response.</description></item>
+	/// <item><description>Evaluates global feature flags and, if any are disabled, returns the corresponding response as
+	/// defined in the configuration.</description></item> <item><description>Adds a feature flag evaluator to the <see
+	/// cref="HttpContext.Items"/> collection for downstream middleware or application components.</description></item>
+	/// </list> If none of the above conditions are met, the middleware invokes the next middleware in the
+	/// pipeline.</remarks>
+	/// <param name="context">The <see cref="HttpContext"/> representing the current HTTP request and response.</param>
+	/// <returns></returns>
 	public async Task InvokeAsync(HttpContext context)
 	{
 		_logger.LogDebug("FeatureFlagMiddleware.InvokeAsync called for request {Path}", context.Request.Path);

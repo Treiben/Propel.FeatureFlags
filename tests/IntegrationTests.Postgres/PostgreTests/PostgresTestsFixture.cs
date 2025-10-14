@@ -30,7 +30,7 @@ public class PostgresTestsFixture : IAsyncLifetime
 		var services = new ServiceCollection();
 
 		services.AddLogging();
-		services.AddFeatureFlagRepository(connectionString);
+		services.AddPostgreSqlFeatureFlags(connectionString);
 
 		Services = services.BuildServiceProvider();
 		await Services.EnsureFeatureFlagDatabase();

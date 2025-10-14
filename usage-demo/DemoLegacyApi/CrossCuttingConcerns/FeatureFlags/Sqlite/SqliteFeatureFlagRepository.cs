@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags.Sqlite
 {
-	internal sealed class SqliteFeatureFlagRepository : IFeatureFlagRepository
+	internal sealed class SqliteFeatureFlagRepository : IFeatureFlagRepository, IDisposable
 	{
 		private readonly SqliteConnection _inMemoryConnection;
 
@@ -116,6 +116,14 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags.Sqlite
 				throw new ApplicationFlagException("Error creating feature flag", ex,
 					identifier.Key, identifier.Scope, identifier.ApplicationName, identifier.ApplicationVersion);
 			}
+		}
+
+		public void Dispose()
+		{
+			if (_inMemoryConnection == null || _inMemoryConnection.State == System.Data.ConnectionState.Open)
+				return;
+
+			_inMemoryConnection.Dispose();
 		}
 	}
 }

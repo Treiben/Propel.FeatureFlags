@@ -8,6 +8,16 @@ public enum AccessResult
 	Denied
 }
 
+/// <summary>
+/// Represents an access control mechanism that manages allowed and blocked entities,  as well as percentage-based
+/// rollout restrictions.
+/// </summary>
+/// <remarks>This class provides functionality to define and evaluate access rules for entities  based on explicit
+/// allow/deny lists and a rollout percentage. It supports immutable  operations to modify access rules, ensuring thread
+/// safety and consistency.  Use the <see cref="Allowed"/> and <see cref="Blocked"/> properties to inspect the  current
+/// access rules, and methods such as <see cref="AllowAccessFor(string)"/> and  <see cref="BlockAccessFor(string)"/> to
+/// create modified instances with updated rules. The <see cref="RolloutPercentage"/> property determines the percentage
+/// of entities  that are granted access when neither explicitly allowed nor blocked.</remarks>
 public class AccessControl
 {
 	public List<string> Allowed { get; }

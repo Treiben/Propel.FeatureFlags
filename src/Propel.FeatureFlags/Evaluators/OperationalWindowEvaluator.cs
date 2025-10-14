@@ -3,6 +3,12 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.FlagEvaluators;
 
+/// <summary>
+/// Evaluates whether a feature flag is active based on the configured operational time window.
+/// </summary>
+/// <remarks>This evaluator determines the activation status of a feature flag by checking if the current time
+/// falls within the specified operational window. The operational window can be configured to always allow activation
+/// or to restrict activation to specific time periods.</remarks>
 public sealed class OperationalWindowEvaluator : EvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.OperationalWindow;

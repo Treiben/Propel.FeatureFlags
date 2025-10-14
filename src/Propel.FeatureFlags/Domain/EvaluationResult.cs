@@ -1,5 +1,16 @@
 ﻿namespace Propel.FeatureFlags.Domain;
 
+/// <summary>
+/// Represents the result of an evaluation, including the enabled state, variation, reason, and associated metadata.
+/// </summary>
+/// <remarks>This class encapsulates the outcome of an evaluation process, providing details about whether the
+/// feature or condition being evaluated is enabled, the variation associated with the result, the reason for the
+/// evaluation outcome, and any additional metadata. The metadata can be extended with contextual information such as
+/// tenant or user identifiers.</remarks>
+/// <param name="isEnabled"></param>
+/// <param name="variation"></param>
+/// <param name="reason"></param>
+/// <param name="metadata"></param>
 public class EvaluationResult(bool isEnabled, string? variation = default, string? reason = default,
 	Dictionary<string, object>? metadata = default)
 {

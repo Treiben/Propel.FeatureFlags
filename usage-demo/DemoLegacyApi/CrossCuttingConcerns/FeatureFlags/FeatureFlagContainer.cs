@@ -1,8 +1,10 @@
 ﻿using DemoLegacyApi.CrossCuttingConcerns.FeatureFlags.Sqlite;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Caching.Memory;
 using Propel.FeatureFlags.Clients;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
+using Propel.FeatureFlags.Infrastructure.Cache;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +12,7 @@ using System.Reflection;
 
 namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 {
-	internal class FeatureFlagContainer
+	internal class FeatureFlagContainer : IDisposable
 	{
 		private static readonly Lazy<FeatureFlagContainer> _instance = 
 			new Lazy<FeatureFlagContainer>(() => new FeatureFlagContainer(), true);
@@ -20,8 +22,11 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 		// Keep a persistent connection alive for in-memory database
 		private static SqliteConnection _persistentConnection;
 
-		private readonly IFeatureFlagRepository _repository;
+		private readonly SqliteFeatureFlagRepository _repository;
 		private readonly SqliteDatabaseInitializer _databaseInitializer;
+
+		private readonly IMemoryCache _memoryCache;
+		private readonly IFeatureFlagCache _localCache;
 
 		private readonly object _factoryLock = new object();
 		private readonly object _clientLock = new object();
@@ -37,6 +42,19 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 
 			_repository = new SqliteFeatureFlagRepository(_persistentConnection);
 			_databaseInitializer = new SqliteDatabaseInitializer(_persistentConnection);
+
+			_memoryCache = new MemoryCache(new MemoryCacheOptions
+				{
+					SizeLimit = 1024, // Size limit in units (not bytes)
+					CompactionPercentage = 0.25 // Compact 25% when limit reached
+				});
+
+			_localCache = new LocalFeatureFlagCache(_memoryCache,
+				new LocalCacheConfiguration()
+				{
+					CacheDurationInMinutes = 15,
+					SlidingDurationInMinutes = 2,
+				});
 		}
 
 		public IFeatureFlagRepository GetRepository()
@@ -81,7 +99,7 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 					return _client;
 
 				var evaluators = DefaultEvaluators.Create();
-				var processor = new ApplicationFlagProcessor(_repository, evaluators);
+				var processor = new ApplicationFlagProcessor(_repository, evaluators, _localCache);
 
 				_client = new ApplicationFlagClient(processor: processor);
 				return _client;
@@ -115,6 +133,15 @@ namespace DemoLegacyApi.CrossCuttingConcerns.FeatureFlags
 		{
 			_persistentConnection?.Close();
 			_persistentConnection?.Dispose();
+		}
+
+		public void Dispose()
+		{
+			_databaseInitializer?.Dispose();
+
+			_repository?.Dispose();
+
+			_memoryCache?.Dispose();
 		}
 	}
 }

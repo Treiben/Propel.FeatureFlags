@@ -13,6 +13,15 @@ public enum EvaluationMode
 	TargetingRules = 8,
 }
 
+/// <summary>
+/// Represents a collection of evaluation modes, providing utility methods for checking mode membership and implicit
+/// conversions for ease of use.
+/// </summary>
+/// <remarks>The <see cref="ModeSet"/> class is designed to manage a set of <see cref="EvaluationMode"/> values.
+/// It ensures that the set always contains valid modes, defaulting to <see cref="EvaluationMode.Off"/> if no modes are
+/// provided or if <see cref="EvaluationMode.Off"/> is explicitly included. The class supports operations to check for
+/// the presence of modes and provides implicit conversions to and from <see cref="EvaluationMode"/> and arrays of <see
+/// cref="EvaluationMode"/>.</remarks>
 public class ModeSet
 {
 	public HashSet<EvaluationMode> Modes { get; } = [EvaluationMode.Off];

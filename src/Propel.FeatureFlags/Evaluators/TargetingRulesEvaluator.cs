@@ -2,6 +2,16 @@
 
 namespace Propel.FeatureFlags.FlagEvaluators;
 
+/// <summary>
+/// Evaluates targeting rules to determine whether a specific variation should be applied based on the provided
+/// evaluation context and options.
+/// </summary>
+/// <remarks>This evaluator processes targeting rules defined in the <see
+/// cref="EvaluationOptions.TargetingRules"/>  collection. Each rule is evaluated against the attributes in the <see
+/// cref="EvaluationContext"/> to  determine if a match occurs. If a rule matches, the corresponding variation is
+/// selected. If no rules  match, the default variation is used. <para> The evaluator requires either a tenant ID or a
+/// user ID to be present in the evaluation context. If  neither is provided, the evaluation will return a result
+/// indicating that no variation was selected. </para></remarks>
 public sealed class TargetingRulesEvaluator : EvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.CustomTargeting;

@@ -1,11 +1,11 @@
 ﻿using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.Infrastructure;
 
-namespace Propel.FeatureFlags.SqlServer.Extensions;
+namespace Propel.FeatureFlags.DependencyInjection.Extensions;
 
-internal static class DeploymentExtensions
+internal static class FeatureFlagExtensions
 {
-	public static async Task DeployAsync(this IFeatureFlag flag,
+	internal static async Task DeployAsync(this IFeatureFlag flag,
 		IFeatureFlagRepository repository,
 		CancellationToken cancellationToken = default)
 	{

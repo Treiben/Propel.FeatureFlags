@@ -6,9 +6,20 @@ using Propel.FeatureFlags.Infrastructure;
 
 namespace Propel.FeatureFlags.PostgreSql.Extensions;
 
-internal static class DatabaseExtensions
+public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddFeatureFlagRepository(this IServiceCollection services, string connectionString)
+	/// <summary>
+	/// Adds PostgreSQL-based feature flag support to the specified <see cref="IServiceCollection"/>.
+	/// </summary>
+	/// <remarks>This method registers the necessary services for using PostgreSQL as the backend for feature flag
+	/// storage. It configures the connection string with optimized settings for resilience and performance, and registers
+	/// the <see cref="IFeatureFlagRepository"/> implementation as a singleton. Additionally, it ensures that the database
+	/// initializer is added to the service collection.</remarks>
+	/// <param name="services">The <see cref="IServiceCollection"/> to which the feature flag services will be added.</param>
+	/// <param name="connectionString">The connection string used to connect to the PostgreSQL database. This connection string will be configured with
+	/// resilience settings such as pooling and timeouts.</param>
+	/// <returns>The updated <see cref="IServiceCollection"/> instance.</returns>
+	public static IServiceCollection AddPostgreSqlFeatureFlags(this IServiceCollection services, string connectionString)
 	{
 		// Configure connection string with resilience settings here
 		var builder = new NpgsqlConnectionStringBuilder(connectionString)
@@ -35,39 +46,20 @@ internal static class DatabaseExtensions
 		return services;
 	}
 
-	public static IServiceCollection AddDatabaseInitializer(this IServiceCollection services, string connectionString)
+	internal static IServiceCollection AddDatabaseInitializer(this IServiceCollection services, string connectionString)
 	{
 		services.TryAddSingleton(sp =>
 			new PostgresDatabaseInitializer(connectionString, sp.GetRequiredService<ILogger<PostgresDatabaseInitializer>>()));
 		return services;
 	}
 
-	/// <summary>
-	/// Ensures the PostgreSQL database and schema exist for feature flags
-	/// Call this during application startup
-	/// </summary>
-	public static async Task<IServiceProvider> EnsureFeatureFlagDatabase(this IServiceProvider services,
+	internal static async Task<IServiceProvider> EnsureFeatureFlagDatabase(this IServiceProvider services,
 		CancellationToken cancellationToken = default)
 	{
 		var initializer = services.GetRequiredService<PostgresDatabaseInitializer>();
 		var initialized = await initializer.InitializeAsync(cancellationToken);
 		if (!initialized)
 			throw new InvalidOperationException("Failed to initialize PostgreSQL database for feature flags");
-		return services;
-	}
-
-	/// <summary>
-	/// Ensures the PostgreSQL database is seeded with initial data for feature flags
-	/// Flags should be defined in the provided SQL script file
-	/// Use: during application startup at development time
-	/// For production, use migrations instead or seed with registered flags from assembly
-	/// </summary>
-	public static async Task<IServiceProvider> SeedFeatureFlags(this IServiceProvider services, string file)
-	{
-		var initializer = services.GetRequiredService<PostgresDatabaseInitializer>();
-		var seeded = await initializer.SeedAsync(file);
-		if (!seeded)
-			throw new InvalidOperationException("Failed to seed PostgreSQL database for feature flags");
 		return services;
 	}
 }

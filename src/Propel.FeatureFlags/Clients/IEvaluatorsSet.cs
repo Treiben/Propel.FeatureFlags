@@ -3,8 +3,14 @@ using Propel.FeatureFlags.FlagEvaluators;
 
 namespace Propel.FeatureFlags.Clients;
 
+/// <summary>
+/// Defines a contract for evaluating feature flags using a set of evaluators.
+/// </summary>
 public interface IEvaluatorsSet
 {
+	/// <summary>
+	/// Evaluates the specified options and context to determine the result of an evaluation process.
+	/// </summary>
 	ValueTask<EvaluationResult?> Evaluate(EvaluationOptions flag, EvaluationContext context);
 }
 
@@ -21,6 +27,20 @@ public sealed class EvaluatorsSet : IEvaluatorsSet
 		_evaluators = [.. handlers.OrderBy(h => h.EvaluationOrder)];
 	}
 
+	/// <summary>
+	/// Evaluates the specified options and context to determine the result of an evaluation process.
+	/// </summary>
+	/// <remarks>The method iterates through a collection of evaluators that can process the provided options and
+	/// context, ordered by their evaluation priority. If an evaluator produces a result where <see
+	/// cref="EvaluationResult.IsEnabled"/> is <see langword="false"/>, the evaluation process terminates early and returns
+	/// that result. If no such result is found and multiple evaluators contribute to an enabled result, the method
+	/// combines their outcomes into a unified result with a descriptive reason.</remarks>
+	/// <param name="evaluationOptions">The options that configure the evaluation process, such as feature flag settings or other criteria.</param>
+	/// <param name="context">The context in which the evaluation is performed, providing additional information such as user or environment
+	/// details.</param>
+	/// <returns>An <see cref="EvaluationResult"/> representing the outcome of the evaluation, or <see langword="null"/> if no
+	/// evaluators produce a result. If multiple evaluators process the request and the final result is enabled, the
+	/// returned result includes a combined reason.</returns>
 	public async ValueTask<EvaluationResult?> Evaluate(EvaluationOptions evaluationOptions, EvaluationContext context)
 	{
 		EvaluationResult? result = default;
@@ -53,6 +73,9 @@ public sealed class EvaluatorsSet : IEvaluatorsSet
 	}
 }
 
+/// <summary>
+/// Provides a factory method to create a default set of feature flag evaluators.
+/// </summary>
 public static class DefaultEvaluators
 {
 	public static IEvaluatorsSet Create()

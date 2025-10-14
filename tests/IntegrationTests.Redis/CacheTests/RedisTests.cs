@@ -21,8 +21,6 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 	public async Task ThenStoresFlag()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
-
 		var (options, _) = new FlagConfigurationBuilder("cache-test")
 							.WithEvaluationModes(EvaluationMode.On)
 							.Build();
@@ -42,8 +40,6 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 	public async Task If_FlagWithComplexData_ThenStoresCorrectly()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
-
 		var (options, _) = new FlagConfigurationBuilder("complex-flag")
 			.WithEvaluationModes(EvaluationMode.UserTargeted)
 			.WithTargetingRules([
@@ -94,8 +90,6 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 	public async Task If_FlagWithComplexCacheKey_ThenStoreCorrectly()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
-
 		var (options, _) = new FlagConfigurationBuilder("expiring-flag")
 			.WithEvaluationModes(EvaluationMode.On)
 			.Build();
@@ -112,8 +106,6 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 	public async Task If_UpdateExistingFlag_ThenOverwritesData()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
-
 		var (oldOptions, _) = new FlagConfigurationBuilder("original-flag")
 			.WithEvaluationModes(EvaluationMode.Off)
 			.Build();
@@ -143,7 +135,6 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 	public async Task If_FlagWithTimeData_ThenDeserializesCorrectly()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
 		var (options, _) = new FlagConfigurationBuilder("time-flag")
 			.WithEvaluationModes(EvaluationMode.Scheduled,EvaluationMode.TimeWindow)
 			.WithSchedule(UtcSchedule.CreateSchedule(DateTimeOffset.UtcNow.AddHours(1), DateTimeOffset.UtcNow.AddDays(7)))
@@ -171,7 +162,6 @@ public class GetAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixture<
 	public async Task If_FlagWithUserRolloutPercentage_ThenDeserializesCorrectly()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
 		var (options, _) = new FlagConfigurationBuilder("percentage-flag")
 							.WithEvaluationModes(EvaluationMode.UserRolloutPercentage)
 							.WithUserAccessControl(new AccessControl(rolloutPercentage: 75))
@@ -195,9 +185,6 @@ public class GetAsync_WhenFlagDoesNotExist(RedisTestsFixture fixture) : IClassFi
 	[Fact]
 	public async Task ThenReturnsNull()
 	{
-		// Arrange
-		await fixture.ClearAllFlags();
-
 		// Act
 		var cacheKey = CacheKeyFactory.CreateCacheKey("not-existent-flag");
 		var result = await fixture.Cache.GetAsync(cacheKey);
@@ -213,8 +200,6 @@ public class RemoveAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixtu
 	public async Task ThenRemovesFlag()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
-
 		var (options, _) = new FlagConfigurationBuilder("remove-test").WithEvaluationModes(EvaluationMode.On).Build();
 		var cacheKey = CacheKeyFactory.CreateCacheKey(options.Key);
 
@@ -230,51 +215,5 @@ public class RemoveAsync_WhenFlagExists(RedisTestsFixture fixture) : IClassFixtu
 		// Assert
 		var afterRemove = await fixture.Cache.GetAsync(cacheKey);
 		afterRemove.ShouldBeNull();
-	}
-}
-
-public class ClearAsync_WithMultipleFlags(RedisTestsFixture fixture) : IClassFixture<RedisTestsFixture>
-{
-	[Fact]
-	public async Task ThenRemovesAllFlags()
-	{
-		// Arrange
-		await fixture.ClearAllFlags();
-
-		var (options1, _) = new FlagConfigurationBuilder("flag-1").WithEvaluationModes(EvaluationMode.On).Build();
-		var (options2, _) = new FlagConfigurationBuilder("flag-2").WithEvaluationModes(EvaluationMode.On).Build();
-		var (options3, _) = new FlagConfigurationBuilder("flag-3").WithEvaluationModes(EvaluationMode.On).Build();
-
-
-		var cacheKey1 = CacheKeyFactory.CreateCacheKey(options1.Key);
-		var cacheKey2 = CacheKeyFactory.CreateCacheKey(options2.Key);
-		var cacheKey3 = CacheKeyFactory.CreateCacheKey(	options3.Key);
-
-		await fixture.Cache.SetAsync(cacheKey1, options1);
-		await fixture.Cache.SetAsync(cacheKey2, options2);
-		await fixture.Cache.SetAsync(cacheKey3, options3);
-
-		// Verify they exist
-		(await fixture.Cache.GetAsync(cacheKey1)).ShouldNotBeNull();
-		(await fixture.Cache.GetAsync(cacheKey2)).ShouldNotBeNull();
-		(await fixture.Cache.GetAsync(cacheKey3)).ShouldNotBeNull();
-
-		// Act
-		await fixture.Cache.ClearAsync();
-
-		// Assert
-		(await fixture.Cache.GetAsync(cacheKey1)).ShouldBeNull();
-		(await fixture.Cache.GetAsync(cacheKey2)).ShouldBeNull();
-		(await fixture.Cache.GetAsync(cacheKey3)).ShouldBeNull();
-	}
-
-	[Fact]
-	public async Task If_NoFlags_ThenDoesNotThrow()
-	{
-		// Arrange
-		await fixture.ClearAllFlags();
-
-		// Act & Assert - Should not throw
-		await fixture.Cache.ClearAsync();
 	}
 }

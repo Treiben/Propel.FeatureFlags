@@ -1,6 +1,7 @@
 ﻿using DemoLegacyApi.CrossCuttingConcerns.FeatureFlags;
 using DemoLegacyApi.CrossCuttingConcerns.FeatureFlags.Sqlite;
 using System;
+using System.Drawing.Text;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Mvc;
@@ -40,6 +41,9 @@ namespace DemoLegacyApi
 		{
 			// Get the singleton container instance (this opens the persistent connection)
 			var container = FeatureFlagContainer.Instance;
+
+			// Initialize cache
+			
 
 			// Initialize database FIRST (this must happen before creating the container)
 			InitializeDatabaseAsync().GetAwaiter().GetResult();

@@ -4,7 +4,7 @@ services:
     image: postgres:17-alpine
     container_name: propel-postgres
     environment:
-      POSTGRES_DB: propel
+      POSTGRES_DB: propel_feature_flags
       POSTGRES_USER: propel_user
       POSTGRES_PASSWORD: propel_password
       PGDATA: /var/lib/postgresql/data/pgdata
@@ -85,7 +85,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080 
-      - POSTGRES_DB=propel
+      - POSTGRES_DB=propel_feature_flags
       - POSTGRES_USER=propel_user
       - POSTGRES_PASSWORD=propel_password
       - REDIS_PASSWORD=
@@ -115,7 +115,7 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
       - SQLSERVER_SERVER=sqlserver
-      - SQLSERVER_DATABASE=propel_feature_flags
+      - SQLSERVER_DATABASE=PropelFeatureFlags
       - SQLSERVER_USER=sa
       - SQLSERVER_PASSWORD=Propel_Password123!
       - REDIS_PASSWORD=

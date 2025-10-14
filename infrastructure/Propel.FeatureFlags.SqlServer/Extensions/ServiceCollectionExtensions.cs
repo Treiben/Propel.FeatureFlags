@@ -6,9 +6,19 @@ using Propel.FeatureFlags.Infrastructure;
 
 namespace Propel.FeatureFlags.SqlServer.Extensions;
 
-internal static class ServiceCollectionExtensions
+public static class ServiceCollectionExtensions
 {
-	public static IServiceCollection AddFeatureFlagRepository(this IServiceCollection services, string connectionString)
+	/// <summary>
+	/// Adds SQL Server-based feature flag support to the specified <see cref="IServiceCollection"/>.
+	/// </summary>
+	/// <remarks>This method registers the necessary services for using SQL Server as the backing store for feature
+	/// flags.  It configures a singleton instance of <see cref="IFeatureFlagRepository"/> that interacts with the database
+	/// and ensures the database is initialized for feature flag storage.</remarks>
+	/// <param name="services">The <see cref="IServiceCollection"/> to which the feature flag services will be added.</param>
+	/// <param name="connectionString">The connection string used to connect to the SQL Server database. This connection string is internally configured 
+	/// with resilience settings such as connection pooling and timeouts.</param>
+	/// <returns>The updated <see cref="IServiceCollection"/> instance.</returns>
+	public static IServiceCollection AddSqlServerFeatureFlags(this IServiceCollection services, string connectionString)
 	{
 		// Configure connection string with resilience settings
 		var builder = new SqlConnectionStringBuilder(connectionString)
@@ -33,39 +43,20 @@ internal static class ServiceCollectionExtensions
 		return services;
 	}
 
-	public static IServiceCollection AddDatabaseInitializer(this IServiceCollection services, string connectionString)
+	internal static IServiceCollection AddDatabaseInitializer(this IServiceCollection services, string connectionString)
 	{
 		services.TryAddSingleton(sp =>
 			new SqlDatabaseInitializer(connectionString, sp.GetRequiredService<ILogger<SqlDatabaseInitializer>>()));
 		return services;
 	}
 
-	/// <summary>
-	/// Ensures the SQL Server database and schema exist for feature flags
-	/// Call this during application startup
-	/// </summary>
-	public static async Task<IServiceProvider> EnsureFeatureFlagDatabase(this IServiceProvider services,
+	internal static async Task<IServiceProvider> EnsureFeatureFlagDatabase(this IServiceProvider services,
 		CancellationToken cancellationToken = default)
 	{
 		var initializer = services.GetRequiredService<SqlDatabaseInitializer>();
 		var initialized = await initializer.InitializeAsync(cancellationToken);
 		if (!initialized)
 			throw new InvalidOperationException("Failed to initialize SQL Server database for feature flags");
-		return services;
-	}
-
-	/// <summary>
-	/// Ensures the SQL Server database is seeded with initial data for feature flags
-	/// Flags should be defined in the provided SQL script file
-	/// Use: during application startup at development time
-	/// For production, use migrations instead or seed with registered flags from assembly
-	/// </summary>
-	public static async Task<IServiceProvider> SeedFeatureFlags(this IServiceProvider services, string file)
-	{
-		var initializer = services.GetRequiredService<SqlDatabaseInitializer>();
-		var seeded = await initializer.SeedAsync(file);
-		if (!seeded)
-			throw new InvalidOperationException("Failed to seed SQL Server database for feature flags");
 		return services;
 	}
 }

@@ -4,8 +4,17 @@ using Propel.FeatureFlags.Infrastructure.Cache;
 
 namespace Propel.FeatureFlags.Clients;
 
+/// <summary>
+/// Defines a contract for evaluating feature flags based on a given key and context.
+/// </summary>
+/// <remarks>This interface is typically implemented by services that evaluate feature flags in a dynamic
+/// configuration system. The evaluation process may involve querying external systems, applying rules, or using cached
+/// values.</remarks>
 public interface IGlobalFlagProcessor
 {
+	/// <summary>
+	/// Evaluates the specified feature flag using the provided evaluation context.
+	/// </summary>
 	Task<EvaluationResult?> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default);
 }
 
@@ -17,6 +26,17 @@ public sealed class GlobalFlagProcessor(
 	private readonly IFeatureFlagRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
 	private readonly IEvaluatorsSet _evaluators = evaluators ?? throw new ArgumentNullException(nameof(evaluators));
 
+	/// <summary>
+	/// Evaluates the specified feature flag using the provided evaluation context.
+	/// </summary>
+	/// <remarks>Ensure that the feature flag identified by <paramref name="flagKey"/> is created and configured in
+	/// the system before calling this method.</remarks>
+	/// <param name="flagKey">The unique key identifying the feature flag to evaluate.</param>
+	/// <param name="context">The evaluation context containing attributes and other data used to determine the flag's value.</param>
+	/// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+	/// <returns>An <see cref="EvaluationResult"/> representing the outcome of the evaluation, or <see langword="null"/> if the
+	/// evaluation fails.</returns>
+	/// <exception cref="Exception">Thrown if the specified feature flag does not exist in the system.</exception>
 	public async Task<EvaluationResult?> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
 		var flagConfig = await GetFlagConfiguration(flagKey, cancellationToken);

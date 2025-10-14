@@ -2,6 +2,12 @@ using Propel.FeatureFlags.Domain;
 
 namespace Propel.FeatureFlags.FlagEvaluators;
 
+/// <summary>
+/// Evaluates terminal states for feature flags, determining whether a feature is explicitly enabled or disabled.
+/// </summary>
+/// <remarks>This evaluator handles fundamental states that do not require complex logic. It processes feature
+/// flags based on whether the evaluation mode explicitly includes <see cref="EvaluationMode.Off"/> or  <see
+/// cref="EvaluationMode.On"/>.</remarks>
 public sealed class TerminalStateEvaluator : EvaluatorBase
 {
 	public override EvaluationOrder EvaluationOrder => EvaluationOrder.Terminal;
