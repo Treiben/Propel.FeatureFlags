@@ -24,7 +24,7 @@ public class PostgresFeatureFlagRepositoryTests : IClassFixture<PostgresTestsFix
         await _fixture.ClearAllData();
 
         // Act
-        var result = await _repository.GetEvaluationOptionsAsync("non-existent-flag");
+        var result = await _repository.GetEvaluationOptionsAsync(new GlobalFlagIdentifier("non-existent-flag"));
 
         // Assert
         result.ShouldBeNull();
@@ -35,8 +35,9 @@ public class PostgresFeatureFlagRepositoryTests : IClassFixture<PostgresTestsFix
     {
         // Arrange
         await _fixture.ClearAllData();
-        await _repository.CreateApplicationFlagAsync(
-            "test-flag",
+		var identifier = new GlobalFlagIdentifier("test-flag");
+		await _repository.CreateApplicationFlagAsync(
+			identifier,
             EvaluationMode.On,
             "Test Flag",
             "A test feature flag",
@@ -44,7 +45,7 @@ public class PostgresFeatureFlagRepositoryTests : IClassFixture<PostgresTestsFix
         );
 
         // Act
-        var result = await _repository.GetEvaluationOptionsAsync("test-flag");
+        var result = await _repository.GetEvaluationOptionsAsync(identifier);
 
         // Assert
         result.ShouldNotBeNull();
@@ -62,10 +63,10 @@ public class PostgresFeatureFlagRepositoryTests : IClassFixture<PostgresTestsFix
     {
         // Arrange
         await _fixture.ClearAllData();
-
-        // Act
-        await _repository.CreateApplicationFlagAsync(
-            "on-mode-flag",
+		var identifier = new GlobalFlagIdentifier("on-mode-flag");
+		// Act
+		await _repository.CreateApplicationFlagAsync(
+			identifier,
             EvaluationMode.On,
             "On Mode Flag",
             "Testing On activation mode",
@@ -73,9 +74,9 @@ public class PostgresFeatureFlagRepositoryTests : IClassFixture<PostgresTestsFix
         );
 
         // Assert
-        var result = await _repository.GetEvaluationOptionsAsync("on-mode-flag");
+        var result = await _repository.GetEvaluationOptionsAsync(identifier);
         result.ShouldNotBeNull();
-        result.Key.ShouldBe("on-mode-flag");
+        result.Key.ShouldBe(identifier.Key);
         result.ModeSet.Modes.ShouldContain(EvaluationMode.On);
     }
 
@@ -84,10 +85,10 @@ public class PostgresFeatureFlagRepositoryTests : IClassFixture<PostgresTestsFix
     {
         // Arrange
         await _fixture.ClearAllData();
-
-        // Act
-        await _repository.CreateApplicationFlagAsync(
-            "off-mode-flag",
+		var identifier = new GlobalFlagIdentifier("off-mode-flag");
+		// Act
+		await _repository.CreateApplicationFlagAsync(
+			identifier,
             EvaluationMode.Off,
             "Off Mode Flag",
             "Testing Off activation mode",
@@ -95,9 +96,9 @@ public class PostgresFeatureFlagRepositoryTests : IClassFixture<PostgresTestsFix
         );
 
         // Assert
-        var result = await _repository.GetEvaluationOptionsAsync("off-mode-flag");
+        var result = await _repository.GetEvaluationOptionsAsync(identifier);
         result.ShouldNotBeNull();
-        result.Key.ShouldBe("off-mode-flag");
+        result.Key.ShouldBe(identifier.Key);
         result.ModeSet.Modes.ShouldContain(EvaluationMode.Off);
     }
 

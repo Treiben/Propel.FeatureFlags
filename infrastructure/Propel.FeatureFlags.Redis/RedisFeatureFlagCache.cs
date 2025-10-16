@@ -47,7 +47,7 @@ internal sealed class RedisFeatureFlagCache : IFeatureFlagCache, IDisposable
 		_redis.ConnectionRestored += OnConnectionRestored;
 	}
 
-	public async Task<EvaluationOptions?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
+	public async Task<EvaluationOptions?> GetAsync(FlagCacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
 
@@ -115,7 +115,7 @@ internal sealed class RedisFeatureFlagCache : IFeatureFlagCache, IDisposable
 		}
 	}
 
-	public async Task SetAsync(CacheKey cacheKey, EvaluationOptions flag, CancellationToken cancellationToken = default)
+	public async Task SetAsync(FlagCacheKey cacheKey, EvaluationOptions flag, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
 
@@ -166,7 +166,7 @@ internal sealed class RedisFeatureFlagCache : IFeatureFlagCache, IDisposable
 		}
 	}
 
-	public async Task RemoveAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
+	public async Task RemoveAsync(FlagCacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
 		var key = cacheKey.ComposeKey();
 

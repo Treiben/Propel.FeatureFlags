@@ -84,11 +84,9 @@ services:
       dockerfile: DemoWebApi/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:8080 
-      - POSTGRES_DB=propel_feature_flags
-      - POSTGRES_USER=propel_user
-      - POSTGRES_PASSWORD=propel_password
-      - REDIS_PASSWORD=
+      - ASPNETCORE_URLS=http://+:8080
+      # NOTE: Configuration comes from appsettings.Development.json
+      # which is mounted as a volume in docker-compose.override.yml
     ports:
       - "5001:8080"
     networks:
@@ -113,12 +111,10 @@ services:
       context: .
       dockerfile: DemoWorker/Dockerfile
     environment:
-      - DOTNET_ENVIRONMENT=Development
-      - SQLSERVER_SERVER=sqlserver
-      - SQLSERVER_DATABASE=PropelFeatureFlags
-      - SQLSERVER_USER=sa
-      - SQLSERVER_PASSWORD=Propel_Password123!
-      - REDIS_PASSWORD=
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      # NOTE: Configuration comes from appsettings.Development.json
+      # which is mounted as a volume in docker-compose.override.yml
     networks:
       - propel-network
     depends_on:

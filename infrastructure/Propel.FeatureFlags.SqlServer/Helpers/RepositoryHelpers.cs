@@ -5,7 +5,7 @@ namespace Propel.FeatureFlags.SqlServer.Helpers;
 
 internal static class RepositoryHelpers
 {
-	internal static async Task GenerateAuditRecordAsync(FlagIdentifier flag,
+	internal static async Task GenerateAuditRecordAsync(FlagIdentifier identifier,
 							SqlConnection connection,
 							CancellationToken cancellationToken)
 	{
@@ -19,7 +19,7 @@ internal static class RepositoryHelpers
 		try
 		{
 			using var command = new SqlCommand(sql, connection);
-			command.AddIdentifierParameters(flag);
+			command.AddIdentifierParameters(identifier);
 			command.Parameters.AddWithValue("@timestamp", DateTimeOffset.UtcNow);
 			command.Parameters.AddWithValue("@action", "flag-created");
 
@@ -33,7 +33,7 @@ internal static class RepositoryHelpers
 		}
 	}
 
-	internal static async Task GenerateMetadataRecordAsync(FlagIdentifier flag, SqlConnection connection, CancellationToken cancellationToken)
+	internal static async Task GenerateMetadataRecordAsync(FlagIdentifier identifier, SqlConnection connection, CancellationToken cancellationToken)
 	{
 		const string sql = @"
             INSERT INTO FeatureFlagsMetadata (
@@ -44,7 +44,7 @@ internal static class RepositoryHelpers
 		try
 		{
 			using var command = new SqlCommand(sql, connection);
-			command.AddIdentifierParameters(flag);
+			command.AddIdentifierParameters(identifier);
 			command.Parameters.AddWithValue("@expirationDate", DateTimeOffset.UtcNow.AddDays(30));
 			command.Parameters.AddWithValue("@isPermanent", false);
 
@@ -58,9 +58,9 @@ internal static class RepositoryHelpers
 		}
 	}
 
-	internal static async Task<bool> CheckFlagExists(FlagIdentifier flag, SqlConnection connection, CancellationToken cancellationToken)
+	internal static async Task<bool> CheckFlagExists(FlagIdentifier identifier, SqlConnection connection, CancellationToken cancellationToken)
 	{
-		var (whereClause, parameters) = QueryBuilders.BuildWhereClause(flag);
+		var (whereClause, parameters) = QueryBuilders.BuildWhereClause(identifier);
 		var sql = $"SELECT COUNT(*) FROM FeatureFlags {whereClause}";
 
 		using var command = new SqlCommand(sql, connection);
@@ -73,10 +73,10 @@ internal static class RepositoryHelpers
 		return count > 0;
 	}
 
-	private static void AddIdentifierParameters(this SqlCommand command, FlagIdentifier flag)
+	private static void AddIdentifierParameters(this SqlCommand command, FlagIdentifier identifier)
 	{
-		command.Parameters.AddWithValue("@key", flag.Key);
-		command.Parameters.AddWithValue("@applicationName", flag.ApplicationName);
-		command.Parameters.AddWithValue("@applicationVersion", flag.ApplicationVersion);
+		command.Parameters.AddWithValue("@key", identifier.Key);
+		command.Parameters.AddWithValue("@applicationName", identifier.ApplicationName);
+		command.Parameters.AddWithValue("@applicationVersion", identifier.ApplicationVersion);
 	}
 }

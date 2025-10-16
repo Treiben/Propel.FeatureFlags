@@ -56,11 +56,12 @@ public sealed class ApplicationFlagProcessor(
 	{
 		try
 		{
-			var flagConfig = await GetFlagConfiguration(applicationFlag.Key, cancellationToken);
-			if (flagConfig == null)
+			var appFlagIdentifier = new ApplicationFlagIdentifier(applicationFlag.Key);
+			var config = await GetFlagConfiguration(appFlagIdentifier, cancellationToken);
+			if (config == null)
 			{
 				// Auto-create flag in disabled state for deployment scenarios
-				await RegisterApplicationFlag(applicationFlag, cancellationToken);
+				await RegisterApplicationFlag(applicationFlag, appFlagIdentifier, cancellationToken);
 				return new EvaluationResult
 				(
 					isEnabled: applicationFlag.OnOffMode == EvaluationMode.On,
@@ -68,7 +69,7 @@ public sealed class ApplicationFlagProcessor(
 				);
 			}
 
-			return await _flagProcessor.Evaluate(flagConfig, context);
+			return await _flagProcessor.Evaluate(config, context);
 		}
 		catch (Exception ex)
 		{
@@ -101,24 +102,25 @@ public sealed class ApplicationFlagProcessor(
 	{
 		try
 		{
+			var appFlagIdentifier = new ApplicationFlagIdentifier(applicationFlag.Key);
 			// Get flag once and reuse for both evaluation and variation lookup
-			var flagConfig = await GetFlagConfiguration(applicationFlag.Key, cancellationToken);
-			if (flagConfig == null)
+			var config = await GetFlagConfiguration(appFlagIdentifier, cancellationToken);
+			if (config == null)
 			{
 				// Auto-create and return default
-				await RegisterApplicationFlag(applicationFlag, cancellationToken);
+				await RegisterApplicationFlag(applicationFlag, appFlagIdentifier, cancellationToken);
 				return defaultVariation;
 			}
 
 			// Evaluate using the already-fetched flag configuration
-			var result = await _flagProcessor.Evaluate(flagConfig, context);
+			var result = await _flagProcessor.Evaluate(config, context);
 			if (result?.IsEnabled == false)
 			{
 				return defaultVariation;
 			}
 
 			// Variation lookup from the evaluated result
-			if (flagConfig.Variations.Values.TryGetValue(result!.Variation, out var variationValue))
+			if (config.Variations.Values.TryGetValue(result!.Variation, out var variationValue))
 			{
 				if (variationValue is JsonElement jsonElement)
 				{
@@ -144,33 +146,33 @@ public sealed class ApplicationFlagProcessor(
 		}
 	}
 
-	private async Task<EvaluationOptions?> GetFlagConfiguration(string flagKey, CancellationToken cancellationToken)
+	private async Task<EvaluationOptions?> GetFlagConfiguration(FlagIdentifier flagIdentifier, CancellationToken cancellationToken)
 	{
-		EvaluationOptions? flagData = null;
+		EvaluationOptions? config = null;
 
 		// Try cache first
-		var cacheKey = new ApplicationCacheKey(flagKey, ApplicationName, ApplicationVersion);
+		var cacheKey = new ApplicationFlagCacheKey(flagIdentifier.Key, flagIdentifier.ApplicationName, flagIdentifier.ApplicationVersion);
 		if (cache != null)
 		{
-			flagData = await cache.GetAsync(cacheKey, cancellationToken);
+			config = await cache.GetAsync(cacheKey, cancellationToken);
 		}
 
 		// If not in cache, get from repository
-		if (flagData == null)
+		if (config == null)
 		{
-			flagData = await _repository.GetEvaluationOptionsAsync(flagKey, cancellationToken);
+			config = await _repository.GetEvaluationOptionsAsync(flagIdentifier, cancellationToken);
 
 			// Cache for future requests if found
-			if (flagData != null && cache != null)
+			if (config != null && cache != null)
 			{
-				await cache.SetAsync(cacheKey, flagData, cancellationToken);
+				await cache.SetAsync(cacheKey, config, cancellationToken);
 			}
 		}
 
-		return flagData;
+		return config;
 	}
 
-	private async Task RegisterApplicationFlag(IFeatureFlag applicationFlag, CancellationToken cancellationToken)
+	private async Task RegisterApplicationFlag(IFeatureFlag applicationFlag, FlagIdentifier flagIdentifier, CancellationToken cancellationToken)
 	{
 		var activationMode = applicationFlag.OnOffMode == EvaluationMode.On ? EvaluationMode.On : EvaluationMode.Off;
 		var name = applicationFlag.Name ?? applicationFlag.Key;
@@ -178,15 +180,14 @@ public sealed class ApplicationFlagProcessor(
 		try
 		{
 			// Save to repository and return the created flag (repository may set additional properties)
-			await _repository.CreateApplicationFlagAsync(applicationFlag.Key, activationMode, name, description, cancellationToken);
+			await _repository.CreateApplicationFlagAsync(flagIdentifier, activationMode, name, description, cancellationToken);
 			// Cache for future requests
 			if (cache != null)
 			{
 				// Create composite key for uniqueness per application
-				var cacheKey = new ApplicationCacheKey(applicationFlag.Key, ApplicationName, ApplicationVersion);
+				var cacheKey = new ApplicationFlagCacheKey(flagIdentifier.Key, flagIdentifier.ApplicationName, flagIdentifier.ApplicationVersion);
 				await cache.SetAsync(cacheKey,
-					new EvaluationOptions(key: applicationFlag.Key, modeSet: new ModeSet([activationMode])),
-					cancellationToken);
+					new EvaluationOptions(key: applicationFlag.Key, modeSet: new ModeSet([activationMode])), cancellationToken);
 			}
 		}
 		catch

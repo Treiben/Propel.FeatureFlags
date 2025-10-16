@@ -2,7 +2,7 @@ using Knara.UtcStrict;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.FlagEvaluators;
 
-namespace FeatureFlags.UnitTests.Evaluation;
+namespace UnitTests.Evaluators;
 
 public class OperationalWindowEvaluator_CanProcess
 {
@@ -12,7 +12,7 @@ public class OperationalWindowEvaluator_CanProcess
 	public void CanProcess_FlagHasTimeWindowMode_ReturnsTrue()
 	{
 		// Arrange
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var modes = new ModeSet([EvaluationMode.TimeWindow]);
 		var flagConfig = new EvaluationOptions(
 			key: identifier.Key, modeSet: modes);
@@ -25,7 +25,7 @@ public class OperationalWindowEvaluator_CanProcess
 	public void CanProcess_FlagHasMultipleModesIncludingTimeWindow_ReturnsTrue()
 	{
 		// Arrange
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var modes = new ModeSet([EvaluationMode.TimeWindow, EvaluationMode.Scheduled]);
 		var flagConfig = new EvaluationOptions(
 			key: identifier.Key, modeSet: modes);
@@ -42,7 +42,7 @@ public class OperationalWindowEvaluator_CanProcess
 	public void CanProcess_FlagDoesNotHaveTimeWindowMode_ReturnsFalse(EvaluationMode mode)
 	{
 		// Arrange
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var modes = new ModeSet([mode]);
 		var flagConfig = new EvaluationOptions(
 			key: identifier.Key, modeSet: modes);
@@ -60,7 +60,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_AlwaysOpen_ReturnsEnabled()
 	{
 		// Arrange
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var flagConfig = new EvaluationOptions(identifier.Key);
 
 		// Act
@@ -77,7 +77,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		// Arrange
 		var evaluationTime = new UtcDateTime(new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc)); // Monday 12 PM
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var window = new UtcTimeWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17)); // 9 AM to 5 PM
 		var variations = new Variations { DefaultVariation = "window-open" };
@@ -99,7 +99,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		// Arrange
 		var evaluationTime = new UtcDateTime(new DateTime(2024, 1, 15, 20, 0, 0, DateTimeKind.Utc)); // Monday 8 PM
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var window = new UtcTimeWindow(
 			TimeSpan.FromHours(9), TimeSpan.FromHours(17)); // 9 AM to 5 PM
 		var variations = new Variations { DefaultVariation = "window-closed" };
@@ -122,7 +122,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		var nightTime = new UtcDateTime(new DateTime(2024, 1, 15, 2, 0, 0, DateTimeKind.Local)); // Monday 8 AM UTC
 		var dayTime = new UtcDateTime(new DateTime(2024, 1, 15, 12, 0, 0, DateTimeKind.Utc)); // Monday 12 PM UTC
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var window = new UtcTimeWindow(
 				TimeSpan.FromHours(22), TimeSpan.FromHours(10)); // 10 PM to 10 AM
 		var variations = new Variations { DefaultVariation = "maintenance-off" };
@@ -153,7 +153,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		DayOfWeek[] weekdaysOnly = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
 			DayOfWeek.Thursday, DayOfWeek.Friday];
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var window = new UtcTimeWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 				daysActive: weekdaysOnly);
@@ -181,7 +181,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		// Arrange
 		var evaluationTime = new DateTime(2024, 1, 15, 17, 0, 0, DateTimeKind.Utc); // 5 PM UTC
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var window = new UtcTimeWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 				"Pacific Standard Time"); // Window is in PST
@@ -201,7 +201,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_NoEvaluationTimeProvided_UsesCurrentTime()
 	{
 		// Arrange
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var flagConfig = new EvaluationOptions(identifier.Key);
 
 		// Act
@@ -220,7 +220,7 @@ public class OperationalWindowEvaluator_ProcessEvaluation
 		DayOfWeek[] businessDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
 			DayOfWeek.Thursday, DayOfWeek.Friday];
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var window = new UtcTimeWindow(
 				TimeSpan.FromHours(9), TimeSpan.FromHours(17),
 				daysActive: businessDays); 

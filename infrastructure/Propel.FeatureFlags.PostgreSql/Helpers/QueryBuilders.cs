@@ -6,30 +6,30 @@ namespace Propel.FeatureFlags.PostgreSql.Helpers;
 
 internal static class QueryBuilders
 {
-	internal static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(FlagIdentifier flagKey, string prefix = "")
+	internal static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(FlagIdentifier identifier, string prefix = "")
 	{
 		var parameters = new Dictionary<string, object>
 		{
-			["key"] = flagKey.Key,
-			["scope"] = (int)flagKey.Scope
+			["key"] = identifier.Key,
+			["scope"] = (int)identifier.Scope
 		};
 
-		if (flagKey.Scope == Scope.Global)
+		if (identifier.Scope == Scope.Global)
 		{
 			return ($"WHERE {prefix}key = @key AND {prefix}scope = @scope", parameters);
 		}
 
 		// Application or Feature scope
-		if (string.IsNullOrEmpty(flagKey.ApplicationName))
+		if (string.IsNullOrEmpty(identifier.ApplicationName))
 		{
-			throw new ArgumentException("Application name required for application-scoped flags.", nameof(flagKey.ApplicationName));
+			throw new ArgumentException("Application name required for application-scoped flags.", nameof(identifier.ApplicationName));
 		}
 
-		parameters["application_name"] = flagKey.ApplicationName;
+		parameters["application_name"] = identifier.ApplicationName;
 
-		if (!string.IsNullOrEmpty(flagKey.ApplicationVersion))
+		if (!string.IsNullOrEmpty(identifier.ApplicationVersion))
 		{
-			parameters["application_version"] = flagKey.ApplicationVersion;
+			parameters["application_version"] = identifier.ApplicationVersion;
 			return ($"WHERE {prefix}key = @key AND {prefix}scope = @scope AND {prefix}application_name = @application_name AND {prefix}application_version = @application_version", parameters);
 		}
 		else

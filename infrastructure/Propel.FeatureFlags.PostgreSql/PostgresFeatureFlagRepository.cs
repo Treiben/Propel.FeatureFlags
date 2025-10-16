@@ -11,9 +11,8 @@ namespace Propel.FeatureFlags.PostgreSql;
 
 internal sealed class PostgresFeatureFlagRepository(string connectionString, ILogger<PostgresFeatureFlagRepository> logger) : IFeatureFlagRepository
 {
-	public async Task<EvaluationOptions?> GetEvaluationOptionsAsync(string key, CancellationToken cancellationToken = default)
+	public async Task<EvaluationOptions?> GetEvaluationOptionsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default)
 	{
-		var identifier = new FlagIdentifier(key, Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
 		logger.LogDebug("Getting feature flag with key: {Key}, Scope: {Scope}, Application: {Application}",
 			identifier.Key, identifier.Scope, identifier.ApplicationName);
 
@@ -64,10 +63,8 @@ internal sealed class PostgresFeatureFlagRepository(string connectionString, ILo
 		}
 	}
 
-	public async Task CreateApplicationFlagAsync(string key, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default)
+	public async Task CreateApplicationFlagAsync(FlagIdentifier identifier, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default)
 	{
-		var identifier = new FlagIdentifier(key, Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
-
 		logger.LogDebug("Creating feature flag with key: {Key} for application: {Application}", identifier.Key, identifier.ApplicationName);
 
 		const string sql = @"
@@ -89,7 +86,7 @@ internal sealed class PostgresFeatureFlagRepository(string connectionString, ILo
 			command.Parameters.AddWithValue("key", identifier.Key);
 			command.Parameters.AddWithValue("application_name", identifier.ApplicationName!);
 			command.Parameters.AddWithValue("application_version", identifier.ApplicationVersion!);
-			command.Parameters.AddWithValue("scope", (int)Scope.Application);
+			command.Parameters.AddWithValue("scope", (int)identifier.Scope);
 			command.Parameters.AddWithValue("name", name);
 			command.Parameters.AddWithValue("description", description);
 			var evaluationModesParam = command.Parameters.Add("evaluation_modes", NpgsqlDbType.Jsonb);

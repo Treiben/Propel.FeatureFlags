@@ -24,7 +24,7 @@ public sealed class LocalFeatureFlagCache(IMemoryCache cache, LocalCacheConfigur
 	/// cref="CancellationToken.None"/>.</param>
 	/// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="EvaluationOptions"/>
 	/// associated with the specified cache key, or <see langword="null"/> if no value is found.</returns>
-	public Task<EvaluationOptions?> GetAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
+	public Task<EvaluationOptions?> GetAsync(FlagCacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
 		var flagKey = cacheKey.ComposeKey();
 		_cache.TryGetValue(flagKey, out EvaluationOptions? flag);
@@ -42,7 +42,7 @@ public sealed class LocalFeatureFlagCache(IMemoryCache cache, LocalCacheConfigur
 	/// <param name="cancellationToken">A token to monitor for cancellation requests. This parameter is optional and defaults to <see
 	/// cref="CancellationToken.None"/>.</param>
 	/// <returns>A task that represents the asynchronous operation.</returns>
-	public Task SetAsync(CacheKey cacheKey, EvaluationOptions flag, CancellationToken cancellationToken = default)
+	public Task SetAsync(FlagCacheKey cacheKey, EvaluationOptions flag, CancellationToken cancellationToken = default)
 	{
 		var flagKey = cacheKey.ComposeKey();
 
@@ -66,7 +66,7 @@ public sealed class LocalFeatureFlagCache(IMemoryCache cache, LocalCacheConfigur
 	/// <param name="cacheKey">The key identifying the cache entry to remove.</param>
 	/// <param name="cancellationToken">A token to monitor for cancellation requests. The default value is <see cref="CancellationToken.None"/>.</param>
 	/// <returns>A task that represents the asynchronous operation.</returns>
-	public Task RemoveAsync(CacheKey cacheKey, CancellationToken cancellationToken = default)
+	public Task RemoveAsync(FlagCacheKey cacheKey, CancellationToken cancellationToken = default)
 	{
 		var flagKey = cacheKey.ComposeKey();
 		_cache.Remove(flagKey);

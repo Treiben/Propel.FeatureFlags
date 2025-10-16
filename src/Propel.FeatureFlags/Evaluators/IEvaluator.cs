@@ -60,12 +60,11 @@ public abstract class EvaluatorBase : IEvaluator
 
 public enum EvaluationOrder
 {
-	TenantRollout = 1,
-	UserRollout = 2,
-	ActivationSchedule = 3,
-	OperationalWindow = 4,
+	TenantRollout = 3,
+	UserRollout = 4,
+	ActivationSchedule = 1,
+	OperationalWindow = 2,
 	CustomTargeting = 5,
-	Terminal = 99
 }
 
 public class EvaluationOptionsArgumentException : ArgumentException

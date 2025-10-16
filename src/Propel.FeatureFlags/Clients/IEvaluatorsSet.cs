@@ -1,4 +1,5 @@
-﻿using Propel.FeatureFlags.Domain;
+﻿using Microsoft.Extensions.Options;
+using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.FlagEvaluators;
 
 namespace Propel.FeatureFlags.Clients;
@@ -45,6 +46,12 @@ public sealed class EvaluatorsSet : IEvaluatorsSet
 	{
 		EvaluationResult? result = default;
 
+		if (evaluationOptions.ModeSet.Contains([EvaluationMode.Off, EvaluationMode.On]))
+		{
+			// Handle fundamental states that don't require complex logic
+			return EvaluateTerminalState(evaluationOptions, context);
+		}
+
 		var evaluators = _evaluators
 				.Where(h => h.CanProcess(evaluationOptions, context))
 				.OrderBy(p => p.EvaluationOrder)
@@ -71,6 +78,15 @@ public sealed class EvaluatorsSet : IEvaluatorsSet
 
 		return result;
 	}
+
+	private EvaluationResult? EvaluateTerminalState(EvaluationOptions evaluationOptions, EvaluationContext context)
+	{
+		bool disabled = evaluationOptions.ModeSet.Contains([EvaluationMode.Off]);
+		string because = disabled
+			? $"Feature flag '{evaluationOptions.Key}' is explicitly disabled"
+			: $"Feature flag '{evaluationOptions.Key}' is explicitly enabled";
+		return new EvaluationResult(isEnabled: !disabled, variation: evaluationOptions.Variations.DefaultVariation, reason: because);
+	}
 }
 
 /// <summary>
@@ -87,7 +103,6 @@ public static class DefaultEvaluators
 			new OperationalWindowEvaluator(),
 			new TargetingRulesEvaluator(),
 			new TenantRolloutEvaluator(),
-			new TerminalStateEvaluator(),
 			new UserRolloutEvaluator(),
 		]));
 	}

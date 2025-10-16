@@ -112,7 +112,7 @@ public class SetAsync_WithValidFlag(RedisTestsFixture fixture) : IClassFixture<R
 		var currentApplicationName = ApplicationInfo.Name;
 		var currentApplicationVersion = ApplicationInfo.Version;
 
-		var cacheKey = new CacheKey("original-flag", [currentApplicationName, currentApplicationVersion]);
+		var cacheKey = new ApplicationFlagCacheKey("original-flag", currentApplicationName, currentApplicationVersion);
 		await fixture.Cache.SetAsync(cacheKey, oldOptions);
 
 		var (updatedFlag, _) = new FlagConfigurationBuilder("original-flag")

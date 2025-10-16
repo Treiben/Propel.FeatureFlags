@@ -39,35 +39,36 @@ public sealed class GlobalFlagProcessor(
 	/// <exception cref="Exception">Thrown if the specified feature flag does not exist in the system.</exception>
 	public async Task<EvaluationResult?> Evaluate(string flagKey, EvaluationContext context, CancellationToken cancellationToken = default)
 	{
-		var flagConfig = await GetFlagConfiguration(flagKey, cancellationToken);
-		if (flagConfig == null)
+		var globalFlagIdentifier = new GlobalFlagIdentifier(flagKey);
+		var config = await GetFlagConfiguration(globalFlagIdentifier, cancellationToken);
+		if (config == null)
 		{
 			throw new Exception("The global feature flag is not found. Please create the flag in the system before evaluating it or remove reference to it.");
 		}
 
-		return await _evaluators.Evaluate(flagConfig, context);
+		return await _evaluators.Evaluate(config, context);
 	}
 
-	private async Task<EvaluationOptions?> GetFlagConfiguration(string flagKey, CancellationToken cancellationToken)
+	private async Task<EvaluationOptions?> GetFlagConfiguration(FlagIdentifier flagIdentifier, CancellationToken cancellationToken)
 	{
 		// Create composite key for uniqueness per application
-		var cacheKey = new GlobalCacheKey(flagKey);
+		var globalFlagCacheKey = new GlobalFlagCacheKey(flagIdentifier.Key);
 		// Try cache first
 		EvaluationOptions? flagConfig = null;
 		if (cache != null)
 		{
-			flagConfig = await cache.GetAsync(cacheKey, cancellationToken);
+			flagConfig = await cache.GetAsync(globalFlagCacheKey, cancellationToken);
 		}
 
 		// If not in cache, get from repository
 		if (flagConfig == null)
 		{
-			flagConfig = await _repository.GetEvaluationOptionsAsync(flagKey, cancellationToken);
+			flagConfig = await _repository.GetEvaluationOptionsAsync(flagIdentifier, cancellationToken);
 
 			// Cache for future requests if found
 			if (flagConfig != null && cache != null)
 			{
-				await cache.SetAsync(cacheKey, flagConfig, cancellationToken);
+				await cache.SetAsync(globalFlagCacheKey, flagConfig, cancellationToken);
 			}
 		}
 

@@ -1,7 +1,7 @@
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.FlagEvaluators;
 
-namespace FeatureFlags.UnitTests.Evaluation;
+namespace UnitTests.Evaluators;
 
 public class TargetingRulesEvaluatorTests
 {
@@ -80,7 +80,7 @@ public class TargetingRulesEvaluatorTests
 		// Arrange
 		var evaluator = new TargetingRulesEvaluator();
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		List<ITargetingRule> targetingRules = hasRules ? [CreateStringRule("userId", TargetingOperator.Equals, ["user123"], "on")] : [];
 		var flagConfig = new EvaluationOptions(key: identifier.Key, targetingRules: targetingRules);
 
@@ -95,7 +95,7 @@ public class TargetingRulesEvaluatorTests
 
 	private static EvaluationOptions CreateCriteriaWithStringRule(string attribute, TargetingOperator op, List<string> values, string variation)
 	{
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		return new EvaluationOptions(key: identifier.Key,
 			targetingRules: [CreateStringRule(attribute, op, values, variation)],
 			variations: new Variations { DefaultVariation = "off" }
@@ -104,7 +104,7 @@ public class TargetingRulesEvaluatorTests
 
 	private static EvaluationOptions CreateCriteriaWithNumericRule(string attribute, TargetingOperator op, List<double> values, string variation)
 	{
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		return new EvaluationOptions(key: identifier.Key,
 		targetingRules: [CreateNumericRule(attribute, op, values, variation)],
 		variations: new Variations { 

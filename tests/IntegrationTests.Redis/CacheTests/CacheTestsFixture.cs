@@ -67,9 +67,4 @@ public class InMemoryTestsFixture : IAsyncLifetime
 	{
 		await Task.CompletedTask;
 	}
-
-	// Helper method to clear all feature flags between tests
-	public async Task ClearAllFlags()
-	{
-	}
 }

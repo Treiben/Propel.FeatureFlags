@@ -1,4 +1,6 @@
-﻿namespace Propel.FeatureFlags.Domain;
+﻿using Propel.FeatureFlags.Infrastructure;
+
+namespace Propel.FeatureFlags.Domain;
 
 /// <summary>
 /// Represents a unique identifier for a feature flag, including its key, scope, and optional application context.
@@ -9,33 +11,33 @@
 public class FlagIdentifier
 {
 	public string Key { get; }
-	public string? ApplicationName { get; }
-	public string? ApplicationVersion { get; }
+	public string ApplicationName { get; }
+	public string ApplicationVersion { get; }
 	public Scope Scope { get; }
 
-	public FlagIdentifier(string key, Scope scope, string? applicationName = null, string? applicationVersion = null)
+	protected FlagIdentifier(string key, Scope scope, string applicationName, string applicationVersion)
 	{
 		if (string.IsNullOrWhiteSpace(key))
 		{
 			throw new ArgumentException("Feature flag key cannot be null or empty.", nameof(key));
 		}
 
-		if (scope == Scope.Application && string.IsNullOrWhiteSpace(applicationName))
-		{
-			throw new ArgumentException("Application name must be provided when scope is Application.", nameof(applicationName));
-		}
-
 		Key = key.Trim();
 		Scope = scope;
 
-		ApplicationName = string.IsNullOrWhiteSpace(applicationName) ? null : applicationName!.Trim();
-		ApplicationVersion = string.IsNullOrWhiteSpace(applicationVersion) ? null : applicationVersion!.Trim();
+		ApplicationName = applicationName.Trim();
+		ApplicationVersion = applicationVersion!.Trim();
 	}
+}
 
-	public static FlagIdentifier CreateGlobal(string key)
-	{
-		return new FlagIdentifier(key, Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0");
-	}
+public class GlobalFlagIdentifier(string key) 
+	: FlagIdentifier(key, Scope.Global, applicationName: "global", applicationVersion: "0.0.0.0")
+{
+}
+
+public class ApplicationFlagIdentifier(string key, string? applicationName = null, string? applicationVersion = null) 
+	: FlagIdentifier(key, Scope.Application, applicationName ?? ApplicationInfo.Name, applicationVersion ?? ApplicationInfo.Version ?? "1.0.0.0")
+{
 }
 
 public enum Scope

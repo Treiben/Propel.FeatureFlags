@@ -10,9 +10,8 @@ namespace Propel.FeatureFlags.SqlServer;
 
 internal sealed class SqlFeatureFlagRepository(string connectionString, ILogger<SqlFeatureFlagRepository> logger) : IFeatureFlagRepository
 {
-	public async Task<EvaluationOptions?> GetEvaluationOptionsAsync(string key, CancellationToken cancellationToken = default)
+	public async Task<EvaluationOptions?> GetEvaluationOptionsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default)
 	{
-		var identifier = new FlagIdentifier(key, Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
 		logger.LogDebug("Getting feature flag with key: {Key}, Scope: {Scope}, Application: {Application}",
 			identifier.Key, identifier.Scope, identifier.ApplicationName);
 
@@ -63,10 +62,8 @@ internal sealed class SqlFeatureFlagRepository(string connectionString, ILogger<
 		}
 	}
 
-	public async Task CreateApplicationFlagAsync(string key, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default)
+	public async Task CreateApplicationFlagAsync(FlagIdentifier identifier, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default)
 	{
-		var identifier = new FlagIdentifier(key, Scope.Application, ApplicationInfo.Name, ApplicationInfo.Version);
-
 		logger.LogDebug("Creating feature flag with key: {Key} for application: {Application}", identifier.Key, identifier.ApplicationName);
 
 		const string sql = @"
@@ -91,7 +88,7 @@ internal sealed class SqlFeatureFlagRepository(string connectionString, ILogger<
 			command.Parameters.AddWithValue("@key", identifier.Key);
 			command.Parameters.AddWithValue("@applicationName", identifier.ApplicationName);
 			command.Parameters.AddWithValue("@applicationVersion", identifier.ApplicationVersion);
-			command.Parameters.AddWithValue("@scope", (int)Scope.Application);
+			command.Parameters.AddWithValue("@scope", (int)identifier.Scope);
 			command.Parameters.AddWithValue("@name", name);
 			command.Parameters.AddWithValue("@description", description);
 			command.Parameters.AddWithValue("@evaluationModes", JsonSerializer.Serialize(new List<int> { (int)activeMode }, JsonDefaults.JsonOptions));

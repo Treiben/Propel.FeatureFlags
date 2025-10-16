@@ -1,9 +1,6 @@
 using Npgsql;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.PostgreSql.Helpers;
-using Shouldly;
-using Xunit;
 
 namespace FeatureFlags.IntegrationTests.Postgres.PostgreTests;
 
@@ -26,19 +23,13 @@ public class RepositoryHelpersTests : IClassFixture<PostgresTestsFixture>
     {
         // Arrange
         await _fixture.ClearAllData();
-        await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
-            "audit-test-flag",
+		var identifier = new ApplicationFlagIdentifier("audit-test-flag");
+		await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
+			identifier,
             EvaluationMode.On,
             "Audit Test",
             "Testing audit",
             CancellationToken.None
-        );
-
-        var identifier = new FlagIdentifier(
-            key: "audit-test-flag",
-            scope: Scope.Application,
-            applicationName: "TestApp",
-            applicationVersion: "1.0.0.0"
         );
 
         // Act
@@ -62,19 +53,13 @@ public class RepositoryHelpersTests : IClassFixture<PostgresTestsFixture>
     {
         // Arrange
         await _fixture.ClearAllData();
-        await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
-            "complete-audit-flag",
+		var identifier = new ApplicationFlagIdentifier("complete-audit-flag");
+		await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
+			identifier,
             EvaluationMode.On,
             "Complete Audit",
             "Testing complete audit",
             CancellationToken.None
-        );
-
-        var identifier = new FlagIdentifier(
-            key: "complete-audit-flag",
-            scope: Scope.Application,
-            applicationName: "TestApp",
-            applicationVersion: "1.0.0.0"
         );
 
         // Act
@@ -91,15 +76,15 @@ public class RepositoryHelpersTests : IClassFixture<PostgresTestsFixture>
             LIMIT 1",
             connection
         );
-        verifyCommand.Parameters.AddWithValue("key", "complete-audit-flag");
-        verifyCommand.Parameters.AddWithValue("app_name", "TestApp");
+        verifyCommand.Parameters.AddWithValue("key", identifier.Key);
+        verifyCommand.Parameters.AddWithValue("app_name", identifier.ApplicationName);
 
         using var reader = await verifyCommand.ExecuteReaderAsync();
         reader.Read().ShouldBeTrue();
 
-        reader.GetString(0).ShouldBe("complete-audit-flag");
-        reader.GetString(1).ShouldBe("TestApp");
-        reader.GetString(2).ShouldBe("1.0.0.0");
+        reader.GetString(0).ShouldBe(identifier.Key);
+        reader.GetString(1).ShouldBe(identifier.ApplicationName);
+        reader.GetString(2).ShouldBe(identifier.ApplicationVersion);
         reader.GetString(3).ShouldBe("flag-created");
         reader.GetString(4).ShouldBe("Application");
         reader.GetString(5).ShouldBe("Auto-registered by the application");
@@ -114,19 +99,13 @@ public class RepositoryHelpersTests : IClassFixture<PostgresTestsFixture>
     {
         // Arrange
         await _fixture.ClearAllData();
-        await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
-            "metadata-test-flag",
+		var identifier = new ApplicationFlagIdentifier("metadata-test-flag");
+		await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
+			identifier,
             EvaluationMode.On,
             "Metadata Test",
             "Testing metadata",
             CancellationToken.None
-        );
-
-        var identifier = new FlagIdentifier(
-            key: "metadata-test-flag",
-            scope: Scope.Application,
-            applicationName: "TestApp",
-            applicationVersion: "1.0.0.0"
         );
 
         // Act
@@ -139,7 +118,7 @@ public class RepositoryHelpersTests : IClassFixture<PostgresTestsFixture>
             "SELECT COUNT(*) FROM feature_flags_metadata WHERE flag_key = @key",
             connection
         );
-        verifyCommand.Parameters.AddWithValue("key", "metadata-test-flag");
+        verifyCommand.Parameters.AddWithValue("key", identifier.Key);
         var count = Convert.ToInt32(await verifyCommand.ExecuteScalarAsync());
 
         count.ShouldBeGreaterThanOrEqualTo(1);
@@ -150,19 +129,13 @@ public class RepositoryHelpersTests : IClassFixture<PostgresTestsFixture>
     {
         // Arrange
         await _fixture.ClearAllData();
-        await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
-            "expiration-test-flag",
+		var identifier = new ApplicationFlagIdentifier("expiration-test-flag");
+		await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
+			identifier,
             EvaluationMode.On,
             "Expiration Test",
             "Testing expiration",
             CancellationToken.None
-        );
-
-        var identifier = new FlagIdentifier(
-            key: "expiration-test-flag",
-            scope: Scope.Application,
-            applicationName: "TestApp",
-            applicationVersion: "1.0.0.0"
         );
 
         var beforeInsert = DateTimeOffset.UtcNow;
@@ -181,8 +154,8 @@ public class RepositoryHelpersTests : IClassFixture<PostgresTestsFixture>
             LIMIT 1",
             connection
         );
-        verifyCommand.Parameters.AddWithValue("key", "expiration-test-flag");
-        verifyCommand.Parameters.AddWithValue("app_name", "TestApp");
+        verifyCommand.Parameters.AddWithValue("key", identifier.Key);
+        verifyCommand.Parameters.AddWithValue("app_name", identifier.ApplicationName);
 
         using var reader = await verifyCommand.ExecuteReaderAsync();
         reader.Read().ShouldBeTrue();
@@ -204,20 +177,14 @@ public class RepositoryHelpersTests : IClassFixture<PostgresTestsFixture>
     {
         // Arrange
         await _fixture.ClearAllData();
-        await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
-            "exists-test-flag",
+		var identifier = new ApplicationFlagIdentifier("exists-test-flag");
+		await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
+            identifier,
             EvaluationMode.On,
             "Exists Test",
             "Testing exists check",
             CancellationToken.None
         );
-
-        var identifier = new FlagIdentifier(
-            key: "exists-test-flag",
-            scope: Scope.Application,
-            applicationName: ApplicationInfo.Name,
-            applicationVersion: ApplicationInfo.Version
-		);
 
         // Act
         using var connection = new NpgsqlConnection(_connectionString);
@@ -233,12 +200,7 @@ public class RepositoryHelpersTests : IClassFixture<PostgresTestsFixture>
     {
         // Arrange
         await _fixture.ClearAllData();
-        var identifier = new FlagIdentifier(
-            key: "non-existent-flag",
-            scope: Scope.Application,
-            applicationName: "TestApp",
-            applicationVersion: "1.0.0.0"
-        );
+		var identifier = new ApplicationFlagIdentifier("non-existent-flag");
 
         // Act
         using var connection = new NpgsqlConnection(_connectionString);

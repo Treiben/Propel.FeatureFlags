@@ -1,43 +1,30 @@
 using FeatureFlags.IntegrationTests.SqlServer.SqlServerTests;
 using Microsoft.Data.SqlClient;
 using Propel.FeatureFlags.Domain;
-using Propel.FeatureFlags.Infrastructure;
 using Propel.FeatureFlags.SqlServer.Helpers;
+using Shouldly;
 
 namespace FeatureFlags.IntegrationTests.Postgres.PostgreTests;
 
 [Collection("Postgres")]
-public class RepositoryHelpersTests : IClassFixture<SqlServerTestsFixture>
+public class RepositoryHelpersTests(SqlServerTestsFixture fixture) : IClassFixture<SqlServerTestsFixture>
 {
-    private readonly SqlServerTestsFixture _fixture;
-    private readonly string _connectionString;
+	private readonly string _connectionString = fixture.GetConnectionString();
 
-    public RepositoryHelpersTests(SqlServerTestsFixture fixture)
-    {
-        _fixture = fixture;
-        _connectionString = fixture.GetConnectionString();
-    }
+	#region GenerateAuditRecordAsync Tests
 
-    #region GenerateAuditRecordAsync Tests
-
-    [Fact]
+	[Fact]
     public async Task GenerateAuditRecordAsync_ShouldInsertAuditRecord_WithCorrectAction()
     {
         // Arrange
-        await _fixture.ClearAllData();
-        await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
-            "audit-test-flag",
+        await fixture.ClearAllData();
+		var identifier = new ApplicationFlagIdentifier("audit-test-flag");
+		await fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
+			identifier,
             EvaluationMode.On,
             "Audit Test",
             "Testing audit",
             CancellationToken.None
-        );
-
-        var identifier = new FlagIdentifier(
-            key: "audit-test-flag",
-            scope: Scope.Application,
-            applicationName: "TestApp",
-            applicationVersion: "1.0.0.0"
         );
 
         // Act
@@ -60,20 +47,14 @@ public class RepositoryHelpersTests : IClassFixture<SqlServerTestsFixture>
     public async Task GenerateAuditRecordAsync_ShouldPopulateAllRequiredFields()
     {
         // Arrange
-        await _fixture.ClearAllData();
-        await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
-            "complete-audit-flag",
+        await fixture.ClearAllData();
+		var identifier = new ApplicationFlagIdentifier("complete-audit-flag");
+		await fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
+			identifier,
             EvaluationMode.On,
             "Complete Audit",
             "Testing complete audit",
             CancellationToken.None
-        );
-
-        var identifier = new FlagIdentifier(
-            key: "complete-audit-flag",
-            scope: Scope.Application,
-            applicationName: "TestApp",
-            applicationVersion: "1.0.0.0"
         );
 
         // Act
@@ -89,15 +70,15 @@ public class RepositoryHelpersTests : IClassFixture<SqlServerTestsFixture>
             ORDER BY Timestamp DESC",
             connection
         );
-        verifyCommand.Parameters.AddWithValue("key", "complete-audit-flag");
-        verifyCommand.Parameters.AddWithValue("app_name", "TestApp");
+        verifyCommand.Parameters.AddWithValue("key", identifier.Key);
+        verifyCommand.Parameters.AddWithValue("app_name", identifier.ApplicationName);
 
         using var reader = await verifyCommand.ExecuteReaderAsync();
         reader.Read().ShouldBeTrue();
 
-        reader.GetString(0).ShouldBe("complete-audit-flag");
-        reader.GetString(1).ShouldBe("TestApp");
-        reader.GetString(2).ShouldBe("1.0.0.0");
+        reader.GetString(0).ShouldBe(identifier.Key);
+        reader.GetString(1).ShouldBe(identifier.ApplicationName);
+        reader.GetString(2).ShouldBe(identifier.ApplicationVersion);
         reader.GetString(3).ShouldBe("flag-created");
         reader.GetString(4).ShouldBe("Application");
         reader.GetString(5).ShouldBe("Auto-registered by the application");
@@ -111,20 +92,14 @@ public class RepositoryHelpersTests : IClassFixture<SqlServerTestsFixture>
     public async Task GenerateMetadataRecordAsync_ShouldInsertMetadataRecord()
     {
         // Arrange
-        await _fixture.ClearAllData();
-        await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
-            "metadata-test-flag",
+        await fixture.ClearAllData();
+		var identifier = new ApplicationFlagIdentifier("metadata-test-flag");
+		await fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
+			identifier,
             EvaluationMode.On,
             "Metadata Test",
             "Testing metadata",
             CancellationToken.None
-        );
-
-        var identifier = new FlagIdentifier(
-            key: "metadata-test-flag",
-            scope: Scope.Application,
-            applicationName: "TestApp",
-            applicationVersion: "1.0.0.0"
         );
 
         // Act
@@ -147,20 +122,14 @@ public class RepositoryHelpersTests : IClassFixture<SqlServerTestsFixture>
     public async Task GenerateMetadataRecordAsync_ShouldSetExpirationDateAndPermanentFlag()
     {
         // Arrange
-        await _fixture.ClearAllData();
-        await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
-            "expiration-test-flag",
+        await fixture.ClearAllData();
+		var identifier = new ApplicationFlagIdentifier("expiration-test-flag");
+		await fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
+            identifier,
             EvaluationMode.On,
             "Expiration Test",
             "Testing expiration",
             CancellationToken.None
-        );
-
-        var identifier = new FlagIdentifier(
-            key: "expiration-test-flag",
-            scope: Scope.Application,
-            applicationName: "TestApp",
-            applicationVersion: "1.0.0.0"
         );
 
         var beforeInsert = DateTimeOffset.UtcNow;
@@ -178,8 +147,8 @@ public class RepositoryHelpersTests : IClassFixture<SqlServerTestsFixture>
             ORDER BY ExpirationDate DESC",
             connection
         );
-        verifyCommand.Parameters.AddWithValue("key", "expiration-test-flag");
-        verifyCommand.Parameters.AddWithValue("app_name", "TestApp");
+        verifyCommand.Parameters.AddWithValue("key", identifier.Key);
+        verifyCommand.Parameters.AddWithValue("app_name", identifier.ApplicationName);
 
         using var reader = await verifyCommand.ExecuteReaderAsync();
         reader.Read().ShouldBeTrue();
@@ -200,21 +169,15 @@ public class RepositoryHelpersTests : IClassFixture<SqlServerTestsFixture>
     public async Task CheckFlagExists_ShouldReturnTrue_WhenFlagExists()
     {
         // Arrange
-        await _fixture.ClearAllData();
-        await _fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
-            "exists-test-flag",
+        await fixture.ClearAllData();
+		var identifier = new ApplicationFlagIdentifier("exists-test-flag");
+		await fixture.FeatureFlagRepository.CreateApplicationFlagAsync(
+			identifier,
             EvaluationMode.On,
             "Exists Test",
             "Testing exists check",
             CancellationToken.None
         );
-
-        var identifier = new FlagIdentifier(
-            key: "exists-test-flag",
-            scope: Scope.Application,
-            applicationName: ApplicationInfo.Name,
-            applicationVersion: ApplicationInfo.Version
-		);
 
         // Act
         using var connection = new SqlConnection(_connectionString);
@@ -229,13 +192,8 @@ public class RepositoryHelpersTests : IClassFixture<SqlServerTestsFixture>
     public async Task CheckFlagExists_ShouldReturnFalse_WhenFlagDoesNotExist()
     {
         // Arrange
-        await _fixture.ClearAllData();
-        var identifier = new FlagIdentifier(
-            key: "non-existent-flag",
-            scope: Scope.Application,
-            applicationName: "TestApp",
-            applicationVersion: "1.0.0.0"
-        );
+        await fixture.ClearAllData();
+		var identifier = new ApplicationFlagIdentifier("non-existent-flag");
 
         // Act
         using var connection = new SqlConnection(_connectionString);

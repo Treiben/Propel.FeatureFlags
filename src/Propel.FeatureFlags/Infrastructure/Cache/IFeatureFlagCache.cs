@@ -10,7 +10,7 @@ namespace Propel.FeatureFlags.Infrastructure.Cache;
 /// evaluations need to be cached for performance or consistency.</remarks>
 public interface IFeatureFlagCache
 {
-	Task<EvaluationOptions?> GetAsync(CacheKey key, CancellationToken cancellationToken = default);
-	Task SetAsync(CacheKey key, EvaluationOptions flag, CancellationToken cancellationToken = default);
-	Task RemoveAsync(CacheKey key, CancellationToken cancellationToken = default);
+	Task<EvaluationOptions?> GetAsync(FlagCacheKey key, CancellationToken cancellationToken = default);
+	Task SetAsync(FlagCacheKey key, EvaluationOptions flag, CancellationToken cancellationToken = default);
+	Task RemoveAsync(FlagCacheKey key, CancellationToken cancellationToken = default);
 }

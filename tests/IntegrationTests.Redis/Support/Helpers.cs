@@ -16,11 +16,11 @@ public class ApplicationFeatureFlag(
 
 public class FlagConfigurationBuilder
 {
-	private FlagIdentifier _flagIdentifier;
+	private readonly FlagIdentifier _flagIdentifier;
 
 	private List<ITargetingRule> _targetingRules = [];
 	private ModeSet _evaluationModes = EvaluationMode.Off;
-	private Variations _variations = new Variations();
+	private Variations _variations = new();
 	private UtcSchedule _schedule = UtcSchedule.Unscheduled;
 	private UtcTimeWindow _window = UtcTimeWindow.AlwaysOpen;
 	private AccessControl _userAccessControl = AccessControl.Unrestricted;
@@ -34,10 +34,10 @@ public class FlagConfigurationBuilder
 		var identifierScope = scope ?? Scope.Application;
 		if (identifierScope == Scope.Application)
 		{
-			_flagIdentifier = new FlagIdentifier(identifierKey, identifierScope, ApplicationInfo.Name, ApplicationInfo.Version);
+			_flagIdentifier = new ApplicationFlagIdentifier(identifierKey);
 		}
 		else // Global or Feature scope
-			_flagIdentifier = new FlagIdentifier(identifierKey, identifierScope);
+			_flagIdentifier = new GlobalFlagIdentifier(identifierKey);
 	}
 
 	public FlagConfigurationBuilder WithEvaluationModes(params EvaluationMode[] modes)
@@ -110,16 +110,16 @@ public class FlagConfigurationBuilder
 
 public static class CacheKeyFactory
 {
-	public static CacheKey CreateCacheKey(string key)
+	public static FlagCacheKey CreateCacheKey(string key)
 	{
 		var applicationName = ApplicationInfo.Name;
 		var applicationVersion = ApplicationInfo.Version;
 
-		return new CacheKey(key, [applicationName, applicationVersion]);
+		return new ApplicationFlagCacheKey(key, applicationName, applicationVersion);
 	}
 
-	public static CacheKey CreateGlobalCacheKey(string key)
+	public static FlagCacheKey CreateGlobalCacheKey(string key)
 	{
-		return new CacheKey(key, ["global"]);
+		return new GlobalFlagCacheKey(key);
 	}
 }

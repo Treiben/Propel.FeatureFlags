@@ -11,7 +11,8 @@ internal static class FeatureFlagExtensions
 	{
 		var name = flag.Name ?? flag.Key;
 		var description = flag.Description ?? $"Auto-deployed flag for {flag.Key} in application {ApplicationInfo.Name}";
+		var identifier = new ApplicationFlagIdentifier(flag.Key);
 		// Save to repository (if flag already exists, this will do nothing)
-		await repository.CreateApplicationFlagAsync(flag.Key, flag.OnOffMode, name, description, cancellationToken);
+		await repository.CreateApplicationFlagAsync(identifier, flag.OnOffMode, name, description, cancellationToken);
 	}
 }

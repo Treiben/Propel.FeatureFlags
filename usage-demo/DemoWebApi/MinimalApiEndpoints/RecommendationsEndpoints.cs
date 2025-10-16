@@ -43,15 +43,14 @@ public static class RecommendationsEndpoints
 		// Type-safe feature flag evaluation
 		// Provides compile-time safety, auto-completion, and better maintainability
 		// Uses strongly-typed feature flag definition with default values
-		app.MapGet("/recommendations/{userId}", async (string userId, IApplicationFlagClient featureFlags) =>
+		app.MapGet("/recommendations/{userId}", async (string userId, HttpContext context) =>
 		{
 			// Type-safe evaluation ensures the flag exists with proper defaults
 			// If flag doesn't exist in database, it will be auto-created with the configured defaults
 			var featureFlag = new RecommendationAlgorithmFeatureFlag();
-			var algorithmType = await featureFlags.GetVariationAsync(
+			var algorithmType = await context.GetFeatureFlagVariationAsync(
 				flag: featureFlag,
-				defaultValue: "collaborative-filtering", // default
-				userId: userId
+				defaultValue: "collaborative-filtering" // default
 			);
 
 			return algorithmType switch

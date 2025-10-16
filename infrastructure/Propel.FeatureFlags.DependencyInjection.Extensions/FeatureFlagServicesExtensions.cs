@@ -34,7 +34,6 @@ internal static class FeatureFlagServicesExtensions
 					new OperationalWindowEvaluator(),
 					new TargetingRulesEvaluator(),
 					new TenantRolloutEvaluator(),
-					new TerminalStateEvaluator(),
 					new UserRolloutEvaluator(),
 				])));
 		return services;

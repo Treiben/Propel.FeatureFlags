@@ -5,24 +5,24 @@ namespace Propel.FeatureFlags.SqlServer.Helpers;
 
 internal static class QueryBuilders
 {
-	internal static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(FlagIdentifier flagKey, string prefix = "")
+	internal static (string whereClause, Dictionary<string, object> parameters) BuildWhereClause(FlagIdentifier identifier, string prefix = "")
 	{
 		var parameters = new Dictionary<string, object>
 		{
-			["Key"] = flagKey.Key,
-			["Scope"] = (int)flagKey.Scope
+			["Key"] = identifier.Key,
+			["Scope"] = (int)identifier.Scope
 		};
 
-		if (flagKey.Scope == Scope.Global)
+		if (identifier.Scope == Scope.Global)
 		{
 			return ($"WHERE {prefix}[Key] = @key AND {prefix}Scope = @scope", parameters);
 		}
 
-		parameters["applicationName"] = flagKey.ApplicationName!;
+		parameters["applicationName"] = identifier.ApplicationName!;
 
-		if (!string.IsNullOrWhiteSpace(flagKey.ApplicationVersion))
+		if (!string.IsNullOrWhiteSpace(identifier.ApplicationVersion))
 		{
-			parameters["applicationVersion"] = flagKey.ApplicationVersion;
+			parameters["applicationVersion"] = identifier.ApplicationVersion;
 			return ($"WHERE {prefix}[Key] = @key AND {prefix}Scope = @scope AND {prefix}ApplicationName = @applicationName AND {prefix}ApplicationVersion = @applicationVersion", parameters);
 		}
 		else

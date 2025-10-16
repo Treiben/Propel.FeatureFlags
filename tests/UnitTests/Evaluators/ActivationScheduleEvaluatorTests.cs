@@ -2,7 +2,7 @@ using Knara.UtcStrict;
 using Propel.FeatureFlags.Domain;
 using Propel.FeatureFlags.FlagEvaluators;
 
-namespace FeatureFlags.UnitTests.Evaluation;
+namespace UnitTests.Evaluators;
 
 public class ActivationScheduleEvaluator_CanProcess
 {
@@ -12,7 +12,7 @@ public class ActivationScheduleEvaluator_CanProcess
 	public void CanProcess_FlagHasScheduledMode_ReturnsTrue()
 	{
 		// Arrange
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var flagConfig = new EvaluationOptions(key: identifier.Key, modeSet: new ModeSet([EvaluationMode.Scheduled]));
 
 		// Act & Assert
@@ -23,7 +23,7 @@ public class ActivationScheduleEvaluator_CanProcess
 	public void CanProcess_FlagHasMultipleModesIncludingScheduled_ReturnsTrue()
 	{
 		// Arrange
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var modes = new ModeSet([EvaluationMode.Scheduled, EvaluationMode.TimeWindow]);
 		var flag = new EvaluationOptions(key: identifier.Key, modeSet: modes);
 		// Act & Assert
@@ -38,7 +38,7 @@ public class ActivationScheduleEvaluator_CanProcess
 	public void CanProcess_FlagDoesNotHaveScheduledMode_ReturnsFalse(EvaluationMode mode)
 	{
 		// Arrange
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var modes = new ModeSet([mode]);
 		var flag = new EvaluationOptions(key: identifier.Key, modeSet: modes);
 
@@ -55,7 +55,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 	public async Task ProcessEvaluation_NoSchedule_EnablesImmediately()
 	{
 		// Arrange
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var flagConfig = new EvaluationOptions(key: identifier.Key);
 
 		// Act
@@ -73,7 +73,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var evaluationTime = new DateTime(2024, 1, 10, 12, 0, 0, DateTimeKind.Utc);
 		var enableDate = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc);
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var flagConfig = new EvaluationOptions(
 				key: identifier.Key,
 				schedule: new UtcSchedule(new UtcDateTime(enableDate), UtcDateTime.MaxValue),
@@ -97,7 +97,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		// Arrange
 		var enableDate = new UtcDateTime(new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc));
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var schedule = new UtcSchedule(new UtcDateTime(enableDate), UtcDateTime.MaxValue);
 		var variations = new Variations { DefaultVariation = "scheduled-off" };
 		var flag = new EvaluationOptions(key: identifier.Key, schedule: schedule, variations: variations);
@@ -119,7 +119,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var evaluationTime = new UtcDateTime(new DateTime(2024, 1, 20, 12, 0, 0));
 		var enableDate = new UtcDateTime(new DateTime(2024, 1, 15, 10, 0, 0));
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var flagConfig = new EvaluationOptions(
 				key: identifier.Key,
 				schedule: new UtcSchedule(enableDate, UtcDateTime.MaxValue),
@@ -144,7 +144,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var enableDate = new UtcDateTime(new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc));
 		var disableDate = new UtcDateTime(new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc));
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var flagConfig = new EvaluationOptions(
 				key: identifier.Key,
 				schedule: new UtcSchedule(enableDate, disableDate),
@@ -168,7 +168,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var enableDate = new UtcDateTime(new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc));
 		var disableDate = new UtcDateTime(new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc));
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var flagConfig = new EvaluationOptions(
 				key: identifier.Key,
 				schedule: new UtcSchedule(enableDate, disableDate),
@@ -194,7 +194,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var enableDate = new UtcDateTime(new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc));
 		var disableDate = new UtcDateTime(new DateTime(2024, 1, 20, 10, 0, 0, DateTimeKind.Utc));
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var flagConfig = new EvaluationOptions(
 				key: identifier.Key,
 				schedule: new UtcSchedule(enableDate, disableDate),
@@ -218,7 +218,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		// Arrange
 		var enableDate = DateTime.UtcNow.AddHours(-1); // 1 hour ago
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var flagConfig = new EvaluationOptions(
 				key: identifier.Key,
 				schedule: new UtcSchedule(new UtcDateTime(enableDate), UtcDateTime.MaxValue),
@@ -241,7 +241,7 @@ public class ActivationScheduleEvaluator_ProcessEvaluation
 		var launchDate = new DateTime(2024, 1, 15, 9, 0, 0, DateTimeKind.Unspecified);
 		var endDate = new DateTime(2024, 1, 22, 9, 0, 0, DateTimeKind.Unspecified);
 
-		var identifier = new FlagIdentifier("test-flag", Scope.Global);
+		var identifier = new GlobalFlagIdentifier("test-flag");
 		var flagConfig = new EvaluationOptions(
 				key: identifier.Key,
 				schedule: new UtcSchedule(new UtcDateTime(launchDate), new UtcDateTime(endDate)),

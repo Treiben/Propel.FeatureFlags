@@ -47,7 +47,7 @@ public class AccessControl
 
 	public bool HasAccessRestrictions()
 	{
-		return Allowed.Count > 0 || Blocked.Count > 0 || RolloutPercentage < 100;
+		return Allowed.Count > 0 || Blocked.Count > 0 || (RolloutPercentage > 0 && RolloutPercentage < 100);
 	}
 
 	public (AccessResult result, string reason) EvaluateAccess(string id, string flagKey)
@@ -59,37 +59,60 @@ public class AccessControl
 
 		var normalizedId = id.Trim();
 
-		// Check if user is explicitly blocked (takes precedence)
-		if (IsBlockedFor(normalizedId))
+		if (Allowed.Count > 0 || Blocked.Count > 0)
 		{
-			return (AccessResult.Denied, "Access is blocked");
+			// If there are explicit allow/block rules, use them
+			return EvaluateWithExplicitRules(normalizedId, flagKey);
 		}
-
-		// Check if user is explicitly allowed
-		if (IsAllowedFor(normalizedId))
+		else
 		{
-			return (AccessResult.Allowed, "Access is allowed");
+			// Otherwise, rely solely on percentage rollout
+			return EvaluateWithRolloutOnly(normalizedId, flagKey);
 		}
+	}
 
+	private (AccessResult result, string reason) EvaluateWithRolloutOnly(string normalizedId, string flagKey)
+	{
 		// Check percentage rollout
 		if (RolloutPercentage <= 0)
 		{
 			return (AccessResult.Denied, "Access restricted to all");
 		}
-
 		if (RolloutPercentage >= 100)
 		{
 			return (AccessResult.Allowed, "Access unrestricted to all");
 		}
-
-		// Check percentage rollout
 		var (inRollout, percentage) = IsInRollout(flagKey, normalizedId);
 		if (inRollout)
 		{
 			return (AccessResult.Allowed, $"Id is in rollout: {percentage}% < {RolloutPercentage}%");
 		}
-
 		return (AccessResult.Denied, $"Id is not in rollout: {percentage}% >= {RolloutPercentage}%");
+	}
+
+	private (AccessResult result, string reason) EvaluateWithExplicitRules(string normalizedId, string flagKey)
+	{
+		// Check if user is explicitly blocked (takes precedence)
+		if (IsBlockedFor(normalizedId))
+		{
+			return (AccessResult.Denied, "Access is blocked");
+		}
+		
+		if (Allowed.Count == 0)
+		{
+			// If no one is explicitly allowed, everyone not blocked is allowed
+			return (AccessResult.Allowed, "Access is allowed all entities not in blocked list (no explicit allow rules)");
+		}
+
+		if (IsAllowedFor(normalizedId))
+		{
+			// Check if user is explicitly allowed
+			return (AccessResult.Allowed, "Access is allowed");
+		}
+
+		// If no one is explicitly blocked, everyone not allowed is denied
+		return (AccessResult.Denied, "Access is denied to all entities not in allowed list (no explicit block rules)");
+
 	}
 
 	public AccessControl AllowAccessFor(string id)
@@ -162,7 +185,7 @@ public class AccessControl
 
 		if (RolloutPercentage == percentage)
 		{
-			return this; 
+			return this;
 		}
 
 		return new AccessControl([.. Allowed], [.. Blocked], percentage);
@@ -212,7 +235,7 @@ public class AccessControl
 		{
 			if (string.IsNullOrWhiteSpace(id))
 			{
-				continue; 
+				continue;
 			}
 
 			var normalizedId = id.Trim();

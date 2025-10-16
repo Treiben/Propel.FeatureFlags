@@ -21,8 +21,6 @@ public class SetAsync_WithValidFlag(InMemoryTestsFixture fixture) : IClassFixtur
 	public async Task ThenStoresFlag()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
-
 		var (options, _) = new FlagConfigurationBuilder("cache-test")
 							.WithEvaluationModes(EvaluationMode.On)
 							.Build();
@@ -42,8 +40,6 @@ public class SetAsync_WithValidFlag(InMemoryTestsFixture fixture) : IClassFixtur
 	public async Task If_FlagWithComplexData_ThenStoresCorrectly()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
-
 		var (options, _) = new FlagConfigurationBuilder("complex-flag")
 			.WithEvaluationModes(EvaluationMode.UserTargeted)
 			.WithTargetingRules([
@@ -94,8 +90,6 @@ public class SetAsync_WithValidFlag(InMemoryTestsFixture fixture) : IClassFixtur
 	public async Task If_FlagWithComplexCacheKey_ThenStoreCorrectly()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
-
 		var (options, _) = new FlagConfigurationBuilder("expiring-flag")
 			.WithEvaluationModes(EvaluationMode.On)
 			.Build();
@@ -112,15 +106,13 @@ public class SetAsync_WithValidFlag(InMemoryTestsFixture fixture) : IClassFixtur
 	public async Task If_UpdateExistingFlag_ThenOverwritesData()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
-
 		var (oldOptions, _) = new FlagConfigurationBuilder("original-flag")
 			.WithEvaluationModes(EvaluationMode.Off)
 			.Build();
 		var currentApplicationName = ApplicationInfo.Name;
 		var currentApplicationVersion = ApplicationInfo.Version;
 
-		var cacheKey = new CacheKey("original-flag", [currentApplicationName, currentApplicationVersion]);
+		var cacheKey = new ApplicationFlagCacheKey("original-flag", currentApplicationName, currentApplicationVersion);
 		await fixture.Cache.SetAsync(cacheKey, oldOptions);
 
 		var (updatedFlag, _) = new FlagConfigurationBuilder("original-flag")
@@ -140,7 +132,6 @@ public class SetAsync_WithValidFlag(InMemoryTestsFixture fixture) : IClassFixtur
 	public async Task If_CancellationTokenProvided_ThenCompletesSuccessfully()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
 		using var cts = new CancellationTokenSource();
 		
 		var (options, _) = new FlagConfigurationBuilder("cancellation-test")
@@ -162,7 +153,6 @@ public class GetAsync_WhenFlagExists(InMemoryTestsFixture fixture) : IClassFixtu
 	public async Task If_FlagWithTimeData_ThenDeserializesCorrectly()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
 		var (options, _) = new FlagConfigurationBuilder("time-flag")
 			.WithEvaluationModes(EvaluationMode.Scheduled, EvaluationMode.TimeWindow)
 			.WithSchedule(UtcSchedule.CreateSchedule(DateTimeOffset.UtcNow.AddHours(1), DateTimeOffset.UtcNow.AddDays(7)))
@@ -190,7 +180,6 @@ public class GetAsync_WhenFlagExists(InMemoryTestsFixture fixture) : IClassFixtu
 	public async Task If_FlagWithUserRolloutPercentage_ThenDeserializesCorrectly()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
 		var (options, _) = new FlagConfigurationBuilder("percentage-flag")
 							.WithEvaluationModes(EvaluationMode.UserRolloutPercentage)
 							.WithUserAccessControl(new AccessControl(rolloutPercentage: 75))
@@ -212,7 +201,6 @@ public class GetAsync_WhenFlagExists(InMemoryTestsFixture fixture) : IClassFixtu
 	public async Task If_CancellationTokenProvided_ThenCompletesSuccessfully()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
 		using var cts = new CancellationTokenSource();
 		
 		var (options, _) = new FlagConfigurationBuilder("cancellation-test")
@@ -233,9 +221,6 @@ public class GetAsync_WhenFlagDoesNotExist(InMemoryTestsFixture fixture) : IClas
 	[Fact]
 	public async Task ThenReturnsNull()
 	{
-		// Arrange
-		await fixture.ClearAllFlags();
-
 		// Act
 		var cacheKey = CacheKeyFactory.CreateCacheKey("not-existent-flag");
 		var result = await fixture.Cache.GetAsync(cacheKey);
@@ -248,7 +233,6 @@ public class GetAsync_WhenFlagDoesNotExist(InMemoryTestsFixture fixture) : IClas
 	public async Task If_CancellationTokenProvided_ThenReturnsNull()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
 		using var cts = new CancellationTokenSource();
 
 		// Act
@@ -266,8 +250,6 @@ public class RemoveAsync_WhenFlagExists(InMemoryTestsFixture fixture) : IClassFi
 	public async Task ThenRemovesFlag()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
-
 		var (options, _) = new FlagConfigurationBuilder("remove-test").WithEvaluationModes(EvaluationMode.On).Build();
 		var cacheKey = CacheKeyFactory.CreateCacheKey(options.Key);
 
@@ -289,7 +271,6 @@ public class RemoveAsync_WhenFlagExists(InMemoryTestsFixture fixture) : IClassFi
 	public async Task If_CancellationTokenProvided_ThenRemovesFlag()
 	{
 		// Arrange
-		await fixture.ClearAllFlags();
 		using var cts = new CancellationTokenSource();
 
 		var (options, _) = new FlagConfigurationBuilder("remove-test").WithEvaluationModes(EvaluationMode.On).Build();
@@ -315,9 +296,6 @@ public class RemoveAsync_WhenFlagDoesNotExist(InMemoryTestsFixture fixture) : IC
 	[Fact]
 	public async Task ThenDoesNotThrow()
 	{
-		// Arrange
-		await fixture.ClearAllFlags();
-
 		// Act & Assert - Should not throw
 		var cacheKey = CacheKeyFactory.CreateCacheKey("non-existent-flag");
 		await fixture.Cache.RemoveAsync(cacheKey);
@@ -333,8 +311,6 @@ public class CacheExpiration_Tests(InMemoryTestsFixture fixture) : IClassFixture
 		// since that would require waiting for the cache duration in the test
 		
 		// Arrange
-		await fixture.ClearAllFlags();
-
 		var (options, _) = new FlagConfigurationBuilder("expiring-flag")
 			.WithEvaluationModes(EvaluationMode.On)
 			.Build();

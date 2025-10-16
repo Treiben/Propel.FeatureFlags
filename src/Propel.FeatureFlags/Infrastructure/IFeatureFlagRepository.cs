@@ -18,7 +18,7 @@ public interface IFeatureFlagRepository
 	/// <param name="cancellationToken">A token to monitor for cancellation requests. The default value is <see cref="CancellationToken.None"/>.</param>
 	/// <returns>An <see cref="EvaluationOptions"/> object containing the evaluation options if found; otherwise, <see
 	/// langword="null"/>.</returns>
-	Task<EvaluationOptions?> GetEvaluationOptionsAsync(string key, CancellationToken cancellationToken = default);
+	Task<EvaluationOptions?> GetEvaluationOptionsAsync(FlagIdentifier identifier, CancellationToken cancellationToken = default);
 
 	/// <summary>
 	/// Creates a new application flag with the specified key, evaluation mode, name, and description.
@@ -32,7 +32,7 @@ public interface IFeatureFlagRepository
 	/// <param name="description">A description of the application flag. Can be null or empty.</param>
 	/// <param name="cancellationToken">A token to monitor for cancellation requests. The default value is <see cref="CancellationToken.None"/>.</param>
 	/// <returns>A task that represents the asynchronous operation.</returns>
-	Task CreateApplicationFlagAsync(string key, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default);
+	Task CreateApplicationFlagAsync(FlagIdentifier identifier, EvaluationMode activeMode, string name, string description, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

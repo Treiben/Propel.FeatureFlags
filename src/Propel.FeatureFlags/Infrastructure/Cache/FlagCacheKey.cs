@@ -5,10 +5,10 @@ namespace Propel.FeatureFlags.Infrastructure.Cache;
 /// <summary>
 /// Represents a cache key with an optional set of components, used to generate a unique key for caching purposes.
 /// </summary>
-/// <remarks>The <see cref="CacheKey"/> class provides a way to construct cache keys with a consistent prefix and
+/// <remarks>The <see cref="FlagCacheKey"/> class provides a way to construct cache keys with a consistent prefix and
 /// optional components. This ensures that cache keys are namespaced and can include additional context when
 /// necessary.</remarks>
-public class CacheKey
+public class FlagCacheKey
 {
 	public const string KEY_PREFIX = "propel-flags";
 
@@ -17,7 +17,7 @@ public class CacheKey
 	public string[]? Components {get; }
 
 
-	public CacheKey(string key, string[]? components = null)
+	protected FlagCacheKey(string key, string[]? components = null)
 	{
 		if (string.IsNullOrWhiteSpace(key))
 		{
@@ -66,10 +66,11 @@ public class CacheKey
 /// Represents a cache key that is globally scoped, ensuring the key is unique across all contexts.
 /// </summary>
 /// <remarks>This class is used to define a cache key that applies globally, rather than being scoped to a
-/// specific context or namespace.  It inherits from <see cref="CacheKey"/> and automatically includes the "global"
+/// specific context or namespace.  It inherits from <see cref="FlagCacheKey"/> and automatically includes the "global"
 /// scope.</remarks>
 /// <param name="key"></param>
-public class GlobalCacheKey(string key) : CacheKey(key, ["global"])
+public class GlobalFlagCacheKey(string key) 
+	: FlagCacheKey(key, ["global"])
 {
 }
 
@@ -79,14 +80,7 @@ public class GlobalCacheKey(string key) : CacheKey(key, ["global"])
 /// <remarks>This class is used to create a cache key that includes the application name and, optionally, the
 /// application version. The key ensures that cached data is uniquely associated with a specific application
 /// context.</remarks>
-public class ApplicationCacheKey : CacheKey
+public class ApplicationFlagCacheKey(string key, string applicationName, string? applicationVersion = null) 
+	: FlagCacheKey(key, applicationVersion == null ? ["app", applicationName] : ["app", applicationName, applicationVersion])
 {
-	public ApplicationCacheKey(string key, string applicationName, string? applicationVersion = null)
-		: base(key, applicationVersion == null ? ["app", applicationName] : ["app", applicationName, applicationVersion])
-	{
-		if (string.IsNullOrWhiteSpace(applicationName))
-		{
-			throw new ArgumentException("Application name cannot be null or empty.", nameof(applicationName));
-		}
-	}
 }
