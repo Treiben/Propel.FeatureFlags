@@ -1,8 +1,11 @@
 ﻿# Propel Feature Flags for .NET
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![NuGet](https://img.shields.io/nuget/v/Propel.FeatureFlags.svg)](https://www.nuget.org/packages/Propel.FeatureFlags/)
-[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4)](https://dotnet.microsoft.com/)
+[![Build and Test](https://github.com/Treiben/Propel.FeatureFlags/actions/workflows/build.yml/badge.svg)](https://github.com/Treiben/Propel.FeatureFlags/actions/workflows/build.yml)
+[![NuGet](https://img.shields.io/nuget/v/Propel.FeatureFlags.svg)](https://www.nuget.org/packages/Propel.FeatureFlags)
+![.NET Standard](https://img.shields.io/badge/.NET%20Standard-2.0-5C2D91?logo=.net)
+![.NET Core](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet)
+![C#](https://img.shields.io/badge/C%23-12.0-239120?logo=csharp)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 A type-safe feature flag library for .NET that separates continuous delivery from release management. Developers define flags in code, product owners control releases through configuration. Supports modern .NET CORE (6+) applications as well as legacy .NET FULL FRAMEWORK (4.7.2+) applications.
 
