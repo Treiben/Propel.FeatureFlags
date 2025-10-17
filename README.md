@@ -1,41 +1,43 @@
-﻿# Propel.FeatureFlags
-[![Build and Test](https://github.com/Treiben/Propel.FeatureFlags/actions/workflows/build.yml/badge.svg)](https://github.com/Treiben/Propel.FeatureFlags/actions/workflows/build.yml)
-[![NuGet](https://img.shields.io/nuget/v/Propel.FeatureFlags.svg)](https://www.nuget.org/packages/Propel.FeatureFlags)
-![.NET Standard](https://img.shields.io/badge/.NET%20Standard-2.0-5C2D91?logo=.net)
-![.NET Core](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet)
-![C#](https://img.shields.io/badge/C%23-12.0-239120?logo=csharp)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+﻿# Propel Feature Flags for .NET
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![NuGet](https://img.shields.io/nuget/v/Propel.FeatureFlags.svg)](https://www.nuget.org/packages/Propel.FeatureFlags/)
+[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4)](https://dotnet.microsoft.com/)
 
-A type-safe feature flag library for .NET that separates continuous delivery from release management. Developers define flags in code, product owners control releases through configuration.
+A type-safe feature flag library for .NET that separates continuous delivery from release management. Developers define flags in code, product owners control releases through configuration. Supports modern .NET CORE (6+) applications as well as legacy .NET FULL FRAMEWORK (4.7.2+) applications.
+
+---
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-- [Configuration](#configuration)
 - [Middleware Configuration](#middleware-configuration)
 - [Evaluation Modes](#evaluation-modes)
 - [Flag Factory Pattern](#flag-factory-pattern)
 - [Application vs Global Flags](#application-vs-global-flags)
-- [Working in legacy application](docs/legacy-dotnet-framework.md)
+- [Caching](#caching-options)
+- [Working in Legacy Applications](./docs/legacy-dotnet-framework.md)
 - [Best Practices](#best-practices)
 - [Examples](#examples)
 - [Package Reference](#package-reference)
-- [Management Dashboard](#management-dashboard)
+- [Management Tools](#management-tools)
 - [Contributing](#contributing)
 - [License](#license)
 - [Support](#support)
 
+---
+
 ## Overview
+
 ### The Problem
 
 Traditional feature flag implementations couple developers to release decisions:
 
 ```csharp
-// Magic strings, no type safety, hard to find during cleanup
-if (config["new-feature"] == "true") 
+// Magic strings, no type safety, hard to find during cleanup, is it a business rule or a feature flag (the dev who did this left long time ago...)?
+if (config["is_something_enabled"] == "true")
 {
     // New implementation
 }
@@ -49,23 +51,25 @@ This makes developers responsible for release timing, rollout strategies, and co
 
 ### The Solution
 
-Propel separates concerns: developers define flags as strongly-typed classes, product owners configure release strategies through a management dashboard.
+Propel separates concerns: developers define flags as strongly-typed classes, product owners configure release strategies through management tools.
 
 **Developer defines the flag once:**
+
 ```csharp
 public class NewCheckoutFeatureFlag : FeatureFlagBase
 {
-    public NewCheckoutFeatureFlag() 
+    public NewCheckoutFeatureFlag()
         : base(key: "new-checkout",
                name: "New Checkout Flow",
                description: "Enhanced checkout with improved UX",
-               onOfMode: EvaluationMode.Off)  // Deploy disabled by default
+               onOfMode: EvaluationMode.Off) // Deploy disabled by default
     {
     }
 }
 ```
 
 **Developer uses the flag in code:**
+
 ```csharp
 var flag = new NewCheckoutFeatureFlag();
 if (await context.IsFeatureFlagEnabledAsync(flag))
@@ -75,7 +79,8 @@ if (await context.IsFeatureFlagEnabledAsync(flag))
 return LegacyCheckoutImplementation();
 ```
 
-**Product owner configures release strategy** (no developer involvement):
+**Product owner configures release strategy (no developer involvement):**
+
 - Schedule: Enable feature on specific date/time
 - Time windows: Enable only during business hours
 - User targeting: Enable for specific users or user groups
@@ -112,57 +117,57 @@ dotnet add package Propel.FeatureFlags.Infrastructure.Redis
 # AOP-style attributes (optional)
 dotnet add package Propel.FeatureFlags.Attributes
 ```
-
 [⬆ Back to top](#table-of-contents)
 
 ## Quick Start
 
-### 1. Configure Services
+### 1. Configure in Program.cs
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-builder.ConfigureFeatureFlags(config =>
-{
-    config.RegisterFlagsWithContainer = true;    // Auto-register all flags in DI
-    config.EnableFlagFactory = true;             // Enable type-safe flag retrieval
-    
-    config.SqlConnection = builder.Configuration
-        .GetConnectionString("DefaultConnection")!;
-    
-    config.Cache = new CacheOptions 
-    {
-        EnableInMemoryCache = true,
-        CacheDurationInMinutes = TimeSpan.FromMinutes(30),
-        SlidingDurationInMinutes = TimeSpan.FromMinutes(10)
-    };
-    
-    // For ASP.NET Core apps with HTTP context-based targeting
-    config.Interception.EnableHttpIntercepter = true;
-    
-    // For console apps or non-HTTP scenarios
-    // config.Interception.EnableIntercepter = true;
-})
-.AddRedisCache(builder.Configuration.GetConnectionString("RedisConnection")!);
+builder.Services
+	.ConfigureFeatureFlags(config =>
+		{
+			config.RegisterFlagsWithContainer = true;   // automatically register all flags in the assembly with the DI container
+			config.EnableFlagFactory = true;            // enable IFeatureFlagFactory for type-safe flag access
+
+			var interception = config.Interception;
+			interception.EnableHttpIntercepter = true;  // automatically add interceptors for attribute-based flags
+		})
+	.AddPostgreSqlFeatureFlags(builder.Configuration.GetConnectionString("DefaultConnection")!)
+	.AddRedisCache(builder.Configuration.GetConnectionString("RedisConnection")!,
+		options =>
+		{
+			options.EnableInMemoryCache = true;         // Enable local in-memory cache as first-level cache
+			options.CacheDurationInMinutes = 2;         // 2 minutes while in development, increase it to like 3 hours for stable production
+			options.LocalCacheSizeLimit = 2000;         // Support more flags
+			options.LocalCacheDurationSeconds = 15;     // Slightly longer local cache
+			options.CircuitBreakerThreshold = 5;        // More tolerant in production
+			options.RedisTimeoutMilliseconds = 7000;    // Longer timeout for remote Redis		
+		});  // Configure caching (optional, but recommended for performance and scalability)
+
+// optional: register your services with methods decorated with [FeatureFlagged] attribute
+builder.Services.RegisterWithFeatureFlagInterception<INotificationService, NotificationService>();
 
 var app = builder.Build();
 
-// Initialize database (development only - use migrations in production)
+// optional: ensure the feature flags database exists and schema is created
 if (app.Environment.IsDevelopment())
 {
-    await app.InitializeFeatureFlagsDatabase();
+	await app.InitializeFeatureFlagsDatabase();
 }
 
-// Auto-deploy all flags defined in code
+// recommended: automatically add flags in the database at startup if they don't exist
 await app.AutoDeployFlags();
 
-// Add middleware for global flag evaluation and context extraction
-app.UseFeatureFlags();
+// optional:add the feature flag middleware to the pipeline for global flags evaluation and to extract evaluation context from request paths or headers
+app.AddFeatureFlagMiddleware("maintenance+headers");
 
 app.Run();
 ```
 
-### 2. Define Feature Flags
+### 2. Define a Feature Flag
 
 ```csharp
 public class NewProductApiFeatureFlag : FeatureFlagBase
@@ -171,20 +176,25 @@ public class NewProductApiFeatureFlag : FeatureFlagBase
         : base(key: "new-product-api",
                name: "New Product API",
                description: "Enhanced product API with improved performance",
-               onOfMode: EvaluationMode.Off)  // Start disabled
+               onOfMode: EvaluationMode.Off) // Start disabled
     {
     }
 }
 ```
 
-### 3. Evaluate Flags
+### 3. Use the Flag
 
 **Direct evaluation:**
+
 ```csharp
 app.MapGet("/products", async (HttpContext context) =>
 {
     var flag = new NewProductApiFeatureFlag();
     
+    // HttpContext extension method for easy evaluation - 
+    // If user identity and/or other attributes are needed from the request
+    // add middleware to the pipeline to enrich the context with evaluation data
+
     if (await context.IsFeatureFlagEnabledAsync(flag))
     {
         return Results.Ok(GetProductsV2());
@@ -195,6 +205,7 @@ app.MapGet("/products", async (HttpContext context) =>
 ```
 
 **Using factory pattern:**
+
 ```csharp
 app.MapGet("/products", async (HttpContext context, IFeatureFlagFactory factory) =>
 {
@@ -210,6 +221,7 @@ app.MapGet("/products", async (HttpContext context, IFeatureFlagFactory factory)
 ```
 
 **Getting variations:**
+
 ```csharp
 app.MapGet("/recommendations/{userId}", async (HttpContext context) =>
 {
@@ -225,7 +237,7 @@ app.MapGet("/recommendations/{userId}", async (HttpContext context) =>
 });
 ```
 
-### 4. Attribute-Based Flags (Optional)
+### 4. Use Attributes for Clean Code
 
 For the cleanest code, use attributes to automatically call fallback methods when flags are disabled:
 
@@ -241,8 +253,8 @@ public interface INotificationService
 
 public class NotificationService : INotificationService
 {
-    [FeatureFlagged(type: typeof(NewEmailServiceFeatureFlag), 
-                     fallbackMethod: nameof(SendEmailLegacyAsync))]
+    [FeatureFlagged(type: typeof(NewEmailServiceFeatureFlag),
+                    fallbackMethod: nameof(SendEmailLegacyAsync))]
     public virtual async Task<string> SendEmailAsync(string userId, string subject, string body)
     {
         // New implementation - called when flag is enabled
@@ -256,60 +268,21 @@ public class NotificationService : INotificationService
     }
 }
 ```
-
 [⬆ Back to top](#table-of-contents)
 
-## Configuration
-
-### PropelConfiguration Options
-
-```csharp
-builder.ConfigureFeatureFlags(config =>
-{
-    // Auto-register all IFeatureFlag implementations in DI container
-    config.RegisterFlagsWithContainer = true;
-    
-    // Enable IFeatureFlagFactory for type-safe flag access
-    config.EnableFlagFactory = true;
-    
-    // Database connection string
-    config.SqlConnection = "Host=localhost;Database=propel;...";
-    
-    // Default timezone for scheduled flags and time windows
-    config.DefaultTimeZone = "UTC";
-    
-    // Caching configuration
-    config.Cache = new CacheOptions
-    {
-        EnableInMemoryCache = true,           // Per-instance cache
-        EnableDistributedCache = false,       // Requires Redis
-        CacheDurationInMinutes = TimeSpan.FromMinutes(30),
-        SlidingDurationInMinutes = TimeSpan.FromMinutes(10)
-    };
-    
-    // AOP interceptor configuration
-    config.Interception = new AOPOptions
-    {
-        EnableHttpIntercepter = true,   // For ASP.NET Core apps
-        EnableIntercepter = false       // For console apps
-    };
-});
-```
-
-### Database Setup
+### Database Providers
 
 **PostgreSQL:**
+
 ```csharp
-builder.ConfigureFeatureFlags(config =>
-{
-    config.SqlConnection = builder.Configuration
-        .GetConnectionString("DefaultConnection")!;
-});
+using Propel.FeatureFlags.PostgreSql.Extensions;
+
+builder.Services.AddPostgreSqlFeatureFlags(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
 // In development, auto-initialize database
 if (app.Environment.IsDevelopment())
 {
-    await app.InitializeFeatureFlagsDatabase();
+	await app.InitializeFeatureFlagsDatabase();
 }
 
 // Optional: seed with SQL script
@@ -317,49 +290,94 @@ if (app.Environment.IsDevelopment())
 ```
 
 **SQL Server:**
+
 ```csharp
 using Propel.FeatureFlags.SqlServer.Extensions;
 
-builder.ConfigureFeatureFlags(config =>
-{
-    config.SqlConnection = builder.Configuration
-        .GetConnectionString("DefaultConnection")!;
-});
+builder.Services.AddSqlServerFeatureFlags(builder.Configuration.GetConnectionString("DefaultConnection")!);
 ```
 
 Both databases support identical functionality. The only difference is in the generated SQL queries.
 
-### Caching
+[⬆ Back to top](#table-of-contents)
 
-**In-Memory Cache** (single instance, fastest):
+### Caching Options
+
+**⚡ Performance Critical:** Feature flag evaluation must be fast enough not to affect application performance. Caching is **optional but highly recommended** for production workloads.
+
+Propel supports **two-level caching** for optimal performance:
+
+#### Two-Level Cache (Recommended for Production)
+
+Best performance with Redis distributed cache + in-memory local cache:
+
 ```csharp
-config.Cache = new CacheOptions
-{
-    EnableInMemoryCache = true
-};
+	.AddRedisCache(builder.Configuration.GetConnectionString("RedisConnection")!,
+		options =>
+		{
+			options.EnableInMemoryCache = true;         // Enable local in-memory cache as first-level cache
+			options.CacheDurationInMinutes = 2;         // 2 minutes while in development, increase it to like 3 hours for stable production
+			options.LocalCacheSizeLimit = 2000;         // Support more flags
+			options.LocalCacheDurationSeconds = 15;     // Slightly longer local cache
+			options.CircuitBreakerThreshold = 5;        // More tolerant in production
+			options.RedisTimeoutMilliseconds = 7000;    // Longer timeout for remote Redis		
+		});  // Configure caching (optional, but recommended for performance and scalability)
 ```
 
-**Distributed Cache** (Redis, shared across instances):
-```csharp
-builder.ConfigureFeatureFlags(config => { ... })
-    .AddRedisCache("localhost:6379");
+**How it works:**
+1. **First check**: Local in-memory cache (sub-millisecond)
+2. **Second check**: Redis distributed cache (1-2ms)
+3. **Final fallback**: Database query (10-50ms)
 
-config.Cache = new CacheOptions
-{
-    EnableDistributedCache = true,
-    CacheDurationInMinutes = TimeSpan.FromMinutes(30),
-    SlidingDurationInMinutes = TimeSpan.FromMinutes(10)
-};
+This provides **microsecond-level performance** for most flag evaluations while keeping flags synchronized across all application instances.
+
+#### Local Cache Only (No Redis)
+
+If Redis is not available in your enterprise environment:
+
+```csharp
+builder.Services
+	.ConfigureFeatureFlags(config =>
+		{
+            ...
+			config.LocalCacheConfiguration = new LocalCacheConfiguration	// Configure caching (optional, but recommended for performance and scalability)
+			{
+				LocalCacheEnabled = true,
+				CacheDurationInMinutes = 10,								// short local cache duration for better consistency,
+				CacheSizeLimit = 1000                                       // limit local cache size to prevent memory bloat
+			};
+            ...
+		});
 ```
 
-**No Cache** (not recommended for production):
+**Trade-offs:**
+- ✅ Still provides excellent performance (sub-millisecond)
+- ✅ No external dependencies
+- ⚠️ Each instance maintains its own cache
+- ⚠️ Flag updates may take up to cache duration to propagate across instances
+- ⚠️ Not suitable for high-frequency flag changes
+
+**Recommendation:** Use shorter cache durations (1-5 minutes) when Redis is not available to reduce propagation delay.
+
+#### No Cache (Not Recommended)
+
+Only for development or very low-traffic scenarios:
+
 ```csharp
-config.Cache = new CacheOptions
-{
-    EnableInMemoryCache = false,
-    EnableDistributedCache = false
-};
+builder.Services
+	.ConfigureFeatureFlags(config =>
+		{
+            ...
+            // default is disabled local caching but you can also set it explicitly
+			config.LocalCacheConfiguration = new LocalCacheConfiguration
+			{
+				LocalCacheEnabled = false, // set it to false or don't setup at all
+			};
+            ...
+		});
 ```
+
+**Warning:** Every flag evaluation hits the database. This can significantly impact performance under load.
 
 [⬆ Back to top](#table-of-contents)
 
@@ -367,13 +385,11 @@ config.Cache = new CacheOptions
 
 The middleware handles global flags, maintenance mode, and extracts context (user ID, attributes) from HTTP requests.
 
-### Basic Configuration
-
 ```csharp
-app.UseFeatureFlags();  // Default configuration
+app.UseFeatureFlags(); // Default configuration
 ```
 
-### Maintenance Mode
+### Enable Global Kill Switch
 
 Enable global kill switch for the entire API:
 
@@ -393,7 +409,7 @@ app.UseFeatureFlags(options =>
 
 When the `api-maintenance` global flag is enabled, all requests return 503 with the configured response.
 
-### Custom User ID Extraction
+### Extract User Identity
 
 Extract user identity from JWT tokens, API keys, or headers:
 
@@ -416,7 +432,7 @@ app.UseFeatureFlags(options =>
 });
 ```
 
-### Attribute Extractors for Targeting Rules
+### Extract Custom Attributes
 
 Extract attributes from requests to enable complex targeting:
 
@@ -445,7 +461,7 @@ app.UseFeatureFlags(options =>
 });
 ```
 
-### Complete Example
+### Combined Configuration
 
 Combine maintenance mode with attribute extraction:
 
@@ -538,8 +554,8 @@ Application flags are defined in code and scoped to specific applications. They 
 ```csharp
 public class MyFeatureFlag : FeatureFlagBase
 {
-    public MyFeatureFlag() 
-        : base(key: "my-feature", 
+    public MyFeatureFlag()
+        : base(key: "my-feature",
                name: "My Feature",
                description: "Description of my feature",
                onOfMode: EvaluationMode.Off)
@@ -557,7 +573,7 @@ var isEnabled = await context.IsFeatureFlagEnabledAsync(flag);
 Global flags are created through the management dashboard and apply system-wide across all applications. Use them for:
 
 - Maintenance mode
-- API deprecation
+- API deprecation  
 - System-wide kill switches
 
 ```csharp
@@ -571,7 +587,7 @@ var isEnabled = await globalFlagClient.IsEnabledAsync("api-maintenance");
 
 ## Best Practices
 
-### 1. Default to Disabled
+### 1. Always Deploy Disabled
 
 Always set `onOfMode: EvaluationMode.Off` when defining new flags. This allows you to deploy code without immediately releasing the feature.
 
@@ -582,7 +598,7 @@ public class NewFeatureFlag : FeatureFlagBase
         : base(key: "new-feature",
                name: "New Feature",
                description: "Description",
-               onOfMode: EvaluationMode.Off)  // ✅ Deploy first, release later
+               onOfMode: EvaluationMode.Off) // ✅ Deploy first, release later
     {
     }
 }
@@ -590,11 +606,12 @@ public class NewFeatureFlag : FeatureFlagBase
 
 This separates deployment from release. Developers deploy the code, product owners control when it's released by enabling the flag in the dashboard.
 
-### 2. Never Use Feature Flags for Business Logic
+### 2. Feature Flags Control "How", Not "What"
 
-Feature flags control *how* your application behaves technically, not *what* it does from a business perspective.
+Feature flags control how your application behaves technically, not what it does from a business perspective.
 
 **❌ Wrong - Business Logic:**
+
 ```csharp
 // DON'T use flags to control which users have access to premium features
 if (await IsFeatureFlagEnabled("premium-features"))
@@ -616,13 +633,14 @@ if (await IsFeatureFlagEnabled("admin-access"))
 ```
 
 **✅ Correct - Technical Implementation:**
+
 ```csharp
 // DO use flags to test new technical implementations
 if (await IsFeatureFlagEnabled("new-pricing-algorithm"))
 {
-    return CalculatePricingV2();  // New algorithm
+    return CalculatePricingV2(); // New algorithm
 }
-return CalculatePricingV1();      // Old algorithm
+return CalculatePricingV1(); // Old algorithm
 
 // DO use flags for infrastructure changes
 if (await IsFeatureFlagEnabled("new-email-service"))
@@ -641,7 +659,7 @@ return RenderLegacyCheckoutComponent();
 
 **Why this matters:** Business logic belongs in your domain layer and should be driven by data (user roles, subscription tiers, entitlements). Feature flags are for deployment safety, gradual rollouts, and A/B testing technical implementations.
 
-### 3. Clean Up Expired Flags
+### 3. Clean Up Old Flags
 
 Feature flags are temporary. Delete them when:
 
@@ -659,6 +677,7 @@ Feature flags are temporary. Delete them when:
 
 ```csharp
 // After rollout is complete and you've decided to keep v2
+
 // 1. Delete this class
 public class NewCheckoutFeatureFlag : FeatureFlagBase { ... }
 
@@ -671,7 +690,7 @@ if (await context.IsFeatureFlagEnabledAsync(new NewCheckoutFeatureFlag()))
 return LegacyCheckout();
 
 // After:
-return NewCheckout();  // New implementation is now the standard
+return NewCheckout(); // New implementation is now the standard
 
 // 3. Delete flag from database via dashboard
 ```
@@ -696,11 +715,12 @@ public class EnhancedRecommendationEngineFeatureFlag : FeatureFlagBase
 }
 ```
 
-### 5. Safety Through Auto-Recreation
+### 5. Safety Mechanism: Auto-Recreation
 
 Propel automatically recreates flags that are missing from the database. This prevents production errors if a flag is accidentally deleted from the database.
 
 If a flag is evaluated but doesn't exist in the database:
+
 1. Propel creates it with the default state from code (`onOfMode`)
 2. The evaluation continues using the default state
 3. Product owners can then configure the flag in the dashboard
@@ -713,21 +733,28 @@ This safety mechanism ensures your application never crashes due to missing flag
 
 Complete working examples are available in the `/usage-demo` directory:
 
-- **[WebClientDemo](usage-demo/DemoWebApi)** - ASP.NET Core Web API demonstrating:
-  - Simple on/off flags
-  - Scheduled releases
-  - Time window flags
-  - Percentage rollouts with variations
-  - User targeting with custom attributes
-  - Attribute-based flags with interceptors
+### [WebClientDemo](./usage-demo/DemoWebApi)
 
-- **[ConsoleAppDemo](usage-demo/DemoWorker)** - Console worker application demonstrating:
-  - Background service integration
-  - Attribute-based flags without HTTP context
-  - Direct flag evaluation via `IApplicationFlagClient`
-  - Using `IFeatureFlagFactory` for type-safe access
+ASP.NET Core Web API demonstrating:
+- Simple on/off flags
+- Scheduled releases
+- Time window flags
+- Percentage rollouts with variations
+- User targeting with custom attributes
+- Attribute-based flags with interceptors for minimal api http calls
 
-- **[Legacy .NET Framework](usage-demo/DemoLegacyApi)** - Working with full .NET Framework applications ([documentation](docs/legacy-dotnet-framework.md))
+### [ConsoleAppDemo](./usage-demo/DemoWorker)
+
+Console worker application demonstrating:
+- Background service integration
+- Attribute-based flags without HTTP context
+- Direct flag evaluation via `IApplicationFlagClient`
+- Using `IFeatureFlagFactory` for type-safe access
+- Attribute-based flags with interceptors for non-http calls
+
+### [Legacy .NET Framework](./usage-demo/DemoLegacyApi)
+
+Working with full .NET Framework applications ([documentation](./docs/legacy-dotnet-framework.md))
 
 [⬆ Back to top](#table-of-contents)
 
@@ -736,44 +763,105 @@ Complete working examples are available in the `/usage-demo` directory:
 | Package | Purpose | Target Framework |
 |---------|---------|------------------|
 | `Propel.FeatureFlags` | Core library and interfaces | .NET Standard 2.0 |
-| `Propel.FeatureFlags.AspNetCore` | ASP.NET Core middleware and extensions | .NET 9.0 |
-| `Propel.FeatureFlags.Infrastructure.PostgresSql` | PostgreSQL persistence | .NET 9.0 |
-| `Propel.FeatureFlags.Infrastructure.SqlServer` | SQL Server persistence | .NET 9.0 |
-| `Propel.FeatureFlags.Infrastructure.Redis` | Redis distributed caching | .NET Standard 2.0 |
-| `Propel.FeatureFlags.Attributes` | AOP-style method attributes | .NET 9.0 |
+| `Propel.FeatureFlags.AspNetCore` | ASP.NET Core middleware and extensions | .NET Standard 2.0 |
+| `Propel.FeatureFlags.DependencyInjection.Extensions` | Advanced DI registration helpers | .NET Standard 2.0 |
+| `Propel.FeatureFlags.PostgresSql` | PostgreSQL persistence provider | .NET 9.0 |
+| `Propel.FeatureFlags.SqlServer` | SQL Server persistence provider | .NET 9.0 |
+| `Propel.FeatureFlags.Redis` | Redis distributed caching | .NET Standard 2.0 |
+| `Propel.FeatureFlags.Attributes` | AOP-style method attributes | .NET Standard 2.0 |
 
 [⬆ Back to top](#table-of-contents)
 
-## Management Dashboard
+## Management Tools
 
-The [Propel.FeatureFlags.Dashboard](https://github.com/Treiben/Propel.FeatureFlags.Dashboard) provides a web interface for product owners to:
+Propel provides multiple tools for managing feature flags:
 
-- View all application flags deployed from code
-- Configure evaluation modes (scheduled, time windows, targeting, rollouts)
-- Set up targeting rules based on custom attributes
-- Monitor flag usage and expiration dates
-- Manage global flags for system-wide concerns
+### 🎯 [Propel Dashboard](https://github.com/Treiben/propel-dashboard)
 
-The dashboard is under development and will be released separately.
+Web-based management interface for product owners and DevOps teams:
+
+- **Visual Flag Management** - View all application flags deployed from code
+- **Release Configuration** - Configure evaluation modes (scheduled, time windows, targeting, rollouts)
+- **Targeting Rules** - Set up complex targeting based on custom attributes
+- **Rollout Controls** - Percentage-based rollouts for gradual feature releases
+- **Global Flags** - Manage system-wide flags (maintenance mode, kill switches)
+- **Monitoring** - Track flag usage and expiration dates
+- **User Management** - Role-based access control
+
+**Quick Start:**
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -e SQL_CONNECTION="Host=your-postgres;Database=propel;..." \
+  propel/feature-flags-dashboard:latest
+```
+
+Access at `http://localhost:8080` (default credentials: `admin` / `Admin123!`)
+
+### 🔧 [Propel CLI](https://github.com/Treiben/propel-cli)
+
+Command-line tool for automation and CI/CD pipelines:
+
+- **Database Migrations** - Run schema migrations in pipelines
+- **Flag Management** - Create, update, and delete flags from terminal
+- **Configuration Export/Import** - Backup and restore flag configurations
+- **Bulk Operations** - Manage multiple flags at once
+- **Pipeline Integration** - Perfect for GitOps workflows
+
+**Installation:**
+```bash
+dotnet tool install -g Propel.FeatureFlags.Cli
+```
+
+**Common Commands:**
+```bash
+# Run migrations
+propel migrate --connection "Host=postgres;..."
+
+# List all flags
+propel flags list
+
+# Enable a flag
+propel flags enable --key new-checkout
+
+# Export configuration
+propel export --output flags-backup.json
+```
+
+### Which Tool to Use?
+
+| Scenario | Recommended Tool |
+|----------|------------------|
+| Product owners configuring releases | Dashboard |
+| DevOps setting up maintenance windows | Dashboard |
+| CI/CD pipeline migrations | CLI |
+| Automated flag management | CLI |
+| Manual testing and verification | Dashboard |
+| Bulk configuration changes | CLI |
 
 [⬆ Back to top](#table-of-contents)
 
 ## Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
-[⬆ Back to top](#table-of-contents)
+---
 
 ## License
 
-Apache-2.0 License - see [LICENSE](LICENSE) file for details.
+Apache-2.0 License - see [LICENSE](./LICENSE) file for details.
 
-[⬆ Back to top](#table-of-contents)
+---
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/Treiben/Propel.FeatureFlags/issues)
-- **Documentation**: [Wiki](https://github.com/Treiben/Propel.FeatureFlags/wiki)
-- **Examples**: [usage-demo/](usage-demo/)
+- **Issues**: [GitHub Issues](https://github.com/Treiben/propel-feature-flags-csharp/issues)
+- **Examples**: [usage-demo/](./usage-demo)
+- **Dashboard**: [propel-dashboard](https://github.com/Treiben/propel-dashboard)
+- **CLI**: [propel-cli](https://github.com/Treiben/propel-cli)
+
+---
+
+**Built with ❤️ for .NET developers by Tatyana Asriyan**
 
 [⬆ Back to top](#table-of-contents)
