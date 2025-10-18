@@ -1,12 +1,12 @@
 <Project>
   <PropertyGroup>
-    <Version>2.1.0-beta.1.2</Version>
-    <PackageVersion>2.1.0-beta.1.2</PackageVersion>
+    <Version>2.1.1-beta.1.2</Version>
+    <PackageVersion>2.1.1-beta.1.2</PackageVersion>
     <AssemblyVersion>1.0.0.1</AssemblyVersion>
     <FileVersion>1.0.0.1</FileVersion>
     
     <Authors>Tatyana Asriyan</Authors>
-    <Company>Propel</Company>
+    <Company>Treiben</Company>
     
     <PackageProjectUrl>https://github.com/Treiben</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Treiben/Propel.FeatureFlags</RepositoryUrl>
@@ -19,7 +19,7 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
+    <None Include="$(MSBuildProjectDirectory)/README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
